@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "echo 'no build: static site/ + api/ functions'",
+  "outputDirectory": "site",
+  "functions": {
+    "api/coach.ts": { "maxDuration": 120, "memory": 1024 }
+  }
+}

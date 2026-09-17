@@ -1,0 +1,93 @@
+# 출시 가이드 (App Store · Google Play)
+
+코드는 출시 가능한 상태로 준비돼 있습니다. 아래 단계 중 **계정·결제·서명**은 사람이 직접 해야 하는 항목입니다.
+사람이 해야 하는 항목은 🙋 표시, 터미널에서 실행하는 항목은 💻 표시입니다.
+
+## 0. 준비물 체크리스트
+
+| 항목 | 필요한 이유 | 비용 |
+|---|---|---|
+| 🙋 Apple Developer Program 가입 | iOS 빌드 서명 + App Store 제출 | 연 $99 (승인까지 최대 48시간) |
+| 🙋 Google Play Console 개발자 등록 | Android 제출 | 1회 $25 (신원 확인 필요) |
+| 🙋 Expo 계정 (expo.dev) | EAS Build/Submit 클라우드 빌드 | 무료 플랜 가능 |
+| 🙋 Anthropic API 키 (console.anthropic.com) | AI 코치 서버 동작 | 사용량 과금 |
+| 🙋 Vercel 계정 | 코치 API 프록시 + 개인정보 처리방침 페이지 호스팅 | 무료 플랜 가능 |
+
+> ⚠️ 2024년 이후 Google Play는 **개인 개발자 신규 계정**에 "12명 이상 테스터로 14일 이상 비공개 테스트" 를 요구합니다. 오늘 당장 프로덕션 공개는 Google 정책상 불가능할 수 있으니, **내부 테스트 트랙**으로 먼저 올리는 것을 기본 계획으로 잡았습니다 (`eas.json` 의 `track: internal`).
+
+## 1. 코치 서버 배포 (Vercel) 💻
+
+```bash
+npm i -g vercel
+vercel login
+vercel link                       # 새 프로젝트로 연결 (root = 저장소 루트)
+vercel env add ANTHROPIC_API_KEY production   # sk-ant-... 입력
+vercel env add COACH_APP_TOKEN production     # 임의의 긴 문자열 (선택)
+vercel --prod
+```
+
+배포 주소(예: `https://mylovecoach.vercel.app`)를 확인한 뒤
+
+- `eas.json` 의 `EXPO_PUBLIC_API_URL` 값을 배포 주소로 바꾸고,
+- `COACH_APP_TOKEN` 을 설정했다면 `EXPO_PUBLIC_API_TOKEN` 도 같은 값으로 `eas.json` 각 프로필의 `env` 에 추가하세요.
+- `site/privacy.html`, `site/terms.html` 이 자동으로 호스팅됩니다. 스토어 심사에 필요한 URL 입니다.
+
+동작 확인:
+
+```bash
+curl -X POST https://<배포주소>/api/coach -H 'content-type: application/json' \
+  -d '{"crush":{"name":"민지","gender":"female","relationship":"talking","style":[],"notes":""},"user":{"name":"지훈","gender":"male","style":[]},"tone":"natural","text":"첫 메시지 뭐라고 보낼까?","history":[]}'
+```
+
+## 2. EAS 프로젝트 연결 💻
+
+```bash
+npm i -g eas-cli
+eas login
+eas init                          # app.json 의 extra.eas.projectId 자동 기록
+```
+
+## 3. iOS 빌드 & 제출
+
+1. 🙋 App Store Connect → *나의 앱 → +* 로 앱 생성 (이름 **나만의 연애코치**, 번들 ID `app.mylovecoach.ios`, SKU 임의).
+2. 🙋 생성된 앱의 **Apple ID(숫자)** 와 개발자 계정의 **Team ID** 를 `eas.json` → `submit.production.ios` 에 입력.
+3. 💻 빌드 & 제출
+
+```bash
+eas build --platform ios --profile production      # 처음엔 Apple 로그인 + 인증서/프로비저닝 자동 생성
+eas submit --platform ios --latest
+```
+
+4. 🙋 App Store Connect 에서 스크린샷(6.7", 6.5" 필수), 설명(`docs/STORE_LISTING.md`), 개인정보 처리방침 URL, 연령 등급(17+ 권장: 잦은/강한 성적 내용 아님 → "드문/경미한 성숙한 테마" 선택), **App Privacy** 항목 입력 후 심사 제출.
+   - App Privacy: "데이터 수집 안 함" 이 아니라 **사진/이미지(앱 기능, 사용자와 연결되지 않음, 추적 안 함)** 와 **기타 사용자 콘텐츠** 로 신고하세요. 서버에 저장하지는 않지만 처리 목적으로 전송되기 때문입니다.
+   - 심사 메모에 "AI 코칭은 사용자가 업로드한 캡처를 Anthropic API 로 분석하며 서버에 저장하지 않음" 을 적어두면 통과가 빠릅니다.
+
+## 4. Android 빌드 & 제출
+
+1. 🙋 Play Console → *앱 만들기* (이름 **나만의 연애코치**, 기본 언어 한국어, 무료 앱).
+2. 🙋 Play Console → *설정 → API 액세스* 에서 서비스 계정을 만들고 JSON 키를 다운로드 → 저장소 루트에 `google-play-service-account.json` 으로 저장 (gitignore 되어 있음). 서비스 계정에 앱의 *릴리스 관리자* 권한 부여.
+3. 💻
+
+```bash
+eas build --platform android --profile production   # 키스토어 자동 생성 (EAS 가 보관)
+eas submit --platform android --latest              # 내부 테스트 트랙에 초안 업로드
+```
+
+4. 🙋 Play Console 에서 **첫 AAB 는 콘솔에서 수동 업로드**를 요구할 수 있습니다. 그 경우 `eas build` 결과의 .aab 를 받아 *테스트 → 내부 테스트* 에 직접 올린 뒤 이후부터 `eas submit` 사용.
+5. 🙋 스토어 등록정보(설명·스크린샷·그래픽 이미지 1024×500), 개인정보 처리방침 URL, 데이터 보안 양식(사진 → 앱 기능 목적, 암호화 전송, 삭제 요청 가능), 콘텐츠 등급 설문, 대상 연령 작성.
+
+## 5. 출시 전 최종 점검 💻
+
+```bash
+npm run typecheck && npm test && npm run lint
+npx expo-doctor
+```
+
+## 6. 이후 업데이트
+
+- 버전은 `app.json` 의 `version` 만 올리면 됩니다. `buildNumber`/`versionCode` 는 EAS 가 원격에서 자동 증가(`autoIncrement`).
+- 프롬프트/모델 변경은 `src/lib/coach-schema.ts` 한 곳에서 관리되며, 서버만 재배포하면 앱 업데이트 없이 반영됩니다.
+
+## 스크린샷 촬영 팁
+
+`npx expo start --web` 후 브라우저 개발자 도구를 iPhone 15 Pro Max(430×932) 로 맞춰 촬영하거나, `eas build --profile preview` 로 만든 앱을 실기기에 설치해 촬영하세요. 채팅방에 캡처를 올린 결과 화면, 홈 목록, 온보딩 1장, 팁 화면 순서를 추천합니다.

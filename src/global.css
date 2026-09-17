@@ -1,0 +1,5 @@
+:root {
+  --font-display: system-ui, -apple-system, "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+}
+html, body, #root { height: 100%; }
+body { margin: 0; font-family: var(--font-display); -webkit-font-smoothing: antialiased; }
