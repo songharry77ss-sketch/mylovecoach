@@ -99,6 +99,56 @@ npx expo-doctor
 - `assets/images/icon.png` – 앱 아이콘 1024×1024
 - 등록 문구: `docs/STORE_LISTING.md`
 
+## 권장 경로: GitHub Actions 로 빌드·업로드 (월하와 동일한 방식, Expo/Codemagic 계정 불필요)
+
+월하 출시 때 만든 열쇠 폴더(`C:\Users\shsop\wolha-secrets`)를 그대로 재사용합니다.
+App Store Connect API 키·팀 ID·배포 인증서는 팀 단위라 새 앱에도 그대로 쓰이고, Android 업로드 키만 이 앱용으로 새로 만듭니다.
+
+| 워크플로 | 러너 | 하는 일 |
+|---|---|---|
+| `.github/workflows/ios.yml` | macos-15 | `expo prebuild` → 번들 ID·인증서·프로파일 자동 생성(codemagic-cli-tools) → IPA → App Store Connect 업로드(TestFlight) |
+| `.github/workflows/android.yml` | ubuntu | `expo prebuild` → 업로드 키로 서명한 AAB → 산출물 저장, `track` 지정 시 Play Console 트랙 업로드 |
+
+### 1. PC 에서 시크릿 등록 (5분) 💻
+
+```bash
+git clone https://github.com/songharry77ss-sketch/mylovecoach -b claude/jolly-pascal-tr47bw
+cd mylovecoach
+node tools/set-ci-secrets.mjs --api-url https://<코치서버주소>   # 서버를 아직 안 올렸으면 --api-url 생략
+```
+
+스크립트가 하는 일: `wolha-secrets` 의 `asc-key.p8`/`asc-key.txt`/`apns-key.txt`(+ `*.p12` 가 있으면) 를 읽어 GitHub 시크릿 등록,
+Android 업로드 키(`mylovecoach-upload.jks`) 가 없으면 생성, App Store Connect 에 번들 ID `app.mylovecoach.ios` 등록.
+`gh auth login` 이 되어 있어야 합니다 (월하 때 사용).
+
+### 2. 스토어에 앱 만들기 🙋
+
+- **App Store Connect** → 나의 앱 → + → 이름 `나만의 연애코치`, 번들 ID `app.mylovecoach.ios`(1번이 등록해 둠), SKU `mylovecoach`, 기본 언어 한국어.
+- **Play Console** → 앱 만들기 → 이름 `나만의 연애코치`, 기본 언어 한국어, 앱, 무료.
+
+### 3. 빌드 실행 💻 (또는 Claude 에게 "빌드 돌려줘")
+
+```bash
+gh workflow run ios.yml --repo songharry77ss-sketch/mylovecoach --ref claude/jolly-pascal-tr47bw
+gh workflow run android.yml --repo songharry77ss-sketch/mylovecoach --ref claude/jolly-pascal-tr47bw
+```
+
+- iOS: 20~30분 뒤 TestFlight 에 빌드가 나타납니다. App Store Connect 에서 버전 정보·스크린샷을 채우고 심사 제출.
+- Android: Actions 산출물(`mylovecoach-android-<versionCode>.aab`) 을 내려받아 Play Console **내부 테스트**에 첫 업로드(새 앱은 첫 AAB 를 콘솔에서 올려야 API 업로드가 열립니다). 이후부터는 `-f track=internal` 로 자동 업로드.
+  Play 서비스 계정에 이 앱 권한을 주려면 Play Console → 사용자 및 권한 → 서비스 계정 → 앱 추가.
+
+### 4. 코치 서버 (Vercel, 3분) 🙋
+
+Vercel 대시보드 → Add New Project → GitHub 에서 `mylovecoach` 가져오기 → Environment Variables 에
+`GEMINI_API_KEY`(발급한 키), `AI_PROVIDER=gemini` 추가 → Deploy. 주소가 나오면 1번을 `--api-url` 과 함께 다시 실행하고 앱을 다시 빌드합니다.
+(개인정보 처리방침 URL 은 `<주소>/privacy.html`)
+
+---
+
+## 대안 경로: EAS Build (Expo 계정이 있을 때)
+
+`eas.json` 이 준비돼 있어 `eas build` / `eas submit` 으로도 올릴 수 있습니다. 아래는 그 방법입니다.
+
 ## 사용자 PC 에서 실행할 명령 (요약)
 
 > 이 저장소를 만든 클라우드 세션에서는 Expo/Vercel/Google 서버 접근이 차단돼 있어 빌드·제출은 PC 에서 실행해야 합니다.

@@ -20,9 +20,6 @@
         "CFBundleDisplayName": "연애코치",
         "NSPhotoLibraryUsageDescription": "대화 캡처와 상대 사진을 불러오기 위해 사진 보관함 접근 권한이 필요해요. 사진은 기기에만 저장되고 코칭 요청에만 사용돼요.",
         "NSCameraUsageDescription": "상대 프로필 사진을 촬영하기 위해 카메라 권한이 필요해요."
-      },
-      "config": {
-        "usesNonExemptEncryption": false
       }
     },
     "android": {
@@ -40,8 +37,7 @@
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ],
-      "predictiveBackGestureEnabled": false,
-      "edgeToEdgeEnabled": true
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "single",

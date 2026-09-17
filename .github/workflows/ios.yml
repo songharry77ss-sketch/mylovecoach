@@ -1,0 +1,130 @@
+name: iOS TestFlight
+
+# 수동 실행: gh workflow run ios.yml  (또는 GitHub → Actions → iOS TestFlight → Run workflow)
+# 필요한 시크릿: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8_BASE64, APPLE_TEAM_ID
+#              + IOS_DISTRIBUTION_P12_BASE64/IOS_DISTRIBUTION_P12_PASSWORD (기존 배포 인증서)
+#                또는 IOS_CERT_PRIVATE_KEY_BASE64 (새 인증서를 만들 개인키 PEM)
+# 변수(선택): EXPO_PUBLIC_API_URL — 코치 서버 주소 (Vercel 배포 주소)
+# 인증서·프로비저닝 프로파일·번들 ID 등록은 codemagic-cli-tools 가 App Store Connect API 로 자동 처리한다 (Mac 불필요).
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: '빌드 번호 (정수, 비우면 100 + 실행 번호)'
+        required: false
+        type: string
+      submit_to_testflight:
+        description: 'TestFlight 로 업로드'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  BUNDLE_ID: app.mylovecoach.ios
+  XCODE_WORKSPACE: ios/app.xcworkspace
+  XCODE_SCHEME: app
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 90
+    concurrency:
+      group: ios-testflight
+      cancel-in-progress: false
+    env:
+      APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.ASC_KEY_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      IOS_DISTRIBUTION_P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_P12_BASE64 }}
+      IOS_DISTRIBUTION_P12_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_P12_PASSWORD }}
+      IOS_CERT_PRIVATE_KEY_BASE64: ${{ secrets.IOS_CERT_PRIVATE_KEY_BASE64 }}
+      EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
+      EXPO_PUBLIC_API_TOKEN: ${{ secrets.EXPO_PUBLIC_API_TOKEN }}
+      BUILD_NUMBER_INPUT: ${{ inputs.build_number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: 시크릿 확인
+        run: |
+          for name in APP_STORE_CONNECT_KEY_IDENTIFIER APP_STORE_CONNECT_ISSUER_ID ASC_KEY_P8_BASE64 APPLE_TEAM_ID; do
+            if [ -z "${!name}" ]; then echo "::error::시크릿 누락: $name"; exit 1; fi
+          done
+          if [ -z "$IOS_DISTRIBUTION_P12_BASE64" ] && [ -z "$IOS_CERT_PRIVATE_KEY_BASE64" ]; then
+            echo "::error::IOS_DISTRIBUTION_P12_BASE64 또는 IOS_CERT_PRIVATE_KEY_BASE64 중 하나가 필요합니다"; exit 1
+          fi
+          if [ -z "$EXPO_PUBLIC_API_URL" ]; then echo "::warning::EXPO_PUBLIC_API_URL 변수가 비어 있어 앱이 개인 API 키 모드로만 동작합니다"; fi
+      - run: bash tools/select-xcode.sh
+      - run: npm ci
+      - name: 네이티브 프로젝트 생성 (expo prebuild) + CocoaPods
+        run: |
+          npx expo prebuild --platform ios --no-install
+          cd ios && pod install --repo-update
+      - name: codemagic-cli-tools 설치 (App Store Connect 서명 자동화)
+        run: |
+          python3 -m pip install --user --quiet codemagic-cli-tools
+          echo "$(python3 -c 'import site; print(site.USER_BASE)')/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: 서명 자료 준비 (API 키 · 인증서 개인키)
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$RUNNER_TEMP/signing"
+          printf '%s' "$ASC_KEY_P8_BASE64" | tr -d ' \t\r\n' | base64 --decode > "$RUNNER_TEMP/signing/AuthKey.p8"
+          echo "APP_STORE_CONNECT_PRIVATE_KEY<<EOF_KEY" >> "$GITHUB_ENV"; cat "$RUNNER_TEMP/signing/AuthKey.p8" >> "$GITHUB_ENV"; echo "EOF_KEY" >> "$GITHUB_ENV"
+          if [ -n "$IOS_DISTRIBUTION_P12_BASE64" ]; then
+            printf '%s' "$IOS_DISTRIBUTION_P12_BASE64" | tr -d ' \t\r\n' | base64 --decode > "$RUNNER_TEMP/signing/dist.p12"
+            openssl pkcs12 -in "$RUNNER_TEMP/signing/dist.p12" -nocerts -nodes -legacy -passin "pass:$IOS_DISTRIBUTION_P12_PASSWORD" -out "$RUNNER_TEMP/signing/cert_key.pem" 2>/dev/null \
+              || openssl pkcs12 -in "$RUNNER_TEMP/signing/dist.p12" -nocerts -nodes -passin "pass:$IOS_DISTRIBUTION_P12_PASSWORD" -out "$RUNNER_TEMP/signing/cert_key.pem"
+            echo "기존 배포 인증서의 개인키를 사용합니다"
+          else
+            printf '%s' "$IOS_CERT_PRIVATE_KEY_BASE64" | tr -d ' \t\r\n' | base64 --decode > "$RUNNER_TEMP/signing/cert_key.pem"
+            echo "제공된 개인키로 배포 인증서를 조회/생성합니다"
+          fi
+          head -1 "$RUNNER_TEMP/signing/cert_key.pem" | grep -q "PRIVATE KEY" || { echo "::error::개인키 PEM 형식이 아닙니다"; exit 1; }
+      - name: 인증서 · 프로비저닝 프로파일 · 번들 ID (자동 생성)
+        run: |
+          set -euo pipefail
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --certificate-key="@file:$RUNNER_TEMP/signing/cert_key.pem" \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles --project ios/app.xcodeproj
+      - name: 빌드 번호 설정
+        run: |
+          n="${BUILD_NUMBER_INPUT:-$((100 + GITHUB_RUN_NUMBER))}"
+          [[ "$n" =~ ^[1-9][0-9]*$ ]] || { echo "::error::빌드 번호는 정수여야 합니다"; exit 1; }
+          echo "BUILD_NUMBER=$n" >> "$GITHUB_ENV"
+          (cd ios && agvtool new-version -all "$n")
+      - name: IPA 빌드
+        run: |
+          xcode-project build-ipa --workspace "$XCODE_WORKSPACE" --scheme "$XCODE_SCHEME"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mylovecoach-ios-${{ env.BUILD_NUMBER }}
+          path: build/ios/ipa/*.ipa
+          retention-days: 14
+      - name: TestFlight 업로드
+        if: ${{ inputs.submit_to_testflight }}
+        run: |
+          app-store-connect publish --path 'build/ios/ipa/*.ipa'
+          echo "업로드 완료 → App Store Connect 처리(5~15분) 후 TestFlight 에 나타납니다"
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ios-failure-logs-${{ github.run_id }}
+          path: /tmp/xcodebuild_logs/
+          retention-days: 7
+      - name: 서명 자료 정리
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/signing"
