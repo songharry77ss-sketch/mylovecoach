@@ -117,7 +117,9 @@ async function main() {
   // 4) 스크린샷 (6.7", 1290×2796)
   if (vloc)
     await step('스크린샷 6.7"', async () => {
-      const dir = join(repo, 'docs', 'store-assets', 'ios-6.7');
+      // 카피가 들어간 홍보용 이미지(scripts/make-store-shots.py)가 있으면 그것을 쓴다
+      const framed = join(repo, 'docs', 'store-assets', 'ios-6.7-framed');
+      const dir = existsSync(framed) ? framed : join(repo, 'docs', 'store-assets', 'ios-6.7');
       const files = readdirSync(dir).filter((f) => /\.png$/i.test(f)).sort();
       const sets = await api('GET', `/v1/appStoreVersionLocalizations/${vloc.id}/appScreenshotSets`);
       let set = sets.data.find((s) => s.attributes.screenshotDisplayType === 'APP_IPHONE_67');
