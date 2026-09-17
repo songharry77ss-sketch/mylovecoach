@@ -19,11 +19,14 @@ interface ComposerProps {
   image: PickedImage | null;
   onPickImage: () => void;
   onClearImage: () => void;
-  onSend: (text: string) => void;
+  /** false 를 돌려주면 보내지 않은 것으로 보고 입력한 글을 그대로 둔다 */
+  onSend: (text: string) => boolean | void;
   sending?: boolean;
+  /** 입력창 위에 보여 줄 안내 (무료 횟수 등) */
+  notice?: { text: string; actionLabel?: string; onAction?: () => void; emphasized?: boolean } | null;
 }
 
-export function Composer({ tone, onToneChange, image, onPickImage, onClearImage, onSend, sending }: ComposerProps) {
+export function Composer({ tone, onToneChange, image, onPickImage, onClearImage, onSend, sending, notice }: ComposerProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [text, setText] = useState('');
@@ -31,12 +34,29 @@ export function Composer({ tone, onToneChange, image, onPickImage, onClearImage,
 
   const submit = () => {
     if (!canSend) return;
-    onSend(text.trim());
+    if (onSend(text.trim()) === false) return;
     setText('');
   };
 
   return (
     <View style={[styles.wrap, { backgroundColor: theme.background, borderTopColor: theme.border, paddingBottom: insets.bottom + Spacing.sm }]}>
+      {notice ? (
+        <Pressable
+          accessibilityRole={notice.onAction ? 'button' : 'text'}
+          onPress={notice.onAction}
+          disabled={!notice.onAction}
+          style={[styles.notice, { backgroundColor: notice.emphasized ? theme.accentSoft : theme.surface }]}>
+          <AppText variant="caption" color="textSecondary" style={styles.noticeText}>
+            {notice.text}
+          </AppText>
+          {notice.actionLabel ? (
+            <AppText variant="caption" color={notice.emphasized ? 'accent' : 'primary'} weight="700">
+              {notice.actionLabel} ›
+            </AppText>
+          ) : null}
+        </Pressable>
+      ) : null}
+
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tones} keyboardShouldPersistTaps="handled">
         {TONES.map((t) => (
           <Chip key={t.key} label={t.label} emoji={t.emoji} selected={tone === t.key} onPress={() => onToneChange(t.key)} size="sm" />
@@ -91,6 +111,8 @@ export function Composer({ tone, onToneChange, image, onPickImage, onClearImage,
 
 const styles = StyleSheet.create({
   wrap: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: Spacing.sm, paddingHorizontal: Spacing.md, gap: Spacing.sm },
+  notice: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
+  noticeText: { flex: 1 },
   tones: { gap: Spacing.sm, paddingHorizontal: Spacing.xs },
   preview: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   previewImage: { width: 44, height: 60, borderRadius: Radius.sm },

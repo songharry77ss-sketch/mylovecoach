@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+import { consumeFree, EMPTY_USAGE, type PremiumState, type UsageState } from '@/lib/billing/quota';
 import { createId } from '@/lib/id';
 import type { ChatMessage, CoachAnalysis, Crush, HistoryTurn, Tone, UserProfile } from '@/lib/types';
 import { appStorage } from '@/store/storage';
@@ -14,6 +15,12 @@ export interface AppState {
   hasApiKey: boolean;
   /** 동일 요청(캡처+질문+톤) 재호출 방지용 결과 캐시. 키 → { analysis, at } */
   analysisCache: Record<string, { analysis: CoachAnalysis; at: number }>;
+  /** 프리미엄 상태 (스토어 조회 결과의 캐시). null 이면 무료 이용자 */
+  premium: PremiumState | null;
+  /** 무료 코칭 사용량 */
+  usage: UsageState;
+  /** 채팅 하단의 프리미엄 안내 카드를 닫았는지 */
+  upsellDismissed: boolean;
 
   setHydrated: () => void;
   setUser: (user: UserProfile) => void;
@@ -33,6 +40,9 @@ export interface AppState {
   setHasApiKey: (v: boolean) => void;
   getCachedAnalysis: (key: string) => CoachAnalysis | null;
   putCachedAnalysis: (key: string, analysis: CoachAnalysis) => void;
+  setPremium: (premium: PremiumState | null) => void;
+  consumeFreeCredit: () => void;
+  dismissUpsell: () => void;
   resetAll: () => void;
 }
 
@@ -48,6 +58,9 @@ export const useAppStore = create<AppState>()(
       messages: {},
       hasApiKey: false,
       analysisCache: {},
+      premium: null,
+      usage: EMPTY_USAGE,
+      upsellDismissed: false,
 
       setHydrated: () => set({ hydrated: true }),
       setUser: (user) => set({ user }),
@@ -133,13 +146,26 @@ export const useAppStore = create<AppState>()(
             .slice(0, CACHE_MAX - 1);
           return { analysisCache: { ...Object.fromEntries(entries), [key]: { analysis, at: Date.now() } } };
         }),
+      setPremium: (premium) => set({ premium }),
+      consumeFreeCredit: () => set((s) => ({ usage: consumeFree(s.usage, Date.now()) })),
+      dismissUpsell: () => set({ upsellDismissed: true }),
+      // 구매 상태와 무료 사용량은 「모든 데이터 삭제」로 지우지 않는다 (구매는 스토어 계정에 묶여 있고, 삭제로 무료 횟수가 초기화되면 안 됨)
       resetAll: () => set({ user: null, crushes: {}, messages: {}, hasApiKey: false, analysisCache: {} }),
     }),
     {
       name: 'mylovecoach.store.v1',
       storage: appStorage,
       version: 1,
-      partialize: (s) => ({ user: s.user, crushes: s.crushes, messages: s.messages, hasApiKey: s.hasApiKey, analysisCache: s.analysisCache }),
+      partialize: (s) => ({
+        user: s.user,
+        crushes: s.crushes,
+        messages: s.messages,
+        hasApiKey: s.hasApiKey,
+        analysisCache: s.analysisCache,
+        premium: s.premium,
+        usage: s.usage,
+        upsellDismissed: s.upsellDismissed,
+      }),
       onRehydrateStorage: () => (state) => state?.setHydrated(),
     },
   ),

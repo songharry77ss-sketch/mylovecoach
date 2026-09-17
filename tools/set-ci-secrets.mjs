@@ -13,7 +13,8 @@
 //   mylovecoach-api-url.txt 또는 --api-url                 → 변수 EXPO_PUBLIC_API_URL
 //   vercel-token.txt(VERCEL_TOKEN=)                        → VERCEL_TOKEN (vercel.yml 이 웹+API 자동 배포)
 //   gemini-api-key.txt(GEMINI_API_KEY=) 또는 --gemini-key   → GEMINI_API_KEY (서버용)
-import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync } from 'node:fs';
+import { Buffer } from 'node:buffer';
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { createPrivateKey, generateKeyPairSync, randomBytes, createSign } from 'node:crypto';

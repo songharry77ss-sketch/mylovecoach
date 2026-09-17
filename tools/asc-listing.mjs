@@ -4,6 +4,7 @@
 //   --submit : 처리 완료된 최신 빌드를 버전에 연결하고 심사에 제출
 // API 로 안 되는 것(화면에서만 가능): 앱 레코드 생성, 「앱이 수집하는 개인정보」(App Privacy) 설문.
 // 값(키)은 출력하지 않는다. 같은 값을 다시 넣어도 안전하게 여러 번 실행할 수 있다.
+import { Buffer } from 'node:buffer';
 import { createHash, createSign } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -35,7 +36,8 @@ const LISTING = {
   name: field('앱 이름') ?? '나만의 연애코치',
   subtitle: field('부제') ?? '',
   keywords: field('키워드') ?? '',
-  description: section('전체 설명'),
+  // 문서에는 기본 주소로 적혀 있으므로 실제 배포 주소로 바꿔 넣는다
+  description: section('전체 설명').replaceAll('https://mylovecoach.vercel.app', SITE),
   reviewNotes: section('심사 메모').replace(/^- /gm, '• '),
 };
 

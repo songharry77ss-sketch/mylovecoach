@@ -10,6 +10,9 @@ import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section-header';
 import { useToast } from '@/components/ui/toast';
 import { Spacing } from '@/constants/theme';
+import { useQuota } from '@/lib/billing/gate';
+import { billingSupported, openSubscriptionManagement, restorePremium } from '@/lib/billing/iap';
+import { quotaLabel } from '@/lib/billing/quota';
 import { APP_CONFIG } from '@/lib/config';
 import { isDemoMode } from '@/lib/demo';
 import { genderLabel, toneLabel } from '@/lib/labels';
@@ -23,6 +26,18 @@ export default function MyScreen() {
   const hasApiKey = useAppStore((s) => s.hasApiKey);
   const resetAll = useAppStore((s) => s.resetAll);
   const crushCount = useAppStore((s) => Object.keys(s.crushes).length);
+  const premium = useAppStore((s) => s.premium);
+  const setPremium = useAppStore((s) => s.setPremium);
+  const quota = useQuota();
+  const isPremium = quota.enforced && quota.kind === 'premium';
+
+  const restore = async () => {
+    const result = await restorePremium();
+    if (result) {
+      setPremium(result);
+      toast.show('구매 내역을 복원했어요.', 'success');
+    } else toast.show(result === null ? '복원할 구매 내역이 없어요.' : '스토어에 연결하지 못했어요. 잠시 후 다시 시도해주세요.', result === null ? 'default' : 'error');
+  };
 
   const connection = isDemoMode ? '데모 모드 · 샘플 결과' : APP_CONFIG.apiUrl || APP_CONFIG.apiSameOrigin ? '연결됨 · 코치 서버' : hasApiKey ? '연결됨 · 내 API 키' : '연결 필요';
 
@@ -61,6 +76,19 @@ export default function MyScreen() {
           </AppText>
         </View>
       </Card>
+
+      {quota.enforced ? (
+        <>
+          <SectionHeader title="프리미엄" />
+          {isPremium ? (
+            <ListRow icon="heart" title="프리미엄 이용 중" value={premium?.plan === 'lifetime' ? '평생권' : '주간 구독'} onPress={() => router.push({ pathname: '/paywall', params: { reason: 'my' } })} />
+          ) : (
+            <ListRow icon="heart-outline" title="프리미엄 시작하기" subtitle={quotaLabel(quota)} value="무제한 코칭" onPress={() => router.push({ pathname: '/paywall', params: { reason: 'my' } })} />
+          )}
+          {billingSupported && premium?.plan === 'weekly' ? <ListRow icon="card-outline" title="구독 관리 · 해지" onPress={() => openSubscriptionManagement().catch(() => {})} /> : null}
+          {billingSupported && !isPremium ? <ListRow icon="refresh-outline" title="구매 복원" onPress={restore} /> : null}
+        </>
+      ) : null}
 
       <SectionHeader title="AI 코치" />
       <ListRow icon="sparkles-outline" title="AI 코치 연결" value={connection} onPress={() => router.push('/settings/api-key')} />

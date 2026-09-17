@@ -22,6 +22,22 @@ import { callGemini } from '../src/lib/gemini';
 
 export const config = { maxDuration: 120 };
 
+/**
+ * 무단 대량 호출 억제용 간이 제한 (IP 당 10분에 30회).
+ * 서버리스 인스턴스별 메모리에만 있으므로 완벽하지 않지만, 한 인스턴스로 몰리는 반복 호출은 걸러 준다.
+ */
+const RATE_WINDOW_MS = 10 * 60 * 1000;
+const RATE_MAX = 30;
+const hits = new Map<string, number[]>();
+
+function rateLimited(ip: string, now = Date.now()): boolean {
+  const recent = (hits.get(ip) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
+  recent.push(now);
+  hits.set(ip, recent);
+  if (hits.size > 5000) for (const [k, v] of hits) if (!v.some((t) => now - t < RATE_WINDOW_MS)) hits.delete(k);
+  return recent.length > RATE_MAX;
+}
+
 function resolveProvider(): 'anthropic' | 'gemini' | null {
   const wanted = (process.env.AI_PROVIDER ?? '').toLowerCase();
   if (wanted === 'gemini' && process.env.GEMINI_API_KEY) return 'gemini';
@@ -45,6 +61,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const expectedToken = process.env.COACH_APP_TOKEN;
   if (expectedToken && req.headers['x-app-token'] !== expectedToken) {
     res.status(401).json({ error: '앱 인증에 실패했어요.' });
+    return;
+  }
+
+  const forwarded = req.headers['x-forwarded-for'];
+  const ip = (Array.isArray(forwarded) ? forwarded[0] : forwarded)?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+  if (rateLimited(ip)) {
+    res.status(429).json({ error: '요청이 많아요. 잠시 후 다시 시도해주세요.' });
     return;
   }
 

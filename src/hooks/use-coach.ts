@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 
+import { currentQuota } from '@/lib/billing/gate';
 import { CoachError, requestCoaching } from '@/lib/coach-client';
 import { crushToRequest, userToRequest } from '@/lib/coach-schema';
 import { encodeForModel, type PickedImage } from '@/lib/images';
@@ -16,16 +17,23 @@ export interface SendInput {
   variationOf?: string;
 }
 
-/** 코칭 요청 전체 플로우 (메시지 추가 → 이미지 인코딩 → API → 결과 반영) */
+export type SendResult = 'sent' | 'blocked' | 'skipped';
+
+/**
+ * 코칭 요청 전체 플로우 (메시지 추가 → 이미지 인코딩 → API → 결과 반영).
+ * 무료 횟수를 다 쓴 상태면 아무것도 보내지 않고 'blocked' 를 돌려줍니다 (화면에서 프리미엄 안내를 띄움).
+ */
 export function useCoach() {
   const [sending, setSending] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
-  const send = useCallback(async (input: SendInput) => {
+  const send = useCallback(async (input: SendInput): Promise<SendResult> => {
     const state = useAppStore.getState();
     const crush = state.crushes[input.crushId];
     const user = state.user;
-    if (!crush || !user) return;
+    if (!crush || !user) return 'skipped';
+    const quota = currentQuota();
+    if (quota.remaining <= 0) return 'blocked';
 
     const userMessage = state.addMessage({
       crushId: crush.id,
@@ -65,6 +73,8 @@ export function useCoach() {
           { directApiKey: await loadApiKey(), signal: controller.signal },
         ));
       if (!cached && !input.variationOf) useAppStore.getState().putCachedAnalysis(cacheKey, analysis);
+      // 실제로 AI 를 호출해 결과를 받은 경우에만 무료 횟수를 차감한다 (오류·저장된 결과 재사용은 차감 없음)
+      if (!cached && quota.kind !== 'premium') useAppStore.getState().consumeFreeCredit();
       useAppStore.getState().completeAnalysis(crush.id, coachMessage.id, analysis);
     } catch (e) {
       const message = e instanceof CoachError ? e.message : e instanceof Error ? e.message : '알 수 없는 오류가 발생했어요.';
@@ -74,6 +84,7 @@ export function useCoach() {
       if (abortRef.current === controller) abortRef.current = null;
       setSending(false);
     }
+    return 'sent';
   }, []);
 
   const cancel = useCallback(() => abortRef.current?.abort(), []);

@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ToastProvider } from '@/components/ui/toast';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { endBilling, initBilling } from '@/lib/billing/iap';
 import { useAppStore } from '@/store/app-store';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -40,6 +41,21 @@ export default function RootLayout() {
     const t = setTimeout(() => setHydrated(), 2500);
     return () => clearTimeout(t);
   }, [hydrated, setHydrated]);
+
+  // 스토어 연결 → 구매 상태 확인. 스토어에 닿지 못하면(undefined) 저장된 상태를 그대로 둔다
+  useEffect(() => {
+    if (!hydrated) return;
+    let alive = true;
+    initBilling({ onPremium: (premium) => useAppStore.getState().setPremium(premium) })
+      .then((result) => {
+        if (alive && result !== undefined) useAppStore.getState().setPremium(result);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+      endBilling();
+    };
+  }, [hydrated]);
 
   const navTheme = {
     ...(scheme === 'dark' ? DarkTheme : DefaultTheme),
@@ -74,6 +90,7 @@ export default function RootLayout() {
               <Stack.Screen name="crush/[id]/edit" options={{ title: '상대 정보 수정', presentation: 'modal' }} />
               <Stack.Screen name="settings/profile" options={{ title: '내 프로필' }} />
               <Stack.Screen name="settings/api-key" options={{ title: 'AI 코치 연결' }} />
+              <Stack.Screen name="paywall" options={{ headerShown: false, presentation: 'modal' }} />
               <Stack.Screen name="+not-found" options={{ title: '페이지를 찾을 수 없어요' }} />
             </Stack>
             <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
