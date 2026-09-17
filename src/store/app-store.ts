@@ -12,6 +12,8 @@ export interface AppState {
   messages: Record<string, ChatMessage[]>; // crushId -> messages (오래된 순)
   /** 직접 호출 모드 API 키 보유 여부 (실제 키는 SecureStore) */
   hasApiKey: boolean;
+  /** 동일 요청(캡처+질문+톤) 재호출 방지용 결과 캐시. 키 → { analysis, at } */
+  analysisCache: Record<string, { analysis: CoachAnalysis; at: number }>;
 
   setHydrated: () => void;
   setUser: (user: UserProfile) => void;
@@ -29,8 +31,13 @@ export interface AppState {
   selectReply: (crushId: string, messageId: string, index: number) => void;
 
   setHasApiKey: (v: boolean) => void;
+  getCachedAnalysis: (key: string) => CoachAnalysis | null;
+  putCachedAnalysis: (key: string, analysis: CoachAnalysis) => void;
   resetAll: () => void;
 }
+
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const CACHE_MAX = 40;
 
 export const useAppStore = create<AppState>()(
   persist(
@@ -40,6 +47,7 @@ export const useAppStore = create<AppState>()(
       crushes: {},
       messages: {},
       hasApiKey: false,
+      analysisCache: {},
 
       setHydrated: () => set({ hydrated: true }),
       setUser: (user) => set({ user }),
@@ -111,13 +119,27 @@ export const useAppStore = create<AppState>()(
       selectReply: (crushId, messageId, index) => get().updateMessage(crushId, messageId, { selectedReplyIndex: index }),
 
       setHasApiKey: (hasApiKey) => set({ hasApiKey }),
-      resetAll: () => set({ user: null, crushes: {}, messages: {}, hasApiKey: false }),
+      getCachedAnalysis: (key) => {
+        const hit = get().analysisCache[key];
+        if (!hit) return null;
+        if (Date.now() - hit.at > CACHE_TTL_MS) return null;
+        return hit.analysis;
+      },
+      putCachedAnalysis: (key, analysis) =>
+        set((s) => {
+          const entries = Object.entries(s.analysisCache)
+            .filter(([, v]) => Date.now() - v.at <= CACHE_TTL_MS)
+            .sort((a, b) => b[1].at - a[1].at)
+            .slice(0, CACHE_MAX - 1);
+          return { analysisCache: { ...Object.fromEntries(entries), [key]: { analysis, at: Date.now() } } };
+        }),
+      resetAll: () => set({ user: null, crushes: {}, messages: {}, hasApiKey: false, analysisCache: {} }),
     }),
     {
       name: 'mylovecoach.store.v1',
       storage: appStorage,
       version: 1,
-      partialize: (s) => ({ user: s.user, crushes: s.crushes, messages: s.messages, hasApiKey: s.hasApiKey }),
+      partialize: (s) => ({ user: s.user, crushes: s.crushes, messages: s.messages, hasApiKey: s.hasApiKey, analysisCache: s.analysisCache }),
       onRehydrateStorage: () => (state) => state?.setHydrated(),
     },
   ),
@@ -149,3 +171,14 @@ export const sortCrushes = (crushes: Record<string, Crush>): Crush[] =>
   Object.values(crushes).sort((a, b) => (b.lastMessageAt ?? b.updatedAt) - (a.lastMessageAt ?? a.updatedAt));
 
 export const defaultTone = (s: AppState): Tone => s.user?.defaultTone ?? 'natural';
+
+/** 빠른 문자열 해시 (djb2). 캐시 키 용도라 암호학적 강도는 필요 없음 */
+export function quickHash(input: string): string {
+  let h = 5381;
+  for (let i = 0; i < input.length; i++) h = ((h << 5) + h + input.charCodeAt(i)) >>> 0;
+  return h.toString(36) + input.length.toString(36);
+}
+
+export function analysisCacheKey(parts: { crushId: string; tone: string; text: string; imageBase64?: string; variation?: boolean }): string {
+  return quickHash([parts.crushId, parts.tone, parts.text.trim(), parts.imageBase64 ?? '', parts.variation ? 'v' : ''].join('\u0001'));
+}

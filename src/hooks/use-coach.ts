@@ -4,7 +4,7 @@ import { CoachError, requestCoaching } from '@/lib/coach-client';
 import { crushToRequest, userToRequest } from '@/lib/coach-schema';
 import { encodeForModel, type PickedImage } from '@/lib/images';
 import type { Tone } from '@/lib/types';
-import { buildHistory, useAppStore } from '@/store/app-store';
+import { analysisCacheKey, buildHistory, useAppStore } from '@/store/app-store';
 import { loadApiKey } from '@/store/storage';
 
 export interface SendInput {
@@ -48,17 +48,23 @@ export function useCoach() {
       if (input.variationOf) noteParts.push('이전에 제안한 답장과는 다른 각도의 새로운 답장 3개를 제안해주세요.');
       const text = noteParts.filter(Boolean).join(' ');
 
-      const analysis = await requestCoaching(
-        {
-          crush: crushToRequest(crush),
-          user: userToRequest(user),
-          tone: input.tone,
-          text: text || undefined,
-          image,
-          history,
-        },
-        { directApiKey: await loadApiKey(), signal: controller.signal },
-      );
+      // 같은 캡처·질문·톤을 다시 보내면 API 를 다시 부르지 않고 저장된 결과를 씁니다 (비용 절감)
+      const cacheKey = analysisCacheKey({ crushId: crush.id, tone: input.tone, text, imageBase64: image?.base64, variation: Boolean(input.variationOf) });
+      const cached = input.variationOf ? null : useAppStore.getState().getCachedAnalysis(cacheKey);
+      const analysis =
+        cached ??
+        (await requestCoaching(
+          {
+            crush: crushToRequest(crush),
+            user: userToRequest(user),
+            tone: input.tone,
+            text: text || undefined,
+            image,
+            history,
+          },
+          { directApiKey: await loadApiKey(), signal: controller.signal },
+        ));
+      if (!cached && !input.variationOf) useAppStore.getState().putCachedAnalysis(cacheKey, analysis);
       useAppStore.getState().completeAnalysis(crush.id, coachMessage.id, analysis);
     } catch (e) {
       const message = e instanceof CoachError ? e.message : e instanceof Error ? e.message : '알 수 없는 오류가 발생했어요.';

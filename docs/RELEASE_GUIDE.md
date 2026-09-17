@@ -91,6 +91,36 @@ npx expo-doctor
 - 버전은 `app.json` 의 `version` 만 올리면 됩니다. `buildNumber`/`versionCode` 는 EAS 가 원격에서 자동 증가(`autoIncrement`).
 - 프롬프트/모델 변경은 `src/lib/coach-schema.ts` 한 곳에서 관리되며, 서버만 재배포하면 앱 업데이트 없이 반영됩니다.
 
+## 준비된 스토어 자산
+
+- `docs/store-assets/ios-6.7/` – iPhone 6.7" 규격(1290×2796) 스크린샷 6장
+- `docs/store-assets/android/` – 안드로이드 규격(1082×2402) 스크린샷 6장
+- `docs/store-assets/feature-graphic-1024x500.png` – Play 스토어 그래픽 이미지
+- `assets/images/icon.png` – 앱 아이콘 1024×1024
+- 등록 문구: `docs/STORE_LISTING.md`
+
+## 사용자 PC 에서 실행할 명령 (요약)
+
+> 이 저장소를 만든 클라우드 세션에서는 Expo/Vercel/Google 서버 접근이 차단돼 있어 빌드·제출은 PC 에서 실행해야 합니다.
+
+```bash
+git clone https://github.com/songharry77ss-sketch/mylovecoach -b claude/jolly-pascal-tr47bw
+cd mylovecoach && npm install
+
+# 1) 코치 서버 (Gemini 키 사용)
+npm i -g vercel && vercel login && vercel link
+vercel env add GEMINI_API_KEY production      # AQ.… 또는 AIza… 입력
+vercel env add AI_PROVIDER production         # gemini
+vercel --prod                                 # 배포 주소 확인 → eas.json 의 EXPO_PUBLIC_API_URL 에 반영
+
+# 2) 빌드 & 제출
+npm i -g eas-cli && eas login && eas init
+eas build --platform android --profile production
+eas build --platform ios --profile production
+eas submit --platform android --latest        # google-play-service-account.json 필요
+eas submit --platform ios --latest            # eas.json 의 ascAppId / appleTeamId 입력 후
+```
+
 ## 스크린샷 촬영 팁
 
 `npx expo start --web` 후 브라우저 개발자 도구를 iPhone 15 Pro Max(430×932) 로 맞춰 촬영하거나, `eas build --profile preview` 로 만든 앱을 실기기에 설치해 촬영하세요. 채팅방에 캡처를 올린 결과 화면, 홈 목록, 온보딩 1장, 팁 화면 순서를 추천합니다.

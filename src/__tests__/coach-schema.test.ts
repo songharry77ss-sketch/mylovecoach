@@ -46,11 +46,10 @@ describe('prompt building', () => {
     expect(text).toContain('주말에 만나자고 하고 싶어');
   });
 
-  it('puts image block before text block', () => {
+  it('orders content as context text → image → task text', () => {
     const req = CoachRequestSchema.parse({ ...baseRequest, image: { base64: 'QUJD', mediaType: 'image/jpeg' } });
     const content = buildMessageContent(req);
-    expect(content[0].type).toBe('image');
-    expect(content[1].type).toBe('text');
+    expect(content.map((c) => c.type)).toEqual(['text', 'image', 'text']);
   });
 
   it('asks for opener when there is no image and no text', () => {

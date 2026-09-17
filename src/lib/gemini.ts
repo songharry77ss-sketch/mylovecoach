@@ -2,7 +2,7 @@
  * Google Gemini 프로바이더 (REST, generateContent).
  * 앱 직접 호출 모드와 서버(api/coach.ts) 양쪽에서 사용합니다. 순수 TS 만 사용.
  */
-import { COACH_SYSTEM_PROMPT, buildUserText, coachOutputJsonSchema, type CoachRequest } from './coach-schema';
+import { COACH_SYSTEM_PROMPT, buildContextText, buildTaskBlock, coachOutputJsonSchema, type CoachRequest } from './coach-schema';
 
 export const GEMINI_DEFAULT_MODEL = 'gemini-3.5-flash';
 /** 기본 모델이 과부하(503)·한도 초과(429)일 때 순서대로 시도하는 대체 모델 */
@@ -38,16 +38,26 @@ export function toGeminiSchema(schema: JsonSchema): JsonSchema {
   return out;
 }
 
+/**
+ * 이미지 토큰 해상도. 측정(카톡 캡처 기준): 기본 ≈1,120토큰, MEDIUM ≈580, LOW ≈300.
+ * MEDIUM 에서도 캡처 글자 판독과 답장 품질이 유지되어 기본값으로 사용. 환경변수로 조정 가능.
+ */
+export const GEMINI_MEDIA_RESOLUTION = process.env.GEMINI_MEDIA_RESOLUTION ?? process.env.EXPO_PUBLIC_GEMINI_MEDIA_RESOLUTION ?? 'MEDIA_RESOLUTION_MEDIUM';
+
 export function buildGeminiBody(req: CoachRequest) {
   const parts: ({ inlineData: { mimeType: string; data: string } } | { text: string })[] = [];
+  // 순서: 고정 맥락 텍스트 → 캡처 → 이번 요청 (암시적 캐시 프리픽스 극대화)
+  parts.push({ text: buildContextText(req) });
   if (req.image) parts.push({ inlineData: { mimeType: req.image.mediaType, data: req.image.base64 } });
-  parts.push({ text: buildUserText(req) });
+  parts.push({ text: buildTaskBlock(req) });
   return {
     systemInstruction: { parts: [{ text: COACH_SYSTEM_PROMPT }] },
     contents: [{ role: 'user', parts }],
     generationConfig: {
       temperature: 0.8,
-      maxOutputTokens: 4096,
+      // 실제 출력은 500~700토큰. 상한을 낮춰 폭주 비용 방지
+      maxOutputTokens: 2048,
+      mediaResolution: GEMINI_MEDIA_RESOLUTION,
       // 답장 생성엔 긴 추론이 필요 없어 낮은 생각 수준으로 응답 속도를 줄입니다 (측정: 17초 → 10초)
       thinkingConfig: { thinkingLevel: 'low' },
       responseMimeType: 'application/json',

@@ -5,6 +5,7 @@
  */
 import { z } from 'zod';
 
+import { retrieveKnowledge } from './knowledge';
 import type { Crush, HistoryTurn, Tone, UserProfile } from './types';
 
 export const COACH_MODEL = 'claude-opus-5';
@@ -161,7 +162,7 @@ export function buildHistoryBlock(history: HistoryTurn[]): string {
 
 export function buildTaskBlock(req: CoachRequest): string {
   const lines: string[] = [];
-  lines.push(`[요청]`);
+  lines.push(`[이번 요청]`);
   lines.push(`- 원하는 답장 톤: ${TONE_GUIDE[req.tone]}`);
   if (req.image) {
     lines.push(`- 첨부한 대화 캡처를 분석해서 상황을 읽고, 위 톤으로 답장 3개를 추천해주세요.`);
@@ -175,10 +176,19 @@ export function buildTaskBlock(req: CoachRequest): string {
   return lines.join('\n');
 }
 
-/** 사용자 턴에 들어갈 텍스트 전체 */
-export function buildUserText(req: CoachRequest): string {
-  const blocks = [buildProfileBlock(req), buildHistoryBlock(req.history), buildTaskBlock(req)].filter(Boolean);
+/** 프로필·참고자료·맥락: 같은 채팅방에서는 거의 바뀌지 않아 캐시 프리픽스로 유리 */
+export function buildContextText(req: CoachRequest): string {
+  const knowledge = retrieveKnowledge({
+    crush: { mbti: req.crush.mbti, age: req.crush.age, relationship: req.crush.relationship, gender: req.crush.gender },
+    user: { mbti: req.user.mbti, age: req.user.age },
+  });
+  const blocks = [buildProfileBlock(req), knowledge ? `[코치 참고 자료 — 경향일 뿐 단정하지 말 것]\n${knowledge}` : '', buildHistoryBlock(req.history)].filter(Boolean);
   return blocks.join('\n\n');
+}
+
+/** 사용자 턴에 들어갈 텍스트 전체 (단일 텍스트로 쓸 때) */
+export function buildUserText(req: CoachRequest): string {
+  return [buildContextText(req), buildTaskBlock(req)].join('\n\n');
 }
 
 /**
@@ -190,13 +200,15 @@ export function buildMessageContent(req: CoachRequest) {
     | { type: 'text'; text: string }
     | { type: 'image'; source: { type: 'base64'; media_type: CoachRequest['image'] extends infer I ? (I extends { mediaType: infer M } ? M : never) : never; data: string } }
   )[] = [];
+  // 순서: 고정에 가까운 맥락 텍스트 → 캡처 이미지 → 이번 요청. (프롬프트 캐시 적중률을 높이는 배치)
+  content.push({ type: 'text', text: buildContextText(req) });
   if (req.image) {
     content.push({
       type: 'image',
       source: { type: 'base64', media_type: req.image.mediaType, data: req.image.base64 },
     });
   }
-  content.push({ type: 'text', text: buildUserText(req) });
+  content.push({ type: 'text', text: buildTaskBlock(req) });
   return content;
 }
 

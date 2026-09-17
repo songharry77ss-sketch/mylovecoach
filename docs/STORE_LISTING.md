@@ -54,4 +54,5 @@
 ## 그래픽 자산
 
 - 앱 아이콘: `assets/images/icon.png` (1024×1024)
-- Play 스토어 그래픽 이미지(1024×500): `scripts/generate-icons.py` 의 그라데이션과 아이콘을 조합해 제작 권장
+- Play 스토어 그래픽 이미지(1024×500): `docs/store-assets/feature-graphic-1024x500.png`
+- 스크린샷: `docs/store-assets/ios-6.7/` (1290×2796), `docs/store-assets/android/` (1082×2402)

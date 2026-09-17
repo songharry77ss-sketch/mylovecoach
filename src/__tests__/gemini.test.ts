@@ -28,10 +28,12 @@ describe('toGeminiSchema', () => {
 });
 
 describe('buildGeminiBody', () => {
-  it('places the image before the text and requests JSON output', () => {
+  it('orders parts as context → image → task and requests JSON output', () => {
     const body = buildGeminiBody(req);
-    expect(body.contents[0].parts[0]).toEqual({ inlineData: { mimeType: 'image/jpeg', data: 'QUJD' } });
-    expect('text' in body.contents[0].parts[1]).toBe(true);
+    expect('text' in body.contents[0].parts[0]).toBe(true);
+    expect(body.contents[0].parts[1]).toEqual({ inlineData: { mimeType: 'image/jpeg', data: 'QUJD' } });
+    expect('text' in body.contents[0].parts[2]).toBe(true);
+    expect(body.generationConfig.mediaResolution).toBe('MEDIA_RESOLUTION_MEDIUM');
     expect(body.generationConfig.responseMimeType).toBe('application/json');
     expect(body.systemInstruction.parts[0].text).toContain('연애코치');
   });

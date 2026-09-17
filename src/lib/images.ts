@@ -61,16 +61,19 @@ export interface EncodedImage {
   mediaType: 'image/jpeg';
 }
 
+/** 모델 전송 최대 가로 폭. 카톡 캡처 글자가 충분히 읽히면서 토큰(Claude: 픽셀 비례)을 줄이는 값 */
+export const MODEL_IMAGE_MAX_WIDTH = 800;
+
 /**
  * 모델 전송용으로 리사이즈 + JPEG 압축 + base64 인코딩.
- * 긴 캡처도 글자가 읽히도록 가로 1080px 기준으로 맞춥니다.
+ * 원본 폭을 모르면(0) 일단 리사이즈를 시도합니다.
  */
 export async function encodeForModel(uri: string, width?: number): Promise<EncodedImage> {
   const context = ImageManipulator.manipulate(uri);
-  const targetWidth = width && width > 1080 ? 1080 : undefined;
-  if (targetWidth) context.resize({ width: targetWidth });
+  const shouldResize = !width || width > MODEL_IMAGE_MAX_WIDTH;
+  if (shouldResize) context.resize({ width: MODEL_IMAGE_MAX_WIDTH });
   const image = await context.renderAsync();
-  const saved = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.82, base64: true });
+  const saved = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.75, base64: true });
   image.release();
   if (!saved.base64) throw new Error('이미지를 준비하지 못했어요.');
   return { base64: saved.base64, mediaType: 'image/jpeg' };
