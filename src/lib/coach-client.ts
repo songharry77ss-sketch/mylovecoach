@@ -10,6 +10,7 @@ import {
   CoachRequestSchema,
 } from '@/lib/coach-schema';
 import { APP_CONFIG } from '@/lib/config';
+import { demoAnalysis, isDemoMode } from '@/lib/demo';
 import type { CoachAnalysis } from '@/lib/types';
 
 export class CoachError extends Error {
@@ -39,7 +40,7 @@ function withTimeout(signal?: AbortSignal): AbortSignal {
 }
 
 export function isCoachConfigured(directApiKey?: string | null): boolean {
-  return Boolean(APP_CONFIG.apiUrl) || Boolean(directApiKey?.trim());
+  return isDemoMode || Boolean(APP_CONFIG.apiUrl) || Boolean(directApiKey?.trim());
 }
 
 /**
@@ -47,6 +48,7 @@ export function isCoachConfigured(directApiKey?: string | null): boolean {
  */
 export async function requestCoaching(input: CoachRequestInput, options: CoachClientOptions = {}): Promise<CoachAnalysis> {
   const req = CoachRequestSchema.parse(input);
+  if (isDemoMode) return demoAnalysis(req);
   if (APP_CONFIG.apiUrl) return viaProxy(req, options);
   if (options.directApiKey?.trim()) return viaAnthropic(req, options.directApiKey.trim(), options);
   throw new CoachError('AI 코치 서버가 아직 연결되지 않았어요. 설정에서 API 키를 등록해주세요.', 'not_configured');

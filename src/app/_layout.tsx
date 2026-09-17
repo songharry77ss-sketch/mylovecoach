@@ -2,6 +2,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -12,6 +13,15 @@ import { useAppStore } from '@/store/app-store';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
+// 데모 웹 빌드가 임의의 경로(예: 호스팅 페이지 하위 경로)에서 열려도 라우터가 '/'에서 시작하도록 합니다.
+if (Platform.OS === 'web' && process.env.EXPO_PUBLIC_DEMO_MODE === '1' && typeof window !== 'undefined') {
+  try {
+    window.history.replaceState(null, '', '/');
+  } catch {
+    // sandboxed iframe 등에서는 무시
+  }
+}
+
 export const unstable_settings = { anchor: '(tabs)' };
 
 export default function RootLayout() {
@@ -19,9 +29,17 @@ export default function RootLayout() {
   const hydrated = useAppStore((s) => s.hydrated);
   const colors = Colors[scheme];
 
+  const setHydrated = useAppStore((s) => s.setHydrated);
+
   useEffect(() => {
-    if (hydrated) SplashScreen.hideAsync().catch(() => {});
-  }, [hydrated]);
+    if (hydrated) {
+      SplashScreen.hideAsync().catch(() => {});
+      return;
+    }
+    // 저장소 접근이 막힌 환경(사생활 보호 모드 등)에서도 앱이 멈추지 않도록 안전장치
+    const t = setTimeout(() => setHydrated(), 2500);
+    return () => clearTimeout(t);
+  }, [hydrated, setHydrated]);
 
   const navTheme = {
     ...(scheme === 'dark' ? DarkTheme : DefaultTheme),
