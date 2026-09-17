@@ -47,13 +47,21 @@ jobs:
           add_env ANTHROPIC_API_KEY "$ANTHROPIC_API_KEY"
           add_env AI_PROVIDER "$([ -n "$GEMINI_API_KEY" ] && echo gemini || echo anthropic)"
           add_env COACH_APP_TOKEN "$COACH_APP_TOKEN"
+          # 웹 번들도 같은 토큰을 헤더로 보내야 하므로 빌드 환경변수로도 넣는다
+          add_env EXPO_PUBLIC_API_TOKEN "$COACH_APP_TOKEN"
       - name: 프로덕션 배포
         id: deploy
         run: |
-          url=$(vercel deploy --prod --yes --token "$VERCEL_TOKEN" 2>&1 | tee /tmp/deploy.log | grep -Eo 'https://[a-zA-Z0-9.-]+\.vercel\.app' | tail -1)
-          [ -n "$url" ] || { cat /tmp/deploy.log; echo "::error::배포 주소를 찾지 못했습니다"; exit 1; }
+          dep=$(vercel deploy --prod --yes --token "$VERCEL_TOKEN" 2>&1 | tee /tmp/deploy.log | grep -Eo 'https://[a-zA-Z0-9.-]+\.vercel\.app' | tail -1)
+          [ -n "$dep" ] || { cat /tmp/deploy.log; echo "::error::배포 주소를 찾지 못했습니다"; exit 1; }
+          # 배포별 주소는 Vercel 보호(로그인 필요)에 걸릴 수 있어, 공개되는 프로덕션 별칭(고정 주소)을 찾아 쓴다
+          org=$(node -p "require('./.vercel/project.json').orgId")
+          q=""; case "$org" in team_*) q="?teamId=$org" ;; esac
+          alias=$(curl -sS -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v13/deployments/${dep#https://}$q" \
+            | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{let a=[];try{a=JSON.parse(s).alias||[]}catch{};a=a.filter(x=>x.endsWith('.vercel.app')).sort((x,y)=>x.length-y.length);console.log(a[0]||'')})")
+          url="$dep"; [ -n "$alias" ] && url="https://$alias"
           echo "url=$url" >> "$GITHUB_OUTPUT"
-          echo "::notice title=배포 완료::$url"
+          echo "::notice title=배포 완료::$url (배포: $dep)"
       - name: 동작 확인
         run: |
           url="${{ steps.deploy.outputs.url }}"

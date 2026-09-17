@@ -6,7 +6,8 @@
 //   asc-key.p8, asc-key.txt(ISSUER_ID=, KEY_ID=)          → ASC_KEY_ID / ASC_ISSUER_ID / ASC_KEY_P8_BASE64 (월하와 동일)
 //   apns-key.txt(TEAM_ID=)                                → APPLE_TEAM_ID
 //   *.p12 + 같은 이름-password.txt 또는 p12-password.txt   → IOS_DISTRIBUTION_P12_BASE64 / IOS_DISTRIBUTION_P12_PASSWORD (있으면)
-//   mylovecoach-ios-cert-key.pem                          → IOS_CERT_PRIVATE_KEY_BASE64 (p12 가 없으면 자동 생성)
+//   ios-distribution-*/distribution.key                   → IOS_CERT_PRIVATE_KEY_BASE64 (월하 배포 인증서 개인키 재사용)
+//   mylovecoach-ios-cert-key.pem                          → IOS_CERT_PRIVATE_KEY_BASE64 (위 둘 다 없으면 자동 생성)
 //   mylovecoach-upload.jks + mylovecoach-keystore-password.txt → ANDROID_* (없으면 keytool 로 생성)
 //   play-service-account.json                              → PLAY_SERVICE_ACCOUNT_JSON (선택)
 //   mylovecoach-api-url.txt 또는 --api-url                 → 변수 EXPO_PUBLIC_API_URL
@@ -82,7 +83,26 @@ if (p12) {
     notes.push(`${p12} 는 있는데 비밀번호 파일(${base}-password.txt)이 없어 건너뜀`);
   }
 }
+// 월하 때 만든 배포 인증서 폴더(ios-distribution-YYYYMMDD/distribution.key)가 있으면 그 개인키를 재사용한다.
+// 배포 인증서는 팀 단위라 새 앱에도 그대로 쓰이고, CI 가 같은 키에 맞는 기존 인증서를 찾아 쓴다 (인증서 개수 한도 절약).
 if (!secrets.IOS_DISTRIBUTION_P12_BASE64) {
+  const distDir = readdirSync(root, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && /^ios-distribution/i.test(d.name) && existsSync(join(root, d.name, 'distribution.key')))
+    .map((d) => d.name)
+    .sort()
+    .pop();
+  if (distDir) {
+    const keyPem = readFileSync(join(root, distDir, 'distribution.key'));
+    try {
+      if (createPrivateKey(keyPem).asymmetricKeyType !== 'rsa') throw new Error();
+      secrets.IOS_CERT_PRIVATE_KEY_BASE64 = keyPem.toString('base64');
+      console.log(`iOS 인증서 개인키: ${distDir}/distribution.key 재사용`);
+    } catch {
+      notes.push(`${distDir}/distribution.key 를 읽지 못해 건너뜀 (암호화된 키이거나 RSA 가 아님)`);
+    }
+  }
+}
+if (!secrets.IOS_DISTRIBUTION_P12_BASE64 && !secrets.IOS_CERT_PRIVATE_KEY_BASE64) {
   const pem = join(root, 'mylovecoach-ios-cert-key.pem');
   if (!existsSync(pem)) {
     const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
@@ -143,6 +163,12 @@ if (has('vercel-token.txt')) {
 const geminiKey = argOf('--gemini-key') ?? (has('gemini-api-key.txt') ? (entries(join(root, 'gemini-api-key.txt')).GEMINI_API_KEY ?? readFileSync(join(root, 'gemini-api-key.txt'), 'utf8').trim()) : '');
 if (geminiKey) secrets.GEMINI_API_KEY = geminiKey;
 else notes.push('없음: gemini-api-key.txt / --gemini-key → 서버 자동 배포 시 필요 (AI Studio 키)');
+
+// ---- 앱 토큰: 서버(/api/coach)가 앱에서 온 요청만 받도록 하는 공개 토큰 (번들에 포함되므로 비밀키는 아님, 무단 호출 억제용)
+const appTokenFile = join(root, 'mylovecoach-app-token.txt');
+if (!existsSync(appTokenFile)) writeFileSync(appTokenFile, `EXPO_PUBLIC_API_TOKEN=${randomBytes(24).toString('base64url')}\n`, { mode: 0o600 });
+const appToken = entries(appTokenFile).EXPO_PUBLIC_API_TOKEN;
+if (appToken) secrets.EXPO_PUBLIC_API_TOKEN = appToken;
 
 // ---- App Store Connect 에 번들 ID 등록 (앱을 만들려면 먼저 있어야 함)
 async function registerBundleId() {
