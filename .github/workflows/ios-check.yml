@@ -1,0 +1,38 @@
+name: iOS Compile Check
+
+# 서명 없이 시뮬레이터용으로 컴파일만 해 본다 (Xcode·CocoaPods·Expo 툴체인 검증). 시크릿 불필요.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compile-check:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: bash tools/select-xcode.sh
+      - run: npm ci
+      - name: expo prebuild + pod install
+        run: |
+          npx expo prebuild --platform ios --no-install
+          cd ios && pod install --repo-update
+      - name: 시뮬레이터 컴파일 (서명 없음)
+        run: |
+          mkdir -p build/logs
+          set -o pipefail
+          xcodebuild -workspace ios/app.xcworkspace -scheme app -configuration Release \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath build/dd \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build 2>&1 | tee build/logs/compile.log | tail -40
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ios-compile-failure-${{ github.run_id }}
+          path: build/logs/
+          retention-days: 7

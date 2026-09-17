@@ -49,14 +49,23 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
+          missing=0
           for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
-            if [ -z "${!name}" ]; then echo "::error::시크릿 누락: $name"; exit 1; fi
+            if [ -z "${!name}" ]; then missing=1; fi
           done
+          if [ "$missing" = 1 ]; then
+            if [ -n "${{ inputs.track }}" ]; then echo "::error::업로드 키 시크릿이 없어 Play 업로드용 빌드를 만들 수 없습니다 (tools/set-ci-secrets.mjs)"; exit 1; fi
+            echo "::warning::업로드 키 시크릿이 없어 디버그 서명으로 검사 빌드만 만듭니다 (스토어 업로드 불가)"
+            echo "SIGNING=debug" >> "$GITHUB_ENV"
+          else
+            echo "SIGNING=release" >> "$GITHUB_ENV"
+          fi
           if [ -z "$EXPO_PUBLIC_API_URL" ]; then echo "::warning::EXPO_PUBLIC_API_URL 변수가 비어 있어 앱이 개인 API 키 모드로만 동작합니다"; fi
       - run: npm ci
       - name: 네이티브 프로젝트 생성 (expo prebuild)
         run: npx expo prebuild --platform android --no-install
       - name: 서명 키 복원 + build.gradle 주입
+        if: env.SIGNING == 'release'
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -71,6 +80,12 @@ jobs:
           echo "ANDROID_VERSION_CODE=$code" >> "$GITHUB_ENV"
           echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
           ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/upload.jks" ANDROID_VERSION_CODE="$code" node tools/android-signing.mjs
+      - name: versionCode 설정 (검사 빌드)
+        if: env.SIGNING == 'debug'
+        run: |
+          code="${{ inputs.version_code }}"; code="${code:-$((100 + GITHUB_RUN_NUMBER))}"
+          echo "ANDROID_VERSION_CODE=$code" >> "$GITHUB_ENV"
+          sed -i "s/versionCode [0-9]*/versionCode $code/" android/app/build.gradle
       - name: AAB 빌드
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
