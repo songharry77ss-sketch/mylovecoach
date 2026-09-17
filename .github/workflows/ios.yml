@@ -90,7 +90,8 @@ jobs:
           umask 077
           mkdir -p "$RUNNER_TEMP/signing"
           printf '%s' "$ASC_KEY_P8_BASE64" | tr -d ' \t\r\n' | base64 --decode > "$RUNNER_TEMP/signing/AuthKey.p8"
-          echo "APP_STORE_CONNECT_PRIVATE_KEY<<EOF_KEY" >> "$GITHUB_ENV"; cat "$RUNNER_TEMP/signing/AuthKey.p8" >> "$GITHUB_ENV"; echo "EOF_KEY" >> "$GITHUB_ENV"
+          # 키 내용을 환경 파일에 쓰지 않고 파일 참조(@file:)로 넘긴다 (.p8 끝에 줄바꿈이 없으면 heredoc 구분자가 깨지는 문제도 피함)
+          echo "APP_STORE_CONNECT_PRIVATE_KEY=@file:$RUNNER_TEMP/signing/AuthKey.p8" >> "$GITHUB_ENV"
           if [ -n "$IOS_DISTRIBUTION_P12_BASE64" ]; then
             printf '%s' "$IOS_DISTRIBUTION_P12_BASE64" | tr -d ' \t\r\n' | base64 --decode > "$RUNNER_TEMP/signing/dist.p12"
             openssl pkcs12 -in "$RUNNER_TEMP/signing/dist.p12" -nocerts -nodes -legacy -passin "pass:$IOS_DISTRIBUTION_P12_PASSWORD" -out "$RUNNER_TEMP/signing/cert_key.pem" 2>/dev/null \
