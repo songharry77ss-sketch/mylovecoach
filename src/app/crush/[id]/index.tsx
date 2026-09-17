@@ -48,10 +48,13 @@ export default function CrushChat() {
   const [viewer, setViewer] = useState<string | null>(null);
   const listRef = useRef<FlatList<ChatMessage>>(null);
 
+  // 코칭을 몇 번 받아 본 무료 이용자에게 한 번만 보여 주는 안내 카드 (닫으면 다시 안 뜸)
+  const showUpsell = quota.enforced && quota.kind !== 'premium' && freeUsed >= 2 && !upsellDismissed && !sending && messages.some((m) => m.analysis);
+
   useEffect(() => {
     const t = setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
     return () => clearTimeout(t);
-  }, [messages.length]);
+  }, [messages.length, showUpsell]);
 
   if (!crush) {
     return (
@@ -136,8 +139,6 @@ export default function CrushChat() {
         }
       : null;
 
-  // 코칭을 몇 번 받아 본 무료 이용자에게 한 번만 보여 주는 안내 카드 (닫으면 다시 안 뜸)
-  const showUpsell = quota.enforced && quota.kind !== 'premium' && freeUsed >= 2 && !upsellDismissed && !sending && messages.some((m) => m.analysis);
 
   const rel = relationshipLabel(crush.relationship);
 
