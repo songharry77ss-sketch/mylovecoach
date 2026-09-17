@@ -28,13 +28,13 @@
 <tr><td>상대방 프로필 (이름/별명, 성별, 나이, MBTI, 관계 단계, 스타일 태그, 메모, 사진)</td><td>맞춤 답장 생성</td><td>이용자 기기 내부 저장소</td></tr>
 <tr><td>대화 캡처 이미지 및 이용자가 입력한 상황 설명</td><td>대화 분석 및 답장 추천</td><td>이용자 기기 내부 저장소</td></tr>
 <tr><td>AI 코칭 결과 (요약, 호감 온도, 추천 답장)</td><td>채팅방 기록 표시</td><td>이용자 기기 내부 저장소</td></tr>
-<tr><td>(선택) 이용자가 직접 입력한 Anthropic API 키</td><td>이용자 계정으로 AI 요청</td><td>기기 보안 저장소(iOS 키체인 / Android 키스토어)</td></tr>
+<tr><td>(선택) 이용자가 직접 입력한 AI API 키 (Google Gemini 또는 Anthropic)</td><td>이용자 계정으로 AI 요청</td><td>기기 보안 저장소(iOS 키체인 / Android 키스토어)</td></tr>
 </table>
 <p>앱은 회원가입을 요구하지 않으며, 이메일·전화번호·위치정보·광고식별자를 수집하지 않습니다. 앱 자체 서버에는 이용자 데이터를 저장하지 않습니다.</p>
 
 <h2>2. AI 분석을 위한 정보 전송</h2>
-<p>이용자가 코칭을 요청하면 해당 요청에 필요한 정보(대화 캡처 이미지, 상황 설명, 내/상대 프로필, 최근 코칭 맥락)가 암호화된 통신(HTTPS)으로 앱의 중계 서버를 거쳐 AI 처리 위탁사인 <strong>Anthropic, PBC</strong>의 API로 전송되어 답변 생성에 사용됩니다. 중계 서버는 요청을 저장하지 않고 즉시 전달만 하며, Anthropic은 자사 이용약관 및 개인정보 정책에 따라 API 입력 데이터를 모델 학습에 사용하지 않습니다. 자세한 내용은 <a href="https://www.anthropic.com/privacy">Anthropic 개인정보 정책</a>을 참고하세요.</p>
-<p>이용자가 설정에서 개인 API 키를 등록한 경우, 요청은 중계 서버 없이 이용자 기기에서 Anthropic API로 직접 전송됩니다.</p>
+<p>이용자가 코칭을 요청하면 해당 요청에 필요한 정보(대화 캡처 이미지, 상황 설명, 내/상대 프로필, 최근 코칭 맥락)가 암호화된 통신(HTTPS)으로 앱의 중계 서버를 거쳐 AI 처리 위탁사인 <strong>Google LLC</strong>의 Gemini API로 전송되어 답변 생성에 사용됩니다. 중계 서버는 요청을 저장하지 않고 즉시 전달만 합니다. 전송된 데이터는 Google의 <a href="https://ai.google.dev/gemini-api/terms">Gemini API 추가 서비스 약관</a> 및 <a href="https://policies.google.com/privacy">개인정보처리방침</a>에 따라 처리됩니다.</p>
+<p>이용자가 설정에서 개인 API 키를 등록한 경우, 요청은 중계 서버 없이 이용자 기기에서 해당 키의 제공사(Google Gemini API 또는 Anthropic API)로 직접 전송되며, 그 제공사의 약관과 개인정보 정책(<a href="https://www.anthropic.com/privacy">Anthropic 개인정보 정책</a> 등)이 적용됩니다.</p>
 
 <h2>3. 제3자의 개인정보</h2>
 <p>대화 캡처에는 상대방의 이름, 메시지 등 제3자의 정보가 포함될 수 있습니다. 이용자는 해당 정보를 본인의 책임 하에 개인적인 조언을 얻기 위한 목적으로만 이용해야 하며, 앱은 이를 다른 목적으로 사용하거나 공개하지 않습니다.</p>

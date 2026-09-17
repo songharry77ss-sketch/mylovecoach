@@ -20,6 +20,8 @@ jobs:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       COACH_APP_TOKEN: ${{ secrets.EXPO_PUBLIC_API_TOKEN }}
+      # 팀 범위 토큰이면 필수: 저장소 변수 VERCEL_SCOPE 에 팀 슬러그 (없으면 "User not found" 오류)
+      VERCEL_SCOPE: ${{ vars.VERCEL_SCOPE }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -33,14 +35,14 @@ jobs:
       - name: Vercel CLI
         run: npm i -g vercel@latest
       - name: 프로젝트 연결 (없으면 생성)
-        run: vercel link --yes --project mylovecoach --token "$VERCEL_TOKEN"
+        run: vercel link --yes --project mylovecoach --token "$VERCEL_TOKEN" ${VERCEL_SCOPE:+--scope "$VERCEL_SCOPE"}
       - name: 환경변수 등록 (프로덕션)
         run: |
           set -e
           add_env() { # name value
             [ -n "$2" ] || return 0
-            vercel env rm "$1" production --yes --token "$VERCEL_TOKEN" >/dev/null 2>&1 || true
-            printf '%s' "$2" | vercel env add "$1" production --token "$VERCEL_TOKEN" >/dev/null
+            vercel env rm "$1" production --yes --token "$VERCEL_TOKEN" ${VERCEL_SCOPE:+--scope "$VERCEL_SCOPE"} >/dev/null 2>&1 || true
+            printf '%s' "$2" | vercel env add "$1" production --token "$VERCEL_TOKEN" ${VERCEL_SCOPE:+--scope "$VERCEL_SCOPE"} >/dev/null
             echo "env 등록: $1"
           }
           add_env GEMINI_API_KEY "$GEMINI_API_KEY"
@@ -52,7 +54,7 @@ jobs:
       - name: 프로덕션 배포
         id: deploy
         run: |
-          dep=$(vercel deploy --prod --yes --token "$VERCEL_TOKEN" 2>&1 | tee /tmp/deploy.log | grep -Eo 'https://[a-zA-Z0-9.-]+\.vercel\.app' | tail -1)
+          dep=$(vercel deploy --prod --yes --token "$VERCEL_TOKEN" ${VERCEL_SCOPE:+--scope "$VERCEL_SCOPE"} 2>&1 | tee /tmp/deploy.log | grep -Eo 'https://[a-zA-Z0-9.-]+\.vercel\.app' | tail -1)
           [ -n "$dep" ] || { cat /tmp/deploy.log; echo "::error::배포 주소를 찾지 못했습니다"; exit 1; }
           # 배포별 주소는 Vercel 보호(로그인 필요)에 걸릴 수 있어, 공개되는 프로덕션 별칭(고정 주소)을 찾아 쓴다
           org=$(node -p "require('./.vercel/project.json').orgId")
