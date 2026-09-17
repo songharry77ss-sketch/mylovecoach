@@ -51,7 +51,7 @@ export function detectProvider(apiKey: string): DirectProvider | null {
 }
 
 export function isCoachConfigured(directApiKey?: string | null): boolean {
-  return isDemoMode || Boolean(APP_CONFIG.apiUrl) || Boolean(directApiKey?.trim());
+  return isDemoMode || APP_CONFIG.apiSameOrigin || Boolean(APP_CONFIG.apiUrl) || Boolean(directApiKey?.trim());
 }
 
 /**
@@ -60,7 +60,7 @@ export function isCoachConfigured(directApiKey?: string | null): boolean {
 export async function requestCoaching(input: CoachRequestInput, options: CoachClientOptions = {}): Promise<CoachAnalysis> {
   const req = CoachRequestSchema.parse(input);
   if (isDemoMode) return demoAnalysis(req);
-  if (APP_CONFIG.apiUrl) return viaProxy(req, options);
+  if (APP_CONFIG.apiUrl || APP_CONFIG.apiSameOrigin) return viaProxy(req, options);
   const key = options.directApiKey?.trim();
   if (key) {
     const provider = detectProvider(key);

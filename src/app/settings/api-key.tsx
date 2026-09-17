@@ -45,7 +45,7 @@ export default function ApiKeySettings() {
 
   return (
     <Screen keyboard contentStyle={styles.content}>
-      {APP_CONFIG.apiUrl ? (
+      {APP_CONFIG.apiUrl || APP_CONFIG.apiSameOrigin ? (
         <Card tone="primary" style={styles.status}>
           <Ionicons name="checkmark-circle" size={22} color={theme.primary} />
           <View style={styles.statusTexts}>

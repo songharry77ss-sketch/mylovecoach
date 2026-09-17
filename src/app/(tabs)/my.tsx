@@ -24,7 +24,7 @@ export default function MyScreen() {
   const resetAll = useAppStore((s) => s.resetAll);
   const crushCount = useAppStore((s) => Object.keys(s.crushes).length);
 
-  const connection = isDemoMode ? '데모 모드 · 샘플 결과' : APP_CONFIG.apiUrl ? '연결됨 · 코치 서버' : hasApiKey ? '연결됨 · 내 API 키' : '연결 필요';
+  const connection = isDemoMode ? '데모 모드 · 샘플 결과' : APP_CONFIG.apiUrl || APP_CONFIG.apiSameOrigin ? '연결됨 · 코치 서버' : hasApiKey ? '연결됨 · 내 API 키' : '연결 필요';
 
   const confirmReset = () => {
     const run = async () => {

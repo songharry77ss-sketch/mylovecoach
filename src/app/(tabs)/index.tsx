@@ -12,6 +12,7 @@ import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section-header';
 import { Radius, Spacing, palette } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { APP_CONFIG } from '@/lib/config';
 import { isDemoMode } from '@/lib/demo';
 import { sortCrushes, useAppStore } from '@/store/app-store';
 
@@ -82,7 +83,7 @@ export default function HomeScreen() {
           <Button title="새 채팅방 만들기" variant="soft" onPress={() => router.push('/crush/new')} style={styles.bottomBtn} />
         </>
       )}
-      {!isDemoMode && !process.env.EXPO_PUBLIC_API_URL && !hasApiKey ? (
+      {!isDemoMode && !APP_CONFIG.apiSameOrigin && !process.env.EXPO_PUBLIC_API_URL && !hasApiKey ? (
         <Pressable accessibilityRole="button" onPress={() => router.push('/settings/api-key')} style={[styles.notice, { backgroundColor: theme.accentSoft }]}>
           <Ionicons name="key-outline" size={18} color={theme.accent} />
           <AppText variant="small" color="accent" style={styles.noticeText}>

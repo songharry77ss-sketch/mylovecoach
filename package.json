@@ -54,7 +54,8 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "doctor": "npx expo-doctor",
-    "export:web": "expo export --platform web"
+    "export:web": "expo export --platform web",
+    "build:web": "expo export --platform web && node tools/copy-site.mjs"
   },
   "private": true
 }
