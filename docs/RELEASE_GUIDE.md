@@ -10,7 +10,7 @@
 | 🙋 Apple Developer Program 가입 | iOS 빌드 서명 + App Store 제출 | 연 $99 (승인까지 최대 48시간) |
 | 🙋 Google Play Console 개발자 등록 | Android 제출 | 1회 $25 (신원 확인 필요) |
 | 🙋 Expo 계정 (expo.dev) | EAS Build/Submit 클라우드 빌드 | 무료 플랜 가능 |
-| 🙋 Anthropic API 키 (console.anthropic.com) | AI 코치 서버 동작 | 사용량 과금 |
+| 🙋 Anthropic API 키 (console.anthropic.com) **또는** Gemini API 키 (aistudio.google.com) | AI 코치 서버 동작 | 사용량 과금 (Gemini 는 무료 티어 있음) |
 | 🙋 Vercel 계정 | 코치 API 프록시 + 개인정보 처리방침 페이지 호스팅 | 무료 플랜 가능 |
 
 > ⚠️ 2024년 이후 Google Play는 **개인 개발자 신규 계정**에 "12명 이상 테스터로 14일 이상 비공개 테스트" 를 요구합니다. 오늘 당장 프로덕션 공개는 Google 정책상 불가능할 수 있으니, **내부 테스트 트랙**으로 먼저 올리는 것을 기본 계획으로 잡았습니다 (`eas.json` 의 `track: internal`).
@@ -21,7 +21,10 @@
 npm i -g vercel
 vercel login
 vercel link                       # 새 프로젝트로 연결 (root = 저장소 루트)
-vercel env add ANTHROPIC_API_KEY production   # sk-ant-... 입력
+vercel env add ANTHROPIC_API_KEY production   # sk-ant-... 입력 (Claude 사용 시)
+# 또는 Gemini 를 쓰려면:
+vercel env add GEMINI_API_KEY production      # AIza... 입력
+vercel env add AI_PROVIDER production         # gemini
 vercel env add COACH_APP_TOKEN production     # 임의의 긴 문자열 (선택)
 vercel --prod
 ```

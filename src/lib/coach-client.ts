@@ -11,6 +11,7 @@ import {
 } from '@/lib/coach-schema';
 import { APP_CONFIG } from '@/lib/config';
 import { demoAnalysis, isDemoMode } from '@/lib/demo';
+import { callGemini } from '@/lib/gemini';
 import type { CoachAnalysis } from '@/lib/types';
 
 export class CoachError extends Error {
@@ -39,6 +40,16 @@ function withTimeout(signal?: AbortSignal): AbortSignal {
   return controller.signal;
 }
 
+export type DirectProvider = 'anthropic' | 'gemini';
+
+/** 키 형식으로 프로바이더를 판별합니다. sk-ant-… → Anthropic(Claude), AIza… → Google Gemini */
+export function detectProvider(apiKey: string): DirectProvider | null {
+  const k = apiKey.trim();
+  if (k.startsWith('sk-ant-')) return 'anthropic';
+  if (k.startsWith('AIza')) return 'gemini';
+  return null;
+}
+
 export function isCoachConfigured(directApiKey?: string | null): boolean {
   return isDemoMode || Boolean(APP_CONFIG.apiUrl) || Boolean(directApiKey?.trim());
 }
@@ -50,7 +61,12 @@ export async function requestCoaching(input: CoachRequestInput, options: CoachCl
   const req = CoachRequestSchema.parse(input);
   if (isDemoMode) return demoAnalysis(req);
   if (APP_CONFIG.apiUrl) return viaProxy(req, options);
-  if (options.directApiKey?.trim()) return viaAnthropic(req, options.directApiKey.trim(), options);
+  const key = options.directApiKey?.trim();
+  if (key) {
+    const provider = detectProvider(key);
+    if (provider === 'gemini') return viaGemini(req, key, options);
+    return viaAnthropic(req, key, options);
+  }
   throw new CoachError('AI 코치 서버가 아직 연결되지 않았어요. 설정에서 API 키를 등록해주세요.', 'not_configured');
 }
 
@@ -122,6 +138,23 @@ async function viaAnthropic(req: CoachRequest, apiKey: string, options: CoachCli
   let json: unknown;
   try {
     json = JSON.parse(text);
+  } catch {
+    throw new CoachError('응답을 이해하지 못했어요. 다시 시도해주세요.', 'parse');
+  }
+  return parseAnalysis(json);
+}
+
+async function viaGemini(req: CoachRequest, apiKey: string, options: CoachClientOptions): Promise<CoachAnalysis> {
+  let result: Awaited<ReturnType<typeof callGemini>>;
+  try {
+    result = await callGemini(req, apiKey, { signal: withTimeout(options.signal) });
+  } catch {
+    throw new CoachError('네트워크 연결을 확인해주세요.', 'network');
+  }
+  if (!result.ok) throw new CoachError(result.message, result.code);
+  let json: unknown;
+  try {
+    json = JSON.parse(result.text);
   } catch {
     throw new CoachError('응답을 이해하지 못했어요. 다시 시도해주세요.', 'parse');
   }

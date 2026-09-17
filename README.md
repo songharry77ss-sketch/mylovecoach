@@ -20,7 +20,7 @@
 | 영역 | 선택 |
 |---|---|
 | 앱 | Expo SDK 57 · React Native 0.86 · expo-router · TypeScript · zustand · reanimated |
-| AI | Claude (`claude-opus-5`) Vision + Structured Outputs (zod) |
+| AI | Claude (`claude-opus-5`) 또는 Google Gemini (`gemini-3.8-flash`) · 이미지 입력 + 구조화 JSON 출력 (zod 스키마 공용) |
 | 서버 | Vercel Serverless Function (`api/coach.ts`) – 앱 → 서버 → Anthropic 프록시 |
 | 배포 | EAS Build / EAS Submit (App Store · Google Play) |
 
@@ -56,8 +56,10 @@ npx expo start              # Expo Go 또는 개발 빌드로 실행
 
 AI 연결 방법은 둘 중 하나입니다.
 
-1. **프록시 서버(권장, 스토어 배포용)** – `vercel` 로 이 저장소를 배포하고 Vercel 환경변수에 `ANTHROPIC_API_KEY`(필수), `COACH_APP_TOKEN`(선택)을 등록한 뒤, 앱 빌드 시 `EXPO_PUBLIC_API_URL=https://<배포주소>` 를 넣습니다.
-2. **개인 API 키(개발/테스트용)** – 앱의 *마이 → AI 코치 연결* 에서 `sk-ant-…` 키를 입력하면 기기에서 Anthropic API를 직접 호출합니다.
+1. **프록시 서버(권장, 스토어 배포용)** – `vercel` 로 이 저장소를 배포하고 Vercel 환경변수에 `ANTHROPIC_API_KEY` 또는 `GEMINI_API_KEY`(둘 중 하나 필수), `COACH_APP_TOKEN`(선택)을 등록한 뒤, 앱 빌드 시 `EXPO_PUBLIC_API_URL=https://<배포주소>` 를 넣습니다.
+2. **개인 API 키(개발/테스트용)** – 앱의 *마이 → AI 코치 연결* 에서 `sk-ant-…`(Anthropic) 또는 `AIza…`(Gemini) 키를 입력하면 기기에서 해당 API를 직접 호출합니다. 키 형식으로 자동 판별됩니다.
+
+프롬프트와 출력 스키마는 `src/lib/coach-schema.ts` 한 곳에 있고, Gemini 전용 변환은 `src/lib/gemini.ts` 에 있습니다.
 
 ## 검증
 
