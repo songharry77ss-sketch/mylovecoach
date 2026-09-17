@@ -14,6 +14,7 @@
 - **대화 맥락 기억** – 최근 코칭 내용과 실제로 보낸 답장을 다음 요청에 반영
 - **연애 팁 라이브러리**, **내 프로필/기본 톤 설정**, **다크 모드**
 - 회원가입 없음. 모든 데이터는 기기에만 저장 (API 키는 키체인/키스토어)
+- **프리미엄(인앱결제)** – 무료는 처음 3회 + 이후 하루 1회. 주간 구독 ₩9,900 · 평생권 ₩29,800 으로 무제한 (iOS StoreKit 2 / Android Play Billing, `expo-iap`)
 
 ## 기술 스택
 
@@ -82,4 +83,4 @@ npm run export:web  # 웹 번들 빌드 확인
 
 ## 스토어 출시
 
-[docs/RELEASE_GUIDE.md](docs/RELEASE_GUIDE.md) 에 계정 준비부터 `eas build` / `eas submit` 까지 단계별로 정리돼 있고, 스토어 등록 문구는 [docs/STORE_LISTING.md](docs/STORE_LISTING.md) 에 있습니다.
+[docs/RELEASE_GUIDE.md](docs/RELEASE_GUIDE.md) 에 단계별로 정리돼 있습니다. 권장 경로는 GitHub Actions(`ios.yml` · `android.yml` · `vercel.yml`)로 빌드·업로드하고, PC 에서 `tools/asc-listing.mjs` · `tools/asc-iap.mjs` · `tools/play-setup.mjs` 로 스토어 등록 정보와 인앱결제 상품을 API 로 입력하는 방식입니다. 스토어 등록 문구의 원본은 [docs/STORE_LISTING.md](docs/STORE_LISTING.md) 입니다.
