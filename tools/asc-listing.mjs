@@ -4,29 +4,20 @@
 //   --submit : 처리 완료된 최신 빌드를 버전에 연결하고 심사에 제출
 // API 로 안 되는 것(화면에서만 가능): 앱 레코드 생성, 「앱이 수집하는 개인정보」(App Privacy) 설문.
 // 값(키)은 출력하지 않는다. 같은 값을 다시 넣어도 안전하게 여러 번 실행할 수 있다.
-import { Buffer } from 'node:buffer';
-import { createHash, createSign } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const BUNDLE_ID = 'app.mylovecoach.ios';
+import { BUNDLE_ID, createAscClient, secretsRoot, step } from './lib/asc-api.mjs';
+
 const LOCALE = 'ko';
 const VERSION = '1.0.0';
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 const argOf = (n) => (args.includes(n) ? args[args.indexOf(n) + 1] : undefined);
-const root = argOf('--secrets') ?? process.env.MYLOVECOACH_SECRETS ?? join(homedir(), 'wolha-secrets');
+const root = secretsRoot(args);
 const SITE = (argOf('--site') ?? (existsSync(join(root, 'mylovecoach-api-url.txt')) ? readFileSync(join(root, 'mylovecoach-api-url.txt'), 'utf8').trim() : 'https://mylovecoach.vercel.app')).replace(/\/+$/, '');
-
-const entries = (file) =>
-  Object.fromEntries(
-    readFileSync(file, 'utf8')
-      .split(/\r?\n/)
-      .filter((l) => /^[A-Z_]+\s*=/.test(l.trim()))
-      .map((l) => [l.slice(0, l.indexOf('=')).trim(), l.slice(l.indexOf('=') + 1).trim()]),
-  );
+const { api, uploadAsset, findApp } = createAscClient(root);
 
 // ---- 등록 문구: docs/STORE_LISTING.md 에서 읽는다 (문서가 원본)
 const listingMd = readFileSync(join(repo, 'docs', 'STORE_LISTING.md'), 'utf8');
@@ -41,47 +32,8 @@ const LISTING = {
   reviewNotes: section('심사 메모').replace(/^- /gm, '• '),
 };
 
-// ---- API
-function token() {
-  const { KEY_ID, ISSUER_ID } = entries(join(root, 'asc-key.txt'));
-  const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
-  const now = Math.floor(Date.now() / 1000);
-  const unsigned = `${b64({ alg: 'ES256', kid: KEY_ID, typ: 'JWT' })}.${b64({ iss: ISSUER_ID, iat: now, exp: now + 1100, aud: 'appstoreconnect-v1' })}`;
-  const sig = createSign('SHA256').update(unsigned).sign({ key: readFileSync(join(root, 'asc-key.p8')), dsaEncoding: 'ieee-p1363' }).toString('base64url');
-  return `${unsigned}.${sig}`;
-}
-let jwt = token();
-let jwtAt = Date.now();
-async function api(method, path, body) {
-  if (Date.now() - jwtAt > 900_000) [jwt, jwtAt] = [token(), Date.now()];
-  const res = await fetch(path.startsWith('http') ? path : `https://api.appstoreconnect.apple.com${path}`, {
-    method,
-    headers: { Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const json = res.status === 204 ? {} : await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const e = new Error(`${method} ${path.split('?')[0]} → ${res.status}: ${(json.errors ?? []).map((x) => x.detail ?? x.title).join(' | ')}`);
-    e.status = res.status;
-    e.errors = json.errors ?? [];
-    throw e;
-  }
-  return json;
-}
-const step = async (label, fn) => {
-  try {
-    const out = await fn();
-    console.log(`✓ ${label}${out ? ` — ${out}` : ''}`);
-    return true;
-  } catch (e) {
-    console.log(`✗ ${label} — ${e.message}`);
-    return false;
-  }
-};
-
 async function main() {
-  const apps = await api('GET', `/v1/apps?filter[bundleId]=${BUNDLE_ID}`);
-  const app = apps.data?.[0];
+  const app = await findApp();
   if (!app) {
     console.log(`앱 레코드가 아직 없습니다. App Store Connect → 앱 → + → 신규 앱 에서 번들 ID ${BUNDLE_ID} 로 만든 뒤 다시 실행하세요.`);
     process.exitCode = 2; // Windows 에서 fetch 직후 process.exit() 는 libuv 단언 오류를 내므로 exitCode 만 설정
@@ -178,11 +130,7 @@ async function main() {
         if (done.has(f)) continue;
         const buf = readFileSync(join(dir, f));
         const shot = (await api('POST', '/v1/appScreenshots', { data: { type: 'appScreenshots', attributes: { fileName: f, fileSize: buf.length }, relationships: { appScreenshotSet: { data: { type: 'appScreenshotSets', id: set.id } } } } })).data;
-        for (const op of shot.attributes.uploadOperations) {
-          const r = await fetch(op.url, { method: op.method, headers: Object.fromEntries(op.requestHeaders.map((h) => [h.name, h.value])), body: buf.subarray(op.offset, op.offset + op.length) });
-          if (!r.ok) throw new Error(`${f} 업로드 실패 (${r.status})`);
-        }
-        await api('PATCH', `/v1/appScreenshots/${shot.id}`, { data: { type: 'appScreenshots', id: shot.id, attributes: { uploaded: true, sourceFileChecksum: createHash('md5').update(buf).digest('hex') } } });
+        await uploadAsset('appScreenshots', shot, buf);
         uploaded++;
       }
       return `새로 ${uploaded}장, 기존 ${done.size}장`;

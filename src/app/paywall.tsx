@@ -30,8 +30,9 @@ const BENEFITS: { icon: keyof typeof Ionicons.glyphMap; title: string; body: str
   { icon: 'chatbubbles-outline', title: '모든 채팅방에서', body: '썸, 소개팅, 연인까지 상대가 몇 명이든 그대로 적용돼요' },
 ];
 
-/** 웹에서 결제 화면 모양을 확인·캡처하기 위한 개발용 플래그 (실제 결제는 되지 않음) */
-const showPlans = billingSupported || process.env.EXPO_PUBLIC_PAYWALL_PREVIEW === '1';
+/** 웹에서 결제 화면 모양을 확인·캡처하기 위한 개발용 플래그: ios | android (실제 결제는 되지 않음) */
+const previewStore = process.env.EXPO_PUBLIC_PAYWALL_PREVIEW;
+const showPlans = billingSupported || Boolean(previewStore);
 
 const DEFAULT_PRODUCTS: PlanProduct[] = [
   { plan: 'lifetime', productId: PRODUCT_IDS.lifetime, displayPrice: FALLBACK_PRICES.lifetime },
@@ -62,7 +63,7 @@ export default function Paywall() {
   const close = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
   const priceOf = (plan: PlanKey) => products.find((p) => p.plan === plan)?.displayPrice ?? FALLBACK_PRICES[plan];
   const active = isPremiumActive(premium, Date.now());
-  const storeName = Platform.OS === 'ios' ? 'App Store' : 'Google Play';
+  const storeName = Platform.OS === 'ios' || previewStore === 'ios' ? 'App Store' : 'Google Play';
 
   const buy = async () => {
     const product = products.find((p) => p.plan === selected);
