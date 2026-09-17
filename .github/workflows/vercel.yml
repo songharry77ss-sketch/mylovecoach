@@ -1,0 +1,68 @@
+name: Vercel Deploy (web + API)
+
+# 수동 실행: gh workflow run vercel.yml
+# 필요한 시크릿: VERCEL_TOKEN (vercel.com/account/tokens), GEMINI_API_KEY (또는 ANTHROPIC_API_KEY)
+# 첫 실행 시 Vercel 에 'mylovecoach' 프로젝트를 만들고 환경변수를 넣은 뒤 프로덕션 배포한다.
+# 결과 주소는 로그 마지막에 출력되며, 이후 앱 빌드의 EXPO_PUBLIC_API_URL 로 쓴다.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      COACH_APP_TOKEN: ${{ secrets.EXPO_PUBLIC_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: 시크릿 확인
+        run: |
+          [ -n "$VERCEL_TOKEN" ] || { echo "::error::VERCEL_TOKEN 시크릿이 없습니다 (vercel.com/account/tokens 에서 발급 → wolha-secrets/vercel-token.txt 에 VERCEL_TOKEN=… → node tools/set-ci-secrets.mjs)"; exit 1; }
+          if [ -z "$GEMINI_API_KEY" ] && [ -z "$ANTHROPIC_API_KEY" ]; then echo "::error::GEMINI_API_KEY 또는 ANTHROPIC_API_KEY 시크릿이 필요합니다"; exit 1; fi
+      - name: Vercel CLI
+        run: npm i -g vercel@latest
+      - name: 프로젝트 연결 (없으면 생성)
+        run: vercel link --yes --project mylovecoach --token "$VERCEL_TOKEN"
+      - name: 환경변수 등록 (프로덕션)
+        run: |
+          set -e
+          add_env() { # name value
+            [ -n "$2" ] || return 0
+            vercel env rm "$1" production --yes --token "$VERCEL_TOKEN" >/dev/null 2>&1 || true
+            printf '%s' "$2" | vercel env add "$1" production --token "$VERCEL_TOKEN" >/dev/null
+            echo "env 등록: $1"
+          }
+          add_env GEMINI_API_KEY "$GEMINI_API_KEY"
+          add_env ANTHROPIC_API_KEY "$ANTHROPIC_API_KEY"
+          add_env AI_PROVIDER "$([ -n "$GEMINI_API_KEY" ] && echo gemini || echo anthropic)"
+          add_env COACH_APP_TOKEN "$COACH_APP_TOKEN"
+      - name: 프로덕션 배포
+        id: deploy
+        run: |
+          url=$(vercel deploy --prod --yes --token "$VERCEL_TOKEN" 2>&1 | tee /tmp/deploy.log | grep -Eo 'https://[a-zA-Z0-9.-]+\.vercel\.app' | tail -1)
+          [ -n "$url" ] || { cat /tmp/deploy.log; echo "::error::배포 주소를 찾지 못했습니다"; exit 1; }
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "::notice title=배포 완료::$url"
+      - name: 동작 확인
+        run: |
+          url="${{ steps.deploy.outputs.url }}"
+          echo "웹: $url"
+          curl -sS -o /dev/null -w "index: %{http_code}\n" "$url/"
+          curl -sS -o /dev/null -w "privacy: %{http_code}\n" "$url/privacy.html"
+          code=$(curl -sS -o /tmp/coach.json -w "%{http_code}" -X POST "$url/api/coach" -H 'content-type: application/json' \
+            ${COACH_APP_TOKEN:+-H "x-app-token: $COACH_APP_TOKEN"} \
+            -d '{"crush":{"name":"민지","gender":"female","relationship":"talking","style":[],"notes":""},"user":{"name":"지훈","gender":"male","style":[]},"tone":"natural","text":"첫 메시지 뭐라고 보낼까?","history":[]}')
+          echo "api/coach: $code"; head -c 400 /tmp/coach.json; echo
+          [ "$code" = "200" ] || { echo "::error::코치 API 응답 실패"; exit 1; }
+          echo "다음 단계: node tools/set-ci-secrets.mjs --api-url $url (앱 빌드가 이 서버를 쓰도록)"

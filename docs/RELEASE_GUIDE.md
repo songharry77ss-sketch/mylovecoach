@@ -137,11 +137,14 @@ gh workflow run android.yml --repo songharry77ss-sketch/mylovecoach --ref claude
 - Android: Actions 산출물(`mylovecoach-android-<versionCode>.aab`) 을 내려받아 Play Console **내부 테스트**에 첫 업로드(새 앱은 첫 AAB 를 콘솔에서 올려야 API 업로드가 열립니다). 이후부터는 `-f track=internal` 로 자동 업로드.
   Play 서비스 계정에 이 앱 권한을 주려면 Play Console → 사용자 및 권한 → 서비스 계정 → 앱 추가.
 
-### 4. 코치 서버 (Vercel, 3분) 🙋
+### 4. 웹 + 코치 서버 (Vercel) 🙋/💻
 
-Vercel 대시보드 → Add New Project → GitHub 에서 `mylovecoach` 가져오기 → Environment Variables 에
-`GEMINI_API_KEY`(발급한 키), `AI_PROVIDER=gemini` 추가 → Deploy. 주소가 나오면 1번을 `--api-url` 과 함께 다시 실행하고 앱을 다시 빌드합니다.
-(개인정보 처리방침 URL 은 `<주소>/privacy.html`)
+한 Vercel 프로젝트가 **웹 앱(브라우저에서 바로 사용) + 코치 API + 약관 페이지**를 모두 서비스합니다.
+
+- **자동(권장)**: vercel.com/account/tokens 에서 토큰 발급 → `wolha-secrets/vercel-token.txt` 에 `VERCEL_TOKEN=…`, `gemini-api-key.txt` 에 `GEMINI_API_KEY=…` 저장 → `node tools/set-ci-secrets.mjs` → `gh workflow run vercel.yml`. 로그 마지막에 배포 주소가 나옵니다.
+- **수동**: Vercel 대시보드 → Add New Project → GitHub 에서 `mylovecoach` 가져오기(브랜치 `claude/jolly-pascal-tr47bw`) → Environment Variables 에 `GEMINI_API_KEY`, `AI_PROVIDER=gemini` → Deploy.
+
+주소가 나오면 `node tools/set-ci-secrets.mjs --api-url https://<주소>` 로 앱 빌드에 연결하고, 개인정보 처리방침 URL 은 `<주소>/privacy.html` 입니다.
 
 ---
 

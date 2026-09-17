@@ -10,6 +10,8 @@
 //   mylovecoach-upload.jks + mylovecoach-keystore-password.txt → ANDROID_* (없으면 keytool 로 생성)
 //   play-service-account.json                              → PLAY_SERVICE_ACCOUNT_JSON (선택)
 //   mylovecoach-api-url.txt 또는 --api-url                 → 변수 EXPO_PUBLIC_API_URL
+//   vercel-token.txt(VERCEL_TOKEN=)                        → VERCEL_TOKEN (vercel.yml 이 웹+API 자동 배포)
+//   gemini-api-key.txt(GEMINI_API_KEY=) 또는 --gemini-key   → GEMINI_API_KEY (서버용)
 import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
@@ -132,6 +134,15 @@ if (has('play-service-account.json')) {
 const apiUrl = argOf('--api-url') ?? (has('mylovecoach-api-url.txt') ? readFileSync(join(root, 'mylovecoach-api-url.txt'), 'utf8').trim() : '');
 if (/^https:\/\/\S+$/.test(apiUrl)) variables.EXPO_PUBLIC_API_URL = apiUrl.replace(/\/+$/, '');
 else notes.push('EXPO_PUBLIC_API_URL 미설정 → --api-url https://... 로 지정 (Vercel 배포 주소). 없으면 앱은 개인 API 키 모드로만 동작');
+
+// ---- Vercel 자동 배포용 (선택)
+if (has('vercel-token.txt')) {
+  const t = entries(join(root, 'vercel-token.txt')).VERCEL_TOKEN ?? readFileSync(join(root, 'vercel-token.txt'), 'utf8').trim();
+  if (t) secrets.VERCEL_TOKEN = t;
+} else notes.push('없음: vercel-token.txt → Vercel 배포는 대시보드에서 수동 (또는 vercel.com/account/tokens 발급 후 VERCEL_TOKEN=… 저장)');
+const geminiKey = argOf('--gemini-key') ?? (has('gemini-api-key.txt') ? (entries(join(root, 'gemini-api-key.txt')).GEMINI_API_KEY ?? readFileSync(join(root, 'gemini-api-key.txt'), 'utf8').trim()) : '');
+if (geminiKey) secrets.GEMINI_API_KEY = geminiKey;
+else notes.push('없음: gemini-api-key.txt / --gemini-key → 서버 자동 배포 시 필요 (AI Studio 키)');
 
 // ---- App Store Connect 에 번들 ID 등록 (앱을 만들려면 먼저 있어야 함)
 async function registerBundleId() {
