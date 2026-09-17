@@ -156,9 +156,12 @@ if (/^https:\/\/\S+$/.test(apiUrl)) variables.EXPO_PUBLIC_API_URL = apiUrl.repla
 else notes.push('EXPO_PUBLIC_API_URL 미설정 → --api-url https://... 로 지정 (Vercel 배포 주소). 없으면 앱은 개인 API 키 모드로만 동작');
 
 // ---- Vercel 자동 배포용 (선택)
-if (has('vercel-token.txt')) {
-  const t = entries(join(root, 'vercel-token.txt')).VERCEL_TOKEN ?? readFileSync(join(root, 'vercel-token.txt'), 'utf8').trim();
+// 월하용 vercel-token.txt 는 월하 프로젝트 전용으로 제한된 토큰일 수 있어(새 프로젝트 생성 403), 이 앱 전용 파일을 우선한다.
+const vercelTokenFile = ['mylovecoach-vercel-token.txt', 'vercel-token.txt'].find(has);
+if (vercelTokenFile) {
+  const t = entries(join(root, vercelTokenFile)).VERCEL_TOKEN ?? readFileSync(join(root, vercelTokenFile), 'utf8').trim();
   if (t) secrets.VERCEL_TOKEN = t;
+  console.log(`Vercel 토큰: ${vercelTokenFile}`);
 } else notes.push('없음: vercel-token.txt → Vercel 배포는 대시보드에서 수동 (또는 vercel.com/account/tokens 발급 후 VERCEL_TOKEN=… 저장)');
 const geminiKey = argOf('--gemini-key') ?? (has('gemini-api-key.txt') ? (entries(join(root, 'gemini-api-key.txt')).GEMINI_API_KEY ?? readFileSync(join(root, 'gemini-api-key.txt'), 'utf8').trim()) : '');
 if (geminiKey) secrets.GEMINI_API_KEY = geminiKey;

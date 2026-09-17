@@ -80,9 +80,10 @@ jobs:
           cd ios && pod install --repo-update
       - name: codemagic-cli-tools 설치 (App Store Connect 서명 자동화)
         run: |
-          python3 -m pip install --user --quiet codemagic-cli-tools
-          echo "$(python3 -c 'import site; print(site.USER_BASE)')/bin" >> "$GITHUB_PATH"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          # macos-26 러너의 python 은 PEP 668(externally-managed)이라 시스템에 직접 설치할 수 없다 → 전용 가상환경 사용
+          python3 -m venv "$RUNNER_TEMP/cm-venv"
+          "$RUNNER_TEMP/cm-venv/bin/pip" install --quiet codemagic-cli-tools
+          echo "$RUNNER_TEMP/cm-venv/bin" >> "$GITHUB_PATH"
       - name: 서명 자료 준비 (API 키 · 인증서 개인키)
         run: |
           set -euo pipefail
