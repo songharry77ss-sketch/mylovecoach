@@ -43,7 +43,6 @@
     "eslint-config-expo": "^10.0.0",
     "jest": "^29.7.0",
     "jest-expo": "^57.0.5",
-    "patch-package": "^8.0.1",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -56,8 +55,7 @@
     "test": "jest",
     "doctor": "npx expo-doctor",
     "export:web": "expo export --platform web",
-    "build:web": "expo export --platform web && node tools/copy-site.mjs",
-    "postinstall": "patch-package"
+    "build:web": "expo export --platform web && node tools/copy-site.mjs"
   },
   "private": true
 }

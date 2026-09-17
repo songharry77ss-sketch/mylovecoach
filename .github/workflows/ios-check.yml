@@ -1,6 +1,7 @@
 name: iOS Compile Check
 
 # 서명 없이 시뮬레이터용으로 컴파일만 해 본다 (Xcode·CocoaPods·Expo 툴체인 검증). 시크릿 불필요.
+# Expo SDK 57 은 최신 Xcode 를 전제로 하므로 러너 이미지/Xcode 조합을 매트릭스로 검증한다.
 on:
   workflow_dispatch:
 
@@ -9,8 +10,18 @@ permissions:
 
 jobs:
   compile-check:
-    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-26
+            xcode: '26.6'
+          - runner: macos-27
+            xcode: '27'
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
+    env:
+      XCODE_PREFER: ${{ matrix.xcode }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -34,12 +45,10 @@ jobs:
         if: failure()
         run: |
           echo "===== error 줄 ====="
-          grep -n -E "error:|error\b|\[ExpoModulesJSI\]|Sandbox|denied|No such file|Command .* failed" build/logs/compile.log | grep -v "warning:" | tail -60 || true
-          echo "===== ExpoModulesJSI 스크립트 구간 ====="
-          grep -n -A80 "PhaseScriptExecution \[CP-User\]\\ Build\\ ExpoModulesJSI" build/logs/compile.log | head -150 || true
+          grep -n -E "error:|\[ExpoModulesJSI\]|Sandbox|denied|No such file" build/logs/compile.log | grep -v "warning:" | grep -v "TEMP_SANDBOX\|/usr/bin/clang" | tail -60 || true
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: ios-compile-failure-${{ github.run_id }}
+          name: ios-compile-failure-${{ matrix.runner }}-${{ github.run_id }}
           path: build/logs/
           retention-days: 7

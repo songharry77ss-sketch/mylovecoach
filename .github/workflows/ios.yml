@@ -19,6 +19,16 @@ on:
         required: false
         default: true
         type: boolean
+      runner:
+        description: '러너 이미지 (macos-26 또는 macos-27)'
+        required: false
+        default: 'macos-26'
+        type: string
+      xcode:
+        description: 'Xcode 버전 계열 (예: 26.6, 27)'
+        required: false
+        default: '26.6'
+        type: string
 
 permissions:
   contents: read
@@ -30,7 +40,7 @@ env:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: ${{ inputs.runner || 'macos-26' }}
     timeout-minutes: 90
     concurrency:
       group: ios-testflight
@@ -46,6 +56,7 @@ jobs:
       EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
       EXPO_PUBLIC_API_TOKEN: ${{ secrets.EXPO_PUBLIC_API_TOKEN }}
       BUILD_NUMBER_INPUT: ${{ inputs.build_number }}
+      XCODE_PREFER: ${{ inputs.xcode }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
