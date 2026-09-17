@@ -3,7 +3,7 @@
  * 앱에서 받은 대화 캡처 + 프로필을 Claude에 전달하고 구조화된 코칭 결과를 돌려줍니다.
  * 환경변수:
  *   ANTHROPIC_API_KEY 또는 GEMINI_API_KEY (둘 중 하나 필수. 둘 다 있으면 AI_PROVIDER 로 선택, 기본 anthropic)
- *   AI_PROVIDER = anthropic | gemini (선택), GEMINI_MODEL (선택, 기본 gemini-3.8-flash)
+ *   AI_PROVIDER = anthropic | gemini (선택), GEMINI_MODEL (선택, 기본 gemini-3.5-flash)
  *   COACH_APP_TOKEN (선택, 앱 토큰 검사)
  */
 import Anthropic from '@anthropic-ai/sdk';

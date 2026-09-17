@@ -4,7 +4,9 @@
  */
 import { COACH_SYSTEM_PROMPT, buildUserText, coachOutputJsonSchema, type CoachRequest } from './coach-schema';
 
-export const GEMINI_DEFAULT_MODEL = 'gemini-3.8-flash';
+export const GEMINI_DEFAULT_MODEL = 'gemini-3.5-flash';
+/** 기본 모델이 과부하(503)·한도 초과(429)일 때 순서대로 시도하는 대체 모델 */
+export const GEMINI_FALLBACK_MODELS = ['gemini-3.5-flash-lite', 'gemini-2.5-flash'];
 export const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
 type JsonSchema = Record<string, unknown>;
@@ -46,6 +48,8 @@ export function buildGeminiBody(req: CoachRequest) {
     generationConfig: {
       temperature: 0.8,
       maxOutputTokens: 4096,
+      // 답장 생성엔 긴 추론이 필요 없어 낮은 생각 수준으로 응답 속도를 줄입니다 (측정: 17초 → 10초)
+      thinkingConfig: { thinkingLevel: 'low' },
       responseMimeType: 'application/json',
       responseSchema: toGeminiSchema(coachOutputJsonSchema() as JsonSchema),
     },
@@ -61,6 +65,8 @@ export function buildGeminiBody(req: CoachRequest) {
 export interface GeminiResult {
   ok: true;
   text: string;
+  /** 실제로 응답한 모델 */
+  model?: string;
   usage?: { input?: number; output?: number };
 }
 export interface GeminiFailure {
@@ -70,13 +76,46 @@ export interface GeminiFailure {
   message: string;
 }
 
-/** fetch 로 Gemini generateContent 호출. 결과 텍스트(JSON 문자열)를 돌려줍니다. */
-export async function callGemini(
+export interface CallGeminiOptions {
+  model?: string;
+  /** 기본 모델 실패 시 시도할 모델들 (기본: GEMINI_FALLBACK_MODELS) */
+  fallbackModels?: string[];
+  signal?: AbortSignal;
+  fetchImpl?: typeof fetch;
+  /** 재시도 대기 (테스트에서 0으로) */
+  retryDelayMs?: number;
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Gemini generateContent 호출. 과부하(503)/한도(429)면 같은 모델을 한 번 더 시도한 뒤 대체 모델로 넘어갑니다.
+ * 결과 텍스트(JSON 문자열)를 돌려줍니다.
+ */
+export async function callGemini(req: CoachRequest, apiKey: string, options: CallGeminiOptions = {}): Promise<GeminiResult | GeminiFailure> {
+  const primary = options.model || GEMINI_DEFAULT_MODEL;
+  const chain = [primary, ...(options.fallbackModels ?? GEMINI_FALLBACK_MODELS).filter((m) => m !== primary)];
+  const delay = options.retryDelayMs ?? 800;
+  let last: GeminiFailure | null = null;
+  for (const model of chain) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const result = await callGeminiOnce(req, apiKey, model, options);
+      if (result.ok) return { ...result, model };
+      last = result;
+      const transient = result.status === 503 || result.status === 429;
+      if (!transient) return result;
+      if (attempt === 0) await sleep(delay);
+    }
+  }
+  return last ?? { ok: false, status: 503, code: 'server', message: 'AI 서버가 혼잡해요. 잠시 후 다시 시도해주세요.' };
+}
+
+async function callGeminiOnce(
   req: CoachRequest,
   apiKey: string,
-  options: { model?: string; signal?: AbortSignal; fetchImpl?: typeof fetch } = {},
+  model: string,
+  options: CallGeminiOptions,
 ): Promise<GeminiResult | GeminiFailure> {
-  const model = options.model || GEMINI_DEFAULT_MODEL;
   const f = options.fetchImpl ?? fetch;
   const res = await f(`${GEMINI_API_BASE}/models/${encodeURIComponent(model)}:generateContent`, {
     method: 'POST',
@@ -95,6 +134,7 @@ export async function callGemini(
     if (res.status === 400 && /API key/i.test(message)) return { ok: false, status: res.status, code: 'auth', message: 'Gemini API 키가 올바르지 않아요.' };
     if (res.status === 401 || res.status === 403) return { ok: false, status: res.status, code: 'auth', message: 'Gemini API 키가 올바르지 않아요.' };
     if (res.status === 429) return { ok: false, status: res.status, code: 'rate_limit', message: '요청이 너무 많아요. 잠시 후 다시 시도해주세요.' };
+    if (res.status === 503) return { ok: false, status: res.status, code: 'server', message: 'AI 서버가 혼잡해요. 잠시 후 다시 시도해주세요.' };
     return { ok: false, status: res.status, code: 'server', message };
   }
   const candidate = body?.candidates?.[0];

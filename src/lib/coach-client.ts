@@ -42,11 +42,11 @@ function withTimeout(signal?: AbortSignal): AbortSignal {
 
 export type DirectProvider = 'anthropic' | 'gemini';
 
-/** 키 형식으로 프로바이더를 판별합니다. sk-ant-… → Anthropic(Claude), AIza… → Google Gemini */
+/** 키 형식으로 프로바이더를 판별합니다. sk-ant-… → Anthropic(Claude), AIza… / AQ.… → Google Gemini */
 export function detectProvider(apiKey: string): DirectProvider | null {
   const k = apiKey.trim();
   if (k.startsWith('sk-ant-')) return 'anthropic';
-  if (k.startsWith('AIza')) return 'gemini';
+  if (k.startsWith('AIza') || k.startsWith('AQ.')) return 'gemini';
   return null;
 }
 

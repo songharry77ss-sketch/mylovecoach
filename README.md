@@ -20,7 +20,7 @@
 | 영역 | 선택 |
 |---|---|
 | 앱 | Expo SDK 57 · React Native 0.86 · expo-router · TypeScript · zustand · reanimated |
-| AI | Claude (`claude-opus-5`) 또는 Google Gemini (`gemini-3.8-flash`) · 이미지 입력 + 구조화 JSON 출력 (zod 스키마 공용) |
+| AI | Claude (`claude-opus-5`) 또는 Google Gemini (`gemini-3.5-flash`) · 이미지 입력 + 구조화 JSON 출력 (zod 스키마 공용) |
 | 서버 | Vercel Serverless Function (`api/coach.ts`) – 앱 → 서버 → Anthropic 프록시 |
 | 배포 | EAS Build / EAS Submit (App Store · Google Play) |
 

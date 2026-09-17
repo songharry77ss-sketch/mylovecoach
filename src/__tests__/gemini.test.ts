@@ -43,10 +43,23 @@ describe('callGemini', () => {
       new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: '{"a":1}' }] }, finishReason: 'STOP' }], usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 5 } }), { status: 200 }),
     ) as unknown as typeof fetch;
     const result = await callGemini(req, 'AIza-test', { fetchImpl });
-    expect(result).toEqual({ ok: true, text: '{"a":1}', usage: { input: 10, output: 5 } });
+    expect(result).toEqual({ ok: true, text: '{"a":1}', model: 'gemini-3.5-flash', usage: { input: 10, output: 5 } });
     const [url, init] = (fetchImpl as jest.Mock).mock.calls[0] as [string, RequestInit];
-    expect(url).toContain('/models/gemini-3.8-flash:generateContent');
+    expect(url).toContain('/models/gemini-3.5-flash:generateContent');
     expect((init.headers as Record<string, string>)['x-goog-api-key']).toBe('AIza-test');
+  });
+
+  it('retries on 503 and falls back to the next model', async () => {
+    const calls: string[] = [];
+    const fetchImpl = jest.fn(async (url: string) => {
+      calls.push(url);
+      if (url.includes('gemini-3.5-flash:')) return new Response(JSON.stringify({ error: { message: 'high demand' } }), { status: 503 });
+      return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: '{"ok":true}' }] }, finishReason: 'STOP' }] }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const result = await callGemini(req, 'AIza-test', { fetchImpl, retryDelayMs: 0 });
+    expect(result).toEqual(expect.objectContaining({ ok: true, model: 'gemini-3.5-flash-lite' }));
+    expect(calls.filter((u) => u.includes('gemini-3.5-flash:'))).toHaveLength(2);
+    expect(calls.filter((u) => u.includes('gemini-3.5-flash-lite:'))).toHaveLength(1);
   });
 
   it('maps auth and safety failures', async () => {
@@ -61,6 +74,7 @@ describe('detectProvider', () => {
   it('detects by key prefix', () => {
     expect(detectProvider('sk-ant-abc')).toBe('anthropic');
     expect(detectProvider('AIzaSyabc')).toBe('gemini');
+    expect(detectProvider('AQ.example123')).toBe('gemini');
     expect(detectProvider('nope')).toBeNull();
   });
 });

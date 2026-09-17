@@ -34,7 +34,7 @@ export default function ApiKeySettings() {
   const save = async () => {
     const trimmed = key.trim();
     if (trimmed && !detectProvider(trimmed)) {
-      toast.show('Anthropic 키(sk-ant-…) 또는 Gemini 키(AIza…)를 넣어주세요.', 'error');
+      toast.show('Anthropic 키(sk-ant-…) 또는 Gemini 키(AIza… / AQ.…)를 넣어주세요.', 'error');
       return;
     }
     await saveApiKey(trimmed || null);
@@ -69,7 +69,7 @@ export default function ApiKeySettings() {
 
       <TextField
         label="API 키 (Anthropic 또는 Gemini)"
-        placeholder="sk-ant-... 또는 AIza..."
+        placeholder="sk-ant-... 또는 AQ.../AIza..."
         value={key}
         onChangeText={setKey}
         autoCapitalize="none"

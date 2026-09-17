@@ -44,7 +44,7 @@ async function main() {
       console.error('스키마 불일치:', parsed.error.issues, '\n원문:', result.text);
       process.exit(1);
     }
-    print('gemini', normalizeAnalysis(parsed.data), Date.now() - started, result.usage);
+    print(`gemini · ${result.model}`, normalizeAnalysis(parsed.data), Date.now() - started, result.usage);
     return;
   }
 
