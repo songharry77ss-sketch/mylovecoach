@@ -14,10 +14,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # 검증된 조합: macos-26 러너 + Xcode 26.6 (2026-09-17 컴파일 성공)
+          # macos-27 프리뷰 러너는 대기열에서 배정되지 않아 제외함
           - runner: macos-26
             xcode: '26.6'
-          - runner: macos-27
-            xcode: '27'
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     env:

@@ -20,12 +20,12 @@ on:
         default: true
         type: boolean
       runner:
-        description: '러너 이미지 (macos-26 또는 macos-27)'
+        description: '러너 이미지 (검증됨: macos-26)'
         required: false
         default: 'macos-26'
         type: string
       xcode:
-        description: 'Xcode 버전 계열 (예: 26.6, 27)'
+        description: 'Xcode 버전 계열 (검증됨: 26.6)'
         required: false
         default: '26.6'
         type: string
