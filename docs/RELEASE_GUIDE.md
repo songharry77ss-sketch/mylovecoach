@@ -123,7 +123,7 @@ Android 업로드 키(`mylovecoach-upload.jks`) 가 없으면 생성, App Store 
 
 ### 2. 스토어에 앱 만들기 🙋
 
-- **App Store Connect** → 나의 앱 → + → 이름 `나만의 연애코치`, 번들 ID `app.mylovecoach.ios`(1번이 등록해 둠), SKU `mylovecoach`, 기본 언어 한국어.
+- **App Store Connect** → 나의 앱 → + → 이름 `나만의 연애코치`, 번들 ID `app.mylovecoach.ios`(1번이 등록해 둠 — 목록에 `mylovecoach - app.mylovecoach.ios` 로 보임), SKU `mylovecoach`, 기본 언어 한국어.
 - **Play Console** → 앱 만들기 → 이름 `나만의 연애코치`, 기본 언어 한국어, 앱, 무료.
 
 ### 3. 빌드 실행 💻 (또는 Claude 에게 "빌드 돌려줘")
@@ -145,6 +145,43 @@ gh workflow run android.yml --repo songharry77ss-sketch/mylovecoach --ref claude
 - **수동**: Vercel 대시보드 → Add New Project → GitHub 에서 `mylovecoach` 가져오기(브랜치 `claude/jolly-pascal-tr47bw`) → Environment Variables 에 `GEMINI_API_KEY`, `AI_PROVIDER=gemini` → Deploy.
 
 주소가 나오면 `node tools/set-ci-secrets.mjs --api-url https://<주소>` 로 앱 빌드에 연결하고, 개인정보 처리방침 URL 은 `<주소>/privacy.html` 입니다.
+
+> 월하용 `vercel-token.txt` 는 월하 프로젝트 전용으로 제한된 토큰이라 새 프로젝트를 만들 수 없습니다(403).
+> 이 앱용 토큰을 새로 발급해 `wolha-secrets/mylovecoach-vercel-token.txt` 에 저장하면 스크립트가 그 파일을 우선 사용합니다.
+> 팀 범위 토큰이면 저장소 변수 `VERCEL_SCOPE`(팀 슬러그)가 필요합니다 — 이미 `harrys-projects-a44d021e` 로 등록해 둠.
+
+### 5. 스토어 등록 정보 · 인앱결제 상품 (API 로 자동 입력) 💻
+
+앱 레코드가 생긴 뒤 PC 에서 실행합니다. 문구의 원본은 `docs/STORE_LISTING.md` 입니다.
+
+```bash
+# App Store: 이름·부제·설명·키워드·스크린샷·연령 등급·심사 메모·무료 가격·한국 출시
+node tools/asc-listing.mjs
+# App Store: 구독 그룹 + 주간 구독(₩9,900) + 평생권(₩29,800)
+node tools/asc-iap.mjs
+# (TestFlight 빌드 처리 완료 + 화면 작업 2가지 후) 심사 제출
+node tools/asc-listing.mjs --submit
+
+# Play: 첫 AAB 를 콘솔에서 올린 뒤 — 등록 정보·이미지 + 인앱 상품
+node tools/play-setup.mjs --email <스토어에 공개할 문의 이메일>
+```
+
+API 로 안 돼서 **화면에서 해야 하는 것**:
+
+| 스토어 | 화면 작업 |
+|---|---|
+| App Store Connect | 앱 레코드 생성 · 「앱이 수집하는 개인정보」 설문 · 버전 페이지 「앱 내 구입 및 구독」에서 상품 2개 선택 · (최초 1회) 유료 앱 계약/은행/세금 |
+| Play Console | 앱 만들기 · 첫 AAB 업로드(내부 테스트) · 앱 콘텐츠 선언(개인정보처리방침·광고 없음·콘텐츠 등급·타겟층·데이터 보안) · 무료/국가 설정 · (최초 1회) 결제 프로필 |
+
+「앱이 수집하는 개인정보」/「데이터 보안」 답변 기준: 계정·연락처·위치·광고 ID 수집 없음. 사용자가 올린 **사진(대화 캡처)과 입력한 글**은 앱 기능(답장 추천) 제공을 위해 서버를 거쳐 AI 처리 위탁사(Google)로 전송되지만 저장하지 않으며, 사용자 식별·추적에 쓰지 않음. **구매 내역**은 스토어가 처리하고 앱은 기기에서만 확인.
+
+## 인앱결제 구조 (요약)
+
+- 상품: `mylovecoach.premium.weekly`(주간 자동 갱신 구독, ₩9,900) · `mylovecoach.premium.lifetime`(평생권, ₩29,800). 두 스토어 공통 ID, Play 구독의 기본 요금제 ID 는 `weekly`.
+- 무료 제공: 처음 3회 + 이후 하루 1회 (`src/lib/billing/plans.ts`). 실제 AI 호출에 성공했을 때만 차감.
+- 코드: `src/lib/billing/*`(판정·결제 래퍼), `src/app/paywall.tsx`(구매 화면), 채팅 입력창 위 안내 · 마이 탭 「프리미엄」.
+- 구매 확인은 기기에서 스토어(StoreKit 2 / Play Billing)에 직접 조회합니다. 서버 영수증 검증은 없으므로, 서버는 앱 토큰 + IP 당 호출 제한으로만 보호됩니다 (필요해지면 영수증 검증 API 를 추가).
+- 테스트: iOS 는 TestFlight(샌드박스 계정, 주간 구독이 몇 분 단위로 갱신됨), Android 는 내부 테스트 트랙 + 라이선스 테스터 계정.
 
 ---
 
