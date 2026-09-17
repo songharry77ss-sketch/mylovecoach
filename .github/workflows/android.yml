@@ -27,7 +27,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 150
     env:
       EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
       EXPO_PUBLIC_API_TOKEN: ${{ secrets.EXPO_PUBLIC_API_TOKEN }}
@@ -41,6 +41,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      # Gradle/네이티브 빌드 캐시 — 두 번째 실행부터 빌드 시간이 크게 줄어든다
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
       # ubuntu-latest 러너에는 Android SDK 가 이미 설치돼 있다 (ANDROID_HOME 설정됨). 부족한 플랫폼/빌드툴은 Gradle 이 받는다.
       - name: Android SDK 확인
         run: |
@@ -91,13 +95,21 @@ jobs:
           code="${{ inputs.version_code }}"; code="${code:-$((100 + GITHUB_RUN_NUMBER))}"
           echo "ANDROID_VERSION_CODE=$code" >> "$GITHUB_ENV"
           sed -i "s/versionCode [0-9]*/versionCode $code/" android/app/build.gradle
+      - name: Gradle 빌드 옵션
+        run: |
+          # 러너 메모리에 맞춘 JVM 힙. 검사 빌드(서명 없음)는 arm64 한 종류만 컴파일해 시간을 줄인다.
+          sed -i 's/^org.gradle.jvmargs=.*/org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g/' android/gradle.properties
+          if [ "$SIGNING" = "debug" ]; then
+            sed -i 's/^reactNativeArchitectures=.*/reactNativeArchitectures=arm64-v8a/' android/gradle.properties
+          fi
+          grep -E "^(org.gradle.jvmargs|reactNativeArchitectures|newArchEnabled|hermesEnabled)=" android/gradle.properties
       - name: AAB 빌드
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          cd android && ./gradlew bundleRelease --no-daemon -q
+          cd android && ./gradlew bundleRelease --no-daemon --console=plain
           ls -la app/build/outputs/bundle/release/
       - uses: actions/upload-artifact@v4
         with:
