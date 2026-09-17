@@ -26,8 +26,16 @@ const releaseConfig = `
 if (!src.includes('storeFile file(System.getenv("ANDROID_KEYSTORE_PATH"))')) {
   src = src.replace(/signingConfigs\s*\{/, (m) => `${m}${releaseConfig}`);
 }
-// buildTypes.release 의 debug 서명을 release 서명으로 교체 (prebuild 기본값은 debug 키)
-src = src.replace(/(buildTypes\s*\{[\s\S]*?release\s*\{[\s\S]*?)signingConfig signingConfigs\.debug/, '$1signingConfig signingConfigs.release');
+// buildTypes.release 의 debug 서명을 release 서명으로 교체 (prebuild 기본값은 debug 키).
+// 템플릿 버전에 따라 `signingConfig signingConfigs.debug` 와 `signingConfig = signingConfigs.debug` 두 문법이 모두 쓰인다.
+src = src.replace(/(buildTypes\s*\{[\s\S]*?release\s*\{[\s\S]*?signingConfig\s*=?\s*)signingConfigs\.debug/, '$1signingConfigs.release');
+
+// 교체가 실제로 됐는지 확인한다 — 안 되면 디버그 키로 서명된 AAB 가 만들어져 스토어에서 거부된다
+const afterReleaseType = src.slice(src.search(/buildTypes\s*\{/)).split(/\brelease\s*\{/)[1] ?? '';
+if (!/^[\s\S]*?signingConfig\s*=?\s*signingConfigs\.release/.test(afterReleaseType) || /signingConfig\s*=?\s*signingConfigs\.debug/.test(afterReleaseType)) {
+  console.error('release 빌드 타입의 signingConfig 를 바꾸지 못했습니다. android/app/build.gradle 의 형식을 확인하세요.');
+  process.exit(1);
+}
 
 const versionCode = process.env.ANDROID_VERSION_CODE;
 if (versionCode && /^\d+$/.test(versionCode)) {
