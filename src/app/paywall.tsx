@@ -9,6 +9,7 @@ import { Screen } from '@/components/ui/screen';
 import { useToast } from '@/components/ui/toast';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { track } from '@/lib/analytics';
 import { billingSupported, loadPlanProducts, purchasePlan, restorePremium, type PlanProduct } from '@/lib/billing/iap';
 import { FALLBACK_PRICES, PRODUCT_IDS, type PlanKey } from '@/lib/billing/plans';
 import { isPremiumActive } from '@/lib/billing/quota';
@@ -53,12 +54,13 @@ export default function Paywall() {
   const [busy, setBusy] = useState<'purchase' | 'restore' | null>(null);
 
   useEffect(() => {
+    track('paywall_open', { reason });
     let alive = true;
     loadPlanProducts().then((list) => alive && setProducts(list));
     return () => {
       alive = false;
     };
-  }, []);
+  }, [reason]);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
   const priceOf = (plan: PlanKey) => products.find((p) => p.plan === plan)?.displayPrice ?? FALLBACK_PRICES[plan];
@@ -69,8 +71,10 @@ export default function Paywall() {
     const product = products.find((p) => p.plan === selected);
     if (!product || busy) return;
     setBusy('purchase');
+    track('purchase_start', { plan: selected });
     const outcome = await purchasePlan(product);
     setBusy(null);
+    track(`purchase_${outcome.status}`, { plan: selected });
     if (outcome.status === 'purchased') {
       setPremium(outcome.premium);
       toast.show('프리미엄이 시작됐어요. 이제 무제한으로 코칭받아요 💘', 'success');

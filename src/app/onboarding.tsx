@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Dimensions, Pressable, ScrollView, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Dimensions, Linking, Pressable, ScrollView, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/app-text';
@@ -14,6 +14,8 @@ import { TagPicker } from '@/components/ui/tag-picker';
 import { TextField } from '@/components/ui/text-field';
 import { Radius, Spacing, palette } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { track } from '@/lib/analytics';
+import { APP_CONFIG } from '@/lib/config';
 import { GENDERS, MBTI_LIST, MY_STYLE_TAGS, TONES } from '@/lib/labels';
 import type { Gender, Tone } from '@/lib/types';
 import { useAppStore } from '@/store/app-store';
@@ -41,6 +43,7 @@ export default function Onboarding() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const setUser = useAppStore((s) => s.setUser);
+  const setAnalyticsConsent = useAppStore((s) => s.setAnalyticsConsent);
   const scrollRef = useRef<ScrollView>(null);
   const [page, setPage] = useState(0);
 
@@ -52,6 +55,7 @@ export default function Onboarding() {
   const [tone, setTone] = useState<Tone>('natural');
   const [mbtiOpen, setMbtiOpen] = useState(false);
   const [nameError, setNameError] = useState<string>();
+  const [consent, setConsent] = useState(true);
 
   const goTo = (i: number) => {
     scrollRef.current?.scrollTo({ x: i * PAGE_W, animated: true });
@@ -69,6 +73,7 @@ export default function Onboarding() {
       return;
     }
     const parsedAge = age.trim() ? Number(age) : undefined;
+    setAnalyticsConsent(consent);
     setUser({
       name: name.trim(),
       gender,
@@ -78,6 +83,7 @@ export default function Onboarding() {
       defaultTone: tone,
       createdAt: Date.now(),
     });
+    track('onboarding_done', { hasAge: Boolean(parsedAge), hasMbti: Boolean(mbti), styleCount: style.length, tone });
     router.replace('/(tabs)');
   };
 
@@ -180,6 +186,32 @@ export default function Onboarding() {
               ))}
             </View>
           </View>
+
+          <Pressable
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: consent }}
+            onPress={() => setConsent((v) => !v)}
+            style={[styles.consent, { backgroundColor: theme.surface }]}>
+            <View style={[styles.checkbox, { borderColor: consent ? theme.primary : theme.textTertiary, backgroundColor: consent ? theme.primary : 'transparent' }]}>
+              {consent ? <Ionicons name="checkmark" size={13} color={theme.primaryText} /> : null}
+            </View>
+            <View style={styles.consentTexts}>
+              <AppText variant="smallStrong">
+                <AppText variant="smallStrong" color="textTertiary">
+                  (선택){' '}
+                </AppText>
+                서비스 개선을 위한 이용 기록 수집에 동의
+              </AppText>
+              <AppText variant="caption" color="textSecondary">
+                어떤 화면을 얼마나 보는지, 어떤 상황을 물어보고 어떤 답장을 받았는지 저장해 코칭 품질을 높이는 데만 써요. 올린 캡처 이미지는 저장하지 않고, 마이 탭에서 언제든 끌 수 있어요.
+              </AppText>
+              <Pressable accessibilityRole="link" onPress={() => Linking.openURL(APP_CONFIG.privacyUrl)} hitSlop={6}>
+                <AppText variant="caption" color="primary">
+                  개인정보 처리방침 보기
+                </AppText>
+              </Pressable>
+            </View>
+          </Pressable>
         </ScrollView>
       </ScrollView>
 
@@ -212,6 +244,9 @@ const styles = StyleSheet.create({
   formHint: { marginTop: -Spacing.sm },
   label: { marginBottom: Spacing.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  consent: { flexDirection: 'row', gap: Spacing.md, alignItems: 'flex-start', borderRadius: Radius.lg, padding: Spacing.lg },
+  checkbox: { width: 20, height: 20, borderRadius: 6, borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  consentTexts: { flex: 1, gap: 3 },
   twoCol: { flexDirection: 'row', gap: Spacing.md },
   col: { flex: 1 },
   select: { height: 54, borderRadius: Radius.md, paddingHorizontal: Spacing.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { Alert, Linking, Platform, StyleSheet, View } from 'react-native';
+import { Alert, Linking, Platform, StyleSheet, Switch, View } from 'react-native';
 import Constants from 'expo-constants';
 
 import { AppText } from '@/components/ui/app-text';
@@ -10,6 +10,7 @@ import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section-header';
 import { useToast } from '@/components/ui/toast';
 import { Spacing } from '@/constants/theme';
+import { flushAnalytics, setConsent as setAnalyticsConsentFlag, track } from '@/lib/analytics';
 import { useQuota } from '@/lib/billing/gate';
 import { billingSupported, openSubscriptionManagement, restorePremium } from '@/lib/billing/iap';
 import { quotaLabel } from '@/lib/billing/quota';
@@ -28,6 +29,8 @@ export default function MyScreen() {
   const crushCount = useAppStore((s) => Object.keys(s.crushes).length);
   const premium = useAppStore((s) => s.premium);
   const setPremium = useAppStore((s) => s.setPremium);
+  const analyticsConsent = useAppStore((s) => s.analyticsConsent);
+  const setAnalyticsConsent = useAppStore((s) => s.setAnalyticsConsent);
   const quota = useQuota();
   const isPremium = quota.enforced && quota.kind === 'premium';
 
@@ -93,6 +96,31 @@ export default function MyScreen() {
       <SectionHeader title="AI 코치" />
       <ListRow icon="sparkles-outline" title="AI 코치 연결" value={connection} onPress={() => router.push('/settings/api-key')} />
       <ListRow icon="person-outline" title="내 프로필 수정" onPress={() => router.push('/settings/profile')} />
+
+      <SectionHeader title="개인정보" />
+      <ListRow
+        icon="bar-chart-outline"
+        title="이용 기록 수집 (선택)"
+        subtitle="서비스 개선에만 사용해요. 캡처 이미지는 저장하지 않아요."
+        right={
+          <Switch
+            value={analyticsConsent === true}
+            onValueChange={(v) => {
+              if (v) {
+                setAnalyticsConsent(true);
+                setAnalyticsConsentFlag(true);
+                track('analytics_opt_in');
+              } else {
+                track('analytics_opt_out');
+                flushAnalytics(true);
+                setAnalyticsConsentFlag(false);
+                setAnalyticsConsent(false);
+              }
+              toast.show(v ? '이용 기록 수집을 켰어요.' : '이용 기록 수집을 껐어요.');
+            }}
+          />
+        }
+      />
 
       <SectionHeader title="정보" />
       <ListRow icon="shield-checkmark-outline" title="개인정보 처리방침" onPress={() => Linking.openURL(APP_CONFIG.privacyUrl)} />

@@ -9,6 +9,7 @@ import {
   type CoachRequestInput,
   CoachRequestSchema,
 } from '@/lib/coach-schema';
+import { analyticsEnabled, currentSessionId } from '@/lib/analytics';
 import { APP_CONFIG } from '@/lib/config';
 import { demoAnalysis, isDemoMode } from '@/lib/demo';
 import { callGemini } from '@/lib/gemini';
@@ -24,9 +25,20 @@ export class CoachError extends Error {
   }
 }
 
+/**
+ * 이용 기록 수집에 동의한 경우에만 기기·세션 ID 를 헤더로 보냅니다.
+ * 서버는 이 헤더가 있을 때만 코칭 내용을 기록합니다 (동의 = 헤더 전송).
+ */
+function consentHeaders(deviceId?: string): Record<string, string> {
+  if (!analyticsEnabled() || !deviceId) return {};
+  return { 'x-device-id': deviceId, 'x-session-id': currentSessionId() };
+}
+
 export interface CoachClientOptions {
   /** 설정 화면에서 입력한 개인 Anthropic API 키 (직접 호출 모드) */
   directApiKey?: string | null;
+  /** 이용 기록 수집에 동의한 경우에만 전달하는 기기 ID */
+  deviceId?: string;
   signal?: AbortSignal;
 }
 
@@ -78,6 +90,7 @@ async function viaProxy(req: CoachRequest, options: CoachClientOptions): Promise
       headers: {
         'content-type': 'application/json',
         ...(APP_CONFIG.apiToken ? { 'x-app-token': APP_CONFIG.apiToken } : {}),
+        ...consentHeaders(options.deviceId),
       },
       body: JSON.stringify(req),
       signal: withTimeout(options.signal),

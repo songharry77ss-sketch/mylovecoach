@@ -19,6 +19,7 @@ import {
   normalizeAnalysis,
 } from '../src/lib/coach-schema';
 import { callGemini } from '../src/lib/gemini';
+import { insert } from './_supabase';
 
 export const config = { maxDuration: 120 };
 
@@ -47,7 +48,53 @@ function resolveProvider(): 'anthropic' | 'gemini' | null {
   return null;
 }
 
+/**
+ * 코칭 기록 저장 — 이용 기록 수집에 동의한 앱만 x-device-id 헤더를 보냅니다.
+ * 동의 헤더가 없으면 아무것도 기록하지 않습니다. 캡처 이미지는 저장하지 않습니다.
+ */
+async function logCoach(
+  req: VercelRequest,
+  coachReq: { crush: Record<string, unknown>; tone?: string; text?: string; image?: unknown },
+  result: { analysis?: Record<string, unknown>; provider?: string; error?: string },
+  startedAt: number,
+): Promise<void> {
+  const deviceId = req.headers['x-device-id'];
+  if (typeof deviceId !== 'string' || !deviceId) return;
+  const sessionId = typeof req.headers['x-session-id'] === 'string' ? req.headers['x-session-id'] : undefined;
+  const a = result.analysis;
+  await insert('coach_log', {
+    device_id: deviceId.slice(0, 64),
+    session_id: sessionId ? toUuid(sessionId) : null,
+    crush_alias: (coachReq.crush?.name as string) ?? null,
+    crush_gender: (coachReq.crush?.gender as string) ?? null,
+    crush_age: (coachReq.crush?.age as number) ?? null,
+    crush_mbti: (coachReq.crush?.mbti as string) ?? null,
+    relationship: (coachReq.crush?.relationship as string) ?? null,
+    tone: coachReq.tone ?? null,
+    question: coachReq.text ?? null,
+    has_image: Boolean(coachReq.image),
+    temperature: (a?.temperature as string) ?? null,
+    interest_score: (a?.interestScore as number) ?? null,
+    summary: (a?.summary as string) ?? null,
+    reply_texts: Array.isArray(a?.replies) ? (a.replies as { text: string }[]).map((r) => r.text) : null,
+    next_step: (a?.nextStep as string) ?? null,
+    provider: result.provider ?? null,
+    latency_ms: Date.now() - startedAt,
+    error: result.error ?? null,
+  });
+}
+
+function toUuid(id: string): string {
+  const hex = Array.from(id)
+    .map((c) => c.charCodeAt(0).toString(16).padStart(2, '0'))
+    .join('')
+    .padEnd(32, '0')
+    .slice(0, 32);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const startedAt = Date.now();
   res.setHeader('cache-control', 'no-store');
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'POST만 지원합니다.' });
@@ -82,15 +129,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       const result = await callGemini(coachReq, process.env.GEMINI_API_KEY!, { model: process.env.GEMINI_MODEL });
       if (!result.ok) {
+        await logCoach(req, coachReq, { provider, error: result.code }, startedAt);
         res.status(result.code === 'auth' ? 500 : result.code === 'rate_limit' ? 429 : result.code === 'refused' ? 422 : 502).json({ error: result.message });
         return;
       }
       const json = CoachAnalysisSchema.safeParse(JSON.parse(result.text));
       if (!json.success) {
+        await logCoach(req, coachReq, { provider, error: 'parse' }, startedAt);
         res.status(502).json({ error: '응답 형식이 올바르지 않아요. 다시 시도해주세요.' });
         return;
       }
-      res.status(200).json({ analysis: normalizeAnalysis(json.data), usage: result.usage, provider });
+      const analysis = normalizeAnalysis(json.data);
+      await logCoach(req, coachReq, { analysis, provider }, startedAt);
+      res.status(200).json({ analysis, usage: result.usage, provider });
     } catch {
       res.status(502).json({ error: 'AI 서버와 통신하지 못했어요.' });
     }
@@ -115,8 +166,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.status(502).json({ error: '응답을 이해하지 못했어요. 다시 시도해주세요.' });
       return;
     }
+    const analysis = normalizeAnalysis(response.parsed_output);
+    await logCoach(req, coachReq, { analysis, provider }, startedAt);
     res.status(200).json({
-      analysis: normalizeAnalysis(response.parsed_output),
+      analysis,
       usage: { input: response.usage.input_tokens, output: response.usage.output_tokens },
       provider,
     });

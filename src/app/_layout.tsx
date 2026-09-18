@@ -1,14 +1,15 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ToastProvider } from '@/components/ui/toast';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { flushAnalytics, initAnalytics, trackScreen, updateIdentity } from '@/lib/analytics';
 import { endBilling, initBilling } from '@/lib/billing/iap';
 import { useAppStore } from '@/store/app-store';
 
@@ -31,6 +32,7 @@ export default function RootLayout() {
   const colors = Colors[scheme];
 
   const setHydrated = useAppStore((s) => s.setHydrated);
+  const pathname = usePathname();
 
   useEffect(() => {
     if (hydrated) {
@@ -41,6 +43,40 @@ export default function RootLayout() {
     const t = setTimeout(() => setHydrated(), 2500);
     return () => clearTimeout(t);
   }, [hydrated, setHydrated]);
+
+  // 이용 기록 수집 (동의한 경우에만 실제로 전송됨)
+  useEffect(() => {
+    if (!hydrated) return;
+    const s = useAppStore.getState();
+    initAnalytics({
+      deviceId: s.deviceId,
+      consent: s.analyticsConsent === true,
+      user: s.user,
+      premiumPlan: s.premium?.plan ?? null,
+      crushCount: Object.keys(s.crushes).length,
+    });
+    const unsubscribe = useAppStore.subscribe((next) =>
+      updateIdentity({
+        consent: next.analyticsConsent === true,
+        user: next.user,
+        premiumPlan: next.premium?.plan ?? null,
+        crushCount: Object.keys(next.crushes).length,
+      }),
+    );
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') flushAnalytics(true);
+    });
+    return () => {
+      flushAnalytics(true);
+      unsubscribe();
+      sub.remove();
+    };
+  }, [hydrated]);
+
+  // 화면 전환마다 체류 시간 기록
+  useEffect(() => {
+    if (hydrated && pathname) trackScreen(pathname);
+  }, [hydrated, pathname]);
 
   // 스토어 연결 → 구매 상태 확인. 스토어에 닿지 못하면(undefined) 저장된 상태를 그대로 둔다
   useEffect(() => {

@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 
+import { track } from '@/lib/analytics';
 import { currentQuota } from '@/lib/billing/gate';
 import { CoachError, requestCoaching } from '@/lib/coach-client';
 import { crushToRequest, userToRequest } from '@/lib/coach-schema';
@@ -33,7 +34,10 @@ export function useCoach() {
     const user = state.user;
     if (!crush || !user) return 'skipped';
     const quota = currentQuota();
-    if (quota.remaining <= 0) return 'blocked';
+    if (quota.remaining <= 0) {
+      track('coach_blocked', { reason: 'quota' });
+      return 'blocked';
+    }
 
     const userMessage = state.addMessage({
       crushId: crush.id,
@@ -70,16 +74,18 @@ export function useCoach() {
             image,
             history,
           },
-          { directApiKey: await loadApiKey(), signal: controller.signal },
+          { directApiKey: await loadApiKey(), deviceId: useAppStore.getState().deviceId, signal: controller.signal },
         ));
       if (!cached && !input.variationOf) useAppStore.getState().putCachedAnalysis(cacheKey, analysis);
       // 실제로 AI 를 호출해 결과를 받은 경우에만 무료 횟수를 차감한다 (오류·저장된 결과 재사용은 차감 없음)
       if (!cached && quota.kind !== 'premium') useAppStore.getState().consumeFreeCredit();
       useAppStore.getState().completeAnalysis(crush.id, coachMessage.id, analysis);
+      track('coach_success', { cached: Boolean(cached), hasImage: Boolean(image), tone: input.tone, variation: Boolean(input.variationOf), temperature: analysis.temperature });
     } catch (e) {
       const message = e instanceof CoachError ? e.message : e instanceof Error ? e.message : '알 수 없는 오류가 발생했어요.';
       const code = e instanceof CoachError ? e.code : 'server';
       useAppStore.getState().updateMessage(crush.id, coachMessage.id, { pending: false, error: message, text: code });
+      track('coach_error', { code });
     } finally {
       if (abortRef.current === controller) abortRef.current = null;
       setSending(false);

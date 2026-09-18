@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>나만의 연애코치 · 관리자</title>
+<style>
+  :root {
+    --bg: #f6f8fb; --card: #ffffff; --line: #e6ebf2; --ink: #191f28; --muted: #6b7684;
+    --sky: #3da0f2; --pink: #ff8aa8; --radius: 16px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0f1419; --card: #161c24; --line: #242c37; --ink: #f5f7fa; --muted: #aeb7c2; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 24px 16px 64px; }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  h1 { font-size: 22px; margin: 0; letter-spacing: -0.4px; }
+  h2 { font-size: 15px; margin: 0 0 12px; letter-spacing: -0.2px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+  .grid { display: grid; gap: 12px; }
+  .stats { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 20px; }
+  .stat .label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .stat .value { font-size: 26px; font-weight: 800; letter-spacing: -0.8px; }
+  .cols { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tbody tr:last-child td { border-bottom: 0; }
+  .bar { height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--sky), var(--pink)); }
+  input, select, button {
+    font: inherit; border-radius: 10px; border: 1px solid var(--line);
+    padding: 9px 12px; background: var(--card); color: var(--ink);
+  }
+  button { background: var(--sky); color: #fff; border: 0; font-weight: 700; cursor: pointer; }
+  button:hover { filter: brightness(1.05); }
+  .login { max-width: 380px; margin: 14vh auto; text-align: center; }
+  .login input { width: 100%; margin: 14px 0 10px; }
+  .login button { width: 100%; }
+  .err { color: #ff5b6e; font-size: 13px; min-height: 18px; margin-top: 8px; }
+  .q { white-space: pre-wrap; word-break: break-word; max-width: 420px; }
+  .pill { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(61,160,242,.12); color: var(--sky); }
+  .pill.hot { background: rgba(255,138,168,.16); color: var(--pink); }
+  .hide { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="login" class="login card">
+    <h1>나만의 연애코치</h1>
+    <p class="muted">관리자 대시보드</p>
+    <input id="token" type="password" placeholder="관리자 비밀번호" autocomplete="current-password" />
+    <button id="loginBtn">들어가기</button>
+    <div class="err" id="loginErr"></div>
+  </div>
+
+  <div id="app" class="hide">
+    <header>
+      <div>
+        <h1>이용 현황</h1>
+        <div class="muted" id="updated"></div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center">
+        <select id="days">
+          <option value="1">오늘</option>
+          <option value="7" selected>최근 7일</option>
+          <option value="30">최근 30일</option>
+          <option value="90">최근 90일</option>
+        </select>
+        <button id="reload">새로고침</button>
+      </div>
+    </header>
+
+    <div class="grid stats" id="stats"></div>
+
+    <div class="grid cols">
+      <div class="card"><h2>날짜별 코칭 요청</h2><div id="byDay"></div></div>
+      <div class="card"><h2>화면별 체류 시간</h2><div id="screens"></div></div>
+    </div>
+
+    <div class="grid cols">
+      <div class="card"><h2>관계 단계</h2><div id="relationships"></div></div>
+      <div class="card"><h2>선택한 톤</h2><div id="tones"></div></div>
+      <div class="card"><h2>이벤트</h2><div id="events"></div></div>
+    </div>
+
+    <div class="card">
+      <h2>최근 코칭 기록 — 무엇을 물어봤는지</h2>
+      <div id="logs"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const KEY = 'mylovecoach.admin.token';
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const num = (n) => Number(n ?? 0).toLocaleString('ko-KR');
+
+  const LABEL = {
+    users_total: '전체 이용자', users_new: '신규 이용자', users_active: '활동 이용자',
+    premium_users: '프리미엄', sessions: '실행 횟수', avg_session_sec: '평균 체류',
+    coach_requests: '코칭 요청', with_image: '캡처 첨부',
+  };
+  const REL = { crush: '짝사랑', talking: '썸', blind_date: '소개팅', friend: '친구', dating: '연인', ex: '재회' };
+  const TONE = { natural: '자연스럽게', flirty: '설레게', witty: '유머러스', cool: '쿨하게', sincere: '진심으로' };
+  const TEMP = { hot: '🔥 뜨거움', warm: '☀️ 따뜻함', neutral: '🙂 보통', cold: '🧊 차가움', unknown: '· 알 수 없음' };
+
+  function statCard(key, value) {
+    const shown = key === 'avg_session_sec'
+      ? (value >= 60 ? `${Math.floor(value / 60)}분 ${Math.round(value % 60)}초` : `${num(value)}초`)
+      : num(value);
+    return `<div class="card stat"><div class="label">${LABEL[key] ?? key}</div><div class="value">${shown}</div></div>`;
+  }
+
+  function barTable(rows, nameKey, valueKey, format) {
+    if (!rows || !rows.length) return '<p class="muted">아직 기록이 없어요.</p>';
+    const max = Math.max(...rows.map((r) => Number(r[valueKey]) || 0), 1);
+    return `<table><tbody>${rows.map((r) => {
+      const v = Number(r[valueKey]) || 0;
+      return `<tr>
+        <td>${esc(r[nameKey])}</td>
+        <td style="width:45%"><div class="bar" style="width:${Math.max((v / max) * 100, 2)}%"></div></td>
+        <td class="num">${format ? format(r) : num(v)}</td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+  }
+
+  function render(data) {
+    const s = data.stats;
+    $('updated').textContent = `${new Date(data.generatedAt).toLocaleString('ko-KR')} 기준 · 최근 ${s.days}일`;
+    $('stats').innerHTML = Object.keys(LABEL).map((k) => statCard(k, s[k])).join('');
+
+    $('byDay').innerHTML = barTable(s.by_day, 'day', 'requests', (r) => `${num(r.requests)}건 · ${num(r.users)}명`);
+    $('screens').innerHTML = barTable(s.top_screens, 'screen', 'total_sec', (r) => {
+      const t = Number(r.total_sec) || 0;
+      const total = t >= 60 ? `${Math.floor(t / 60)}분` : `${t}초`;
+      return `${total} · 평균 ${r.avg_sec}초`;
+    });
+    $('relationships').innerHTML = barTable((s.relationships || []).map((r) => ({ ...r, label: REL[r.relationship] ?? r.relationship })), 'label', 'count');
+    $('tones').innerHTML = barTable((s.tones || []).map((r) => ({ ...r, label: TONE[r.tone] ?? r.tone })), 'label', 'count');
+    $('events').innerHTML = barTable(s.top_events, 'name', 'count');
+
+    const logs = data.logs || [];
+    $('logs').innerHTML = logs.length
+      ? `<table>
+          <thead><tr><th>시각</th><th>상대</th><th>관계·톤</th><th>질문 / 상황</th><th>결과</th></tr></thead>
+          <tbody>${logs.map((l) => `<tr>
+            <td class="muted" style="white-space:nowrap">${new Date(l.created_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
+            <td>${esc(l.crush_alias || '-')}${l.crush_mbti ? ` <span class="pill">${esc(l.crush_mbti)}</span>` : ''}</td>
+            <td class="muted">${esc(REL[l.relationship] ?? l.relationship ?? '-')}<br>${esc(TONE[l.tone] ?? l.tone ?? '')}</td>
+            <td class="q">${esc(l.question || (l.has_image ? '(캡처만 업로드)' : '-'))}${l.has_image ? ' <span class="pill">📸 캡처</span>' : ''}</td>
+            <td>${l.temperature ? `<span class="pill ${l.temperature === 'hot' ? 'hot' : ''}">${TEMP[l.temperature] ?? l.temperature}${l.interest_score != null ? ` ${l.interest_score}°` : ''}</span>` : '-'}<div class="muted q" style="margin-top:4px">${esc((l.summary || '').slice(0, 90))}</div></td>
+          </tr>`).join('')}</tbody>
+        </table>`
+      : '<p class="muted">아직 코칭 기록이 없어요.</p>';
+  }
+
+  async function load() {
+    const token = sessionStorage.getItem(KEY);
+    if (!token) return;
+    $('reload').disabled = true;
+    try {
+      const res = await fetch(`/api/admin?days=${$('days').value}&limit=60`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.status === 401) throw new Error('비밀번호가 올바르지 않아요.');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '불러오지 못했어요.');
+      $('login').classList.add('hide');
+      $('app').classList.remove('hide');
+      render(data);
+    } catch (e) {
+      sessionStorage.removeItem(KEY);
+      $('app').classList.add('hide');
+      $('login').classList.remove('hide');
+      $('loginErr').textContent = e.message;
+    } finally {
+      $('reload').disabled = false;
+    }
+  }
+
+  $('loginBtn').onclick = () => {
+    const v = $('token').value.trim();
+    if (!v) return;
+    sessionStorage.setItem(KEY, v);
+    $('loginErr').textContent = '';
+    load();
+  };
+  $('token').onkeydown = (e) => { if (e.key === 'Enter') $('loginBtn').click(); };
+  $('reload').onclick = load;
+  $('days').onchange = load;
+  load();
+</script>
+</body>
+</html>

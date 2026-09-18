@@ -21,6 +21,10 @@ export interface AppState {
   usage: UsageState;
   /** 채팅 하단의 프리미엄 안내 카드를 닫았는지 */
   upsellDismissed: boolean;
+  /** 기기 구분용 무작위 ID (광고 ID 아님, 이용 기록 수집에만 사용) */
+  deviceId: string;
+  /** 서비스 개선을 위한 이용 기록 수집 동의 (선택) — null 이면 아직 묻지 않음 */
+  analyticsConsent: boolean | null;
 
   setHydrated: () => void;
   setUser: (user: UserProfile) => void;
@@ -40,6 +44,7 @@ export interface AppState {
   setHasApiKey: (v: boolean) => void;
   getCachedAnalysis: (key: string) => CoachAnalysis | null;
   putCachedAnalysis: (key: string, analysis: CoachAnalysis) => void;
+  setAnalyticsConsent: (consent: boolean) => void;
   setPremium: (premium: PremiumState | null) => void;
   consumeFreeCredit: () => void;
   dismissUpsell: () => void;
@@ -61,6 +66,8 @@ export const useAppStore = create<AppState>()(
       premium: null,
       usage: EMPTY_USAGE,
       upsellDismissed: false,
+      deviceId: createId('d_'),
+      analyticsConsent: null,
 
       setHydrated: () => set({ hydrated: true }),
       setUser: (user) => set({ user }),
@@ -146,6 +153,7 @@ export const useAppStore = create<AppState>()(
             .slice(0, CACHE_MAX - 1);
           return { analysisCache: { ...Object.fromEntries(entries), [key]: { analysis, at: Date.now() } } };
         }),
+      setAnalyticsConsent: (analyticsConsent) => set({ analyticsConsent }),
       setPremium: (premium) => set({ premium }),
       consumeFreeCredit: () => set((s) => ({ usage: consumeFree(s.usage, Date.now()) })),
       dismissUpsell: () => set({ upsellDismissed: true }),
@@ -165,6 +173,8 @@ export const useAppStore = create<AppState>()(
         premium: s.premium,
         usage: s.usage,
         upsellDismissed: s.upsellDismissed,
+        deviceId: s.deviceId,
+        analyticsConsent: s.analyticsConsent,
       }),
       onRehydrateStorage: () => (state) => state?.setHydrated(),
     },
