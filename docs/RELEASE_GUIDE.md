@@ -98,6 +98,43 @@ npx expo-doctor
 - `docs/store-assets/feature-graphic-1024x500.png` – Play 스토어 그래픽 이미지
 - `assets/images/icon.png` – 앱 아이콘 1024×1024
 - 등록 문구: `docs/STORE_LISTING.md`
+- 이용 기록·관리자 페이지: `docs/ANALYTICS_SETUP.md`
+
+## 빌드하는 두 가지 방법
+
+| | PC 에서 직접 빌드 | GitHub Actions |
+|---|---|---|
+| Android | ✅ `node tools/build-android-local.mjs --upload internal` | `gh workflow run android.yml` |
+| iOS | ❌ (macOS 필요) | ✅ `gh workflow run ios.yml` |
+| 비용 | 무료 | 비공개 저장소는 월 무료 시간 초과 시 유료 |
+
+### PC 에서 직접 빌드 (Android) — 권장 💻
+
+GitHub 사용량과 무관하게 이 컴퓨터에서 바로 서명된 AAB 를 만들고 Play 에 올립니다.
+`wolha-tools` 의 JDK 21 과 Android SDK, `wolha-secrets` 의 업로드 키를 그대로 씁니다.
+
+```bash
+node tools/build-android-local.mjs --version-code 107 --upload internal
+```
+
+첫 빌드는 30~60분 걸리고(네이티브 컴파일), 이후에는 Gradle 캐시 덕분에 몇 분이면 끝납니다.
+`--upload` 를 빼면 빌드만 하고 파일 경로를 알려줍니다.
+
+### GitHub Actions 가 뭔가요? (그리고 왜 멈췄나요)
+
+- **GitHub** 은 코드를 보관하는 곳이고, **GitHub Actions** 는 그 코드로 앱을 대신 빌드해주는 클라우드 컴퓨터입니다.
+  특히 **iOS 는 macOS 에서만 빌드**할 수 있어서, 맥이 없으면 Actions 의 macOS 컴퓨터를 빌려 쓰는 것이 사실상 유일한 방법입니다.
+- 이 저장소는 **비공개**라 무료 사용 시간이 월 2,000분이고, **macOS 는 1분을 10분으로 차감**합니다.
+  9월에 한도를 다 써서 `The job was not started because ... spending limit` 오류로 새 빌드가 시작되지 않는 상태입니다.
+- 푸는 방법 세 가지:
+
+  1. **지출 한도 올리기** — [github.com/settings/billing/spending_limit](https://github.com/settings/billing/spending_limit) 에서 한도를 0달러보다 크게.
+     iOS 빌드 1회 약 0.6달러, Android 1회 약 0.3달러 수준입니다. (카드 등록 필요)
+  2. **저장소를 공개로 전환** — 공개 저장소는 Actions 가 무제한 무료입니다.
+     비밀키는 저장소가 아니라 GitHub Secrets 에 있으므로 코드만 공개됩니다.
+  3. **다음 달까지 기다리기** — 매월 1일에 무료 시간이 초기화됩니다.
+
+  Android 는 위 세 가지와 상관없이 **지금 PC 에서 빌드**하면 되고, iOS 만 이 중 하나가 필요합니다.
 
 ## 권장 경로: GitHub Actions 로 빌드·업로드 (월하와 동일한 방식, Expo/Codemagic 계정 불필요)
 
