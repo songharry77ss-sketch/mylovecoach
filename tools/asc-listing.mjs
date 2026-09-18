@@ -136,8 +136,11 @@ async function main() {
       let set = sets.data.find((s) => s.attributes.screenshotDisplayType === 'APP_IPHONE_67');
       if (!set) set = (await api('POST', '/v1/appScreenshotSets', { data: { type: 'appScreenshotSets', attributes: { screenshotDisplayType: 'APP_IPHONE_67' }, relationships: { appStoreVersionLocalization: { data: { type: 'appStoreVersionLocalizations', id: vloc.id } } } } })).data;
       const existing = await api('GET', `/v1/appScreenshotSets/${set.id}/appScreenshots`);
-      const done = new Set(existing.data.filter((s) => s.attributes.assetDeliveryState?.state !== 'FAILED').map((s) => s.attributes.fileName));
-      for (const s of existing.data.filter((x) => x.attributes.assetDeliveryState?.state === 'FAILED')) await api('DELETE', `/v1/appScreenshots/${s.id}`);
+      // --replace-screenshots: 화면이 바뀌었을 때 기존 것을 지우고 다시 올린다
+      if (args.includes('--replace-screenshots')) for (const s of existing.data) await api('DELETE', `/v1/appScreenshots/${s.id}`);
+      const keep = args.includes('--replace-screenshots') ? [] : existing.data;
+      const done = new Set(keep.filter((s) => s.attributes.assetDeliveryState?.state !== 'FAILED').map((s) => s.attributes.fileName));
+      for (const s of keep.filter((x) => x.attributes.assetDeliveryState?.state === 'FAILED')) await api('DELETE', `/v1/appScreenshots/${s.id}`);
       let uploaded = 0;
       for (const f of files) {
         if (done.has(f)) continue;

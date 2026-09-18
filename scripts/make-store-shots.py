@@ -24,7 +24,7 @@ SHOTS = [
     ("4-new-crush.png", "MBTI·성향까지\n상대 맞춤 코칭"),
     ("2-home.png", "상대마다 따로,\n나만의 채팅방"),
     ("6-tips.png", "바로 써먹는\n연애 팁 모음"),
-    ("1-onboarding.png", "회원가입 없이\n바로 시작해요"),
+    ("1-onboarding.png", "가입 없이\n캡처만 올리면 끝"),
 ]
 
 TOP = (234, 245, 255)  # 하늘색
