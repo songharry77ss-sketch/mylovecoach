@@ -1,5 +1,5 @@
 // PC 에서 실행: node tools/play-setup.mjs [--listing] [--products] [--email you@example.com] [--site https://...] [--secrets <폴더>]
-// Play Console 에 앱을 만들고 첫 AAB 를 (화면에서) 한 번 올린 뒤에 쓸 수 있다 — 그 전에는 API 가 「Package not found」를 돌려준다.
+// Play Console 에 앱을 만들고(패키지 이름 포함) 서비스 계정에 앱 권한을 준 뒤 쓸 수 있다. 일회성 상품은 결제 권한이 든 AAB 가 먼저 올라가야 만들어진다 (tools/play-upload.mjs).
 //   --listing  : 스토어 등록 정보(제목·설명), 아이콘·그래픽 이미지·휴대전화 스크린샷, 연락처
 //   --products : 인앱 상품 — 주간 구독 mylovecoach.premium.weekly(기본 요금제 weekly, ₩9,900) + 일회성 mylovecoach.premium.lifetime(₩29,800)
 //   옵션이 없으면 둘 다 실행. 여러 번 실행해도 안전하다. 서비스 계정에 이 앱 권한이 있어야 한다 (Play Console → 사용자 및 권한).
@@ -75,9 +75,9 @@ async function listing() {
     (await step('연락처·기본 언어', async () => {
       const cur = await call('GET', `${E}/details`).catch(() => ({}));
       const contactEmail = email ?? cur.contactEmail;
-      if (!contactEmail) throw new Error('연락처 이메일이 없습니다 → --email 로 지정 (스토어에 공개되는 주소)');
-      await call('PUT', `${E}/details`, { defaultLanguage: LANG, contactEmail, contactWebsite: SITE });
-      return contactEmail === cur.contactEmail ? '기존 이메일 유지' : '이메일 설정';
+      // 이메일이 아직 정해지지 않았으면 비워 두고 나머지만 넣는다 (게시 전에는 Play Console 이 이메일을 요구함)
+      await call('PATCH', `${E}/details`, { defaultLanguage: LANG, contactWebsite: SITE, ...(contactEmail ? { contactEmail } : {}) });
+      return contactEmail ? (contactEmail === cur.contactEmail ? '기존 이메일 유지' : '이메일 설정') : '이메일 미정 (나중에 --email 로 지정)';
     })) && ok;
 
   const images = [
@@ -126,19 +126,33 @@ async function products() {
 
   const lifetime = 'mylovecoach.premium.lifetime';
   await step(`일회성 상품 ${lifetime} (₩29,800)`, async () => {
-    const exists = await call('GET', `${BASE}/inappproducts/${lifetime}`).catch((e) => (e.status === 404 ? null : Promise.reject(e)));
+    // 옛 inappproducts API 는 새 앱에서 막혀 있어(403 "migrate to the new publishing API") 신규 onetimeproducts API 를 쓴다
+    const base = `${BASE}/oneTimeProducts/${lifetime}`;
+    const exists = await call('GET', base).catch((e) => (e.status === 404 ? null : Promise.reject(e)));
     const body = {
       packageName: PACKAGE,
-      sku: lifetime,
-      status: 'active',
-      purchaseType: 'managedUser',
-      defaultLanguage: LANG,
-      defaultPrice: { priceMicros: '29800000000', currency: 'KRW' },
-      listings: { [LANG]: { title: '평생 프리미엄', description: '한 번 결제로 횟수 제한 없는 AI 연애 코칭' } },
+      productId: lifetime,
+      listings: [{ languageCode: LANG, title: '평생 프리미엄', description: '한 번 결제로 횟수 제한 없는 AI 연애 코칭' }],
+      purchaseOptions: [
+        {
+          purchaseOptionId: 'lifetime',
+          buyOption: { legacyCompatible: true, multiQuantityEnabled: false },
+          regionalPricingAndAvailabilityConfigs: [{ regionCode: 'KR', price: { currencyCode: 'KRW', units: '29800' }, availability: 'AVAILABLE' }],
+        },
+      ],
     };
-    if (exists) await call('PUT', `${BASE}/inappproducts/${lifetime}?autoConvertMissingPrices=true`, body);
-    else await call('POST', `${BASE}/inappproducts?autoConvertMissingPrices=true`, body);
-    return exists ? '갱신' : '생성';
+    // 생성은 batchUpdate + allowMissing 으로만 가능하다
+    if (!exists)
+      await call('POST', `${BASE}/oneTimeProducts:batchUpdate`, {
+        requests: [{ oneTimeProduct: body, updateMask: 'listings,purchaseOptions', allowMissing: true, regionsVersion: { version: '2022/02' }, latencyTolerance: 'PRODUCT_UPDATE_LATENCY_TOLERANCE_LATENCY_SENSITIVE' }],
+      });
+    const cur = exists ?? (await call('GET', base));
+    const opt = (cur.purchaseOptions ?? []).find((o) => o.purchaseOptionId === 'lifetime');
+    if (opt?.state !== 'ACTIVE')
+      await call('POST', `${BASE}/oneTimeProducts/${lifetime}/purchaseOptions:batchUpdateStates`, {
+        requests: [{ activatePurchaseOptionRequest: { packageName: PACKAGE, productId: lifetime, purchaseOptionId: 'lifetime' } }],
+      });
+    return exists ? `이미 있음 · 상태 ${opt?.state ?? '?'} → 활성 확인` : '생성 · 활성화';
   });
 }
 
