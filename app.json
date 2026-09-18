@@ -32,13 +32,13 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "permissions": [
-        "android.permission.READ_MEDIA_IMAGES",
         "com.android.vending.BILLING"
       ],
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.USE_BIOMETRIC",
-        "android.permission.USE_FINGERPRINT"
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.READ_MEDIA_IMAGES"
       ],
       "predictiveBackGestureEnabled": false
     },
