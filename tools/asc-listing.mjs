@@ -12,23 +12,34 @@ import { BUNDLE_ID, createAscClient, secretsRoot, step } from './lib/asc-api.mjs
 
 const LOCALE = 'ko';
 const VERSION = '1.0.0';
+const TERRITORY_KR = 'KOR';
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 const argOf = (n) => (args.includes(n) ? args[args.indexOf(n) + 1] : undefined);
 const root = secretsRoot(args);
 const SITE = (argOf('--site') ?? (existsSync(join(root, 'mylovecoach-api-url.txt')) ? readFileSync(join(root, 'mylovecoach-api-url.txt'), 'utf8').trim() : 'https://mylovecoach.vercel.app')).replace(/\/+$/, '');
-const { api, uploadAsset, findApp } = createAscClient(root);
+const { api, getAll, uploadAsset, findApp } = createAscClient(root);
 
 // ---- 등록 문구: docs/STORE_LISTING.md 에서 읽는다 (문서가 원본)
 const listingMd = readFileSync(join(repo, 'docs', 'STORE_LISTING.md'), 'utf8');
 const field = (label) => (listingMd.match(new RegExp(`\\*\\*${label}[^*]*\\*\\*:\\s*(.+)`)) ?? [])[1]?.trim();
 const section = (title) => (listingMd.match(new RegExp(`## ${title}[^\\n]*\\n([\\s\\S]*?)(?=\\n## |$)`)) ?? [])[1]?.trim() ?? '';
+/** App Store 는 설명에 이모지를 허용하지 않으므로 지운다 (Play 는 그대로 사용) */
+function stripEmoji(text) {
+  return text
+    .replace(/[🀀-🫿☀-➿️←-⇿⬀-⯿•]/gu, '')
+    .replace(/[ \t]+$/gm, '')
+    .replace(/^[ \t]+/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 const LISTING = {
   name: field('앱 이름') ?? '나만의 연애코치',
   subtitle: field('부제') ?? '',
   keywords: field('키워드') ?? '',
   // 문서에는 기본 주소로 적혀 있으므로 실제 배포 주소로 바꿔 넣는다
-  description: section('전체 설명').replaceAll('https://mylovecoach.vercel.app', SITE),
+  description: stripEmoji(section('전체 설명').replaceAll('https://mylovecoach.vercel.app', SITE)),
   reviewNotes: section('심사 메모').replace(/^- /gm, '• '),
 };
 
@@ -175,18 +186,31 @@ async function main() {
     });
     return '';
   });
-  await step('출시 국가: 대한민국', async () => {
+  await step('출시 국가: 대한민국만', async () => {
     const has = await api('GET', `/v1/apps/${app.id}/appAvailabilityV2`).catch(() => null);
     if (has?.data) return '이미 설정됨';
+    // Apple 은 일부 지역만 보내면 거부하므로 전체 지역을 보내되 대한민국만 판매로 둔다
+    const territories = await getAll('/v1/territories?limit=200');
+    // inline 생성이므로 id 는 실제 코드가 아니라 임시(local) id 여야 한다
+    const localId = (i) => '${' + 'terr' + i + '}';
+    const included = territories.map((t, i) => ({
+      type: 'territoryAvailabilities',
+      id: localId(i),
+      attributes: { available: t.id === TERRITORY_KR },
+      relationships: { territory: { data: { type: 'territories', id: t.id } } },
+    }));
     await api('POST', '/v2/appAvailabilities', {
       data: {
         type: 'appAvailabilities',
         attributes: { availableInNewTerritories: false },
-        relationships: { app: { data: { type: 'apps', id: app.id } }, territoryAvailabilities: { data: [{ type: 'territoryAvailabilities', id: '${kor}' }] } },
+        relationships: {
+          app: { data: { type: 'apps', id: app.id } },
+          territoryAvailabilities: { data: included.map((i) => ({ type: i.type, id: i.id })) },
+        },
       },
-      included: [{ type: 'territoryAvailabilities', id: '${kor}', attributes: { available: true }, relationships: { territory: { data: { type: 'territories', id: 'KOR' } } } }],
+      included,
     });
-    return '';
+    return `${territories.length}개 지역 중 대한민국만 판매`;
   });
 
   // 7) 빌드 연결 + 심사 제출
