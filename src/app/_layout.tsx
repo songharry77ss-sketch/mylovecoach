@@ -119,7 +119,7 @@ export default function RootLayout() {
                 contentStyle: { backgroundColor: colors.background },
               }}>
               <Stack.Screen name="index" options={{ headerShown: false }} />
-              <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
+              <Stack.Screen name="start" options={{ headerShown: false, gestureEnabled: false }} />
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="crush/new" options={{ title: '새 채팅방', presentation: 'modal' }} />
               <Stack.Screen name="crush/[id]/index" options={{ title: '' }} />

@@ -49,7 +49,7 @@ export default function MyScreen() {
       await saveApiKey(null);
       resetAll();
       toast.show('모든 데이터를 삭제했어요.');
-      router.replace('/onboarding');
+      router.replace('/start');
     };
     if (Platform.OS === 'web') {
       if (globalThis.confirm?.('채팅방, 캡처, 프로필을 모두 삭제할까요? 되돌릴 수 없어요.')) run();

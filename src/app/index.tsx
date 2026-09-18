@@ -7,7 +7,7 @@ import { useAppStore } from '@/store/app-store';
 export default function Index() {
   const theme = useTheme();
   const hydrated = useAppStore((s) => s.hydrated);
-  const user = useAppStore((s) => s.user);
+  const started = useAppStore((s) => Boolean(s.user) || Object.keys(s.crushes).length > 0);
   if (!hydrated) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.background }}>
@@ -15,5 +15,5 @@ export default function Index() {
       </View>
     );
   }
-  return <Redirect href={user ? '/(tabs)' : '/onboarding'} />;
+  return <Redirect href={started ? '/(tabs)' : '/start'} />;
 }

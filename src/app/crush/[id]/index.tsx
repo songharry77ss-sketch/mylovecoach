@@ -28,7 +28,7 @@ import type { ChatMessage, Tone } from '@/lib/types';
 import { useAppStore } from '@/store/app-store';
 
 export default function CrushChat() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, pendingImage, pendingWidth } = useLocalSearchParams<{ id: string; pendingImage?: string; pendingWidth?: string }>();
   const theme = useTheme();
   const router = useRouter();
   const toast = useToast();
@@ -47,9 +47,21 @@ export default function CrushChat() {
   const [image, setImage] = useState<PickedImage | null>(null);
   const [viewer, setViewer] = useState<string | null>(null);
   const listRef = useRef<FlatList<ChatMessage>>(null);
+  const autoSent = useRef(false);
+
+  // 기본값으로 만들어진 상대라면, 첫 결과 뒤에 정보를 채우도록 부드럽게 안내한다
+  const needsCrushInfo = crush?.name === '상대' && !crush?.mbti && messages.some((m) => m.analysis);
 
   // 코칭을 몇 번 받아 본 무료 이용자에게 한 번만 보여 주는 안내 카드 (닫으면 다시 안 뜸)
   const showUpsell = quota.enforced && quota.kind !== 'premium' && freeUsed >= 2 && !upsellDismissed && !sending && messages.some((m) => m.analysis);
+
+  // 첫 화면에서 고른 캡처는 채팅방에 들어오자마자 자동으로 보낸다
+  useEffect(() => {
+    if (autoSent.current || !crush || !pendingImage) return;
+    autoSent.current = true;
+    send({ crushId: crush.id, image: { uri: pendingImage, width: Number(pendingWidth) || 0, height: 0 }, text: '', tone });
+    router.setParams({ pendingImage: undefined, pendingWidth: undefined });
+  }, [crush, pendingImage, pendingWidth, send, tone, router]);
 
   useEffect(() => {
     const t = setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
@@ -239,7 +251,19 @@ export default function CrushChat() {
           </View>
         }
         ListFooterComponent={
-          showUpsell ? (
+          needsCrushInfo ? (
+            <View style={[styles.upsell, { backgroundColor: theme.primarySoft }]}>
+              <View style={styles.upsellTexts}>
+                <AppText variant="smallStrong">상대 정보를 알려주면 더 정확해져요</AppText>
+                <AppText variant="caption" color="textSecondary">
+                  이름, MBTI, 어떤 사이인지만 알려주면 그 사람에게 맞춘 말투로 답장을 만들어드려요.
+                </AppText>
+              </View>
+              <View style={styles.upsellActions}>
+                <Button title="상대 정보 입력" size="sm" fullWidth={false} onPress={() => router.push({ pathname: '/crush/[id]/edit', params: { id: crush.id } })} />
+              </View>
+            </View>
+          ) : showUpsell ? (
             <View style={[styles.upsell, { backgroundColor: theme.primarySoft }]}>
               <View style={styles.upsellTexts}>
                 <AppText variant="smallStrong">답장이 도움이 됐나요?</AppText>

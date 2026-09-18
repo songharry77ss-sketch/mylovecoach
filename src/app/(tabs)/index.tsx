@@ -41,7 +41,7 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View style={styles.headerTexts}>
           <AppText variant="display">
-            {user?.name ? `${user.name}님,` : '안녕하세요,'}
+            {user?.name?.trim() ? `${user.name.trim()}님,` : '안녕하세요,'}
           </AppText>
           <AppText variant="title2" color="textSecondary">
             오늘은 누구와 대화할까요?

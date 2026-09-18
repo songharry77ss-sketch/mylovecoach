@@ -139,7 +139,7 @@ export function buildProfileBlock(req: CoachRequest): string {
   if (crush.notes.trim()) lines.push(`- 메모: ${crush.notes.trim()}`);
   lines.push('');
   lines.push(`[사용자(나) 프로필]`);
-  lines.push(`- 이름: ${user.name}`);
+  if (user.name.trim()) lines.push(`- 이름: ${user.name.trim()}`);
   lines.push(`- 성별: ${GENDER_KO[user.gender]}`);
   if (user.age) lines.push(`- 나이: ${user.age}세`);
   if (user.mbti) lines.push(`- MBTI: ${user.mbti}`);

@@ -31,6 +31,8 @@ export interface AppState {
   updateUser: (patch: Partial<UserProfile>) => void;
 
   addCrush: (input: Omit<Crush, 'id' | 'createdAt' | 'updatedAt'>) => Crush;
+  /** 가입·설문 없이 바로 시작 — 기본 프로필과 첫 채팅방을 만들고 채팅방 id 를 돌려준다 */
+  quickStart: () => string;
   updateCrush: (id: string, patch: Partial<Omit<Crush, 'id' | 'createdAt'>>) => void;
   removeCrush: (id: string) => void;
 
@@ -79,6 +81,14 @@ export const useAppStore = create<AppState>()(
         set((s) => ({ crushes: { ...s.crushes, [crush.id]: crush }, messages: { ...s.messages, [crush.id]: [] } }));
         return crush;
       },
+      quickStart: () => {
+        const s = get();
+        const existing = Object.values(s.crushes).sort((a, b) => a.createdAt - b.createdAt)[0];
+        if (!s.user) set({ user: { name: '', gender: 'other', style: [], defaultTone: 'natural', createdAt: Date.now() } });
+        if (existing) return existing.id;
+        return s.addCrush({ name: '상대', gender: 'female', relationship: 'talking', style: [], notes: '' }).id;
+      },
+
       updateCrush: (id, patch) =>
         set((s) => {
           const prev = s.crushes[id];

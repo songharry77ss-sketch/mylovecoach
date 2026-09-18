@@ -33,10 +33,6 @@ export default function ProfileSettings() {
   const [mbtiOpen, setMbtiOpen] = useState(false);
 
   const save = () => {
-    if (!name.trim()) {
-      toast.show('이름을 입력해주세요.', 'error');
-      return;
-    }
     const parsedAge = age.trim() ? Number(age) : undefined;
     setUser({
       name: name.trim(),
