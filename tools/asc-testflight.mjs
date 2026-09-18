@@ -144,8 +144,12 @@ async function main() {
   const deadline = Date.now() + waitMin * 60_000;
   let builds = [];
   for (;;) {
-    // processingState 를 명시하지 않으면 처리 중(PROCESSING)인 빌드가 빠져서 옛 빌드를 최신으로 오인한다
-    builds = await getAll(`/v1/builds?filter[app]=${app.id}&filter[processingState]=PROCESSING,VALID&sort=-version&limit=5`);
+    // /v1/builds 목록에는 처리 중(PROCESSING)인 빌드가 나오지 않으므로
+    // preReleaseVersions 관계로 조회해 방금 올린 빌드까지 본다
+    const versions = await getAll(`/v1/preReleaseVersions?filter[app]=${app.id}&filter[platform]=IOS&limit=10`);
+    const collected = [];
+    for (const v of versions) collected.push(...(await getAll(`/v1/preReleaseVersions/${v.id}/builds?limit=20`)));
+    builds = collected.sort((x, y) => Number(y.attributes.version) - Number(x.attributes.version));
     // 가장 최근에 올린 빌드가 처리될 때까지 기다린다 (처리 중인데 옛 빌드를 연결하지 않도록)
     const newest = builds[0];
     const ready = newest?.attributes.processingState === 'VALID' && !newest.attributes.expired ? newest : null;
