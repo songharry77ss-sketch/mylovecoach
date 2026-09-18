@@ -138,8 +138,28 @@ async function main() {
     return `새로 ${added.length}명 · 기존 ${have.size}명`;
   });
 
-  const builds = await getAll(`/v1/builds?filter[app]=${app.id}&sort=-uploadedDate&limit=5`);
-  console.log(`\n빌드: ${builds.map((b) => `${b.attributes.version}(${b.attributes.processingState})`).join(', ') || '없음 — TestFlight 빌드가 올라가면 테스터에게 초대 메일이 갑니다.'}`);
+  // 처리가 끝난 최신 빌드를 그룹에 연결하면 테스터에게 초대 메일이 나간다.
+  // --wait <분> 을 주면 처리가 끝날 때까지 기다린다.
+  const waitMin = Number(argOf('--wait', '0')) || 0;
+  const deadline = Date.now() + waitMin * 60_000;
+  let builds = [];
+  for (;;) {
+    builds = await getAll(`/v1/builds?filter[app]=${app.id}&sort=-uploadedDate&limit=5`);
+    const ready = builds.find((x) => x.attributes.processingState === 'VALID' && !x.attributes.expired);
+    if (ready) {
+      await step(`빌드 ${ready.attributes.version} 를 「${GROUP}」 에 연결`, async () => {
+        const inGroup = await getAll(`/v1/builds/${ready.id}/betaGroups?limit=50`).catch(() => []);
+        if (inGroup.some((g) => g.id === group.id)) return '이미 연결됨';
+        await api('POST', `/v1/builds/${ready.id}/relationships/betaGroups`, { data: [{ type: 'betaGroups', id: group.id }] });
+        return '테스터에게 초대 메일 발송';
+      });
+      break;
+    }
+    if (Date.now() >= deadline) break;
+    console.log(`  · 처리 대기 중${builds.length ? ` (${builds.map((x) => `${x.attributes.version}:${x.attributes.processingState}`).join(', ')})` : ' (아직 업로드된 빌드 없음)'} …`);
+    await new Promise((r) => setTimeout(r, 60_000));
+  }
+  console.log(`\n빌드: ${builds.map((x) => `${x.attributes.version}(${x.attributes.processingState})`).join(', ') || '없음 — TestFlight 빌드가 올라가면 테스터에게 초대 메일이 갑니다.'}`);
 }
 
 main().catch((e) => {
