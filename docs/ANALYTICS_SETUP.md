@@ -29,7 +29,7 @@
 
 ## 2. 서버에 연결 💻
 
-복사한 두 값을 `C:\Users\shsop\wolha-secrets\mylovecoach-supabase.txt` 에 이렇게 저장하고,
+복사한 두 값을 `%USERPROFILE%\wolha-secrets\mylovecoach-supabase.txt` 에 이렇게 저장하고,
 
 ```
 SUPABASE_URL=https://abcdefgh.supabase.co
@@ -45,7 +45,7 @@ node tools/set-analytics-env.mjs
 ## 3. 관리자 페이지 열기
 
 - 주소: **https://mylovecoach.vercel.app/admin.html**
-- 비밀번호: `C:\Users\shsop\wolha-secrets\mylovecoach-admin-token.txt` 의 `ADMIN_TOKEN` 값
+- 비밀번호: `%USERPROFILE%\wolha-secrets\mylovecoach-admin-token.txt` 의 `ADMIN_TOKEN` 값
 - 검색엔진에 노출되지 않도록 `noindex` 처리돼 있고, 비밀번호 없이는 아무 데이터도 내려가지 않습니다.
 
 보이는 것:

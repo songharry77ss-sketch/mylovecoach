@@ -138,7 +138,7 @@ node tools/build-android-local.mjs --version-code 107 --upload internal
 
 ## 권장 경로: GitHub Actions 로 빌드·업로드 (월하와 동일한 방식, Expo/Codemagic 계정 불필요)
 
-월하 출시 때 만든 열쇠 폴더(`C:\Users\shsop\wolha-secrets`)를 그대로 재사용합니다.
+월하 출시 때 만든 열쇠 폴더(`%USERPROFILE%\wolha-secrets`)를 그대로 재사용합니다.
 App Store Connect API 키·팀 ID·배포 인증서는 팀 단위라 새 앱에도 그대로 쓰이고, Android 업로드 키만 이 앱용으로 새로 만듭니다.
 
 | 워크플로 | 러너 | 하는 일 |
