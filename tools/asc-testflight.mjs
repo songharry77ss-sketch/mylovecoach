@@ -145,7 +145,9 @@ async function main() {
   let builds = [];
   for (;;) {
     builds = await getAll(`/v1/builds?filter[app]=${app.id}&sort=-uploadedDate&limit=5`);
-    const ready = builds.find((x) => x.attributes.processingState === 'VALID' && !x.attributes.expired);
+    // 가장 최근에 올린 빌드가 처리될 때까지 기다린다 (처리 중인데 옛 빌드를 연결하지 않도록)
+    const newest = builds[0];
+    const ready = newest?.attributes.processingState === 'VALID' && !newest.attributes.expired ? newest : null;
     if (ready) {
       await step(`빌드 ${ready.attributes.version} 를 「${GROUP}」 에 연결`, async () => {
         const inGroup = await getAll(`/v1/builds/${ready.id}/betaGroups?limit=50`).catch(() => []);
