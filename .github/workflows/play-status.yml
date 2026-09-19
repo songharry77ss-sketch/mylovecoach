@@ -1,0 +1,26 @@
+name: Play Console 상태 확인
+
+# Play Console 의 트랙별 출시 상태를 읽기만 한다 (변경 없음).
+# 필요한 시크릿: PLAY_SERVICE_ACCOUNT_JSON
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 상태 조회
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then echo "::error::시크릿 PLAY_SERVICE_ACCOUNT_JSON 이 없습니다"; exit 1; fi
+          node tools/play-status.mjs
