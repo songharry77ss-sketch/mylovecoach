@@ -1,0 +1,71 @@
+name: TestFlight 테스터 초대
+
+# App Store Connect 의 외부 테스트 그룹에 테스터 이메일을 등록한다.
+# 처리가 끝난 최신 빌드가 그룹에 연결되면 테스터에게 초대 메일이 발송된다.
+# 필요한 시크릿: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8_BASE64
+
+on:
+  workflow_dispatch:
+    inputs:
+      emails:
+        description: '초대할 이메일 (쉼표로 구분)'
+        required: true
+        type: string
+      group:
+        description: '외부 테스트 그룹 이름'
+        required: false
+        default: '테스터'
+        type: string
+      wait_minutes:
+        description: '빌드 처리 대기 시간(분). 0 이면 기다리지 않음'
+        required: false
+        default: '0'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  invite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 시크릿 확인
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        run: |
+          missing=0
+          for name in ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8_BASE64; do
+            if [ -z "${!name}" ]; then echo "::error::시크릿 $name 이 없습니다"; missing=1; fi
+          done
+          [ "$missing" = 0 ]
+
+      - name: App Store Connect 키 준비
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        run: |
+          umask 077
+          mkdir -p "$RUNNER_TEMP/asc"
+          printf '%s' "$ASC_KEY_P8_BASE64" | tr -d ' \t\r\n' | base64 --decode > "$RUNNER_TEMP/asc/asc-key.p8"
+          printf 'KEY_ID=%s\nISSUER_ID=%s\n' "$ASC_KEY_ID" "$ASC_ISSUER_ID" > "$RUNNER_TEMP/asc/asc-key.txt"
+
+      - name: 테스터 등록
+        run: |
+          node tools/asc-testflight.mjs \
+            --secrets "$RUNNER_TEMP/asc" \
+            --emails "${{ inputs.emails }}" \
+            --group "${{ inputs.group }}" \
+            --wait "${{ inputs.wait_minutes }}"
+
+      - name: 키 정리
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/asc"
