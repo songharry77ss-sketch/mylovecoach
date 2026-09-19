@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
 
 import { TemperatureGauge } from '@/components/coach/temperature-gauge';
 import { AppText } from '@/components/ui/app-text';
@@ -45,6 +45,19 @@ export function AnalysisCard({ analysis, selectedReplyIndex, onSelectReply, onRe
     toast.show('복사했어요. 카톡에 붙여넣기만 하면 끝!', 'success');
   };
 
+  // 복사 대신 카톡 등으로 바로 보내고 싶을 때 (웹에서는 공유 기능이 없으면 복사로 대체)
+  const shareReply = async () => {
+    if (!reply) return;
+    onSelectReply(shown);
+    if (Platform.OS === 'web') {
+      const webShare = (globalThis as { navigator?: { share?: (d: { text: string }) => Promise<void> } }).navigator?.share;
+      if (!webShare) return copy();
+      await webShare.call(globalThis.navigator, { text: reply.text }).catch(() => {});
+      return;
+    }
+    await Share.share({ message: reply.text }).catch(() => {});
+  };
+
   if (!reply) {
     return (
       <View style={[styles.card, { backgroundColor: theme.surface }]}>
@@ -66,15 +79,24 @@ export function AnalysisCard({ analysis, selectedReplyIndex, onSelectReply, onRe
           <AppText style={styles.replyText}>{reply.text}</AppText>
         </Pressable>
 
-        <Pressable
-          accessibilityRole="button"
-          onPress={copy}
-          style={({ pressed }) => [styles.copyBtn, { backgroundColor: copied ? theme.primarySoft : theme.primary, opacity: pressed ? 0.9 : 1 }]}>
-          <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={17} color={copied ? theme.primary : theme.primaryText} />
-          <AppText variant="bodyStrong" color={copied ? 'primary' : theme.primaryText}>
-            {copied ? '복사했어요' : '이 답장 복사하기'}
-          </AppText>
-        </Pressable>
+        <View style={styles.actions}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={copy}
+            style={({ pressed }) => [styles.copyBtn, { backgroundColor: copied ? theme.primarySoft : theme.primary, opacity: pressed ? 0.9 : 1 }]}>
+            <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={17} color={copied ? theme.primary : theme.primaryText} />
+            <AppText variant="bodyStrong" color={copied ? 'primary' : theme.primaryText}>
+              {copied ? '복사했어요' : '이 답장 복사하기'}
+            </AppText>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="답장 공유하기"
+            onPress={shareReply}
+            style={({ pressed }) => [styles.shareBtn, { backgroundColor: theme.surface, opacity: pressed ? 0.7 : 1 }]}>
+            <Ionicons name="share-outline" size={19} color={theme.textSecondary} />
+          </Pressable>
+        </View>
 
         {/* 다른 톤으로 바꿔 보기 */}
         {replies.length > 1 ? (
@@ -167,7 +189,9 @@ const styles = StyleSheet.create({
   card: { borderRadius: Radius.lg, borderTopLeftRadius: Radius.sm, borderWidth: 1, padding: Spacing.lg, gap: Spacing.md },
   replyBox: { paddingVertical: Spacing.xs },
   replyText: { fontSize: 18, lineHeight: 28, fontWeight: '500', letterSpacing: -0.2 },
-  copyBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, height: 48, borderRadius: Radius.md },
+  actions: { flexDirection: 'row', gap: Spacing.sm },
+  copyBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, height: 48, borderRadius: Radius.md },
+  shareBtn: { width: 48, height: 48, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
   tones: { gap: Spacing.xs },
   toneChip: { paddingHorizontal: Spacing.md, paddingVertical: 6, borderRadius: Radius.pill, borderWidth: 1 },
   moreRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.xs },
