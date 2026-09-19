@@ -160,15 +160,34 @@ async function main() {
         await api('POST', `/v1/builds/${ready.id}/relationships/betaGroups`, { data: [{ type: 'betaGroups', id: group.id }] });
         return '테스터에게 초대 메일 발송';
       });
+      // 내부 그룹은 베타 심사 없이 바로 설치할 수 있으므로 같은 빌드를 함께 연결해 둔다
+      const internal = (await getAll(`/v1/apps/${app.id}/betaGroups?limit=100`)).find((g) => g.attributes.isInternalGroup);
+      if (internal && internal.id !== group.id) {
+        await step(`빌드 ${ready.attributes.version} 를 「${internal.attributes.name}」 에 연결`, async () => {
+          const inGroup = await getAll(`/v1/builds/${ready.id}/betaGroups?limit=50`).catch(() => []);
+          if (inGroup.some((g) => g.id === internal.id)) return '이미 연결됨';
+          await api('POST', `/v1/builds/${ready.id}/relationships/betaGroups`, { data: [{ type: 'betaGroups', id: internal.id }] });
+          return '내부 테스터는 심사 없이 바로 설치 가능';
+        });
+      }
+
       // 외부 그룹은 베타 심사를 통과해야 테스터가 설치할 수 있다
       if (!group.attributes.isInternalGroup) {
         await step(`빌드 ${ready.attributes.version} 베타 심사 제출`, async () => {
           const cur = await api('GET', `/v1/builds/${ready.id}/betaAppReviewSubmission`).catch(() => null);
           if (cur?.data) return `이미 제출됨 (${cur.data.attributes.betaReviewState})`;
-          const res = await api('POST', '/v1/betaAppReviewSubmissions', {
-            data: { type: 'betaAppReviewSubmissions', relationships: { build: { data: { type: 'builds', id: ready.id } } } },
-          });
-          return `${res.data.attributes.betaReviewState} — 승인되면 테스터가 설치할 수 있어요 (보통 하루 안)`;
+          try {
+            const res = await api('POST', '/v1/betaAppReviewSubmissions', {
+              data: { type: 'betaAppReviewSubmissions', relationships: { build: { data: { type: 'builds', id: ready.id } } } },
+            });
+            return `${res.data.attributes.betaReviewState} — 승인되면 테스터가 설치할 수 있어요 (보통 하루 안)`;
+          } catch (e) {
+            // 같은 버전(train)의 다른 빌드가 심사 중이면 새 빌드는 제출할 수 없다.
+            // 심사 중인 빌드가 승인되면 같은 train 의 이후 빌드는 따로 심사받지 않아도 된다.
+            if (/same train is already in beta review/i.test(e.message))
+              return '같은 버전의 이전 빌드가 심사 중 — 그 빌드가 승인되면 이 빌드도 함께 풀립니다';
+            throw e;
+          }
         });
       }
       break;
