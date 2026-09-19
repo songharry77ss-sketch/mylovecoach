@@ -39,18 +39,21 @@ jobs:
       - name: 환경변수 등록 (프로덕션)
         run: |
           set -e
-          add_env() { # name value
+          # $3 에 config 를 주면 "공개되는 값"으로 등록한다.
+          # Vercel CLI 는 EXPO_PUBLIC_ 처럼 클라이언트에 노출되는 접두사를 secret 으로 넣으려 하면 거부한다.
+          add_env() { # name value [config|secret]
             [ -n "$2" ] || return 0
             vercel env rm "$1" production --yes --token "$VERCEL_TOKEN" ${VERCEL_SCOPE:+--scope "$VERCEL_SCOPE"} >/dev/null 2>&1 || true
-            printf '%s' "$2" | vercel env add "$1" production --token "$VERCEL_TOKEN" ${VERCEL_SCOPE:+--scope "$VERCEL_SCOPE"} >/dev/null
-            echo "env 등록: $1"
+            printf '%s' "$2" | vercel env add "$1" production --type "${3:-secret}" --token "$VERCEL_TOKEN" ${VERCEL_SCOPE:+--scope "$VERCEL_SCOPE"} >/dev/null
+            echo "env 등록: $1 (${3:-secret})"
           }
           add_env GEMINI_API_KEY "$GEMINI_API_KEY"
           add_env ANTHROPIC_API_KEY "$ANTHROPIC_API_KEY"
           add_env AI_PROVIDER "$([ -n "$GEMINI_API_KEY" ] && echo gemini || echo anthropic)"
           add_env COACH_APP_TOKEN "$COACH_APP_TOKEN"
-          # 웹 번들도 같은 토큰을 헤더로 보내야 하므로 빌드 환경변수로도 넣는다
-          add_env EXPO_PUBLIC_API_TOKEN "$COACH_APP_TOKEN"
+          # 웹 번들도 같은 토큰을 헤더로 보내야 하므로 빌드 환경변수로도 넣는다.
+          # 이 값은 어차피 클라이언트 번들에 박히므로(남용 억제용 키이지 비밀이 아님) config 로 등록한다.
+          add_env EXPO_PUBLIC_API_TOKEN "$COACH_APP_TOKEN" config
       - name: 프로덕션 배포
         id: deploy
         run: |
