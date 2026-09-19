@@ -160,6 +160,17 @@ async function main() {
         await api('POST', `/v1/builds/${ready.id}/relationships/betaGroups`, { data: [{ type: 'betaGroups', id: group.id }] });
         return '테스터에게 초대 메일 발송';
       });
+      // 외부 그룹은 베타 심사를 통과해야 테스터가 설치할 수 있다
+      if (!group.attributes.isInternalGroup) {
+        await step(`빌드 ${ready.attributes.version} 베타 심사 제출`, async () => {
+          const cur = await api('GET', `/v1/builds/${ready.id}/betaAppReviewSubmission`).catch(() => null);
+          if (cur?.data) return `이미 제출됨 (${cur.data.attributes.betaReviewState})`;
+          const res = await api('POST', '/v1/betaAppReviewSubmissions', {
+            data: { type: 'betaAppReviewSubmissions', relationships: { build: { data: { type: 'builds', id: ready.id } } } },
+          });
+          return `${res.data.attributes.betaReviewState} — 승인되면 테스터가 설치할 수 있어요 (보통 하루 안)`;
+        });
+      }
       break;
     }
     if (Date.now() >= deadline) break;
