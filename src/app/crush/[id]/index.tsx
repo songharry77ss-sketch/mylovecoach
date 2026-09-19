@@ -61,6 +61,13 @@ export default function CrushChat() {
     });
   }, []);
 
+  // 첫 프레임에서는 위치가 0 으로 잡히기도 하고, 키보드가 다시 올라올 때 헤더 높이가 달라질 수도 있어
+  // 마운트 직후와 키보드가 올라오는 시점에 한 번씩 더 잰다
+  useEffect(() => {
+    const t = setTimeout(measureHeader, 250);
+    return () => clearTimeout(t);
+  }, [measureHeader, keyboardVisible]);
+
   // 기본값으로 만들어진 상대라면, 첫 결과 뒤에 정보를 채우도록 부드럽게 안내한다
   const needsCrushInfo = crush?.name === '상대' && !crush?.mbti && messages.some((m) => m.analysis);
 
