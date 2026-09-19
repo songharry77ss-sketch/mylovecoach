@@ -8,6 +8,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Chip } from '@/components/ui/chip';
 import { IconButton } from '@/components/ui/icon-button';
 import { Radius, Spacing, Typography } from '@/constants/theme';
+import { useKeyboardVisible } from '@/hooks/use-keyboard';
 import { useTheme } from '@/hooks/use-theme';
 import { TONES } from '@/lib/labels';
 import type { Tone } from '@/lib/types';
@@ -29,7 +30,10 @@ interface ComposerProps {
 export function Composer({ tone, onToneChange, image, onPickImage, onClearImage, onSend, sending, notice }: ComposerProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const keyboardVisible = useKeyboardVisible();
   const [text, setText] = useState('');
+  // 키보드가 올라오면 홈 인디케이터 여백이 필요 없다 — 그대로 두면 키보드와 입력창 사이가 벌어진다
+  const bottomPad = (keyboardVisible ? 0 : insets.bottom) + Spacing.sm;
   const canSend = !sending && (Boolean(image) || text.trim().length > 0);
 
   const submit = () => {
@@ -39,7 +43,7 @@ export function Composer({ tone, onToneChange, image, onPickImage, onClearImage,
   };
 
   return (
-    <View style={[styles.wrap, { backgroundColor: theme.background, borderTopColor: theme.border, paddingBottom: insets.bottom + Spacing.sm }]}>
+    <View style={[styles.wrap, { backgroundColor: theme.background, borderTopColor: theme.border, paddingBottom: bottomPad }]}>
       {notice ? (
         <Pressable
           accessibilityRole={notice.onAction ? 'button' : 'text'}

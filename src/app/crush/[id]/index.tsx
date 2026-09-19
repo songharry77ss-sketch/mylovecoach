@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { FlatList, KeyboardAvoidingView, Modal, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 
 import { AnalysisCard } from '@/components/coach/analysis-card';
@@ -18,6 +18,7 @@ import { Screen } from '@/components/ui/screen';
 import { useToast } from '@/components/ui/toast';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useCoach } from '@/hooks/use-coach';
+import { useKeyboardVisible } from '@/hooks/use-keyboard';
 import { useTheme } from '@/hooks/use-theme';
 import { useQuota } from '@/lib/billing/gate';
 import { quotaLabel } from '@/lib/billing/quota';
@@ -47,7 +48,18 @@ export default function CrushChat() {
   const [image, setImage] = useState<PickedImage | null>(null);
   const [viewer, setViewer] = useState<string | null>(null);
   const listRef = useRef<FlatList<ChatMessage>>(null);
+  const rootRef = useRef<View>(null);
   const autoSent = useRef(false);
+  const keyboardVisible = useKeyboardVisible();
+
+  // 키보드가 얼마나 가리는지 계산하려면 대화 영역이 화면 위에서 얼마나 내려와 있는지(헤더+상태바)를 알아야 한다.
+  // expo-router 57 에는 헤더 높이 훅이 없어서 직접 재어 쓴다.
+  const [headerOffset, setHeaderOffset] = useState(0);
+  const measureHeader = useCallback(() => {
+    rootRef.current?.measureInWindow?.((_x, y) => {
+      if (typeof y === 'number' && Number.isFinite(y)) setHeaderOffset(y);
+    });
+  }, []);
 
   // 기본값으로 만들어진 상대라면, 첫 결과 뒤에 정보를 채우도록 부드럽게 안내한다
   const needsCrushInfo = crush?.name === '상대' && !crush?.mbti && messages.some((m) => m.analysis);
@@ -66,7 +78,7 @@ export default function CrushChat() {
   useEffect(() => {
     const t = setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
     return () => clearTimeout(t);
-  }, [messages.length, showUpsell]);
+  }, [messages.length, showUpsell, keyboardVisible]);
 
   if (!crush) {
     return (
@@ -203,7 +215,7 @@ export default function CrushChat() {
   };
 
   return (
-    <View style={[styles.root, { backgroundColor: theme.background }]}>
+    <View ref={rootRef} onLayout={measureHeader} style={[styles.root, { backgroundColor: theme.background }]}>
       <Stack.Screen
         options={{
           headerTitle: () => (
@@ -224,63 +236,84 @@ export default function CrushChat() {
         }}
       />
 
-      <FlatList
-        ref={listRef}
-        data={messages}
-        keyExtractor={(m) => m.id}
-        renderItem={renderItem}
-        contentContainerStyle={styles.list}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <EmptyState
-              emoji="📸"
-              title={`${crush.name}님과의 대화를\n캡처해서 올려보세요`}
-              description="코치가 대화 분위기를 읽고 딱 맞는 답장 3개와 호감 온도를 알려드려요. 캡처가 없다면 상황을 글로 적어도 돼요."
-            />
-            <View style={styles.starterRow}>
-              {STARTERS.map((s) => (
-                <Pressable key={s} accessibilityRole="button" onPress={() => guardedSend({ crushId: crush.id, image: null, text: s, tone })} style={[styles.starter, { backgroundColor: theme.surface }]}>
-                  <AppText variant="small" color="textSecondary">
-                    {s}
+      <KeyboardAvoidingView style={styles.flex} behavior="padding" keyboardVerticalOffset={headerOffset}>
+        <FlatList
+          ref={listRef}
+          data={messages}
+          keyExtractor={(m) => m.id}
+          renderItem={renderItem}
+          contentContainerStyle={styles.list}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <EmptyState
+                emoji="📸"
+                title={`${crush.name}님과의 대화를
+캡처해서 올려보세요`}
+                description="코치가 대화 분위기를 읽고 딱 맞는 답장 3개와 호감 온도를 알려드려요. 캡처가 없다면 상황을 글로 적어도 돼요."
+              />
+              <View style={styles.starterRow}>
+                {STARTERS.map((s) => (
+                  <Pressable
+                    key={s}
+                    accessibilityRole="button"
+                    onPress={() => guardedSend({ crushId: crush.id, image: null, text: s, tone })}
+                    style={[styles.starter, { backgroundColor: theme.surface }]}>
+                    <AppText variant="small" color="textSecondary">
+                      {s}
+                    </AppText>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          }
+          ListFooterComponent={
+            needsCrushInfo ? (
+              <View style={[styles.upsell, { backgroundColor: theme.primarySoft }]}>
+                <View style={styles.upsellTexts}>
+                  <AppText variant="smallStrong">상대 정보를 알려주면 더 정확해져요</AppText>
+                  <AppText variant="caption" color="textSecondary">
+                    이름, MBTI, 어떤 사이인지만 알려주면 그 사람에게 맞춘 말투로 답장을 만들어드려요.
                   </AppText>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-        }
-        ListFooterComponent={
-          needsCrushInfo ? (
-            <View style={[styles.upsell, { backgroundColor: theme.primarySoft }]}>
-              <View style={styles.upsellTexts}>
-                <AppText variant="smallStrong">상대 정보를 알려주면 더 정확해져요</AppText>
-                <AppText variant="caption" color="textSecondary">
-                  이름, MBTI, 어떤 사이인지만 알려주면 그 사람에게 맞춘 말투로 답장을 만들어드려요.
-                </AppText>
+                </View>
+                <View style={styles.upsellActions}>
+                  <Button
+                    title="상대 정보 입력"
+                    size="sm"
+                    fullWidth={false}
+                    onPress={() => router.push({ pathname: '/crush/[id]/edit', params: { id: crush.id } })}
+                  />
+                </View>
               </View>
-              <View style={styles.upsellActions}>
-                <Button title="상대 정보 입력" size="sm" fullWidth={false} onPress={() => router.push({ pathname: '/crush/[id]/edit', params: { id: crush.id } })} />
+            ) : showUpsell ? (
+              <View style={[styles.upsell, { backgroundColor: theme.primarySoft }]}>
+                <View style={styles.upsellTexts}>
+                  <AppText variant="smallStrong">답장이 도움이 됐나요?</AppText>
+                  <AppText variant="caption" color="textSecondary">
+                    프리미엄이면 횟수 제한 없이, 마음에 드는 답장이 나올 때까지 받아볼 수 있어요.
+                  </AppText>
+                </View>
+                <View style={styles.upsellActions}>
+                  <Button title="프리미엄 보기" size="sm" fullWidth={false} onPress={() => openPaywall('banner')} />
+                  <Button title="괜찮아요" size="sm" variant="ghost" fullWidth={false} onPress={dismissUpsell} />
+                </View>
               </View>
-            </View>
-          ) : showUpsell ? (
-            <View style={[styles.upsell, { backgroundColor: theme.primarySoft }]}>
-              <View style={styles.upsellTexts}>
-                <AppText variant="smallStrong">답장이 도움이 됐나요?</AppText>
-                <AppText variant="caption" color="textSecondary">
-                  프리미엄이면 횟수 제한 없이, 마음에 드는 답장이 나올 때까지 받아볼 수 있어요.
-                </AppText>
-              </View>
-              <View style={styles.upsellActions}>
-                <Button title="프리미엄 보기" size="sm" fullWidth={false} onPress={() => openPaywall('banner')} />
-                <Button title="괜찮아요" size="sm" variant="ghost" fullWidth={false} onPress={dismissUpsell} />
-              </View>
-            </View>
-          ) : null
-        }
-      />
+            ) : null
+          }
+        />
 
-      <Composer tone={tone} onToneChange={setTone} image={image} onPickImage={chooseImage} onClearImage={() => setImage(null)} onSend={submit} sending={sending} notice={notice} />
+        <Composer
+          tone={tone}
+          onToneChange={setTone}
+          image={image}
+          onPickImage={chooseImage}
+          onClearImage={() => setImage(null)}
+          onSend={submit}
+          sending={sending}
+          notice={notice}
+        />
+      </KeyboardAvoidingView>
 
       <Modal visible={Boolean(viewer)} transparent animationType="fade" onRequestClose={() => setViewer(null)}>
         <Pressable style={styles.viewer} onPress={() => setViewer(null)} accessibilityLabel="닫기">
@@ -299,6 +332,7 @@ const STARTERS = ['첫 메시지 뭐라고 보낼까?', '주말에 만나자고 
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  flex: { flex: 1 },
   list: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.lg, gap: Spacing.lg, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', flexGrow: 1 },
   item: { gap: Spacing.sm },
   date: { marginBottom: Spacing.sm },
