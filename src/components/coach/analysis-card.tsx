@@ -35,6 +35,8 @@ export function AnalysisCard({ analysis, selectedReplyIndex, onSelectReply, onRe
   const replies = analysis.replies;
   const reply = replies[Math.min(shown, replies.length - 1)];
   const hasDetails = Boolean(reply?.why || analysis.insights.length || analysis.nextStep || analysis.warnings.length);
+  // 답장들의 말투가 전부 같으면 말투 이름으로는 구분이 안 된다
+  const sameTone = new Set(replies.map((r) => r.tone)).size <= 1;
 
   const copy = async () => {
     if (!reply) return;
@@ -98,11 +100,14 @@ export function AnalysisCard({ analysis, selectedReplyIndex, onSelectReply, onRe
           </Pressable>
         </View>
 
-        {/* 다른 톤으로 바꿔 보기 */}
+        {/* 다른 답장으로 바꿔 보기.
+            코치는 보통 「요청한 한 가지 말투」로 각도만 다른 답장 3개를 주므로
+            말투 이름이 전부 같아진다. 그럴 땐 번호로 구분해야 고를 수 있다. */}
         {replies.length > 1 ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tones}>
             {replies.map((r, i) => {
               const t = toneLabel(r.tone);
+              const label = sameTone ? `답장 ${i + 1}` : `${t.emoji} ${t.label}`;
               const on = i === shown;
               return (
                 <Pressable
@@ -115,7 +120,7 @@ export function AnalysisCard({ analysis, selectedReplyIndex, onSelectReply, onRe
                   }}
                   style={[styles.toneChip, { backgroundColor: on ? theme.primarySoft : theme.surface, borderColor: on ? theme.primary : 'transparent' }]}>
                   <AppText variant="caption" color={on ? 'primary' : 'textSecondary'}>
-                    {t.emoji} {t.label}
+                    {label}
                   </AppText>
                 </Pressable>
               );
