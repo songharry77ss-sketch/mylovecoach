@@ -2,6 +2,11 @@
 // TestFlight 외부 테스트 그룹을 만들고 테스터 이메일을 등록한다.
 // 이메일을 안 주면 wolha-secrets/mylovecoach-testers.txt (한 줄에 하나 또는 쉼표 구분) 를 읽는다.
 // 초대 메일은 그룹에 빌드가 들어간 뒤에 발송된다.
+//
+// --public-link [인원수]  : 이메일 등록 없이 링크만 있으면 누구나 참여할 수 있는
+//                          공개 초대 링크(https://testflight.apple.com/join/...)를 켠다.
+//                          베타 심사를 통과한 빌드가 그룹에 있어야 켜진다.
+// --no-public-link        : 공개 링크를 다시 끈다 (이미 받은 사람은 계속 쓸 수 있다).
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -105,6 +110,20 @@ async function main() {
     return group.attributes.isInternalGroup ? '내부 그룹' : '외부 그룹';
   });
   if (!group) return;
+
+  // 링크만 있으면 누구나 참여할 수 있는 공개 초대 링크
+  if (args.includes('--public-link') || args.includes('--no-public-link')) {
+    const on = args.includes('--public-link');
+    const limit = Number(argOf('--public-link', '')) || 200;
+    await step(on ? `공개 초대 링크 켜기 (최대 ${limit}명)` : '공개 초대 링크 끄기', async () => {
+      const attrs = on
+        ? { publicLinkEnabled: true, publicLinkLimitEnabled: true, publicLinkLimit: limit }
+        : { publicLinkEnabled: false };
+      const res = await api('PATCH', `/v1/betaGroups/${group.id}`, { data: { type: 'betaGroups', id: group.id, attributes: attrs } });
+      group = res.data;
+      return on ? (group.attributes.publicLink ?? '링크 생성 중 — 잠시 뒤 다시 실행하면 나옵니다') : '꺼짐';
+    });
+  }
 
   await step('테스터 등록', async () => {
     const existing = await getAll(`/v1/betaGroups/${group.id}/betaTesters?limit=200`);
