@@ -1,0 +1,117 @@
+name: Android APK (직접 설치용)
+
+# 수동 실행: gh workflow run android-apk.yml
+# 플레이스토어를 거치지 않고 휴대폰에 바로 설치할 수 있는 APK 를 만들어 GitHub 릴리스에 올린다.
+# 휴대폰 브라우저로 그 주소를 열면 내려받아 설치할 수 있다.
+#
+# 왜 필요한가: 앱이 아직 「앱 초안」이라 내부 앱 공유(internal app sharing)가 막혀 있고,
+#             내부 테스트 참여 절차(계정 일치 + 2단계 수락)가 기기에서 자주 막힌다.
+# 한계: 플레이스토어를 거치지 않으므로 인앱결제는 동작하지 않는다. 테스트 설치 전용.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: 'versionCode (비우면 100 + 실행 번호)'
+        required: false
+        type: string
+      abis:
+        description: '포함할 CPU 종류'
+        required: false
+        default: 'arm64-v8a,armeabi-v7a'
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
+      EXPO_PUBLIC_API_TOKEN: ${{ secrets.EXPO_PUBLIC_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+      - name: Android SDK 라이선스
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
+      - name: 필요한 값 확인
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then echo "::error::업로드 키 시크릿이 없습니다 (node tools/set-ci-secrets.mjs)"; exit 1; fi
+          if [ -z "$EXPO_PUBLIC_API_URL" ]; then echo "::error::EXPO_PUBLIC_API_URL 변수가 비어 있어 코칭이 동작하지 않는 APK 가 됩니다"; exit 1; fi
+      - run: npm ci
+      - name: 네이티브 프로젝트 생성 (expo prebuild)
+        run: npx expo prebuild --platform android --no-install
+      - name: 서명 키 복원 + build.gradle 주입
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          VERSION_CODE_INPUT: ${{ inputs.version_code }}
+        run: |
+          set -euo pipefail
+          umask 077
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | tr -d ' \t\r\n' | base64 --decode > "$RUNNER_TEMP/upload.jks"
+          code="${VERSION_CODE_INPUT:-$((100 + GITHUB_RUN_NUMBER))}"
+          echo "ANDROID_VERSION_CODE=$code" >> "$GITHUB_ENV"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
+          ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/upload.jks" ANDROID_VERSION_CODE="$code" node tools/android-signing.mjs
+      - name: Gradle 빌드 옵션
+        run: |
+          sed -i 's/^org.gradle.jvmargs=.*/org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g/' android/gradle.properties
+          sed -i "s/^reactNativeArchitectures=.*/reactNativeArchitectures=${{ inputs.abis || 'arm64-v8a,armeabi-v7a' }}/" android/gradle.properties
+          grep -E "^(org.gradle.jvmargs|reactNativeArchitectures)=" android/gradle.properties
+      - name: APK 빌드
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cd android && ./gradlew assembleRelease --no-daemon --console=plain
+          ls -la app/build/outputs/apk/release/
+      - name: 서명·내용 확인
+        run: |
+          set -euo pipefail
+          apk=$(ls android/app/build/outputs/apk/release/*.apk | head -1)
+          owner=$(keytool -printcert -jarfile "$apk" | grep -m1 -i -E "owner|소유자" || true)
+          echo "$owner"
+          if echo "$owner" | grep -q "Android Debug"; then echo "::error::디버그 키로 서명됐습니다"; exit 1; fi
+          mkdir -p "$RUNNER_TEMP/apkx"
+          unzip -o -q "$apk" assets/index.android.bundle -d "$RUNNER_TEMP/apkx"
+          node -e "
+            const b = require('fs').readFileSync(process.env.RUNNER_TEMP + '/apkx/assets/index.android.bundle');
+            const hit = (t) => b.includes(Buffer.from(t, 'utf16le')) || b.includes(Buffer.from(t, 'utf8'));
+            const url = b.includes(Buffer.from(process.env.EXPO_PUBLIC_API_URL, 'utf8'));
+            console.log('서버 주소 포함:', url, '· 새 결과 화면:', hit('이 답장 복사하기'), '· 공유 버튼:', hit('답장 공유하기'));
+            if (!url) { console.log('::error::APK 에 서버 주소가 없습니다'); process.exit(1); }
+          "
+          cp "$apk" "$RUNNER_TEMP/mylovecoach-$ANDROID_VERSION_CODE.apk"
+          echo "APK_PATH=$RUNNER_TEMP/mylovecoach-$ANDROID_VERSION_CODE.apk" >> "$GITHUB_ENV"
+          du -h "$RUNNER_TEMP/mylovecoach-$ANDROID_VERSION_CODE.apk"
+      - name: GitHub 릴리스로 올리기
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="android-$ANDROID_VERSION_CODE"
+          gh release delete "$tag" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$tag" "$APK_PATH" \
+            --title "나만의 연애코치 · 안드로이드 직접 설치용 ($ANDROID_VERSION_CODE)" \
+            --notes "휴대폰 브라우저로 아래 apk 파일을 열면 바로 설치됩니다. 플레이스토어를 거치지 않는 테스트용이라 인앱결제는 동작하지 않습니다."
+          url="https://github.com/$GITHUB_REPOSITORY/releases/download/$tag/$(basename "$APK_PATH")"
+          echo "::notice title=갤럭시 설치 주소::$url"
+          echo "$url"
