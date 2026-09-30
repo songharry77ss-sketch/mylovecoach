@@ -52,7 +52,9 @@ async function main() {
     return;
   }
   const emails = readEmails();
-  if (!emails.length) {
+  // 공개 링크만 켜고 끌 때는 테스터 이메일이 없어도 된다 (CI 에는 테스터 목록 파일이 없다)
+  const linkOnly = args.includes('--public-link') || args.includes('--no-public-link');
+  if (!emails.length && !linkOnly) {
     console.log(`테스터 이메일이 없습니다. --emails 로 주거나 ${join(root, 'mylovecoach-testers.txt')} 에 적어주세요.`);
     process.exitCode = 2;
     return;
