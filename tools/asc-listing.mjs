@@ -118,7 +118,7 @@ async function main() {
   let vloc;
   await step('설명·키워드·지원 URL', async () => {
     const locs = await api('GET', `/v1/appStoreVersions/${version.id}/appStoreVersionLocalizations`);
-    const attrs = { description: LISTING.description, keywords: LISTING.keywords, supportUrl: SITE, marketingUrl: SITE, promotionalText: '대화 캡처 한 장이면 지금 상황에 딱 맞는 답장 3개와 호감 온도를 알려드려요.' };
+    const attrs = { description: LISTING.description, keywords: LISTING.keywords, supportUrl: `${SITE}/support.html`, marketingUrl: SITE, promotionalText: '대화 캡처 한 장이면 지금 상황에 딱 맞는 답장 3개와 호감 온도를 알려드려요.' };
     vloc = locs.data.find((l) => l.attributes.locale === LOCALE);
     if (vloc) await api('PATCH', `/v1/appStoreVersionLocalizations/${vloc.id}`, { data: { type: 'appStoreVersionLocalizations', id: vloc.id, attributes: attrs } });
     else vloc = (await api('POST', '/v1/appStoreVersionLocalizations', { data: { type: 'appStoreVersionLocalizations', attributes: { locale: LOCALE, ...attrs }, relationships: { appStoreVersion: { data: { type: 'appStoreVersions', id: version.id } } } } })).data;

@@ -23,7 +23,7 @@ export const APP_CONFIG = {
   apiSameOrigin: Platform.OS === 'web' && process.env.EXPO_PUBLIC_DEMO_MODE !== '1',
   /** 프록시가 요구하는 앱 토큰 (선택) */
   apiToken: process.env.EXPO_PUBLIC_API_TOKEN ?? '',
-  supportEmail: process.env.EXPO_PUBLIC_SUPPORT_EMAIL ?? 'support@mylovecoach.app',
+  supportEmail: process.env.EXPO_PUBLIC_SUPPORT_EMAIL ?? 'songharry77ss@gmail.com',
   privacyUrl: process.env.EXPO_PUBLIC_PRIVACY_URL ?? 'https://mylovecoach.vercel.app/privacy.html',
   termsUrl: process.env.EXPO_PUBLIC_TERMS_URL ?? 'https://mylovecoach.vercel.app/terms.html',
 };
