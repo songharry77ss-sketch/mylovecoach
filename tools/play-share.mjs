@@ -62,7 +62,14 @@ async function main() {
   );
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(`업로드 실패 (${res.status}): ${json.error?.message ?? '알 수 없는 오류'}`);
+    const msg = json.error?.message ?? '알 수 없는 오류';
+    if (/NOT_PUBLISHED/.test(msg)) {
+      throw new Error(
+        '앱이 아직 「앱 초안」 상태라 내부 앱 공유를 쓸 수 없습니다. ' +
+          'Play Console 대시보드의 앱 설정 체크리스트(앱 콘텐츠 선언)를 끝낸 뒤 다시 실행하세요.',
+      );
+    }
+    throw new Error(`업로드 실패 (${res.status}): ${msg}`);
   }
   console.log(`✓ 설치 링크: ${json.downloadUrl}`);
   console.log('');
