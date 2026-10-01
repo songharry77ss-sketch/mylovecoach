@@ -1,0 +1,58 @@
+name: Play 내부 앱 공유 링크
+
+# 최근 Android AAB 빌드 산출물을 Play 내부 앱 공유에 올리고, 플레이스토어로 열리는 설치 링크를 만든다.
+# 테스트 트랙·테스터 목록과 상관없이 링크만으로 설치할 수 있다.
+# 필요한 시크릿: PLAY_SERVICE_ACCOUNT_JSON
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'AAB 를 가져올 Android AAB 실행 번호 (비우면 최근 성공한 실행)'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  share:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 최근 AAB 내려받기
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.run_id }}
+        run: |
+          id="$RUN_ID"
+          if [ -z "$id" ]; then
+            id=$(gh run list --workflow android.yml --status success --limit 1 --json databaseId -q '.[0].databaseId')
+          fi
+          if [ -z "$id" ]; then echo "::error::성공한 Android AAB 실행이 없습니다. android.yml 을 먼저 실행하세요"; exit 1; fi
+          echo "AAB 출처: Android AAB 실행 $id"
+          gh run download "$id" -D aab
+          aab=$(find aab -name '*.aab' | head -1)
+          if [ -z "$aab" ]; then echo "::error::실행 $id 에 AAB 산출물이 없습니다 (보관 기간 14일이 지났을 수 있음)"; exit 1; fi
+          echo "AAB_PATH=$aab" >> "$GITHUB_ENV"
+
+      - name: 내부 앱 공유에 올리기
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then echo "::error::시크릿 PLAY_SERVICE_ACCOUNT_JSON 이 없습니다"; exit 1; fi
+          node tools/play-share.mjs "$AAB_PATH" 2>&1 | tee share.log
+          {
+            echo "## Play 내부 앱 공유"
+            echo '```'
+            cat share.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          grep -q '설치 링크' share.log
