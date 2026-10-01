@@ -41,7 +41,12 @@ export function createAscClient(root) {
     });
     const json = res.status === 204 ? {} : await res.json().catch(() => ({}));
     if (!res.ok) {
-      const e = new Error(`${method} ${path.split('?')[0]} → ${res.status}: ${(json.errors ?? []).map((x) => x.detail ?? x.title).join(' | ')}`);
+      // 409 같은 상태 오류는 진짜 원인(빠진 항목)이 meta.associatedErrors 안에 들어 있다
+      const details = (json.errors ?? []).flatMap((x) => {
+        const assoc = Object.values(x.meta?.associatedErrors ?? {}).flat().map((a) => a.detail ?? a.title ?? a.code);
+        return [x.detail ?? x.title, ...assoc];
+      });
+      const e = new Error(`${method} ${path.split('?')[0]} → ${res.status}: ${details.filter(Boolean).join(' | ')}`);
       e.status = res.status;
       e.errors = json.errors ?? [];
       throw e;

@@ -254,8 +254,13 @@ async function main() {
     await step('심사 제출', async () => {
       const open = await api('GET', `/v1/reviewSubmissions?filter[app]=${app.id}&filter[state]=READY_FOR_REVIEW,UNRESOLVED_ISSUES&filter[platform]=IOS`);
       const sub = open.data[0] ?? (await api('POST', '/v1/reviewSubmissions', { data: { type: 'reviewSubmissions', attributes: { platform: 'IOS' }, relationships: { app: { data: { type: 'apps', id: app.id } } } } })).data;
-      await api('POST', '/v1/reviewSubmissionItems', { data: { type: 'reviewSubmissionItems', relationships: { reviewSubmission: { data: { type: 'reviewSubmissions', id: sub.id } }, appStoreVersion: { data: { type: 'appStoreVersions', id: version.id } } } } }).catch((e) => {
+      // 버전이 이미 이 묶음에 들어 있으면 409 가 나는데, 그때만 넘어간다.
+      // 그 밖의 409 는 버전이 제출 가능한 상태가 아니라는 뜻이므로 사유를 그대로 보여준다.
+      await api('POST', '/v1/reviewSubmissionItems', { data: { type: 'reviewSubmissionItems', relationships: { reviewSubmission: { data: { type: 'reviewSubmissions', id: sub.id } }, appStoreVersion: { data: { type: 'appStoreVersions', id: version.id } } } } }).catch(async (e) => {
         if (e.status !== 409) throw e;
+        const items = await getAll(`/v1/reviewSubmissions/${sub.id}/items?include=appStoreVersion&limit=50`).catch(() => []);
+        const already = items.some((it) => it.relationships?.appStoreVersion?.data?.id === version.id);
+        if (!already) throw new Error(`버전을 심사 묶음에 넣지 못했습니다 — ${e.message}`);
       });
       await api('PATCH', `/v1/reviewSubmissions/${sub.id}`, { data: { type: 'reviewSubmissions', id: sub.id, attributes: { submitted: true } } });
       return '제출 완료 (보통 1~2일 내 결과)';
