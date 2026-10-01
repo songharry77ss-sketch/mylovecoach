@@ -57,6 +57,7 @@ jobs:
             waiting_privacy) head="🙋 개인정보 설문 게시 대기" ;;
             waiting_build)   head="🔧 버전에 빌드 연결 필요" ;;
             blocked)         head="⚠️ 제출이 막혔습니다" ;;
+            rejected)        head="❌ 애플 심사 거절 — 사유 확인 필요" ;;
             *)               head="상태 확인" ;;
           esac
           {

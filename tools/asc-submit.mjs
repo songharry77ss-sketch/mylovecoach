@@ -7,7 +7,7 @@
 //
 // 종료 코드: 0 = 제출됨·이미 진행 중·사용자 작업 대기(정상), 1 = 예상 못 한 오류
 // 결과 한 줄은 GITHUB_OUTPUT 의 state 로도 내보낸다:
-//   submitted | in_review | released | waiting_privacy | waiting_build | blocked | none
+//   submitted | in_review | released | rejected | waiting_privacy | waiting_build | blocked | none
 import { appendFileSync } from 'node:fs';
 
 import { createAscClient, secretsRoot } from './lib/asc-api.mjs';
@@ -15,7 +15,10 @@ import { createAscClient, secretsRoot } from './lib/asc-api.mjs';
 const args = process.argv.slice(2);
 const { api, getAll, findApp } = createAscClient(secretsRoot(args));
 
-const EDITABLE = ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED', 'REJECTED', 'METADATA_REJECTED', 'INVALID_BINARY'];
+// 처음 내거나, 우리가 스스로 철회한 버전만 자동으로 제출한다
+const EDITABLE = ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED'];
+// 애플이 거절한 버전은 고치지 않고 다시 내면 같은 사유로 또 거절된다 — 사람이 사유를 보고 고쳐야 한다
+const REJECTED = ['REJECTED', 'METADATA_REJECTED', 'INVALID_BINARY'];
 const IN_PROGRESS = ['WAITING_FOR_REVIEW', 'IN_REVIEW', 'PENDING_APPLE_RELEASE', 'PENDING_DEVELOPER_RELEASE', 'PROCESSING_FOR_APP_STORE', 'WAITING_FOR_EXPORT_COMPLIANCE'];
 const RELEASED = ['READY_FOR_SALE', 'READY_FOR_DISTRIBUTION'];
 
@@ -47,6 +50,15 @@ async function main() {
   const stateOf = (v) => v.attributes.appStoreState ?? v.attributes.appVersionState;
   const summary = versions.map((v) => `${v.attributes.versionString}: ${STATE_KO[stateOf(v)] ?? stateOf(v)}`).join(', ');
   console.log(`앱: ${app.attributes.name} · 버전 ${summary || '없음'}`);
+
+  const rejected = versions.find((v) => REJECTED.includes(stateOf(v)));
+  if (rejected) {
+    process.exitCode = 1; // 실패로 끝내 알림이 가게 한다
+    return finish(
+      'rejected',
+      `버전 ${rejected.attributes.versionString} — ${STATE_KO[stateOf(rejected)]}. 자동으로 다시 내지 않습니다. App Store Connect → 앱 심사(Resolution Center)에서 사유를 확인하고 고친 뒤 제출하세요.`,
+    );
+  }
 
   const editable = versions.find((v) => EDITABLE.includes(stateOf(v)));
   if (!editable) {
