@@ -1,4 +1,4 @@
-// PC 에서 실행: node tools/asc-listing.mjs [--submit] [--build <번호>] [--secrets <폴더>] [--site https://mylovecoach.vercel.app]
+// PC 에서 실행: node tools/asc-listing.mjs [--submit] [--build <번호>] [--wait <분>] [--secrets <폴더>] [--site https://mylovecoach.vercel.app]
 // App Store Connect 에 앱 레코드(번들 ID app.mylovecoach.ios)가 만들어진 뒤, 등록 정보를 API 로 한 번에 채운다.
 //   이름·부제·개인정보 URL·카테고리 / 설명·키워드·지원 URL / 6.7" 스크린샷 / 연령 등급 / 심사 연락처·메모 / 무료 가격 / 한국 출시
 //   --submit : 빌드를 버전에 연결하고 심사에 제출 (--build 로 번호를 주면 그 빌드, 없으면 가장 최근 빌드)
@@ -219,14 +219,25 @@ async function main() {
   // 7) 빌드 연결 + 심사 제출
   // /v1/builds 목록에는 처리 중(PROCESSING) 빌드가 나오지 않는다. 그대로 최신을 고르면
   // 방금 올린 빌드 대신 이전 빌드가 제출될 수 있으므로, --build 로 번호를 지정하면 그 빌드만 쓴다.
+  // --wait <분> 을 주면 그 빌드가 업로드·처리(VALID)될 때까지 1분마다 다시 확인한다.
   const wanted = argOf('--build');
-  const versions = await getAll(`/v1/preReleaseVersions?filter[app]=${app.id}&filter[platform]=IOS&limit=10`);
-  const allBuilds = [];
-  for (const v of versions) allBuilds.push(...(await getAll(`/v1/preReleaseVersions/${v.id}/builds?limit=20`)));
-  allBuilds.sort((x, y) => Number(y.attributes.version) - Number(x.attributes.version));
+  const waitMin = Number(argOf('--wait') ?? '0') || 0;
+  const deadline = Date.now() + waitMin * 60_000;
+  let allBuilds = [];
+  let target;
+  let build = null;
+  for (;;) {
+    const versions = await getAll(`/v1/preReleaseVersions?filter[app]=${app.id}&filter[platform]=IOS&limit=10`);
+    allBuilds = [];
+    for (const v of versions) allBuilds.push(...(await getAll(`/v1/preReleaseVersions/${v.id}/builds?limit=20`)));
+    allBuilds.sort((x, y) => Number(y.attributes.version) - Number(x.attributes.version));
+    target = wanted ? allBuilds.find((b) => b.attributes.version === wanted) : allBuilds[0];
+    build = target && target.attributes.processingState === 'VALID' && !target.attributes.expired ? target : null;
+    if (build || Date.now() >= deadline) break;
+    console.log(`  · 빌드 ${wanted ?? '최신'} 대기 중 (${target ? target.attributes.processingState : '아직 업로드 안 됨'}) …`);
+    await new Promise((r) => setTimeout(r, 60_000));
+  }
   console.log(`빌드: ${allBuilds.map((b) => `${b.attributes.version}(${b.attributes.processingState})`).join(', ') || '없음 (ios.yml 로 TestFlight 업로드 필요)'}`);
-  const target = wanted ? allBuilds.find((b) => b.attributes.version === wanted) : allBuilds[0];
-  const build = target && target.attributes.processingState === 'VALID' && !target.attributes.expired ? target : null;
   if (!build) {
     console.log(
       wanted

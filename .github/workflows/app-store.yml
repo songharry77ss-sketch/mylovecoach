@@ -18,6 +18,11 @@ on:
         required: false
         default: false
         type: boolean
+      wait_minutes:
+        description: '빌드가 처리 완료될 때까지 기다릴 시간(분). 0 이면 바로 진행'
+        required: false
+        default: '0'
+        type: string
 
 permissions:
   contents: read
@@ -25,7 +30,7 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -59,9 +64,11 @@ jobs:
         env:
           BUILD: ${{ inputs.build }}
           SUBMIT: ${{ inputs.submit }}
+          WAIT: ${{ inputs.wait_minutes }}
         run: |
           args=(--secrets "$RUNNER_TEMP/asc")
           [ -n "$BUILD" ] && args+=(--build "$BUILD")
+          [ -n "$WAIT" ] && [ "$WAIT" != "0" ] && args+=(--wait "$WAIT")
           [ "$SUBMIT" = "true" ] && args+=(--submit)
           node tools/asc-listing.mjs "${args[@]}" 2>&1 | tee asc.log
           {
