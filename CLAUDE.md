@@ -29,6 +29,9 @@ gh workflow run android-apk.yml               # 플레이스토어 없이 바로
 gh workflow run app-store.yml -f build=112 -f wait_minutes=60        # App Store 등록 정보 갱신 + 빌드 처리를 기다렸다가 버전에 연결
 # 심사 제출은 app-store-autosubmit.yml 이 15분마다 알아서 시도한다 (출시되면 스스로 꺼짐)
 
+# Play 비공개 테스트 (개인 계정은 12명 × 14일 해야 프로덕션 가능)
+gh workflow run play-closed-test.yml          # 내부 테스트 최신 빌드를 비공개 테스트에 (앱 초안이면 초안까지만)
+
 # 테스터
 gh workflow run testflight-link.yml -f action=on -f limit=500   # 아이폰 공개 초대 링크
 gh workflow run testflight-testers.yml -f emails=a@b.com        # 이메일로 초대
@@ -73,7 +76,9 @@ npx tsc --noEmit && npx eslint src --max-warnings=0 && npx jest
 
 ## 남은 일
 
+정식 출시까지 남은 화면 작업은 **`docs/LAUNCH_CHECKLIST.md`** 에 정리돼 있다.
+
+- App Store: 「앱이 수집하는 개인정보」 설문 게시만 남음 (답안 `docs/APP_PRIVACY.md`). 게시하면 15분 안에 자동 제출
+- Play: 비공개 테스트 12명 × 14일, 또는 사업자(조직) 계정 전환. 비공개 테스트 초안은 API 로 만들어 둠
 - Supabase 프로젝트 생성 → `docs/ANALYTICS_SETUP.md` 1단계 (사용자가 해야 함)
-- Supabase 연결 후 App Store 「앱이 수집하는 개인정보」 설문 + Play 데이터 보안 재신고
-- Play 정식 출시는 테스터 12명 × 14일 비공개 테스트가 선행 조건
 - 채팅에 노출된 적 있는 Gemini 키 교체
