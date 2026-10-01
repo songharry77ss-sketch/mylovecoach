@@ -42,6 +42,10 @@ API 와 브라우저로 할 수 있는 건 전부 끝났습니다. 🙋 표시�
 - **연락처 세부정보 탭** → 개발자 전화번호 입력 → **문자로 인증**
 - 통신판매업 신고를 아직 안 했다면 정부24 「통신판매업 신고」로 신청 (사업장 관할 구청, 보통 1~3일)
 
+> ⚠️ 이 정보가 없으면 **새 빌드 업로드(내부 테스트 포함)도 전부 거부**됩니다
+> ("To comply with Korean law, developers in Korea must provide additional information").
+> 그동안 갤럭시 테스터는 `android-apk.yml` 로 만든 직접 설치 파일로 받아야 합니다.
+
 이걸 저장하면 게시 개요의 「검토를 위해 변경사항 14개 제출」 버튼이 열립니다.
 구글 검토가 끝나면 테스터에게 참여 링크를 보냅니다:
 `https://play.google.com/apps/testing/app.mylovecoach.android`
