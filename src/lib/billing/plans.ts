@@ -18,6 +18,12 @@ export const FALLBACK_PRICES: Record<PlanKey, string> = {
   lifetime: '₩29,800',
 };
 
+/**
+ * 출시 전 테스트 기간: 무료 횟수 제한과 프리미엄 안내를 모두 끈다.
+ * 정식 출시 때 false 로 바꾸면 아래 무료 횟수와 페이월이 다시 적용된다.
+ */
+export const FREE_UNLIMITED = true;
+
 /** 처음 설치한 사용자에게 주는 무료 코칭 횟수 */
 export const FREE_TRIAL_TOTAL = 3;
 /** 체험을 다 쓴 뒤 매일 충전되는 무료 횟수 */
