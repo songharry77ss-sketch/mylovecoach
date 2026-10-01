@@ -1,4 +1,4 @@
-// PC 에서 실행: node tools/asc-listing.mjs [--submit] [--build <번호>] [--wait <분>] [--secrets <폴더>] [--site https://mylovecoach.vercel.app]
+// PC 에서 실행: node tools/asc-listing.mjs [--submit] [--build <번호>] [--wait <분>] [--retry <분>] [--secrets <폴더>] [--site https://mylovecoach.vercel.app]
 // App Store Connect 에 앱 레코드(번들 ID app.mylovecoach.ios)가 만들어진 뒤, 등록 정보를 API 로 한 번에 채운다.
 //   이름·부제·개인정보 URL·카테고리 / 설명·키워드·지원 URL / 6.7" 스크린샷 / 연령 등급 / 심사 연락처·메모 / 무료 가격 / 한국 출시
 //   --submit : 빌드를 버전에 연결하고 심사에 제출 (--build 로 번호를 주면 그 빌드, 없으면 가장 최근 빌드)
@@ -251,7 +251,22 @@ async function main() {
     );
   if (args.includes('--submit')) {
     if (!build) return console.log('제출 보류: 처리 완료된 빌드가 없습니다');
-    await step('심사 제출', async () => {
+    // --retry <분> : 화면에서만 할 수 있는 항목(개인정보 설문 등)이 아직이면 2분마다 다시 시도한다.
+    // 사용자가 설문을 게시하는 순간 바로 제출되게 하려는 것.
+    const retryMin = Number(argOf('--retry') ?? '0') || 0;
+    const retryUntil = Date.now() + retryMin * 60_000;
+    for (;;) {
+      const ok = await submitOnce();
+      if (ok || Date.now() >= retryUntil) break;
+      console.log('  · 2분 뒤 다시 제출해 봅니다 (App Store Connect 화면에서 빠진 항목을 채우면 자동으로 통과)');
+      await new Promise((r) => setTimeout(r, 120_000));
+    }
+    return;
+  }
+  console.log('심사 제출은 --submit 을 붙여 실행. 그 전에 App Store Connect → 앱이 수집하는 개인정보(App Privacy) 설문을 화면에서 완료해야 합니다.');
+
+  async function submitOnce() {
+    return step('심사 제출', async () => {
       const open = await api('GET', `/v1/reviewSubmissions?filter[app]=${app.id}&filter[state]=READY_FOR_REVIEW,UNRESOLVED_ISSUES&filter[platform]=IOS`);
       const sub = open.data[0] ?? (await api('POST', '/v1/reviewSubmissions', { data: { type: 'reviewSubmissions', attributes: { platform: 'IOS' }, relationships: { app: { data: { type: 'apps', id: app.id } } } } })).data;
       // 버전이 이미 이 묶음에 들어 있으면 409 가 나는데, 그때만 넘어간다.
@@ -263,9 +278,9 @@ async function main() {
         if (!already) throw new Error(`버전을 심사 묶음에 넣지 못했습니다 — ${e.message}`);
       });
       await api('PATCH', `/v1/reviewSubmissions/${sub.id}`, { data: { type: 'reviewSubmissions', id: sub.id, attributes: { submitted: true } } });
-      return '제출 완료 (보통 1~2일 내 결과)';
+      return '제출 완료 (보통 1~2일 내 결과, 승인되면 자동 출시)';
     });
-  } else console.log('심사 제출은 --submit 을 붙여 실행. 그 전에 App Store Connect → 앱이 수집하는 개인정보(App Privacy) 설문을 화면에서 완료해야 합니다.');
+  }
 }
 main().catch((e) => {
   console.error(e.message);

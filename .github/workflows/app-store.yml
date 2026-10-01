@@ -23,6 +23,11 @@ on:
         required: false
         default: '0'
         type: string
+      retry_minutes:
+        description: '제출이 막히면(개인정보 설문 미게시 등) 2분마다 다시 시도할 시간(분)'
+        required: false
+        default: '0'
+        type: string
 
 permissions:
   contents: read
@@ -30,7 +35,7 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 200
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -65,10 +70,12 @@ jobs:
           BUILD: ${{ inputs.build }}
           SUBMIT: ${{ inputs.submit }}
           WAIT: ${{ inputs.wait_minutes }}
+          RETRY: ${{ inputs.retry_minutes }}
         run: |
           args=(--secrets "$RUNNER_TEMP/asc")
           [ -n "$BUILD" ] && args+=(--build "$BUILD")
           [ -n "$WAIT" ] && [ "$WAIT" != "0" ] && args+=(--wait "$WAIT")
+          [ -n "$RETRY" ] && [ "$RETRY" != "0" ] && args+=(--retry "$RETRY")
           [ "$SUBMIT" = "true" ] && args+=(--submit)
           node tools/asc-listing.mjs "${args[@]}" 2>&1 | tee asc.log
           {

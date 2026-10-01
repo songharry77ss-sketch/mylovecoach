@@ -26,7 +26,7 @@ gh workflow run vercel.yml                    # 웹 + API
 gh workflow run ios.yml                       # TestFlight
 gh workflow run android.yml -f track=internal # Play 내부 테스트
 gh workflow run android-apk.yml               # 플레이스토어 없이 바로 설치할 APK
-gh workflow run app-store.yml -f build=111 -f submit=true -f wait_minutes=60   # App Store 등록 + (빌드 처리 대기 후) 심사 제출
+gh workflow run app-store.yml -f build=111 -f submit=true -f wait_minutes=60 -f retry_minutes=180   # App Store 등록 + 빌드 처리·설문 게시를 기다렸다가 심사 제출
 
 # 테스터
 gh workflow run testflight-link.yml -f action=on -f limit=500   # 아이폰 공개 초대 링크
