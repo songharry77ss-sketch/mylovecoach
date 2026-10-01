@@ -1,0 +1,80 @@
+name: App Store 등록·심사 제출
+
+# App Store Connect 등록 정보(이름·설명·스크린샷·연령 등급·심사 메모·가격·국가)를 채우고,
+# submit 을 켜면 지정한 빌드를 버전에 연결해 심사에 제출한다.
+# 「앱이 수집하는 개인정보」(App Privacy) 설문은 API 가 없어 App Store Connect 화면에서 먼저 끝내야 한다.
+# 필요한 시크릿: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8_BASE64
+
+on:
+  workflow_dispatch:
+    inputs:
+      build:
+        description: '제출할 빌드 번호 (예: 111). 비우면 가장 최근 빌드'
+        required: false
+        default: ''
+        type: string
+      submit:
+        description: '심사에 제출'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 시크릿 확인
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        run: |
+          missing=0
+          for name in ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8_BASE64; do
+            if [ -z "${!name}" ]; then echo "::error::시크릿 $name 이 없습니다"; missing=1; fi
+          done
+          [ "$missing" = 0 ]
+
+      - name: App Store Connect 키 준비
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        run: |
+          umask 077
+          mkdir -p "$RUNNER_TEMP/asc"
+          printf '%s' "$ASC_KEY_P8_BASE64" | tr -d ' \t\r\n' | base64 --decode > "$RUNNER_TEMP/asc/asc-key.p8"
+          printf 'KEY_ID=%s\nISSUER_ID=%s\n' "$ASC_KEY_ID" "$ASC_ISSUER_ID" > "$RUNNER_TEMP/asc/asc-key.txt"
+
+      - name: 등록 정보 입력 (+ 심사 제출)
+        env:
+          BUILD: ${{ inputs.build }}
+          SUBMIT: ${{ inputs.submit }}
+        run: |
+          args=(--secrets "$RUNNER_TEMP/asc")
+          [ -n "$BUILD" ] && args+=(--build "$BUILD")
+          [ "$SUBMIT" = "true" ] && args+=(--submit)
+          node tools/asc-listing.mjs "${args[@]}" 2>&1 | tee asc.log
+          {
+            echo "## App Store"
+            echo '```'
+            cat asc.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$SUBMIT" = "true" ] && ! grep -q '✓ 심사 제출' asc.log; then
+            echo "::error::심사 제출이 되지 않았습니다. 위 로그의 ✗ 줄을 확인하세요"
+            exit 1
+          fi
+
+      - name: 키 정리
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/asc"

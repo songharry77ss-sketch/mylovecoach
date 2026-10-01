@@ -1,7 +1,7 @@
-// PC 에서 실행: node tools/asc-listing.mjs [--submit] [--secrets <폴더>] [--site https://mylovecoach.vercel.app]
+// PC 에서 실행: node tools/asc-listing.mjs [--submit] [--build <번호>] [--secrets <폴더>] [--site https://mylovecoach.vercel.app]
 // App Store Connect 에 앱 레코드(번들 ID app.mylovecoach.ios)가 만들어진 뒤, 등록 정보를 API 로 한 번에 채운다.
 //   이름·부제·개인정보 URL·카테고리 / 설명·키워드·지원 URL / 6.7" 스크린샷 / 연령 등급 / 심사 연락처·메모 / 무료 가격 / 한국 출시
-//   --submit : 처리 완료된 최신 빌드를 버전에 연결하고 심사에 제출
+//   --submit : 빌드를 버전에 연결하고 심사에 제출 (--build 로 번호를 주면 그 빌드, 없으면 가장 최근 빌드)
 // API 로 안 되는 것(화면에서만 가능): 앱 레코드 생성, 「앱이 수집하는 개인정보」(App Privacy) 설문.
 // 값(키)은 출력하지 않는다. 같은 값을 다시 넣어도 안전하게 여러 번 실행할 수 있다.
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
@@ -217,9 +217,23 @@ async function main() {
   });
 
   // 7) 빌드 연결 + 심사 제출
-  const builds = await api('GET', `/v1/builds?filter[app]=${app.id}&sort=-uploadedDate&limit=5`);
-  const build = builds.data.find((b) => b.attributes.processingState === 'VALID' && !b.attributes.expired);
-  console.log(`빌드: ${builds.data.map((b) => `${b.attributes.version}(${b.attributes.processingState})`).join(', ') || '없음 (ios.yml 로 TestFlight 업로드 필요)'}`);
+  // /v1/builds 목록에는 처리 중(PROCESSING) 빌드가 나오지 않는다. 그대로 최신을 고르면
+  // 방금 올린 빌드 대신 이전 빌드가 제출될 수 있으므로, --build 로 번호를 지정하면 그 빌드만 쓴다.
+  const wanted = argOf('--build');
+  const versions = await getAll(`/v1/preReleaseVersions?filter[app]=${app.id}&filter[platform]=IOS&limit=10`);
+  const allBuilds = [];
+  for (const v of versions) allBuilds.push(...(await getAll(`/v1/preReleaseVersions/${v.id}/builds?limit=20`)));
+  allBuilds.sort((x, y) => Number(y.attributes.version) - Number(x.attributes.version));
+  console.log(`빌드: ${allBuilds.map((b) => `${b.attributes.version}(${b.attributes.processingState})`).join(', ') || '없음 (ios.yml 로 TestFlight 업로드 필요)'}`);
+  const target = wanted ? allBuilds.find((b) => b.attributes.version === wanted) : allBuilds[0];
+  const build = target && target.attributes.processingState === 'VALID' && !target.attributes.expired ? target : null;
+  if (!build) {
+    console.log(
+      wanted
+        ? `빌드 ${wanted} 이 ${target ? `아직 ${target.attributes.processingState} 상태` : '목록에 없음'} — 처리 완료 후 다시 실행하세요`
+        : `가장 최근 빌드 ${target?.attributes.version ?? ''} 이 아직 처리 중이라 연결하지 않았습니다`,
+    );
+  }
   if (build)
     await step(`버전에 빌드 ${build.attributes.version} 연결`, () =>
       api('PATCH', `/v1/appStoreVersions/${version.id}/relationships/build`, { data: { type: 'builds', id: build.id } }).then(() => ''),

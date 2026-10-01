@@ -26,6 +26,7 @@ gh workflow run vercel.yml                    # 웹 + API
 gh workflow run ios.yml                       # TestFlight
 gh workflow run android.yml -f track=internal # Play 내부 테스트
 gh workflow run android-apk.yml               # 플레이스토어 없이 바로 설치할 APK
+gh workflow run app-store.yml -f build=111 -f submit=true   # App Store 등록 정보 입력 + 심사 제출
 
 # 테스터
 gh workflow run testflight-link.yml -f action=on -f limit=500   # 아이폰 공개 초대 링크
@@ -62,6 +63,8 @@ npx tsc --noEmit && npx eslint src --max-warnings=0 && npx jest
 - 같은 버전(train)의 이전 빌드가 베타 심사 중이면 새 빌드는 제출이 422 로 막힌다. 앞 빌드가 승인되면 같이 풀린다.
 - Play 내부 테스트의 **테스터 이메일 목록은 API 로 못 바꾼다** (API 는 구글 그룹만 지원). Play Console 화면에서만 가능.
 - 내부 테스트 **참여 링크**(`play.google.com/apps/internaltest/숫자`)도 API 로 조회되지 않는다. Console 의 테스터 탭에서 복사.
+- 무료 횟수 제한은 `src/lib/billing/plans.ts` 의 `FREE_UNLIMITED` 하나로 켜고 끈다. 지금은 켜져 있어(무제한) 스토어 설명·심사 메모도 「전부 무료」 기준이다. 유료로 돌릴 때는 `docs/STORE_LISTING.md` 의 설명·심사 메모도 같이 되돌릴 것.
+- App Store 「앱이 수집하는 개인정보」 설문은 API 가 없다. 화면에서 끝내야 `app-store.yml` 의 심사 제출이 통과한다.
 - 내부 앱 공유(`play-share.yml`)는 앱이 「앱 초안」이면 `NOT_PUBLISHED` 로 거부된다. 앱 설정 체크리스트를 끝내면 쓸 수 있다.
 - `git push` 가 거부되면 다른 세션(휴대폰·클라우드)이 같은 브랜치에 올렸을 수 있다. diff 를 먼저 보고 rebase.
 
