@@ -1,0 +1,43 @@
+name: Play 비공개 테스트 올리기
+
+# 내부 테스트에 올라간 빌드를 비공개 테스트(alpha) 트랙에 올린다.
+# 앱이 「앱 초안」이면 초안까지만 만들어지고, 첫 출시는 Play Console 화면에서 눌러야 한다.
+# 개인 개발자 계정은 이 비공개 테스트를 테스터 12명 이상 × 14일 연속 해야 프로덕션을 신청할 수 있다.
+# 필요한 시크릿: PLAY_SERVICE_ACCOUNT_JSON
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: 'versionCode (비우면 내부 테스트의 최신 빌드)'
+        required: false
+        type: string
+      dry_run:
+        description: '검증만 하고 반영하지 않기'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  closed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 비공개 테스트 올리기
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -o pipefail
+          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then echo "::error::시크릿 PLAY_SERVICE_ACCOUNT_JSON 이 없습니다"; exit 1; fi
+          args=()
+          [ -n "${{ inputs.version_code }}" ] && args+=(--version-code "${{ inputs.version_code }}")
+          [ "${{ inputs.dry_run }}" = "true" ] && args+=(--dry-run)
+          node tools/play-closed-test.mjs "${args[@]}" 2>&1 | tee /tmp/out.txt
+          { echo "## Play 비공개 테스트"; echo '```'; cat /tmp/out.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
