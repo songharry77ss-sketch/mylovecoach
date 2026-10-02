@@ -45,7 +45,7 @@ jobs:
 
       - name: 심사 제출 시도
         id: submit
-        run: node tools/asc-submit.mjs --secrets "$RUNNER_TEMP/asc"
+        run: node tools/asc-submit.mjs --submit --secrets "$RUNNER_TEMP/asc"
 
       - name: 결과 요약
         if: always()

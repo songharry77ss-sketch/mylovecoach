@@ -1,13 +1,17 @@
-// 실행: node tools/asc-submit.mjs [--secrets <폴더>]
-// App Store 심사 제출만 하는 가벼운 스크립트. 등록 정보·스크린샷은 건드리지 않는다.
-// 여러 번 실행해도 안전하다 — 이미 제출됐거나 출시됐으면 상태만 알려주고 끝낸다.
+// 실행: node tools/asc-submit.mjs [--submit] [--resubmit] [--secrets <폴더>]
+// App Store 심사 제출 스크립트. 등록 정보·스크린샷은 건드리지 않는다.
+//
+// ⚠️ 기본은 「상태 보고만」 한다. 실제로 심사에 내려면 반드시 --submit 을 붙인다.
+//    (예전에는 기본이 제출이라, 상태를 보려고 돌린 실행이나 감시 루프가 철회 직후의 낡은 빌드를
+//     그대로 다시 제출한 사고가 있었다. 상태만 볼 때는 tools/asc-status.mjs 를 쓴다)
+// --resubmit : 일부러 심사에서 뺀 버전(DEVELOPER_REJECTED)도 다시 낸다 (--submit 과 함께)
 //
 // 「앱이 수집하는 개인정보」 설문은 API 가 없어 화면에서만 게시할 수 있다.
-// 이 스크립트를 주기적으로 돌려 두면, 사용자가 설문을 게시하는 순간 다음 실행에서 자동으로 제출된다.
+// app-store-autosubmit.yml 이 --submit 으로 주기 실행하면, 설문을 게시하는 순간 다음 실행에서 제출된다.
 //
 // 종료 코드: 0 = 제출됨·이미 진행 중·사용자 작업 대기(정상), 1 = 예상 못 한 오류
 // 결과 한 줄은 GITHUB_OUTPUT 의 state 로도 내보낸다:
-//   submitted | in_review | released | rejected | waiting_privacy | waiting_build | blocked | none
+//   ready(제출 가능, --submit 없음) | submitted | in_review | released | rejected | withdrawn | waiting_privacy | waiting_build | blocked | none
 import { appendFileSync } from 'node:fs';
 
 import { createAscClient, secretsRoot } from './lib/asc-api.mjs';
@@ -18,7 +22,8 @@ const { api, getAll, findApp } = createAscClient(secretsRoot(args));
 // 처음 내는 버전만 자동으로 제출한다.
 // 우리가 일부러 심사에서 뺀 버전(DEVELOPER_REJECTED)은 뺀 이유가 있으므로(빌드 교체·인앱결제 추가 등)
 // --resubmit 을 명시했을 때만 다시 낸다. 그렇지 않으면 철회 직후 낡은 빌드가 그대로 다시 제출된다.
-const EDITABLE = ['PREPARE_FOR_SUBMISSION', ...(args.includes('--resubmit') ? ['DEVELOPER_REJECTED'] : [])];
+// READY_FOR_REVIEW 는 「심사 초안에 담겼지만 아직 안 낸」 상태다
+const EDITABLE = ['PREPARE_FOR_SUBMISSION', 'READY_FOR_REVIEW', ...(args.includes('--resubmit') ? ['DEVELOPER_REJECTED'] : [])];
 const WITHDRAWN = 'DEVELOPER_REJECTED';
 // 애플이 거절한 버전은 고치지 않고 다시 내면 같은 사유로 또 거절된다 — 사람이 사유를 보고 고쳐야 한다
 const REJECTED = ['REJECTED', 'METADATA_REJECTED', 'INVALID_BINARY'];
@@ -27,6 +32,7 @@ const RELEASED = ['READY_FOR_SALE', 'READY_FOR_DISTRIBUTION'];
 
 const STATE_KO = {
   PREPARE_FOR_SUBMISSION: '제출 준비 중',
+  READY_FOR_REVIEW: '심사 초안에 담김(미제출)',
   WAITING_FOR_REVIEW: '심사 대기',
   IN_REVIEW: '심사 중',
   PENDING_APPLE_RELEASE: '승인됨 · 애플 출시 처리 중',
@@ -82,6 +88,10 @@ async function main() {
   const build = await api('GET', `/v1/appStoreVersions/${editable.id}/build`).catch(() => null);
   if (!build?.data) return finish('waiting_build', `버전 ${editable.attributes.versionString} 에 빌드가 연결돼 있지 않습니다 — app-store.yml 로 빌드를 연결하세요.`);
   console.log(`제출할 버전: ${editable.attributes.versionString} · 빌드 ${build.data.attributes.version}`);
+
+  // 여기서부터는 App Store 에 실제로 변화를 만든다 — 명시적으로 --submit 을 준 경우에만
+  if (!args.includes('--submit'))
+    return finish('ready', `버전 ${editable.attributes.versionString}(빌드 ${build.data.attributes.version}) 이 제출 가능 상태입니다. 실제로 내려면 --submit 을 붙여 실행하세요.`);
 
   // 심사 묶음: 아직 안 낸 것이 있으면 그걸 쓰고, 없으면 새로 만든다
   const open = await api('GET', `/v1/reviewSubmissions?filter[app]=${app.id}&filter[state]=READY_FOR_REVIEW,UNRESOLVED_ISSUES&filter[platform]=IOS`);
