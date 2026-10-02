@@ -31,6 +31,8 @@ jobs:
     env:
       EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
       EXPO_PUBLIC_API_TOKEN: ${{ secrets.EXPO_PUBLIC_API_TOKEN }}
+      # 스토어를 거치지 않는 설치 파일이라 인앱결제가 동작하지 않는다 → 무료 무제한으로 만든다
+      EXPO_PUBLIC_FREE_UNLIMITED: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

@@ -67,7 +67,8 @@ npx tsc --noEmit && npx eslint src --max-warnings=0 && npx jest
 - 같은 버전(train)의 이전 빌드가 베타 심사 중이면 새 빌드는 제출이 422 로 막힌다. 앞 빌드가 승인되면 같이 풀린다.
 - Play 내부 테스트의 **테스터 이메일 목록은 API 로 못 바꾼다** (API 는 구글 그룹만 지원). Play Console 화면에서만 가능.
 - 내부 테스트 **참여 링크**(`play.google.com/apps/internaltest/숫자`)도 API 로 조회되지 않는다. Console 의 테스터 탭에서 복사.
-- 무료 횟수 제한은 `src/lib/billing/plans.ts` 의 `FREE_UNLIMITED` 하나로 켜고 끈다. 지금은 켜져 있어(무제한) 스토어 설명·심사 메모도 「전부 무료」 기준이다. 유료로 돌릴 때는 `docs/STORE_LISTING.md` 의 설명·심사 메모도 같이 되돌릴 것.
+- 무료 무제한 스위치 `FREE_UNLIMITED` 는 빌드 환경변수 `EXPO_PUBLIC_FREE_UNLIMITED=1` 일 때만 켜진다. **스토어 빌드(ios.yml·android.yml)와 웹은 유료 판매**(무료 3회 + 하루 1회 → 페이월), **직접 설치 APK(android-apk.yml)만 무료 무제한**이다 (APK 는 스토어 결제가 안 되므로). 스토어 문구(`docs/STORE_LISTING.md`)·지원 페이지도 유료 기준이다.
+- 평생권 가격은 Play ₩29,800, App Store ₩29,900 (애플에 ₩29,800 가격대가 없음). 그래서 공용 설명에는 평생권 금액을 적지 않는다. 앱은 스토어가 주는 실제 가격을 표시한다.
 - App Store 「앱이 수집하는 개인정보」 설문은 API 가 없다 (`/v1/apps/{id}/appDataUsages` 등 전부 404). 답안은 `docs/APP_PRIVACY.md`. 화면에서 **게시**하면 `app-store-autosubmit.yml` 이 15분 안에 심사 제출한다.
 - 개인정보 설문 답과 `site/privacy.html` 은 실제 전송 항목(`src/lib/analytics.ts`, `api/coach.ts`)과 맞아야 한다. 수집 항목을 바꾸면 셋을 같이 고칠 것.
 - 문의처는 `songharry77ss@gmail.com` (`mylovecoach.app` 도메인은 존재하지 않는다). 지원 URL 은 `/support.html`.

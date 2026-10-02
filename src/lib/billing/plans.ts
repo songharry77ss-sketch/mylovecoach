@@ -19,10 +19,14 @@ export const FALLBACK_PRICES: Record<PlanKey, string> = {
 };
 
 /**
- * 출시 전 테스트 기간: 무료 횟수 제한과 프리미엄 안내를 모두 끈다.
- * 정식 출시 때 false 로 바꾸면 아래 무료 횟수와 페이월이 다시 적용된다.
+ * 무료 횟수 제한과 프리미엄 안내를 모두 끄는 스위치. 기본은 꺼짐(= 유료 판매).
+ * 빌드할 때 EXPO_PUBLIC_FREE_UNLIMITED=1 을 주면 켜진다.
+ *
+ * 스토어를 거치지 않는 직접 설치 APK(android-apk.yml)는 인앱결제가 동작하지 않으므로
+ * 이 값을 켜서 만든다. 그래야 테스터가 결제할 수 없는 결제 화면에 막히지 않는다.
+ * App Store·Play 빌드(ios.yml, android.yml)와 웹은 끈 채로 만든다.
  */
-export const FREE_UNLIMITED = true;
+export const FREE_UNLIMITED = process.env.EXPO_PUBLIC_FREE_UNLIMITED === '1';
 
 /** 처음 설치한 사용자에게 주는 무료 코칭 횟수 */
 export const FREE_TRIAL_TOTAL = 3;
