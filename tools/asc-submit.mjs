@@ -15,8 +15,11 @@ import { createAscClient, secretsRoot } from './lib/asc-api.mjs';
 const args = process.argv.slice(2);
 const { api, getAll, findApp } = createAscClient(secretsRoot(args));
 
-// 처음 내거나, 우리가 스스로 철회한 버전만 자동으로 제출한다
-const EDITABLE = ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED'];
+// 처음 내는 버전만 자동으로 제출한다.
+// 우리가 일부러 심사에서 뺀 버전(DEVELOPER_REJECTED)은 뺀 이유가 있으므로(빌드 교체·인앱결제 추가 등)
+// --resubmit 을 명시했을 때만 다시 낸다. 그렇지 않으면 철회 직후 낡은 빌드가 그대로 다시 제출된다.
+const EDITABLE = ['PREPARE_FOR_SUBMISSION', ...(args.includes('--resubmit') ? ['DEVELOPER_REJECTED'] : [])];
+const WITHDRAWN = 'DEVELOPER_REJECTED';
 // 애플이 거절한 버전은 고치지 않고 다시 내면 같은 사유로 또 거절된다 — 사람이 사유를 보고 고쳐야 한다
 const REJECTED = ['REJECTED', 'METADATA_REJECTED', 'INVALID_BINARY'];
 const IN_PROGRESS = ['WAITING_FOR_REVIEW', 'IN_REVIEW', 'PENDING_APPLE_RELEASE', 'PENDING_DEVELOPER_RELEASE', 'PROCESSING_FOR_APP_STORE', 'WAITING_FOR_EXPORT_COMPLIANCE'];
@@ -66,6 +69,12 @@ async function main() {
     if (busy) return finish('in_review', `버전 ${busy.attributes.versionString} — ${STATE_KO[stateOf(busy)]}. 할 일 없음.`);
     const live = versions.find((v) => RELEASED.includes(stateOf(v)));
     if (live) return finish('released', `버전 ${live.attributes.versionString} — 앱스토어에 출시돼 판매 중입니다.`);
+    const withdrawn = versions.find((v) => stateOf(v) === WITHDRAWN);
+    if (withdrawn)
+      return finish(
+        'withdrawn',
+        `버전 ${withdrawn.attributes.versionString} — 일부러 심사에서 뺀 상태라 자동으로 다시 내지 않습니다. 새 빌드·인앱결제 연결을 마친 뒤 --resubmit 으로 제출하세요.`,
+      );
     return finish('none', '제출할 수 있는 버전이 없습니다.');
   }
 
