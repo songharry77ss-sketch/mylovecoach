@@ -11,7 +11,7 @@
 1. https://appstoreconnect.apple.com 로그인 → **앱** → **나만의 연애코치**
 2. 왼쪽 메뉴 **앱 개인정보 보호** (App Privacy) → **시작하기** (Get Started)
 3. "이 앱에서 데이터를 수집합니까?" → **예, 이 앱에서 데이터를 수집합니다**
-4. 아래 **6가지**에 체크하고 저장
+4. 아래 **8가지**에 체크하고 저장
 
 | 분류 | 체크할 항목 |
 |---|---|
@@ -19,7 +19,9 @@
 | 사용자 콘텐츠 (User Content) | 사진 또는 비디오 (Photos or Videos) |
 | 사용자 콘텐츠 (User Content) | 기타 사용자 콘텐츠 (Other User Content) |
 | 식별자 (Identifiers) | 기기 ID (Device ID) |
+| 구입 항목 (Purchases) | 구입 내역 (Purchase History) |
 | 사용 데이터 (Usage Data) | 제품 상호 작용 (Product Interaction) |
+| 진단 (Diagnostics) | 기타 진단 데이터 (Other Diagnostic Data) |
 | 기타 데이터 (Other Data) | 기타 데이터 유형 (Other Data Types) |
 
 5. 항목마다 **설정** 을 눌러 아래처럼 답합니다
@@ -30,7 +32,9 @@
 | 사진 또는 비디오 | 앱 기능 | **아니요** | 아니요 |
 | 기타 사용자 콘텐츠 | 앱 기능, 분석 | 예 | 아니요 |
 | 기기 ID | 분석 | 예 | 아니요 |
+| 구입 내역 | 분석 | 예 | 아니요 |
 | 제품 상호 작용 | 분석 | 예 | 아니요 |
+| 기타 진단 데이터 | 앱 기능, 분석 | 예 | 아니요 |
 | 기타 데이터 유형 | 앱 기능, 분석 | 예 | 아니요 |
 
    용도에서 **앱 기능 (App Functionality)**, **분석 (Analytics)** 외에는 아무것도 고르지 않습니다.
@@ -46,6 +50,8 @@
 | 사진 또는 비디오 | 대화 캡처. Gemini 가 분석만 하고 **우리 서버엔 저장하지 않음** (첨부 여부만 기록) → 신원 연결 안 됨 | `api/coach.ts` 의 `has_image` |
 | 기타 사용자 콘텐츠 | 상황 설명 글, 상대 이름, 받은 답장. 동의하면 `coach_log` 에 기기 ID 와 함께 저장 | `coach_log` 테이블 |
 | 기기 ID | 앱이 만든 무작위 ID (광고 ID 아님). 이용 기록 동의 시에만 전송 | `src/lib/analytics.ts` |
+| 구입 내역 | 이용 중인 프리미엄 종류(주간·평생). 이용 기록 동의 시에만 전송. 결제 자체는 스토어가 처리 | `app_user.premium_plan` |
+| 기타 진단 데이터 | 코칭 요청의 응답 시간·오류 메시지. 동의 시에만 저장 | `coach_log.latency_ms`, `error` |
 | 제품 상호 작용 | 화면별 체류 시간, 버튼·이벤트. 동의 시에만 | `screen_view`, `app_event` |
 | 기타 데이터 유형 | 나와 상대의 성별·나이·MBTI. 코칭 요청에 쓰이고 동의하면 저장 | `CoachRequestSchema`, `app_user` |
 
@@ -53,6 +59,5 @@
 
 ## 나중에 바꿔야 하는 경우
 
-- **유료로 전환할 때** (`FREE_UNLIMITED = false`) — 「구매 → 구매 내역」(분석, 신원 연결 예) 을 추가하세요. `app_user.premium_plan` 이 저장됩니다.
 - **광고·크래시 수집 도구를 넣을 때** — 해당 항목을 추가하고 추적 여부를 다시 판단하세요.
 - 개인정보 처리방침 [site/privacy.html](../site/privacy.html) 도 같이 맞춰야 합니다.
