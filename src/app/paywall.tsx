@@ -52,6 +52,9 @@ export default function Paywall() {
   const [products, setProducts] = useState<PlanProduct[]>(DEFAULT_PRODUCTS);
   const [selected, setSelected] = useState<PlanKey>('lifetime');
   const [busy, setBusy] = useState<'purchase' | 'restore' | null>(null);
+  // 이 화면은 iOS 네이티브 모달이라 앱 전체 토스트가 모달 뒤에 가려진다.
+  // 그래서 결제·복원 결과는 버튼 바로 아래에 직접 보여 준다.
+  const [notice, setNotice] = useState<{ kind: 'error' | 'info'; text: string } | null>(null);
 
   useEffect(() => {
     track('paywall_open', { reason });
@@ -71,24 +74,27 @@ export default function Paywall() {
     const product = products.find((p) => p.plan === selected);
     if (!product || busy) return;
     setBusy('purchase');
+    setNotice(null);
     track('purchase_start', { plan: selected });
     const outcome = await purchasePlan(product);
     setBusy(null);
-    track(`purchase_${outcome.status}`, { plan: selected });
+    track(`purchase_${outcome.status}`, { plan: selected, ...(outcome.status === 'error' ? { message: outcome.message } : {}) });
     if (outcome.status === 'purchased') {
       setPremium(outcome.premium);
+      // 모달을 닫은 뒤라 이 토스트는 보인다
       toast.show('프리미엄이 시작됐어요. 이제 무제한으로 코칭받아요 💘', 'success');
       close();
     } else if (outcome.status === 'pending') {
-      toast.show('결제 승인을 기다리고 있어요. 승인되면 자동으로 적용돼요.');
+      setNotice({ kind: 'info', text: '결제 승인을 기다리고 있어요. 승인되면 자동으로 적용돼요.' });
     } else if (outcome.status === 'error') {
-      toast.show(outcome.message, 'error');
+      setNotice({ kind: 'error', text: outcome.message });
     }
   };
 
   const restore = async () => {
     if (busy) return;
     setBusy('restore');
+    setNotice(null);
     const result = await restorePremium();
     setBusy(null);
     if (result) {
@@ -96,7 +102,7 @@ export default function Paywall() {
       toast.show('구매 내역을 복원했어요.', 'success');
       close();
     } else {
-      toast.show(result === null ? '복원할 구매 내역이 없어요.' : '스토어에 연결하지 못했어요. 잠시 후 다시 시도해주세요.', result === null ? 'default' : 'error');
+      setNotice(result === null ? { kind: 'info', text: '복원할 구매 내역이 없어요.' } : { kind: 'error', text: '스토어에 연결하지 못했어요. 잠시 후 다시 시도해주세요.' });
     }
   };
 
@@ -155,6 +161,14 @@ export default function Paywall() {
           </View>
 
           <Button title={selected === 'lifetime' ? `평생권 ${priceOf('lifetime')} 결제하기` : `주간 구독 시작하기 · ${priceOf('weekly')}/주`} onPress={buy} loading={busy === 'purchase'} disabled={busy != null} />
+
+          {notice ? (
+            <View accessibilityLiveRegion="polite" style={[styles.notice, { backgroundColor: notice.kind === 'error' ? theme.accentSoft : theme.primarySoft }]}>
+              <AppText variant="small" color={notice.kind === 'error' ? 'danger' : 'textSecondary'} align="center">
+                {notice.text}
+              </AppText>
+            </View>
+          ) : null}
 
           <AppText variant="caption" color="textTertiary" align="center" style={styles.fine}>
             {selected === 'weekly'
@@ -253,6 +267,7 @@ const styles = StyleSheet.create({
   planTitleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, flexWrap: 'wrap' },
   badge: { paddingHorizontal: Spacing.sm, paddingVertical: 2, borderRadius: Radius.pill },
   fine: { marginTop: -Spacing.sm },
+  notice: { borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
   webNotice: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.xs },
   links: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.lg, flexWrap: 'wrap' },
 });

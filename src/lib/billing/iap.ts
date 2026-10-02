@@ -47,34 +47,54 @@ const settle = (outcome: PurchaseOutcome) => {
   inflight = null;
 };
 
+/** 에러 객체에서 스토어 오류 코드를 꺼낸다 (원인 파악용으로 안내 문구에 붙인다) */
+const codeOf = (error: unknown): string => {
+  const code = (error as { code?: unknown } | null)?.code;
+  return typeof code === 'string' && code ? ` (${code})` : '';
+};
+
+/**
+ * 스토어 연결을 보장한다. 앱 시작 때 연결이 실패했어도(네트워크·스토어 지연) 결제 직전에 다시 시도한다.
+ * 연결되면 구매 이벤트 리스너를 한 번만 붙인다.
+ */
+async function ensureConnected(): Promise<boolean> {
+  if (!IAP || !billingSupported) return false;
+  if (connected) return true;
+  try {
+    connected = Boolean(await IAP.initConnection());
+  } catch {
+    connected = false;
+  }
+  if (!connected || subscriptions.length) return connected;
+  const iap = IAP;
+  subscriptions = [
+    iap.purchaseUpdatedListener(async (purchase) => {
+      if (purchase.purchaseState === 'pending') return settle({ status: 'pending' });
+      if (purchase.purchaseState !== 'purchased' || !planOfProduct(purchase.productId)) return;
+      try {
+        // 스토어에 「지급 완료」를 알린다. Android 는 3일 안에 하지 않으면 자동 환불된다
+        await iap.finishTransaction({ purchase, isConsumable: false });
+      } catch {
+        // 다음 실행 때 queryEntitlement 에서 다시 시도
+      }
+      const premium = entitlementFrom([purchase], Date.now());
+      if (!premium) return;
+      handlers?.onPremium(premium);
+      settle({ status: 'purchased', premium });
+    }),
+    iap.purchaseErrorListener((error) => {
+      if (iap.isUserCancelledError(error)) return settle({ status: 'cancelled' });
+      settle({ status: 'error', message: (iap.getUserFriendlyErrorMessage(error) || '결제를 완료하지 못했어요. 잠시 후 다시 시도해주세요.') + codeOf(error) });
+    }),
+  ];
+  return connected;
+}
+
 /** 앱 시작 시 한 번 호출. 스토어 연결 + 구매 이벤트 수신 + 현재 구매 상태 반환 */
 export async function initBilling(h: Handlers): Promise<PremiumState | null | undefined> {
   if (!IAP || !billingSupported) return undefined;
   handlers = h;
-  if (!connected) {
-    connected = Boolean(await IAP.initConnection());
-    const iap = IAP;
-    subscriptions = [
-      iap.purchaseUpdatedListener(async (purchase) => {
-        if (purchase.purchaseState === 'pending') return settle({ status: 'pending' });
-        if (purchase.purchaseState !== 'purchased' || !planOfProduct(purchase.productId)) return;
-        try {
-          // 스토어에 「지급 완료」를 알린다. Android 는 3일 안에 하지 않으면 자동 환불된다
-          await iap.finishTransaction({ purchase, isConsumable: false });
-        } catch {
-          // 다음 실행 때 queryEntitlement 에서 다시 시도
-        }
-        const premium = entitlementFrom([purchase], Date.now());
-        if (!premium) return;
-        handlers?.onPremium(premium);
-        settle({ status: 'purchased', premium });
-      }),
-      iap.purchaseErrorListener((error) => {
-        if (iap.isUserCancelledError(error)) return settle({ status: 'cancelled' });
-        settle({ status: 'error', message: iap.getUserFriendlyErrorMessage(error) || '결제를 완료하지 못했어요. 잠시 후 다시 시도해주세요.' });
-      }),
-    ];
-  }
+  if (!(await ensureConnected())) return undefined;
   return queryEntitlement();
 }
 
@@ -88,7 +108,7 @@ export function endBilling() {
 /** 스토어에서 상품 정보(현지 통화 표시 가격)를 가져온다. 실패하면 기본 표시 가격을 쓴다 */
 export async function loadPlanProducts(): Promise<PlanProduct[]> {
   const fallback: PlanProduct[] = (['lifetime', 'weekly'] as PlanKey[]).map((plan) => ({ plan, productId: PRODUCT_IDS[plan], displayPrice: FALLBACK_PRICES[plan] }));
-  if (!IAP || !connected) return fallback;
+  if (!IAP || !(await ensureConnected())) return fallback;
   try {
     const items = (await IAP.fetchProducts({ skus: Object.values(PRODUCT_IDS), type: 'all' })) ?? [];
     return fallback.map((f) => {
@@ -110,9 +130,17 @@ export async function loadPlanProducts(): Promise<PlanProduct[]> {
 }
 
 /** 결제 시트를 띄우고 결과를 기다린다 (결과는 스토어 이벤트로 도착) */
-export function purchasePlan(product: PlanProduct): Promise<PurchaseOutcome> {
-  if (!IAP || !connected) return Promise.resolve({ status: 'error', message: '스토어에 연결하지 못했어요. 네트워크를 확인하고 다시 시도해주세요.' });
+export async function purchasePlan(product: PlanProduct): Promise<PurchaseOutcome> {
+  if (!IAP || !(await ensureConnected())) return { status: 'error', message: '스토어에 연결하지 못했어요. 네트워크를 확인하고 다시 시도해주세요.' };
   const iap = IAP;
+  // 스토어가 이 상품을 내려주지 않으면 결제 시트가 뜨지 않는다 — 조용히 실패하지 말고 이유를 알린다
+  try {
+    const found = (await iap.fetchProducts({ skus: [product.productId], type: product.plan === 'weekly' ? 'subs' : 'in-app' })) ?? [];
+    if (!found.some((i) => i.id === product.productId))
+      return { status: 'error', message: `스토어에서 이 상품을 찾지 못했어요. 잠시 후 다시 시도해주세요. (${product.productId})` };
+  } catch (error) {
+    return { status: 'error', message: `상품 정보를 불러오지 못했어요.${codeOf(error)}` };
+  }
   settle({ status: 'cancelled' });
   return new Promise<PurchaseOutcome>((resolve) => {
     inflight = resolve;
@@ -126,7 +154,7 @@ export function purchasePlan(product: PlanProduct): Promise<PurchaseOutcome> {
         : iap.requestPurchase({ type: 'in-app', request: { apple: { sku }, google: { skus: [sku] } } });
     request.catch((error: unknown) => {
       if (iap.isUserCancelledError(error as never)) return settle({ status: 'cancelled' });
-      settle({ status: 'error', message: '결제를 시작하지 못했어요. 잠시 후 다시 시도해주세요.' });
+      settle({ status: 'error', message: `결제를 시작하지 못했어요. 잠시 후 다시 시도해주세요.${codeOf(error)}` });
     });
   });
 }
@@ -150,7 +178,7 @@ export async function queryEntitlement(): Promise<PremiumState | null | undefine
 
 /** 구매 복원 (기기 변경·재설치 후) */
 export async function restorePremium(): Promise<PremiumState | null | undefined> {
-  if (!IAP || !connected) return undefined;
+  if (!IAP || !(await ensureConnected())) return undefined;
   try {
     await IAP.restorePurchases();
   } catch {
