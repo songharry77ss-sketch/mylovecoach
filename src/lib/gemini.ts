@@ -6,8 +6,11 @@ import { buildCoachTask, jsonSchemaOf, type AiTask } from './ai-tasks';
 import type { CoachRequest } from './coach-schema';
 
 export const GEMINI_DEFAULT_MODEL = 'gemini-3.5-flash';
-/** 기본 모델이 과부하(503)·한도 초과(429)일 때 순서대로 시도하는 대체 모델 */
-export const GEMINI_FALLBACK_MODELS = ['gemini-3.5-flash-lite', 'gemini-2.5-flash'];
+/**
+ * 기본 모델이 과부하(503)·한도 초과(429)일 때 순서대로 시도하는 대체 모델.
+ * gemini-2.5-flash 는 2026-10 기준 새 사용자에게 404(no longer available)라 빼고, 항상 최신 flash 를 가리키는 별칭을 둔다
+ */
+export const GEMINI_FALLBACK_MODELS = ['gemini-3.5-flash-lite', 'gemini-flash-latest'];
 export const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
 type JsonSchema = Record<string, unknown>;
