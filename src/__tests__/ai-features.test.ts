@@ -123,6 +123,11 @@ describe('누적 호감 온도 · 비밀 상담', () => {
     const m3 = s.addMessage({ crushId: c.id, role: 'coach', pending: true });
     s.completeAnalysis(c.id, m3.id, analysis({ heatDelta: 10 }), { applyHeat: false });
     expect(useAppStore.getState().crushes[c.id].heat).toBe(-20);
+
+    // 글만 보낸 요청의 말투는 추측이라 기억하지 않는다 (호칭은 기억)
+    const m4 = s.addMessage({ crushId: c.id, role: 'coach', pending: true });
+    s.completeAnalysis(c.id, m4.id, analysis({ callName: '언니', speechLevel: 'casual' }), { fromCapture: false });
+    expect(useAppStore.getState().crushes[c.id].detected).toEqual(expect.objectContaining({ callName: '언니', speech: 'polite' }));
   });
 
   it('예전 서버 응답(온도 변화 없음)은 분위기로 대신 움직인다', () => {

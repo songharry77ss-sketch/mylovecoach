@@ -127,6 +127,15 @@ describe('호칭 · 말투 · 이모지 · 누적 온도', () => {
     expect(text).toContain('이 사람과의 목표: 첫 약속 잡기');
   });
 
+  it('말투 근거가 없으면 관계 단계 기본 말투로 모든 답장을 통일하라고 적는다', () => {
+    const casual = buildUserText(CoachRequestSchema.parse({ ...baseRequest, text: '주말에 보자고 할까' }));
+    expect(casual).toContain('모든 답장을 반말로 통일');
+    const polite = buildUserText(CoachRequestSchema.parse({ ...baseRequest, crush: { ...baseRequest.crush, relationship: 'blind_date' } }));
+    expect(polite).toContain('모든 답장을 존댓말로 통일');
+    const fixed = buildUserText(CoachRequestSchema.parse({ ...baseRequest, crush: { ...baseRequest.crush, speech: 'polite', speechFixed: true } }));
+    expect(fixed).toContain('[이번 답장 말투] 모든 답장을 존댓말로');
+  });
+
   it('새 항목을 정리한다 (온도 변화 ±20, 성공 확률 1~99, 호칭 따옴표 제거)', () => {
     const raw = CoachAnalysisSchema.parse({
       callName: ' "언니" ',

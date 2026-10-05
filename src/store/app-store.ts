@@ -71,7 +71,7 @@ export interface AppState {
   removeMessage: (crushId: string, id: string) => void;
   clearMessages: (crushId: string) => void;
   /** 분석 결과 반영. applyHeat 면 누적 호감 온도를 움직인다 (다른 답장 더 보기·저장된 결과 재사용은 제외) */
-  completeAnalysis: (crushId: string, messageId: string, analysis: CoachAnalysis, options?: { applyHeat?: boolean }) => void;
+  completeAnalysis: (crushId: string, messageId: string, analysis: CoachAnalysis, options?: { applyHeat?: boolean; fromCapture?: boolean }) => void;
   selectReply: (crushId: string, messageId: string, index: number) => void;
 
   setHasApiKey: (v: boolean) => void;
@@ -215,9 +215,10 @@ export const useAppStore = create<AppState>()(
           error: undefined,
           heat: options.applyHeat ? { before, after, delta: after - before } : undefined,
         });
-        // 캡처에서 읽은 호칭·말투를 기억해 두면, 캡처 없이 물어볼 때도 같은 호칭·말투로 답장이 나온다
+        // 캡처에서 읽은 호칭·말투를 기억해 두면, 캡처 없이 물어볼 때도 같은 호칭·말투로 답장이 나온다.
+        // 말투는 캡처가 있을 때만 믿는다 (글만 보낸 요청의 말투는 기본값 추측이라서). 호칭은 글에서도 읽힌다 (예: 「오빠가 바쁘대」)
         const callName = analysis.callName?.trim();
-        const speech = analysis.speechLevel === 'polite' || analysis.speechLevel === 'casual' ? analysis.speechLevel : undefined;
+        const speech = options.fromCapture !== false && (analysis.speechLevel === 'polite' || analysis.speechLevel === 'casual') ? analysis.speechLevel : undefined;
         const detected = callName || speech ? { ...crush.detected, ...(callName ? { callName } : {}), ...(speech ? { speech } : {}), at: now } : crush.detected;
         set((s) => {
           const current = s.crushes[crushId];

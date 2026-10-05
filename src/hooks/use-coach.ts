@@ -90,7 +90,7 @@ export function useCoach() {
       // 실제로 AI 를 호출해 결과를 받은 경우에만 횟수를 차감한다 (오류·저장된 결과 재사용·무제한은 차감 없음)
       if (!cached && quota.kind !== 'premium') useAppStore.getState().consumeQuota();
       // 누적 온도는 새로 분석한 대화에서만 움직인다 (같은 캡처 재사용·다른 답장 더 보기는 그대로)
-      useAppStore.getState().completeAnalysis(crush.id, coachMessage.id, analysis, { applyHeat: !cached && !input.variationOf });
+      useAppStore.getState().completeAnalysis(crush.id, coachMessage.id, analysis, { applyHeat: !cached && !input.variationOf, fromCapture: Boolean(image) });
       track('coach_success', { cached: Boolean(cached), hasImage: Boolean(image), tone: input.tone, variation: Boolean(input.variationOf), temperature: analysis.temperature, secret, emoji });
     } catch (e) {
       const message = e instanceof CoachError ? e.message : e instanceof Error ? e.message : '알 수 없는 오류가 발생했어요.';
