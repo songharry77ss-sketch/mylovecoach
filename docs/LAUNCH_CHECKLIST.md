@@ -6,13 +6,15 @@
 
 | 할 일 | 누가 | 방법 |
 |---|---|---|
-| 서버(웹+API) 배포 — 새 모드(보고서·연습·속마음)가 서버에 있어야 앱이 동작 | 코드 | `gh workflow run vercel.yml` (예전 앱 요청도 그대로 받음) |
+| ~~서버(웹+API) 배포~~ ✅ 2026-10-05 완료 (운영 API 에서 예전 형식·새 모드 모두 확인) | 코드 | `gh workflow run vercel.yml` |
 | 하루 이용권·횟수권 **가격 확정** (횟수권 10회 ₩4,900 은 가안) | 🙋 팀 | `src/lib/billing/plans.ts` 의 `FALLBACK_PRICES`·`CREDITS_PER_PACK` 와 아래 스크립트 값 수정 |
 | App Store 소모성 상품 2개 만들기 | 코드 | `node tools/asc-iap.mjs --consumables` (₩2,700 가격대가 없으면 가장 가까운 값으로 맞추고 알려 줌) |
 | Play 일회성 상품 2개 만들기 | 코드 | `node tools/play-setup.mjs --products --consumables` (한국 개발자 정보가 채워진 뒤) |
 | 새 상품을 다음 버전 심사에 같이 올리기 | 🙋 화면 | 버전 페이지 「앱 내 구입 및 구독」에서 선택 |
 | **Play: 포그라운드 서비스(specialUse) 신고** — 플로팅 버블 때문에 필요 | 🙋 화면 | Play Console → 앱 콘텐츠 → 포그라운드 서비스 권한 → 「기타(특수 용도)」 설명·영상 링크 |
-| 새 빌드 (iOS·Android) | 코드 | `ios.yml`, `android.yml` — 아이콘·네이티브 모듈이 바뀌어 새 빌드가 필요 |
+| ~~새 빌드~~ ✅ iOS 115 (TestFlight 내부 즉시 · 외부 베타 심사 대기), APK 105 (GitHub 릴리스) | 코드 | `ios.yml` → `node tools/asc-testflight.mjs --wait 35`, `android-apk.yml` |
+| 🙋 애플 **유료 앱 계약** 활성화 — 은행·세금·대한민국 비즈니스 연락처(사업자등록번호). 이게 없으면 TestFlight 샌드박스 결제도 안 됨 | 🙋 화면 | App Store Connect → 비즈니스 |
+| 버전 1.0 심사 초안의 빌드를 114 → 115 로 바꾸고 제출 (실기기에서 115 확인 뒤) | 코드 | `gh workflow run app-store.yml -f build=115` → `node tools/asc-submit.mjs --submit --resubmit` (평생권은 화면에서 「심사에 추가」) |
 
 상품이 스토어에 아직 없으면 앱 결제 화면은 그 상품을 **자동으로 숨깁니다** (주간·평생권만 보임). 그래서 코드 배포를 먼저 해도 안전합니다.
 
