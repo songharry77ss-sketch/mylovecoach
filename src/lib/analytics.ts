@@ -8,10 +8,49 @@
  */
 import { Platform } from 'react-native';
 
+import { FREE_UNLIMITED } from '@/lib/billing/plans';
 import { APP_CONFIG } from '@/lib/config';
 import { isDemoMode } from '@/lib/demo';
 import { createId } from '@/lib/id';
 import type { UserProfile } from '@/lib/types';
+
+/** 처음 앱을 연 곳 — 웹은 광고 링크의 utm_*·이전 사이트, 앱은 설치 경로 */
+export interface Acquisition {
+  /** ios · android · apk(직접 설치) · web */
+  channel: string;
+  source?: string;
+  medium?: string;
+  campaign?: string;
+  /** 이전 사이트 주소의 도메인 */
+  referrer?: string;
+  /** 처음 연 경로 */
+  landing?: string;
+  at: number;
+}
+
+// 화면 이동으로 주소가 바뀌기 전에 (모듈을 처음 읽을 때) 웹 주소·이전 사이트를 읽어 둔다
+const launchUrl = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.href : '';
+const launchReferrer = Platform.OS === 'web' && typeof document !== 'undefined' ? document.referrer : '';
+
+/** 이번 실행의 유입 정보 (처음 실행 때 한 번 저장해 두고 계속 쓴다) */
+export function launchAcquisition(now = Date.now()): Acquisition {
+  const channel = Platform.OS === 'web' ? 'web' : Platform.OS === 'android' && FREE_UNLIMITED ? 'apk' : Platform.OS;
+  const acquisition: Acquisition = { channel, at: now };
+  try {
+    if (launchUrl) {
+      const url = new URL(launchUrl);
+      const pick = (key: string) => url.searchParams.get(key)?.trim().slice(0, 80) || undefined;
+      Object.assign(acquisition, { source: pick('utm_source'), medium: pick('utm_medium'), campaign: pick('utm_campaign'), landing: url.pathname.slice(0, 120) });
+    }
+    if (launchReferrer) {
+      const host = new URL(launchReferrer).host;
+      if (host && host !== (launchUrl ? new URL(launchUrl).host : '')) acquisition.referrer = host.slice(0, 120);
+    }
+  } catch {
+    // 주소를 못 읽으면 설치 경로만 남긴다
+  }
+  return acquisition;
+}
 
 export interface TrackedEvent {
   type: 'screen' | 'event';
@@ -27,6 +66,7 @@ interface Identity {
   user?: UserProfile | null;
   premiumPlan?: string | null;
   crushCount?: number;
+  acquisition?: Acquisition | null;
 }
 
 const FLUSH_AFTER_MS = 8000;
@@ -135,6 +175,7 @@ function send(endSession: boolean): void {
       : null,
     premiumPlan: identity.premiumPlan ?? null,
     crushCount: identity.crushCount ?? 0,
+    acquisition: identity.acquisition ?? null,
     sessionStartedAt,
     sessionDurationMs: endSession ? Date.now() - sessionStartedAt : undefined,
     endSession,

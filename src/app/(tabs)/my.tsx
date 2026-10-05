@@ -1,3 +1,4 @@
+import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -16,6 +17,7 @@ import { flushAnalytics, setConsent as setAnalyticsConsentFlag, track } from '@/
 import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { billingSupported, openSubscriptionManagement, restorePremium } from '@/lib/billing/iap';
 import { quotaLabel } from '@/lib/billing/quota';
+import { refreshTeam } from '@/lib/billing/team';
 import { APP_CONFIG } from '@/lib/config';
 import { isDemoMode } from '@/lib/demo';
 import * as Floating from '@/lib/floating';
@@ -34,6 +36,8 @@ export default function MyScreen() {
   const crushCount = useAppStore((s) => Object.values(s.crushes).filter((c) => !c.secret).length);
   const premium = useAppStore((s) => s.premium);
   const wallet = useAppStore((s) => s.wallet);
+  const team = useAppStore((s) => s.team);
+  const deviceId = useAppStore((s) => s.deviceId);
   const setPremium = useAppStore((s) => s.setPremium);
   const analyticsConsent = useAppStore((s) => s.analyticsConsent);
   const setAnalyticsConsent = useAppStore((s) => s.setAnalyticsConsent);
@@ -65,6 +69,12 @@ export default function MyScreen() {
     setBubbleOn(Floating.isRunning());
   }, [toast]);
   useFocusEffect(refreshBubble);
+  // 관리자가 방금 팀원으로 등록했어도 마이 탭을 열면 바로 반영되도록
+  useFocusEffect(
+    useCallback(() => {
+      refreshTeam().catch(() => {});
+    }, []),
+  );
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => state === 'active' && refreshBubble());
     return () => sub.remove();
@@ -121,7 +131,13 @@ export default function MyScreen() {
     ]);
   };
 
-  const planValue = premium?.plan === 'lifetime' ? '평생권' : premium?.plan === 'weekly' ? '주간 구독' : quota.kind === 'pass' ? '하루 이용권' : '';
+  const planValue =
+    premium?.plan === 'lifetime' ? '평생권' : premium?.plan === 'weekly' ? '주간 구독' : quota.kind === 'team' ? '팀원 무제한' : quota.kind === 'pass' ? '하루 이용권' : '';
+  const copyDeviceId = async () => {
+    await Clipboard.setStringAsync(deviceId);
+    haptic.tap();
+    toast.show('기기 ID를 복사했어요. 팀원 등록이 필요하면 관리자에게 보내 주세요.', 'success');
+  };
   const walletNote = [wallet.credits > 0 ? `횟수권 ${wallet.credits}회` : null].filter(Boolean).join(' · ');
 
   return (
@@ -152,7 +168,13 @@ export default function MyScreen() {
         <>
           <SectionHeader title="이용권" />
           {isUnlimited(quota) ? (
-            <ListRow icon="heart" title={`${planValue || '프리미엄'} 이용 중`} subtitle={quota.kind === 'pass' ? quotaLabel(quota) : undefined} value={walletNote || undefined} onPress={() => router.push({ pathname: '/paywall', params: { reason: 'my' } })} />
+            <ListRow
+              icon="heart"
+              title={`${planValue || '프리미엄'} 이용 중`}
+              subtitle={quota.kind === 'pass' ? quotaLabel(quota) : quota.kind === 'team' ? `관리자가 허용한 팀원 기기 · ${team?.label ?? '팀원'}` : undefined}
+              value={walletNote || undefined}
+              onPress={() => router.push({ pathname: '/paywall', params: { reason: 'my' } })}
+            />
           ) : (
             <ListRow icon="heart-outline" title="이용권 보기" subtitle={quotaLabel(quota)} value={fromPrice} onPress={() => router.push({ pathname: '/paywall', params: { reason: 'my' } })} />
           )}
@@ -236,6 +258,7 @@ export default function MyScreen() {
       <ListRow icon="document-text-outline" title="이용약관" onPress={() => Linking.openURL(APP_CONFIG.termsUrl)} />
       <ListRow icon="mail-outline" title="문의하기" subtitle={APP_CONFIG.supportEmail} onPress={() => Linking.openURL(`mailto:${APP_CONFIG.supportEmail}`)} />
       <ListRow icon="information-circle-outline" title="앱 버전" value={Constants.expoConfig?.version ?? '1.0.0'} />
+      <ListRow icon="finger-print-outline" title="내 기기 ID" subtitle="문의·팀원 등록용 · 눌러서 복사" value={deviceId} onPress={copyDeviceId} />
 
       <SectionHeader title="데이터" subtitle="모든 데이터는 이 기기에만 저장돼요" />
       <ListRow icon="trash-outline" title="모든 데이터 삭제" destructive onPress={confirmReset} />

@@ -64,6 +64,7 @@ export default function Paywall() {
   const premium = useAppStore((s) => s.premium);
   const usage = useAppStore((s) => s.usage);
   const wallet = useAppStore((s) => s.wallet);
+  const team = useAppStore((s) => s.team);
   const setPremium = useAppStore((s) => s.setPremium);
 
   // 앱에서는 스토어 응답을 받은 뒤에 상품을 보여 준다 (스토어에 없는 상품이 잠깐이라도 보이지 않도록)
@@ -89,7 +90,7 @@ export default function Paywall() {
   const dayPrice = onSalePrice(products, 'day');
   const subtitle = reason === 'quota' && dayPrice ? `하루 이용권이면 ${dayPrice}으로 지금 바로 이어서 코칭받을 수 있어요.` : HEADLINES[reason].subtitle;
   const active = isPremiumActive(premium, Date.now());
-  const status = quotaStatus(premium, usage, Date.now(), wallet);
+  const status = quotaStatus(premium, usage, Date.now(), wallet, team);
   const storeName = Platform.OS === 'ios' || previewStore === 'ios' ? 'App Store' : 'Google Play';
 
   const buy = async () => {
@@ -155,7 +156,7 @@ export default function Paywall() {
         <AppText variant="body" color="textSecondary" align="center">
           {active ? (premium?.plan === 'lifetime' ? '평생권으로 모든 기능을 무제한으로 쓰고 있어요.' : '주간 구독으로 모든 기능을 무제한으로 쓰고 있어요.') : subtitle}
         </AppText>
-        {!active && (status.kind === 'pass' || (status.credits ?? 0) > 0) ? (
+        {!active && (status.kind === 'team' || status.kind === 'pass' || (status.credits ?? 0) > 0) ? (
           <View style={[styles.statusPill, { backgroundColor: theme.primarySoft }]}>
             <AppText variant="caption" color="primary" weight="700">
               지금: {quotaLabel(status)}

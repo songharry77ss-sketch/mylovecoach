@@ -59,7 +59,7 @@ npx tsc --noEmit && npx eslint src --max-warnings=0 && npx jest
 - `src/store/app-store.ts` — zustand + AsyncStorage. 비밀 상담(`crush.secret`)은 `partialize` 에서 빠져 저장되지 않는다
 - `src/lib/billing/` — 요금제 4종: 주간·평생(스토어 구매 내역으로 판정) + 하루 이용권·횟수권(소모성, 기기 지갑 `wallet` 에 충전)
 - `modules/floating-bubble/` — 안드로이드 플로팅 버블 로컬 Expo 모듈 (iOS·웹은 아무것도 안 함)
-- `api/` — Vercel 서버리스 (`coach.ts` 가 Gemini 호출, `track.ts`·`admin.ts` 는 이용 기록)
+- `api/` — Vercel 서버리스 (`coach.ts` 가 Gemini 호출, `track.ts`·`admin.ts` 는 이용 기록, `team.ts` 는 관리자가 허용한 팀원 무제한 확인 — `docs/ANALYTICS_SETUP.md`)
 - `tools/` — 스토어 자동화 스크립트. 워크플로가 이걸 불러 쓴다
 - `docs/TESTER_GUIDE.md` — 테스터에게 보낼 안내문과 설치 링크, `docs/MARKETING.md` — 틱톡·X·스레드 마케팅 실행안
 

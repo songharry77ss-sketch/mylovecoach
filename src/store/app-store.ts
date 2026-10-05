@@ -2,7 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 import type { ConsumablePlanKey } from '@/lib/billing/plans';
-import { consumeOne, EMPTY_USAGE, EMPTY_WALLET, grantConsumable, type PremiumState, type UsageState, type WalletState } from '@/lib/billing/quota';
+import type { Acquisition } from '@/lib/analytics';
+import { consumeOne, EMPTY_USAGE, EMPTY_WALLET, grantConsumable, type PremiumState, type TeamState, type UsageState, type WalletState } from '@/lib/billing/quota';
 import { createId } from '@/lib/id';
 import type {
   ChatMessage,
@@ -36,12 +37,16 @@ export interface AppState {
   usage: UsageState;
   /** 하루 이용권·횟수권 */
   wallet: WalletState;
+  /** 관리자가 무제한을 허용한 팀원 기기면 그 정보 (서버 확인 결과의 캐시) */
+  team: TeamState | null;
   /** 채팅 하단의 프리미엄 안내 카드를 닫았는지 */
   upsellDismissed: boolean;
   /** 기기 구분용 무작위 ID (광고 ID 아님, 이용 기록 수집에만 사용) */
   deviceId: string;
   /** 서비스 개선을 위한 이용 기록 수집 동의 (선택) — null 이면 아직 묻지 않음 */
   analyticsConsent: boolean | null;
+  /** 처음 앱을 연 곳 (동의한 경우에만 이용 기록과 함께 전송) */
+  acquisition: Acquisition | null;
   /** 진동 효과 */
   hapticsOn: boolean;
   /** 채팅방 목록에서 대화 미리보기 숨기기 */
@@ -78,7 +83,9 @@ export interface AppState {
   getCachedAnalysis: (key: string) => CoachAnalysis | null;
   putCachedAnalysis: (key: string, analysis: CoachAnalysis) => void;
   setAnalyticsConsent: (consent: boolean) => void;
+  setAcquisition: (acquisition: Acquisition) => void;
   setPremium: (premium: PremiumState | null) => void;
+  setTeam: (team: TeamState | null) => void;
   /** 하루 이용권·횟수권 결제 1건 충전. 이미 충전한 거래면 무시하고 false */
   grantConsumable: (plan: ConsumablePlanKey, transactionId: string) => boolean;
   /** AI 를 한 번 쓴 만큼 차감 (무료 → 횟수권 순, 프리미엄·하루 이용권은 차감 없음) */
@@ -123,9 +130,11 @@ export const useAppStore = create<AppState>()(
       premium: null,
       usage: EMPTY_USAGE,
       wallet: EMPTY_WALLET,
+      team: null,
       upsellDismissed: false,
       deviceId: createId('d_'),
       analyticsConsent: null,
+      acquisition: null,
       hapticsOn: true,
       hidePreviews: false,
       kkti: null,
@@ -257,7 +266,9 @@ export const useAppStore = create<AppState>()(
           return { analysisCache: { ...Object.fromEntries(entries), [key]: { analysis, at: Date.now() } } };
         }),
       setAnalyticsConsent: (analyticsConsent) => set({ analyticsConsent }),
+      setAcquisition: (acquisition) => set({ acquisition }),
       setPremium: (premium) => set({ premium }),
+      setTeam: (team) => set({ team }),
       grantConsumable: (plan, transactionId) => {
         const next = grantConsumable(get().wallet, plan, transactionId, Date.now());
         if (!next) return false;
@@ -266,7 +277,7 @@ export const useAppStore = create<AppState>()(
       },
       consumeQuota: () =>
         set((s) => {
-          const next = consumeOne(s.premium, s.usage, s.wallet, Date.now());
+          const next = consumeOne(s.premium, s.usage, s.wallet, Date.now(), s.team);
           return { usage: next.usage, wallet: next.wallet };
         }),
       consumeFreeCredit: () => get().consumeQuota(),
@@ -325,7 +336,7 @@ export const useAppStore = create<AppState>()(
           return { practice };
         }),
       addMindAnswer: (answer) => set((s) => ({ mindHistory: [answer, ...s.mindHistory].slice(0, 10) })),
-      // 구매 상태·이용권·무료 사용량은 「모든 데이터 삭제」로 지우지 않는다 (구매는 스토어 계정에 묶여 있고, 삭제로 무료 횟수가 초기화되면 안 됨)
+      // 구매 상태·이용권·무료 사용량·팀원 여부는 「모든 데이터 삭제」로 지우지 않는다 (구매는 스토어 계정에 묶여 있고, 삭제로 무료 횟수가 초기화되면 안 됨)
       resetAll: () => set({ user: null, crushes: {}, messages: {}, hasApiKey: false, analysisCache: {}, kkti: null, practice: {}, mindHistory: [] }),
     }),
     {
@@ -348,9 +359,11 @@ export const useAppStore = create<AppState>()(
           premium: s.premium,
           usage: s.usage,
           wallet: s.wallet,
+          team: s.team,
           upsellDismissed: s.upsellDismissed,
           deviceId: s.deviceId,
           analyticsConsent: s.analyticsConsent,
+          acquisition: s.acquisition,
           hapticsOn: s.hapticsOn,
           hidePreviews: s.hidePreviews,
           kkti: s.kkti,

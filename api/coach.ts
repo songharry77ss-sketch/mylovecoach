@@ -15,7 +15,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { buildTask, parseAiRequest, type AiTask } from '../src/lib/ai-tasks';
 import { COACH_MODEL } from '../src/lib/coach-schema';
 import { callGeminiTask } from '../src/lib/gemini';
-import { insert } from './_supabase';
+import { analyticsEnabled, insert } from './_supabase';
 
 export const config = { maxDuration: 120 };
 
@@ -56,7 +56,7 @@ async function logCoach(
   startedAt: number,
 ): Promise<void> {
   const deviceId = req.headers['x-device-id'];
-  if (typeof deviceId !== 'string' || !deviceId) return;
+  if (typeof deviceId !== 'string' || !deviceId || !analyticsEnabled()) return;
   const sessionId = typeof req.headers['x-session-id'] === 'string' ? req.headers['x-session-id'] : undefined;
   const a = result.analysis;
   await insert('coach_log', {

@@ -8,9 +8,11 @@ import {
   EMPTY_WALLET,
   grantConsumable,
   isPremiumActive,
+  isTeamActive,
   quotaLabel,
   quotaStatus,
   type PremiumState,
+  type TeamState,
 } from '@/lib/billing/quota';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -152,5 +154,32 @@ describe('하루 이용권 · 횟수권', () => {
     expect(consumeOne(lifetime, EMPTY_USAGE, wallet, NOW)).toEqual({ usage: EMPTY_USAGE, wallet });
     const pass = grantConsumable(wallet, 'day', 'tx', NOW)!;
     expect(consumeOne(null, EMPTY_USAGE, pass, NOW)).toEqual({ usage: EMPTY_USAGE, wallet: pass });
+  });
+});
+
+describe('팀원 무제한', () => {
+  const team: TeamState = { label: '디자인 지민', verifiedAt: NOW };
+  const spent = { total: FREE_TRIAL_TOTAL, day: dayKey(NOW), dayCount: FREE_DAILY };
+
+  it('관리자가 허용한 팀원은 무료 횟수를 다 써도 무제한이다', () => {
+    expect(quotaStatus(null, spent, NOW, EMPTY_WALLET, team)).toEqual({ kind: 'team', remaining: Infinity });
+    expect(quotaLabel(quotaStatus(null, spent, NOW, EMPTY_WALLET, team))).toBe('팀원 · 무제한');
+  });
+
+  it('팀원이면 아무것도 차감하지 않는다', () => {
+    const wallet = { ...EMPTY_WALLET, credits: 3 };
+    expect(consumeOne(null, spent, wallet, NOW, team)).toEqual({ usage: spent, wallet });
+  });
+
+  it('구매한 프리미엄이 있으면 프리미엄으로 보인다', () => {
+    const lifetime: PremiumState = { plan: 'lifetime', productId: PRODUCT_IDS.lifetime, expiresAt: null, verifiedAt: NOW };
+    expect(quotaStatus(lifetime, spent, NOW, EMPTY_WALLET, team).kind).toBe('premium');
+  });
+
+  it('서버 재확인 없이 7일이 지나면 팀원 캐시를 믿지 않는다', () => {
+    expect(isTeamActive(team, NOW + 7 * DAY - 1)).toBe(true);
+    expect(isTeamActive(team, NOW + 7 * DAY)).toBe(false);
+    expect(quotaStatus(null, spent, NOW + 7 * DAY, EMPTY_WALLET, team).kind).not.toBe('team');
+    expect(isTeamActive(null, NOW)).toBe(false);
   });
 });

@@ -10,8 +10,9 @@ import { CelebrationProvider } from '@/components/fx/celebration';
 import { ToastProvider } from '@/components/ui/toast';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { flushAnalytics, initAnalytics, trackScreen, updateIdentity } from '@/lib/analytics';
+import { flushAnalytics, initAnalytics, launchAcquisition, trackScreen, updateIdentity } from '@/lib/analytics';
 import { endBilling, initBilling } from '@/lib/billing/iap';
+import { refreshTeam } from '@/lib/billing/team';
 import { haptic, setHapticsEnabled } from '@/lib/haptics';
 import { cleanupOrphanImages } from '@/lib/images';
 import { useAppStore } from '@/store/app-store';
@@ -69,6 +70,8 @@ export default function RootLayout() {
   // 이용 기록 수집 (동의한 경우에만 실제로 전송됨)
   useEffect(() => {
     if (!hydrated) return;
+    // 처음 실행이면 어디서 들어왔는지 기기에 적어 둔다 (동의한 경우에만 이용 기록과 함께 전송)
+    if (!useAppStore.getState().acquisition) useAppStore.getState().setAcquisition(launchAcquisition());
     const s = useAppStore.getState();
     initAnalytics({
       deviceId: s.deviceId,
@@ -76,6 +79,7 @@ export default function RootLayout() {
       user: s.user,
       premiumPlan: s.premium?.plan ?? null,
       crushCount: Object.keys(s.crushes).length,
+      acquisition: s.acquisition,
     });
     const unsubscribe = useAppStore.subscribe((next) =>
       updateIdentity({
@@ -83,6 +87,7 @@ export default function RootLayout() {
         user: next.user,
         premiumPlan: next.premium?.plan ?? null,
         crushCount: Object.keys(next.crushes).length,
+        acquisition: next.acquisition,
       }),
     );
     const sub = AppState.addEventListener('change', (state) => {
@@ -118,6 +123,16 @@ export default function RootLayout() {
       alive = false;
       endBilling();
     };
+  }, [hydrated]);
+
+  // 관리자가 무제한을 허용한 팀원 기기인지 — 켤 때와 앱으로 돌아올 때 확인
+  useEffect(() => {
+    if (!hydrated) return;
+    refreshTeam().catch(() => {});
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refreshTeam().catch(() => {});
+    });
+    return () => sub.remove();
   }, [hydrated]);
 
   const navTheme = {

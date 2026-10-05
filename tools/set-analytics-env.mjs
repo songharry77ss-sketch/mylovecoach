@@ -1,8 +1,9 @@
-// PC 에서 실행: node tools/set-analytics-env.mjs [--deploy]
+// PC 에서 실행: node tools/set-analytics-env.mjs [--deploy] [--admin-password <새 비밀번호>] [--analytics on|off]
 // wolha-secrets 의 Supabase·관리자 비밀번호를 Vercel 환경변수로 올린다. 값은 출력하지 않는다.
 //   mylovecoach-supabase.txt     : SUPABASE_URL=… / SUPABASE_SERVICE_ROLE_KEY=…
-//   mylovecoach-admin-token.txt  : ADMIN_TOKEN=…   (없으면 새로 만든다)
+//   mylovecoach-admin-token.txt  : ADMIN_TOKEN=…   (없으면 새로 만든다. --admin-password 를 주면 그 값으로 바꾼다)
 //   mylovecoach-vercel-token.txt : VERCEL_TOKEN=…
+// --analytics on 이면 ANALYTICS_ENABLED=1 (이용 기록 저장), off 면 0. 안 주면 그대로 둔다.
 import { randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -31,12 +32,28 @@ if (!vercelFile) {
 const vercelToken = entries(vercelFile).VERCEL_TOKEN ?? readFileSync(vercelFile, 'utf8').trim();
 
 const adminFile = join(root, 'mylovecoach-admin-token.txt');
-if (!existsSync(adminFile)) {
+const newPassword = args.includes('--admin-password') ? String(args[args.indexOf('--admin-password') + 1] ?? '').trim() : '';
+if (args.includes('--admin-password') && !newPassword) {
+  console.error('--admin-password 뒤에 새 비밀번호를 적어 주세요.');
+  process.exit(1);
+}
+if (newPassword) {
+  writeFileSync(adminFile, `ADMIN_TOKEN=${newPassword}\n`, { mode: 0o600 });
+  console.log(`관리자 비밀번호 변경: ${adminFile}`);
+} else if (!existsSync(adminFile)) {
   writeFileSync(adminFile, `ADMIN_TOKEN=${randomBytes(12).toString('base64url')}\n`, { mode: 0o600 });
   console.log(`관리자 비밀번호 생성: ${adminFile}`);
 }
 
 const values = { ADMIN_TOKEN: entries(adminFile).ADMIN_TOKEN };
+if (args.includes('--analytics')) {
+  const mode = args[args.indexOf('--analytics') + 1];
+  if (mode !== 'on' && mode !== 'off') {
+    console.error('--analytics 뒤에는 on 또는 off 를 적어 주세요.');
+    process.exit(1);
+  }
+  values.ANALYTICS_ENABLED = mode === 'on' ? '1' : '0';
+}
 const supaFile = join(root, 'mylovecoach-supabase.txt');
 if (existsSync(supaFile)) {
   const s = entries(supaFile);

@@ -1,12 +1,12 @@
 /**
  * POST /api/track — 앱이 보낸 이용 기록을 Supabase 에 저장합니다.
  * 「서비스 개선을 위한 이용 기록 수집」에 동의한 이용자의 앱만 호출합니다.
- * 환경변수 SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 가 없으면 조용히 204 를 돌려줍니다.
+ * 환경변수 SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 가 없거나 ANALYTICS_ENABLED=1 이 아니면 조용히 204 를 돌려줍니다.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
 
-import { insert, patch, supabaseReady } from './_supabase';
+import { analyticsEnabled, insert, patch } from './_supabase';
 
 export const config = { maxDuration: 15 };
 
@@ -34,6 +34,19 @@ const BodySchema = z.object({
     .nullable()
     .optional(),
   premiumPlan: z.string().max(24).nullable().optional(),
+  /** 처음 앱을 연 곳 (웹 광고 링크의 utm_*·이전 사이트, 앱은 설치 경로) */
+  acquisition: z
+    .object({
+      channel: z.string().max(16).optional(),
+      source: z.string().max(80).optional(),
+      medium: z.string().max(80).optional(),
+      campaign: z.string().max(80).optional(),
+      referrer: z.string().max(120).optional(),
+      landing: z.string().max(120).optional(),
+      at: z.number().int().optional(),
+    })
+    .nullable()
+    .optional(),
   crushCount: z.number().int().min(0).max(9999).optional(),
   sessionStartedAt: z.number().int().optional(),
   sessionDurationMs: z.number().int().nonnegative().optional(),
@@ -52,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(401).end();
     return;
   }
-  if (!supabaseReady()) {
+  if (!analyticsEnabled()) {
     res.status(204).end();
     return;
   }
@@ -65,9 +78,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const b = parsed.data;
   const now = new Date().toISOString();
   const iso = (ms?: number) => (ms ? new Date(ms).toISOString() : now);
+  const userFilter = `device_id=eq.${encodeURIComponent(b.deviceId)}`;
+  const acq = b.acquisition;
+  const source = acq ? acq.source || acq.referrer || acq.channel || null : null;
 
   // 응답을 먼저 돌려주지 않고 기다린다 (서버리스는 응답 후 작업이 중단될 수 있음)
   await Promise.all([
+    // 처음 보는 기기면 만들고(처음 접속 시각·유입 경로는 이때만 기록), 이미 있으면 최근 상태만 고친다
     insert(
       'app_user',
       {
@@ -81,20 +98,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         app_version: b.appVersion ?? null,
         premium_plan: b.premiumPlan ?? null,
         crush_count: b.crushCount ?? 0,
+        source,
+        source_detail: acq ?? null,
         first_seen_at: now,
         last_seen_at: now,
       },
-      { upsert: true },
-    ).then((ok) =>
-      ok
-        ? patch('app_user', `device_id=eq.${encodeURIComponent(b.deviceId)}`, {
-            last_seen_at: now,
-            ...(b.user?.name ? { name: b.user.name } : {}),
-            premium_plan: b.premiumPlan ?? null,
-            crush_count: b.crushCount ?? 0,
-          })
-        : false,
-    ),
+      { ignoreDuplicates: true },
+    ).then(async (ok) => {
+      if (!ok) return false;
+      // 유입 경로를 모으기 전에 만들어진 이용자는 처음 한 번만 채운다
+      if (source) await patch('app_user', `${userFilter}&source=is.null`, { source, source_detail: acq });
+      return patch('app_user', userFilter, {
+        last_seen_at: now,
+        ...(b.user?.name ? { name: b.user.name } : {}),
+        ...(b.user ? { gender: b.user.gender ?? null, age: b.user.age ?? null, mbti: b.user.mbti ?? null, default_tone: b.user.defaultTone ?? null } : {}),
+        ...(b.platform ? { platform: b.platform } : {}),
+        ...(b.appVersion ? { app_version: b.appVersion } : {}),
+        premium_plan: b.premiumPlan ?? null,
+        crush_count: b.crushCount ?? 0,
+      });
+    }),
 
     insert(
       'app_session',

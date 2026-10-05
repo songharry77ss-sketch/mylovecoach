@@ -50,6 +50,29 @@
   .pill { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(61,160,242,.12); color: var(--sky); }
   .pill.hot { background: rgba(255,138,168,.16); color: var(--pink); }
   .hide { display: none; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+  .row input { flex: 1 1 200px; min-width: 0; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; word-break: break-all; }
+  button.ghost { background: transparent; color: var(--sky); border: 1px solid var(--line); padding: 5px 10px; font-size: 12px; }
+  button.danger { background: transparent; color: #ff5b6e; border: 1px solid var(--line); padding: 5px 10px; font-size: 12px; }
+  button.danger.armed { background: #ff5b6e; color: #fff; border-color: #ff5b6e; }
+  .ok { color: #1fa36b; font-size: 13px; min-height: 18px; margin-top: 8px; }
+  tr.clickable { cursor: pointer; }
+  tr.clickable:hover td { background: rgba(61,160,242,.06); }
+  tr.selected td { background: rgba(61,160,242,.12); }
+  .pill.live { background: rgba(31,163,107,.14); color: #1fa36b; }
+  .kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; font-size: 13px; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; }
+  .bubble { border-radius: 14px; padding: 10px 12px; margin: 6px 0; font-size: 13px; white-space: pre-wrap; word-break: break-word; }
+  .bubble.me { background: rgba(61,160,242,.12); margin-left: 18%; }
+  .bubble.ai { background: rgba(255,138,168,.10); margin-right: 18%; }
+  .chat { border-bottom: 1px solid var(--line); padding: 12px 0; }
+  .chat:last-child { border-bottom: 0; }
+  .timeline { list-style: none; margin: 0; padding: 0; font-size: 13px; max-height: 360px; overflow-y: auto; }
+  .timeline li { display: flex; gap: 10px; padding: 5px 0; border-bottom: 1px dashed var(--line); }
+  .timeline li .t { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .notice { background: rgba(61,160,242,.08); border: 1px dashed var(--line); border-radius: 12px; padding: 10px 12px; font-size: 13px; color: var(--muted); margin-bottom: 20px; }
 </style>
 </head>
 <body>
@@ -80,7 +103,34 @@
       </div>
     </header>
 
+    <div class="card" style="margin-bottom:20px">
+      <h2>팀원 무제한</h2>
+      <p class="muted" style="margin:0">팀원 앱의 「마이 → 내 기기 ID」를 눌러 복사한 값을 받아 넣으면, 그 기기는 무료 횟수 제한 없이 써요.
+        앱을 지우고 다시 설치하면 ID가 바뀌니 다시 등록해 주세요. 앱에는 마이 탭을 열거나 앱을 다시 켤 때 반영돼요.</p>
+      <div class="row">
+        <input id="teamDevice" placeholder="기기 ID (예: d_mg3k2x9a1b2c3d)" autocomplete="off" spellcheck="false" />
+        <input id="teamLabel" placeholder="이름·메모 (예: 디자인 지민)" maxlength="40" autocomplete="off" />
+        <button id="teamAdd">무제한 허용</button>
+      </div>
+      <div class="err" id="teamErr"></div>
+      <div class="ok" id="teamOk"></div>
+      <div id="teamList"></div>
+    </div>
+
+    <div class="notice hide" id="analyticsNote">이용 기록 저장이 꺼져 있어요. 아래 통계는 Vercel 환경변수 <b>ANALYTICS_ENABLED=1</b> 을 켠 뒤부터 쌓여요 (스토어 개인정보 신고를 먼저 바꿔 주세요).</div>
+
     <div class="grid stats" id="stats"></div>
+
+    <div class="card" style="margin-bottom:20px">
+      <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between">
+        <h2 style="margin:0">이용자 <span class="muted" id="usersCount"></span></h2>
+        <input id="userSearch" placeholder="이름·기기 ID·유입 검색" autocomplete="off" style="flex:0 1 240px" />
+      </div>
+      <p class="muted" style="margin:6px 0 10px">이용 기록 수집에 동의한 사람만 보여요. 줄을 누르면 어디서 얼마나 머물렀는지, 어떤 코칭을 받았는지 볼 수 있어요.</p>
+      <div id="users" style="overflow-x:auto"></div>
+    </div>
+
+    <div class="card hide" id="userDetail" style="margin-bottom:20px"></div>
 
     <div class="grid cols">
       <div class="card"><h2>날짜별 코칭 요청</h2><div id="byDay"></div></div>
@@ -107,13 +157,38 @@
   const num = (n) => Number(n ?? 0).toLocaleString('ko-KR');
 
   const LABEL = {
-    users_total: '전체 이용자', users_new: '신규 이용자', users_active: '활동 이용자',
+    online_now: '지금 접속 중', users_total: '전체 이용자', users_new: '신규 이용자', users_active: '활동 이용자',
     premium_users: '프리미엄', sessions: '실행 횟수', avg_session_sec: '평균 체류',
     coach_requests: '코칭 요청', with_image: '캡처 첨부',
   };
   const REL = { crush: '짝사랑', talking: '썸', blind_date: '소개팅', friend: '친구', dating: '연인', ex: '재회' };
   const TONE = { natural: '자연스럽게', flirty: '설레게', witty: '유머러스', cool: '쿨하게', sincere: '진심으로' };
   const TEMP = { hot: '🔥 뜨거움', warm: '☀️ 따뜻함', neutral: '🙂 보통', cold: '🧊 차가움', unknown: '· 알 수 없음' };
+  const SCREEN = {
+    '/': '홈', '/(tabs)': '홈', '/start': '첫 화면', '/my': '마이', '/practice': '연습 탭', '/tips': '팁',
+    '/crush/[id]': '채팅방', '/crush/[id]/report': '상대 분석 보고서', '/crush/[id]/edit': '상대 정보 수정', '/crush/new': '새 채팅방',
+    '/practice/[id]': '연애 연습', '/practice/custom': '연습 상대 만들기', '/paywall': '결제 화면', '/mind': '속마음 풀이',
+    '/kkti': 'KKTI 검사', '/kkti/result': 'KKTI 결과', '/quick': '빠른 코칭', '/settings/profile': '내 프로필', '/settings/api-key': 'AI 코치 연결',
+  };
+  const EVENT = {
+    app_open: '앱 실행', start: '첫 화면에서 시작', coach_success: '코칭 받음', coach_error: '코칭 오류', coach_blocked: '무료 횟수 소진으로 막힘',
+    ai_blocked: '무료 횟수 소진으로 막힘', paywall_open: '결제 화면 열림', purchase_start: '결제 시작', analytics_opt_in: '이용 기록 수집 켬',
+    analytics_opt_out: '이용 기록 수집 끔', kkti_start: 'KKTI 시작', kkti_complete: 'KKTI 완료', kkti_share: 'KKTI 공유', kkti_cta: 'KKTI → 코칭',
+  };
+  const START = { image: '캡처로 시작', text: '글로 시작', secret: '비밀 상담으로 시작' };
+  const CHANNEL = { ios: 'App Store 앱', android: 'Play 스토어 앱', apk: 'APK 직접 설치', web: '웹 직접 방문' };
+  const GENDER = { male: '남', female: '여', other: '기타' };
+  const screenLabel = (s) => SCREEN[s] ?? s;
+  const eventLabel = (n) => EVENT[n] ?? (n.startsWith('purchase_') ? `결제 결과: ${n.slice(9)}` : n.endsWith('_success') ? `${n.slice(0, -8)} 성공` : n);
+  const secs = (v) => { const t = Math.round(Number(v) || 0); return t >= 3600 ? `${Math.floor(t / 3600)}시간 ${Math.floor((t % 3600) / 60)}분` : t >= 60 ? `${Math.floor(t / 60)}분 ${t % 60}초` : `${t}초`; };
+  const when = (d) => d ? new Date(d).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
+  const isLive = (d) => d && Date.now() - new Date(d).getTime() < 5 * 60 * 1000;
+  function sourceLabel(u) {
+    const d = u.source_detail || {};
+    if (d.source) return [d.source, d.medium, d.campaign].filter(Boolean).join(' · ');
+    if (d.referrer) return `${d.referrer} 에서`;
+    return CHANNEL[d.channel || u.platform] || u.source || '-';
+  }
 
   function statCard(key, value) {
     const shown = key === 'avg_session_sec'
@@ -135,13 +210,33 @@
     }).join('')}</tbody></table>`;
   }
 
+  let teamIds = new Set();
+
+  function renderTeam(team) {
+    team = team || [];
+    teamIds = new Set(team.map((t) => t.device_id));
+    $('teamList').innerHTML = team.length
+      ? `<table>
+          <thead><tr><th>이름·메모</th><th>기기 ID</th><th>등록</th><th></th></tr></thead>
+          <tbody>${team.map((t) => `<tr>
+            <td>${esc(t.label || '팀원')}</td>
+            <td class="mono">${esc(t.device_id)}</td>
+            <td class="muted" style="white-space:nowrap">${new Date(t.created_at).toLocaleDateString('ko-KR')}</td>
+            <td class="num"><button class="danger" data-remove="${esc(t.device_id)}">해제</button></td>
+          </tr>`).join('')}</tbody>
+        </table>`
+      : '<p class="muted">아직 등록한 팀원이 없어요.</p>';
+  }
+
   function render(data) {
+    renderTeam(data.team);
+    $('analyticsNote').classList.toggle('hide', data.analytics !== false);
     const s = data.stats;
     $('updated').textContent = `${new Date(data.generatedAt).toLocaleString('ko-KR')} 기준 · 최근 ${s.days}일`;
     $('stats').innerHTML = Object.keys(LABEL).map((k) => statCard(k, s[k])).join('');
 
     $('byDay').innerHTML = barTable(s.by_day, 'day', 'requests', (r) => `${num(r.requests)}건 · ${num(r.users)}명`);
-    $('screens').innerHTML = barTable(s.top_screens, 'screen', 'total_sec', (r) => {
+    $('screens').innerHTML = barTable((s.top_screens || []).map((r) => ({ ...r, screen: screenLabel(r.screen) })), 'screen', 'total_sec', (r) => {
       const t = Number(r.total_sec) || 0;
       const total = t >= 60 ? `${Math.floor(t / 60)}분` : `${t}초`;
       return `${total} · 평균 ${r.avg_sec}초`;
@@ -153,39 +248,220 @@
     const logs = data.logs || [];
     $('logs').innerHTML = logs.length
       ? `<table>
-          <thead><tr><th>시각</th><th>상대</th><th>관계·톤</th><th>질문 / 상황</th><th>결과</th></tr></thead>
+          <thead><tr><th>시각</th><th>상대</th><th>관계·톤</th><th>질문 / 상황</th><th>결과</th><th>기기</th></tr></thead>
           <tbody>${logs.map((l) => `<tr>
             <td class="muted" style="white-space:nowrap">${new Date(l.created_at).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
             <td>${esc(l.crush_alias || '-')}${l.crush_mbti ? ` <span class="pill">${esc(l.crush_mbti)}</span>` : ''}</td>
             <td class="muted">${esc(REL[l.relationship] ?? l.relationship ?? '-')}<br>${esc(TONE[l.tone] ?? l.tone ?? '')}</td>
             <td class="q">${esc(l.question || (l.has_image ? '(캡처만 업로드)' : '-'))}${l.has_image ? ' <span class="pill">📸 캡처</span>' : ''}</td>
             <td>${l.temperature ? `<span class="pill ${l.temperature === 'hot' ? 'hot' : ''}">${TEMP[l.temperature] ?? l.temperature}${l.interest_score != null ? ` ${l.interest_score}°` : ''}</span>` : '-'}<div class="muted q" style="margin-top:4px">${esc((l.summary || '').slice(0, 90))}</div></td>
+            <td>${l.device_id ? (teamIds.has(l.device_id) ? '<span class="pill">팀원</span>' : `<button class="ghost" data-pick="${esc(l.device_id)}">팀원 등록</button>`) : ''}</td>
           </tr>`).join('')}</tbody>
         </table>`
       : '<p class="muted">아직 코칭 기록이 없어요.</p>';
   }
 
+  async function api(path, body) {
+    const res = await fetch(path, {
+      method: body ? 'POST' : 'GET',
+      headers: { Authorization: `Bearer ${sessionStorage.getItem(KEY)}`, ...(body ? { 'content-type': 'application/json' } : {}) },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const err = new Error(data.error || '불러오지 못했어요.');
+      err.status = res.status;
+      throw err;
+    }
+    return data;
+  }
+
+  function logout(message) {
+    sessionStorage.removeItem(KEY);
+    $('app').classList.add('hide');
+    $('login').classList.remove('hide');
+    $('loginErr').textContent = message;
+  }
+
+  // ── 이용자 목록 · 상세 ────────────────────────────────────────────
+  let users = [];
+  let openDevice = '';
+
+  function renderUsers() {
+    const q = $('userSearch').value.trim().toLowerCase();
+    const rows = q
+      ? users.filter((u) => [u.name, u.device_id, sourceLabel(u), u.mbti].some((v) => String(v ?? '').toLowerCase().includes(q)))
+      : users;
+    $('usersCount').textContent = users.length ? `${num(users.length)}명${q ? ` 중 ${num(rows.length)}명` : ''}` : '';
+    $('users').innerHTML = rows.length
+      ? `<table>
+          <thead><tr><th>이름·프로필</th><th>유입 · 시작</th><th>처음 → 마지막 접속</th><th class="num">실행</th><th class="num">체류</th><th class="num">코칭</th></tr></thead>
+          <tbody>${rows.map((u) => `<tr class="clickable ${u.device_id === openDevice ? 'selected' : ''}" data-user="${esc(u.device_id)}">
+            <td><b>${esc(u.name || '이름 없음')}</b> ${isLive(u.last_seen_at) ? '<span class="pill live">접속 중</span>' : ''} ${u.is_team ? '<span class="pill">팀원</span>' : ''} ${u.premium_plan ? `<span class="pill hot">${u.premium_plan === 'lifetime' ? '평생권' : '주간'}</span>` : ''}
+              <div class="muted">${esc([GENDER[u.gender] ?? u.gender, u.age ? `${u.age}세` : null, u.mbti, u.platform].filter(Boolean).join(' · ') || '-')}</div></td>
+            <td>${esc(sourceLabel(u))}<div class="muted">${esc(START[u.start_mode] ?? '')}</div></td>
+            <td class="muted" style="white-space:nowrap">${when(u.first_seen_at)}<br>→ ${when(u.last_seen_at)}</td>
+            <td class="num">${num(u.sessions)}</td>
+            <td class="num">${secs(u.total_sec)}</td>
+            <td class="num">${num(u.coach_count)}</td>
+          </tr>`).join('')}</tbody>
+        </table>`
+      : `<p class="muted">${users.length ? '검색 결과가 없어요.' : '이 기간에 들어온 이용자가 없어요.'}</p>`;
+  }
+
+  async function openUser(deviceId) {
+    openDevice = deviceId;
+    renderUsers();
+    const box = $('userDetail');
+    box.classList.remove('hide');
+    box.innerHTML = '<p class="muted">불러오는 중…</p>';
+    box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    try {
+      renderDetail(await api(`/api/admin?view=user&deviceId=${encodeURIComponent(deviceId)}`));
+    } catch (e) {
+      if (e.status === 401 || e.status === 429) return logout(e.message);
+      box.innerHTML = `<p class="err">${esc(e.message)}</p>`;
+    }
+  }
+
+  function renderDetail(d) {
+    const u = d.user || {};
+    const meta = users.find((x) => x.device_id === u.device_id) || {};
+    const acq = u.source_detail || {};
+    const chats = d.chats || [];
+    const kv = (rows) => `<dl class="kv">${rows.filter(([, v]) => v != null && v !== '').map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+    $('userDetail').innerHTML = `
+      <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; margin-bottom:14px">
+        <h2 style="margin:0; font-size:18px">${esc(u.name || '이름 없음')} ${isLive(u.last_seen_at) ? '<span class="pill live">접속 중</span>' : ''}</h2>
+        <div style="display:flex; gap:8px">
+          ${d.is_team ? '<span class="pill">팀원 무제한</span>' : `<button class="ghost" data-team-user="${esc(u.device_id)}" data-team-label="${esc(u.name || '')}">팀원으로 무제한 허용</button>`}
+          <button class="ghost" data-close-detail>닫기</button>
+        </div>
+      </div>
+      <div class="grid cols">
+        <div><h2>프로필 · 유입</h2>${kv([
+          ['기기 ID', `<span class="mono">${esc(u.device_id)}</span>`],
+          ['프로필', esc([GENDER[u.gender] ?? u.gender, u.age ? `${u.age}세` : null, u.mbti].filter(Boolean).join(' · ') || '-')],
+          ['기기', esc([u.platform, u.app_version ? `v${u.app_version}` : null].filter(Boolean).join(' · '))],
+          ['들어온 곳', esc(sourceLabel(u))],
+          ['광고 링크', esc([acq.source && `utm_source=${acq.source}`, acq.medium && `utm_medium=${acq.medium}`, acq.campaign && `utm_campaign=${acq.campaign}`].filter(Boolean).join(' · '))],
+          ['이전 사이트', esc(acq.referrer || '')],
+          ['처음 연 주소', esc(acq.landing || '')],
+          ['시작 방식', esc(START[meta.start_mode] ?? '')],
+          ['처음 접속', when(u.first_seen_at)],
+          ['마지막 접속', when(u.last_seen_at)],
+          ['이용권', esc(u.premium_plan === 'lifetime' ? '평생권' : u.premium_plan === 'weekly' ? '주간 구독' : d.is_team ? '팀원 무제한' : '무료')],
+          ['채팅방', `${num(u.crush_count)}개`],
+        ])}</div>
+        <div><h2>화면별 체류</h2>${barTable((d.screens || []).map((r) => ({ ...r, label: screenLabel(r.screen) })), 'label', 'total_sec', (r) => `${secs(r.total_sec)} · ${num(r.views)}번`)}</div>
+      </div>
+      <div class="grid cols" style="margin-top:16px">
+        <div><h2>이동 경로 <span class="muted">최근 순 · 머문 시간</span></h2>${(d.path || []).length
+          ? `<ul class="timeline">${d.path.map((p) => `<li><span class="t">${when(p.created_at)}</span><span style="flex:1">${esc(screenLabel(p.screen))}</span><span class="muted">${secs(p.sec)}</span></li>`).join('')}</ul>`
+          : '<p class="muted">아직 기록이 없어요.</p>'}</div>
+        <div><h2>버튼·행동 기록</h2>${(d.events || []).length
+          ? `<ul class="timeline">${d.events.map((e) => `<li><span class="t">${when(e.created_at)}</span><span style="flex:1">${esc(eventLabel(e.name))}</span><span class="muted mono">${esc(e.props ? Object.entries(e.props).map(([k, v]) => `${k}=${v}`).join(' ').slice(0, 60) : '')}</span></li>`).join('')}</ul>`
+          : '<p class="muted">아직 기록이 없어요.</p>'}</div>
+      </div>
+      <div style="margin-top:16px"><h2>코칭 대화 <span class="muted">${num(chats.length)}건 · 최근 순 · 캡처 이미지는 저장하지 않아요</span></h2>${chats.length
+        ? chats.map((c) => `<div class="chat">
+            <div class="muted">${when(c.created_at)} · 상대 ${esc(c.crush_alias || '-')}${c.crush_mbti ? ` (${esc(c.crush_mbti)})` : ''} · ${esc(REL[c.relationship] ?? c.relationship ?? '-')} · ${esc(TONE[c.tone] ?? c.tone ?? '')}</div>
+            <div class="bubble me">${esc(c.question || '')}${c.has_image ? `${c.question ? '\n' : ''}📸 대화 캡처 첨부` : ''}${!c.question && !c.has_image ? '-' : ''}</div>
+            ${c.error ? `<div class="bubble ai">⚠️ 오류: ${esc(c.error)}</div>` : `<div class="bubble ai">${c.temperature ? `${TEMP[c.temperature] ?? c.temperature}${c.interest_score != null ? ` ${c.interest_score}°` : ''}\n` : ''}${esc(c.summary || '')}${(c.reply_texts || []).length ? `\n\n추천 답장\n${c.reply_texts.map((t, i) => `${i + 1}. ${esc(t)}`).join('\n')}` : ''}${c.next_step ? `\n\n다음 단계: ${esc(c.next_step)}` : ''}</div>`}
+          </div>`).join('')
+        : '<p class="muted">아직 코칭 기록이 없어요.</p>'}</div>
+      <div style="margin-top:16px"><h2>실행 기록</h2>${(d.sessions || []).length
+        ? `<table><thead><tr><th>시작</th><th class="num">머문 시간</th><th>기기</th></tr></thead><tbody>${d.sessions.map((s) => `<tr><td class="muted">${when(s.started_at)}</td><td class="num">${s.duration_sec != null ? secs(s.duration_sec) : '-'}</td><td class="muted">${esc([s.platform, s.app_version].filter(Boolean).join(' · '))}</td></tr>`).join('')}</tbody></table>`
+        : '<p class="muted">아직 기록이 없어요.</p>'}</div>`;
+  }
+
+  $('userSearch').oninput = renderUsers;
+
   async function load() {
-    const token = sessionStorage.getItem(KEY);
-    if (!token) return;
+    if (!sessionStorage.getItem(KEY)) return;
     $('reload').disabled = true;
     try {
-      const res = await fetch(`/api/admin?days=${$('days').value}&limit=60`, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.status === 401) throw new Error('비밀번호가 올바르지 않아요.');
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || '불러오지 못했어요.');
+      const days = $('days').value;
+      const [data, list] = await Promise.all([api(`/api/admin?days=${days}&limit=60`), api(`/api/admin?view=users&days=${days}`)]);
       $('login').classList.add('hide');
       $('app').classList.remove('hide');
       render(data);
+      users = list.users || [];
+      renderUsers();
     } catch (e) {
-      sessionStorage.removeItem(KEY);
-      $('app').classList.add('hide');
-      $('login').classList.remove('hide');
-      $('loginErr').textContent = e.message;
+      logout(e.message);
     } finally {
       $('reload').disabled = false;
     }
   }
+
+  async function teamAction(body, okMessage) {
+    $('teamErr').textContent = '';
+    $('teamOk').textContent = '';
+    try {
+      const data = await api('/api/admin', body);
+      renderTeam(data.team);
+      $('teamOk').textContent = okMessage;
+      return true;
+    } catch (e) {
+      if (e.status === 401 || e.status === 429) logout(e.message);
+      else $('teamErr').textContent = e.message;
+      return false;
+    }
+  }
+
+  $('teamAdd').onclick = async () => {
+    const deviceId = $('teamDevice').value.trim();
+    const label = $('teamLabel').value.trim();
+    if (!deviceId) return void ($('teamErr').textContent = '기기 ID를 넣어 주세요.');
+    $('teamAdd').disabled = true;
+    if (await teamAction({ action: 'team_add', deviceId, label }, `${label || '팀원'} 기기를 무제한으로 허용했어요.`)) {
+      $('teamDevice').value = '';
+      $('teamLabel').value = '';
+    }
+    $('teamAdd').disabled = false;
+  };
+  $('teamLabel').onkeydown = (e) => { if (e.key === 'Enter') $('teamAdd').click(); };
+
+  // 해제는 실수로 누르지 않게 두 번 눌러야 한다 (브라우저 확인 창 없이)
+  document.addEventListener('click', async (e) => {
+    const userRow = e.target.closest('[data-user]');
+    if (userRow) return void openUser(userRow.dataset.user);
+    if (e.target.closest('[data-close-detail]')) {
+      openDevice = '';
+      $('userDetail').classList.add('hide');
+      renderUsers();
+      return;
+    }
+    const teamUserBtn = e.target.closest('[data-team-user]');
+    if (teamUserBtn) {
+      teamUserBtn.disabled = true;
+      const label = teamUserBtn.dataset.teamLabel || '팀원';
+      if (await teamAction({ action: 'team_add', deviceId: teamUserBtn.dataset.teamUser, label }, `${label} 기기를 무제한으로 허용했어요.`)) {
+        users = users.map((u) => (u.device_id === teamUserBtn.dataset.teamUser ? { ...u, is_team: true } : u));
+        openUser(teamUserBtn.dataset.teamUser);
+      } else teamUserBtn.disabled = false;
+      return;
+    }
+    const removeBtn = e.target.closest('[data-remove]');
+    if (removeBtn) {
+      if (!removeBtn.classList.contains('armed')) {
+        removeBtn.classList.add('armed');
+        removeBtn.textContent = '한 번 더 누르면 해제';
+        setTimeout(() => { removeBtn.classList.remove('armed'); removeBtn.textContent = '해제'; }, 3000);
+        return;
+      }
+      removeBtn.disabled = true;
+      await teamAction({ action: 'team_remove', deviceId: removeBtn.dataset.remove }, '무제한 허용을 해제했어요.');
+      return;
+    }
+    const pickBtn = e.target.closest('[data-pick]');
+    if (pickBtn) {
+      $('teamDevice').value = pickBtn.dataset.pick;
+      $('teamLabel').focus();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  });
 
   $('loginBtn').onclick = () => {
     const v = $('token').value.trim();

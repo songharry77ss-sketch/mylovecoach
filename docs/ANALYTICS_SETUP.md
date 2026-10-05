@@ -39,14 +39,33 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi...
 아래를 실행하면 Vercel 환경변수 등록 + 재배포까지 한 번에 됩니다.
 
 ```bash
-node tools/set-analytics-env.mjs
+node tools/set-analytics-env.mjs --deploy
 ```
+
+> **이용 기록 저장은 기본으로 꺼져 있습니다.** Supabase 는 팀원 명단에도 쓰기 때문에, 연결만으로 이용 기록이 쌓이지 않게
+> `ANALYTICS_ENABLED=1` 일 때만 저장합니다. 4번(스토어 신고 갱신)을 끝낸 뒤 `node tools/set-analytics-env.mjs --analytics on --deploy` 로 켜세요.
 
 ## 3. 관리자 페이지 열기
 
 - 주소: **https://mylovecoach.vercel.app/admin.html**
-- 비밀번호: `%USERPROFILE%\wolha-secrets\mylovecoach-admin-token.txt` 의 `ADMIN_TOKEN` 값
+- 비밀번호: `%USERPROFILE%\wolha-secrets\mylovecoach-admin-token.txt` 의 `ADMIN_TOKEN` 값.
+  바꾸려면 `node tools/set-analytics-env.mjs --admin-password <새 비밀번호> --deploy`
 - 검색엔진에 노출되지 않도록 `noindex` 처리돼 있고, 비밀번호 없이는 아무 데이터도 내려가지 않습니다.
+- 짧은 비밀번호를 대입하지 못하게, 같은 IP 에서 15분에 5번 · 전체 1시간에 20번을 넘게 시도하면 잠시 잠깁니다
+  (`admin_auth_fail` 표, 맞게 들어오면 그 IP 기록은 지움). 잠기면 기다리거나 SQL Editor 에서 `delete from admin_auth_fail;`.
+
+## 3-1. 팀원 무제한
+
+관리자 페이지 맨 위 **「팀원 무제한」** 칸에서 팀원 기기를 등록하면, 그 기기는 무료 횟수 제한 없이 씁니다 (앱에는 「팀원 · 무제한」으로 보임).
+
+1. 팀원이 앱 **마이 → 내 기기 ID** 를 눌러 복사해 보내 준다
+2. 관리자 페이지에 기기 ID 와 이름을 넣고 **무제한 허용**
+3. 팀원이 마이 탭을 열거나 앱을 다시 켜면 반영 (`GET /api/team` 으로 확인, 7일 동안은 서버에 못 닿아도 유지)
+
+- 앱을 지우고 다시 설치하면 기기 ID 가 바뀌므로 다시 등록해야 합니다.
+- 해제는 목록의 **해제** 를 두 번 누르면 됩니다.
+- 이용 기록 저장을 켜면 「최근 코칭 기록」의 각 줄에 있는 **팀원 등록** 으로 기기 ID 를 바로 채울 수 있습니다.
+- 직접 설치 APK(`android-apk.yml`)는 원래 누구나 무제한이라 등록이 필요 없습니다.
 
 보이는 것:
 
@@ -74,7 +93,7 @@ node tools/set-analytics-env.mjs
 무료 플랜은 500MB 데이터베이스 + 월 5GB 전송입니다. 이 앱의 기록은 한 건에 1KB 안팎이라 수십만 건까지 여유가 있습니다.
 
 **Q. Supabase 를 연결하지 않으면 어떻게 되나요?**
-`api/track` 은 조용히 204 를 돌려주고, `api/admin` 은 "아직 연결되지 않았어요" 를 표시합니다. 앱과 코칭 기능은 정상 동작합니다.
+`api/track` 은 조용히 204 를 돌려주고, `api/admin` 은 "아직 연결되지 않았어요" 를 표시합니다. 팀원 무제한도 쓸 수 없습니다(명단을 저장할 곳이 없음). 앱과 코칭 기능은 정상 동작합니다.
 
 **Q. 이용자가 동의를 철회하면?**
 앱 「마이 → 이용 기록 수집」 스위치를 끄면 즉시 전송이 멈춥니다. 이미 쌓인 기록을 지우려면 Supabase SQL Editor 에서

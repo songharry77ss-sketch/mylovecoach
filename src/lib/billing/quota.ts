@@ -28,6 +28,13 @@ export interface WalletState {
   granted: string[];
 }
 
+/** 관리자 페이지에서 무제한을 허용한 팀원 (서버 확인 결과의 캐시) */
+export interface TeamState {
+  label: string;
+  /** 서버에서 마지막으로 확인한 시각 */
+  verifiedAt: number;
+}
+
 export const EMPTY_USAGE: UsageState = { total: 0, day: '', dayCount: 0 };
 export const EMPTY_WALLET: WalletState = { passUntil: 0, credits: 0, granted: [] };
 
@@ -36,6 +43,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEKLY_TRUST_MS = 8 * DAY_MS;
 /** 만료 직후 갱신 결제가 반영될 때까지의 여유 */
 const EXPIRY_GRACE_MS = DAY_MS;
+/** 오프라인 등으로 서버 재확인을 못 했을 때 팀원 캐시를 믿어 주는 기간 */
+const TEAM_TRUST_MS = 7 * DAY_MS;
 
 export function dayKey(now: number): string {
   const d = new Date(now);
@@ -50,11 +59,15 @@ export function isPremiumActive(premium: PremiumState | null | undefined, now: n
   return now - premium.verifiedAt < WEEKLY_TRUST_MS;
 }
 
-export type QuotaKind = 'premium' | 'pass' | 'trial' | 'daily' | 'credits' | 'exhausted';
+export function isTeamActive(team: TeamState | null | undefined, now: number): boolean {
+  return team != null && now - team.verifiedAt < TEAM_TRUST_MS;
+}
+
+export type QuotaKind = 'premium' | 'team' | 'pass' | 'trial' | 'daily' | 'credits' | 'exhausted';
 
 export interface QuotaStatus {
   kind: QuotaKind;
-  /** 지금 쓸 수 있는 횟수 (무료 + 횟수권). 프리미엄·하루 이용권은 Infinity */
+  /** 지금 쓸 수 있는 횟수 (무료 + 횟수권). 프리미엄·팀원·하루 이용권은 Infinity */
   remaining: number;
   /** 남은 무료 횟수 */
   free?: number;
@@ -71,8 +84,15 @@ function freeLeft(usage: UsageState, now: number): { kind: 'trial' | 'daily'; le
   return { kind: 'daily', left: Math.max(0, FREE_DAILY - usedToday) };
 }
 
-export function quotaStatus(premium: PremiumState | null | undefined, usage: UsageState, now: number, wallet: WalletState = EMPTY_WALLET): QuotaStatus {
+export function quotaStatus(
+  premium: PremiumState | null | undefined,
+  usage: UsageState,
+  now: number,
+  wallet: WalletState = EMPTY_WALLET,
+  team: TeamState | null = null,
+): QuotaStatus {
   if (isPremiumActive(premium, now)) return { kind: 'premium', remaining: Infinity };
+  if (isTeamActive(team, now)) return { kind: 'team', remaining: Infinity };
   if (wallet.passUntil > now) return { kind: 'pass', remaining: Infinity, until: wallet.passUntil };
   const free = freeLeft(usage, now);
   const credits = Math.max(0, wallet.credits);
@@ -91,7 +111,7 @@ export function consumeFree(usage: UsageState, now: number): UsageState {
 }
 
 /**
- * 한 번 사용 처리. 프리미엄·하루 이용권이면 아무것도 깎지 않고,
+ * 한 번 사용 처리. 프리미엄·팀원·하루 이용권이면 아무것도 깎지 않고,
  * 무료 횟수 → 횟수권 순서로 차감한다.
  */
 export function consumeOne(
@@ -99,8 +119,9 @@ export function consumeOne(
   usage: UsageState,
   wallet: WalletState,
   now: number,
+  team: TeamState | null = null,
 ): { usage: UsageState; wallet: WalletState } {
-  if (isPremiumActive(premium, now) || wallet.passUntil > now) return { usage, wallet };
+  if (isPremiumActive(premium, now) || isTeamActive(team, now) || wallet.passUntil > now) return { usage, wallet };
   if (freeLeft(usage, now).left > 0) return { usage: consumeFree(usage, now), wallet };
   if (wallet.credits > 0) return { usage, wallet: { ...wallet, credits: wallet.credits - 1 } };
   return { usage: consumeFree(usage, now), wallet };
@@ -126,6 +147,8 @@ export function quotaLabel(status: QuotaStatus): string {
   switch (status.kind) {
     case 'premium':
       return '프리미엄 · 무제한';
+    case 'team':
+      return '팀원 · 무제한';
     case 'pass':
       return `하루 이용권 · ${status.until ? `${clock(status.until)}까지 ` : ''}무제한`;
     case 'trial':
