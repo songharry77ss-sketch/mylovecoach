@@ -22,3 +22,13 @@ describe('isSameDay', () => {
     expect(isSameDay(b, c)).toBe(false);
   });
 });
+
+describe('캡처 파일 이름에서 만든 시각 읽기', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { createdAtOf } = require('@/lib/images') as typeof import('@/lib/images');
+  it('createId 로 만든 이름이면 시각을, 아니면 null', () => {
+    const t = new Date(2026, 9, 5, 12).getTime();
+    expect(createdAtOf(`file:///data/screenshots/img_${t.toString(36)}abc123.jpg`)).toBe(t);
+    expect(createdAtOf('file:///data/screenshots/other.jpg')).toBeNull();
+  });
+});

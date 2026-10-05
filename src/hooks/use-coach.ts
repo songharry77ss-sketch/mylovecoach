@@ -5,7 +5,7 @@ import { currentQuota } from '@/lib/billing/gate';
 import { CoachError, requestCoaching } from '@/lib/coach-client';
 import { crushToRequest, userToRequest } from '@/lib/coach-schema';
 import { encodeForModel, type PickedImage } from '@/lib/images';
-import type { Tone } from '@/lib/types';
+import type { EmojiPref, KktiSaved, Tone } from '@/lib/types';
 import { analysisCacheKey, buildHistory, useAppStore } from '@/store/app-store';
 import { loadApiKey } from '@/store/storage';
 
@@ -14,11 +14,16 @@ export interface SendInput {
   image: PickedImage | null;
   text: string;
   tone: Tone;
+  /** 답장에 이모지 넣기 (없으면 내 프로필 기본값) */
+  emoji?: EmojiPref;
   /** 같은 캡처로 다른 답장을 요청하는 경우 */
   variationOf?: string;
 }
 
 export type SendResult = 'sent' | 'blocked' | 'skipped';
+
+/** 프롬프트에 넣을 KKTI 한 줄 (예: 선빠폭직 직진 불도저) */
+export const kktiLabel = (k: KktiSaved | null | undefined) => (k ? `${k.code} ${k.name}`.slice(0, 40) : undefined);
 
 /**
  * 코칭 요청 전체 플로우 (메시지 추가 → 이미지 인코딩 → API → 결과 반영).
@@ -52,6 +57,9 @@ export function useCoach() {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
+    const emoji = input.emoji ?? user.emoji ?? 'on';
+    // 비밀 상담은 결과를 캐시에 남기지 않고, 이용 기록용 기기 ID 도 보내지 않는다
+    const secret = Boolean(crush.secret);
 
     try {
       const history = buildHistory((useAppStore.getState().messages[crush.id] ?? []).filter((m) => m.id !== userMessage.id && m.id !== coachMessage.id));
@@ -61,26 +69,29 @@ export function useCoach() {
       const text = noteParts.filter(Boolean).join(' ');
 
       // 같은 캡처·질문·톤을 다시 보내면 API 를 다시 부르지 않고 저장된 결과를 씁니다 (비용 절감)
-      const cacheKey = analysisCacheKey({ crushId: crush.id, tone: input.tone, text, imageBase64: image?.base64, variation: Boolean(input.variationOf) });
-      const cached = input.variationOf ? null : useAppStore.getState().getCachedAnalysis(cacheKey);
+      const cacheKey = analysisCacheKey({ crushId: crush.id, tone: input.tone, text, imageBase64: image?.base64, variation: Boolean(input.variationOf), emoji });
+      const cached = input.variationOf || secret ? null : useAppStore.getState().getCachedAnalysis(cacheKey);
+      const latest = useAppStore.getState().crushes[crush.id] ?? crush;
       const analysis =
         cached ??
         (await requestCoaching(
           {
-            crush: crushToRequest(crush),
-            user: userToRequest(user),
+            crush: crushToRequest(latest),
+            user: userToRequest(user, kktiLabel(useAppStore.getState().kkti)),
             tone: input.tone,
+            emoji,
             text: text || undefined,
             image,
             history,
           },
-          { directApiKey: await loadApiKey(), deviceId: useAppStore.getState().deviceId, signal: controller.signal },
+          { directApiKey: await loadApiKey(), deviceId: secret ? undefined : useAppStore.getState().deviceId, signal: controller.signal },
         ));
-      if (!cached && !input.variationOf) useAppStore.getState().putCachedAnalysis(cacheKey, analysis);
-      // 실제로 AI 를 호출해 결과를 받은 경우에만 무료 횟수를 차감한다 (오류·저장된 결과 재사용은 차감 없음)
-      if (!cached && quota.kind !== 'premium') useAppStore.getState().consumeFreeCredit();
-      useAppStore.getState().completeAnalysis(crush.id, coachMessage.id, analysis);
-      track('coach_success', { cached: Boolean(cached), hasImage: Boolean(image), tone: input.tone, variation: Boolean(input.variationOf), temperature: analysis.temperature });
+      if (!cached && !input.variationOf && !secret) useAppStore.getState().putCachedAnalysis(cacheKey, analysis);
+      // 실제로 AI 를 호출해 결과를 받은 경우에만 횟수를 차감한다 (오류·저장된 결과 재사용·무제한은 차감 없음)
+      if (!cached && quota.kind !== 'premium') useAppStore.getState().consumeQuota();
+      // 누적 온도는 새로 분석한 대화에서만 움직인다 (같은 캡처 재사용·다른 답장 더 보기는 그대로)
+      useAppStore.getState().completeAnalysis(crush.id, coachMessage.id, analysis, { applyHeat: !cached && !input.variationOf });
+      track('coach_success', { cached: Boolean(cached), hasImage: Boolean(image), tone: input.tone, variation: Boolean(input.variationOf), temperature: analysis.temperature, secret, emoji });
     } catch (e) {
       const message = e instanceof CoachError ? e.message : e instanceof Error ? e.message : '알 수 없는 오류가 발생했어요.';
       const code = e instanceof CoachError ? e.code : 'server';

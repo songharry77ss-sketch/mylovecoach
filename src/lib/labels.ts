@@ -54,3 +54,27 @@ export const TEMPERATURES: Record<Temperature, { label: string; emoji: string; d
   cold: { label: '차가움', emoji: '🧊', description: '지금은 밀어붙이기보다 여유가 필요해요.' },
   unknown: { label: '분석 전', emoji: '💭', description: '대화를 올리면 온도를 알려드려요.' },
 };
+
+/** 이 사람과의 목표 (상대별) */
+export const CRUSH_GOALS = ['연락 이어가기', '첫 약속 잡기', '썸 → 연애', '고백 성공', '다시 만나기', '권태기 극복', '오래 행복하게', '동거·결혼 이야기'];
+
+/** 나의 연애 목표 */
+export const MY_GOALS = ['올해 안에 연애 시작', '썸 끝내고 확실하게', '소개팅 애프터 성공', '재회하고 싶어요', '지금 연애 오래 가기', '동거·결혼 준비', '그냥 연애 감 익히기'];
+
+/** 추구미 — 상대에게 보이고 싶은 내 모습 */
+export const VIBE_TAGS = [
+  '다정한', '여유로운', '시크한', '유쾌한', '어른스러운', '귀여운', '솔직한', '센스 있는',
+  '지적인', '든든한', '설레게 하는', '편안한', '미스터리한', '적극적인', '차분한', '밝은',
+];
+
+export const SPEECH_OPTIONS: { key: 'auto' | 'polite' | 'casual'; label: string; description: string }[] = [
+  { key: 'auto', label: '🪞 캡처 따라', description: '대화에서 쓰던 말투 그대로' },
+  { key: 'polite', label: '🙇 존댓말', description: '항상 존댓말로' },
+  { key: 'casual', label: '👋 반말', description: '항상 반말로' },
+];
+
+export const EMOJI_OPTIONS: { key: 'on' | 'off' | 'auto'; label: string }[] = [
+  { key: 'on', label: '😊 넣기' },
+  { key: 'auto', label: '🪞 대화 따라' },
+  { key: 'off', label: '🚫 빼기' },
+];

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
@@ -11,34 +12,46 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { billingSupported, loadPlanProducts, purchasePlan, restorePremium, type PlanProduct } from '@/lib/billing/iap';
-import { FALLBACK_PRICES, PRODUCT_IDS, type PlanKey } from '@/lib/billing/plans';
-import { isPremiumActive } from '@/lib/billing/quota';
+import { CREDITS_PER_PACK, FALLBACK_PRICES, PRODUCT_IDS, type PlanKey } from '@/lib/billing/plans';
+import { isPremiumActive, quotaLabel, quotaStatus } from '@/lib/billing/quota';
+import { haptic } from '@/lib/haptics';
 import { APP_CONFIG } from '@/lib/config';
 import { useAppStore } from '@/store/app-store';
 
-type Reason = 'quota' | 'regenerate' | 'my' | 'banner';
+type Reason = 'quota' | 'regenerate' | 'my' | 'banner' | 'report' | 'practice' | 'mind';
 
 const HEADLINES: Record<Reason, { title: string; subtitle: string }> = {
-  quota: { title: '오늘의 무료 코칭을\n다 썼어요', subtitle: '프리미엄이면 기다리지 않고 바로 이어서 코칭받을 수 있어요.' },
-  regenerate: { title: '마음에 드는 답장이\n나올 때까지', subtitle: '프리미엄이면 다른 답장도 횟수 제한 없이 받아볼 수 있어요.' },
+  quota: { title: '오늘의 무료 코칭을\n다 썼어요', subtitle: '하루 이용권이면 2,700원으로 지금 바로 이어서 코칭받을 수 있어요.' },
+  regenerate: { title: '마음에 드는 답장이\n나올 때까지', subtitle: '이용권이면 다른 버전도 횟수 제한 없이 넘겨 볼 수 있어요.' },
   my: { title: '답장 고민,\n이제 무제한으로', subtitle: '횟수 걱정 없이 필요한 순간마다 코치를 불러보세요.' },
   banner: { title: '답장 고민,\n이제 무제한으로', subtitle: '횟수 걱정 없이 필요한 순간마다 코치를 불러보세요.' },
+  report: { title: '그 사람 분석 보고서,\n지금 열어볼까요?', subtitle: '성향·호감 신호·공략법·궁합까지 한 번에 정리해 드려요.' },
+  practice: { title: '연애 연습,\n실전처럼 계속해요', subtitle: '이용권이면 AI 상대와 마음껏 리허설할 수 있어요.' },
+  mind: { title: '그 사람 속마음,\n더 들여다볼까요?', subtitle: '이용권이면 궁금한 상황을 횟수 걱정 없이 물어볼 수 있어요.' },
 };
 
 const BENEFITS: { icon: keyof typeof Ionicons.glyphMap; title: string; body: string }[] = [
-  { icon: 'infinite-outline', title: '코칭 무제한', body: '하루 횟수 제한 없이 캡처를 올리고 답장을 받아요' },
-  { icon: 'refresh-outline', title: '다른 답장 더 보기 무제한', body: '마음에 쏙 드는 답장이 나올 때까지 다시 받아요' },
-  { icon: 'chatbubbles-outline', title: '모든 채팅방에서', body: '썸, 소개팅, 연인까지 상대가 몇 명이든 그대로 적용돼요' },
+  { icon: 'infinite-outline', title: '코칭 무제한', body: '캡처를 올릴 때마다 답장 여러 버전과 호감 온도를 받아요' },
+  { icon: 'game-controller-outline', title: '연애 연습 · 속마음 풀이', body: 'AI 상대와 카톡 리허설, 「그 사람 속마음」도 마음껏' },
+  { icon: 'analytics-outline', title: '상대 분석 보고서', body: '성향·호감 신호·공략법·궁합을 언제든 새로 분석해요' },
 ];
+
+const PLAN_TEXT: Record<PlanKey, { title: string; caption: string; badge?: string }> = {
+  day: { title: '하루 이용권', caption: '지금부터 24시간 무제한 · 자동 결제 없음', badge: '부담 없이' },
+  weekly: { title: '주간 구독', caption: '매주 자동 갱신 · 언제든 해지', badge: '인기' },
+  lifetime: { title: '평생권', caption: '한 번 결제하면 계속 · 자동 결제 없음', badge: '주간 구독 3주 가격' },
+  credits: { title: `횟수권 ${CREDITS_PER_PACK}회`, caption: '필요할 때만 한 번씩 · 기간 제한 없음' },
+};
 
 /** 웹에서 결제 화면 모양을 확인·캡처하기 위한 개발용 플래그: ios | android (실제 결제는 되지 않음) */
 const previewStore = process.env.EXPO_PUBLIC_PAYWALL_PREVIEW;
 const showPlans = billingSupported || Boolean(previewStore);
 
-const DEFAULT_PRODUCTS: PlanProduct[] = [
-  { plan: 'lifetime', productId: PRODUCT_IDS.lifetime, displayPrice: FALLBACK_PRICES.lifetime },
-  { plan: 'weekly', productId: PRODUCT_IDS.weekly, displayPrice: FALLBACK_PRICES.weekly },
-];
+const DEFAULT_PRODUCTS: PlanProduct[] = (['day', 'weekly', 'lifetime', 'credits'] as PlanKey[]).map((plan) => ({
+  plan,
+  productId: PRODUCT_IDS[plan],
+  displayPrice: FALLBACK_PRICES[plan],
+}));
 
 export default function Paywall() {
   const theme = useTheme();
@@ -47,10 +60,13 @@ export default function Paywall() {
   const params = useLocalSearchParams<{ reason?: string }>();
   const reason: Reason = params.reason && params.reason in HEADLINES ? (params.reason as Reason) : 'my';
   const premium = useAppStore((s) => s.premium);
+  const usage = useAppStore((s) => s.usage);
+  const wallet = useAppStore((s) => s.wallet);
   const setPremium = useAppStore((s) => s.setPremium);
 
   const [products, setProducts] = useState<PlanProduct[]>(DEFAULT_PRODUCTS);
-  const [selected, setSelected] = useState<PlanKey>('lifetime');
+  // 지금 막혀서 들어온 사람에게는 가장 가벼운 하루 이용권부터 보여 준다
+  const [selected, setSelected] = useState<PlanKey>(reason === 'my' || reason === 'banner' ? 'lifetime' : 'day');
   const [busy, setBusy] = useState<'purchase' | 'restore' | null>(null);
   // 이 화면은 iOS 네이티브 모달이라 앱 전체 토스트가 모달 뒤에 가려진다.
   // 그래서 결제·복원 결과는 버튼 바로 아래에 직접 보여 준다.
@@ -67,22 +83,33 @@ export default function Paywall() {
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
   const priceOf = (plan: PlanKey) => products.find((p) => p.plan === plan)?.displayPrice ?? FALLBACK_PRICES[plan];
+  // 스토어에 아직 등록되지 않은 상품은 숨긴다 (미리보기에서는 전부 보여 줌)
+  const visible = products.filter((p) => previewStore || !billingSupported || p.available !== false);
+  const chosen = visible.some((p) => p.plan === selected) ? selected : (visible[0]?.plan ?? 'lifetime');
   const active = isPremiumActive(premium, Date.now());
+  const status = quotaStatus(premium, usage, Date.now(), wallet);
   const storeName = Platform.OS === 'ios' || previewStore === 'ios' ? 'App Store' : 'Google Play';
 
   const buy = async () => {
-    const product = products.find((p) => p.plan === selected);
+    const product = products.find((p) => p.plan === chosen);
     if (!product || busy) return;
+    haptic.thud();
     setBusy('purchase');
     setNotice(null);
-    track('purchase_start', { plan: selected });
+    track('purchase_start', { plan: chosen });
     const outcome = await purchasePlan(product);
     setBusy(null);
-    track(`purchase_${outcome.status}`, { plan: selected, ...(outcome.status === 'error' ? { message: outcome.message } : {}) });
+    track(`purchase_${outcome.status}`, { plan: chosen, ...(outcome.status === 'error' ? { message: outcome.message } : {}) });
     if (outcome.status === 'purchased') {
       setPremium(outcome.premium);
+      haptic.celebrate();
       // 모달을 닫은 뒤라 이 토스트는 보인다
       toast.show('프리미엄이 시작됐어요. 이제 무제한으로 코칭받아요 💘', 'success');
+      close();
+    } else if (outcome.status === 'granted') {
+      // 충전은 앱 전체의 결제 이벤트에서 이미 처리됐다 (중복 충전 방지)
+      haptic.celebrate();
+      toast.show(outcome.plan === 'day' ? '하루 이용권 시작! 24시간 동안 무제한이에요 🔥' : `횟수권 ${CREDITS_PER_PACK}회를 충전했어요 🎁`, 'success');
       close();
     } else if (outcome.status === 'pending') {
       setNotice({ kind: 'info', text: '결제 승인을 기다리고 있어요. 승인되면 자동으로 적용돼요.' });
@@ -126,6 +153,13 @@ export default function Paywall() {
         <AppText variant="body" color="textSecondary" align="center">
           {active ? (premium?.plan === 'lifetime' ? '평생권으로 모든 기능을 무제한으로 쓰고 있어요.' : '주간 구독으로 모든 기능을 무제한으로 쓰고 있어요.') : headline.subtitle}
         </AppText>
+        {!active && (status.kind === 'pass' || (status.credits ?? 0) > 0) ? (
+          <View style={[styles.statusPill, { backgroundColor: theme.primarySoft }]}>
+            <AppText variant="caption" color="primary" weight="700">
+              지금: {quotaLabel(status)}
+            </AppText>
+          </View>
+        ) : null}
       </View>
 
       <View style={[styles.benefits, { backgroundColor: theme.surface }]}>
@@ -149,18 +183,24 @@ export default function Paywall() {
       ) : showPlans ? (
         <>
           <View style={styles.plans}>
-            <PlanCard
-              selected={selected === 'lifetime'}
-              onPress={() => setSelected('lifetime')}
-              title="평생권"
-              price={priceOf('lifetime')}
-              caption="한 번 결제하면 계속 · 자동 결제 없음"
-              badge="주간 구독 약 3주 가격"
-            />
-            <PlanCard selected={selected === 'weekly'} onPress={() => setSelected('weekly')} title="주간 구독" price={`${priceOf('weekly')} / 주`} caption="매주 자동 갱신 · 언제든 해지" />
+            {visible.map((p, i) => (
+              <Animated.View key={p.plan} entering={FadeInDown.delay(60 * i).duration(260)}>
+                <PlanCard
+                  selected={chosen === p.plan}
+                  onPress={() => {
+                    haptic.select();
+                    setSelected(p.plan);
+                  }}
+                  title={PLAN_TEXT[p.plan].title}
+                  price={p.plan === 'weekly' ? `${priceOf('weekly')} / 주` : priceOf(p.plan)}
+                  caption={PLAN_TEXT[p.plan].caption}
+                  badge={PLAN_TEXT[p.plan].badge}
+                />
+              </Animated.View>
+            ))}
           </View>
 
-          <Button title={selected === 'lifetime' ? `평생권 ${priceOf('lifetime')} 결제하기` : `주간 구독 시작하기 · ${priceOf('weekly')}/주`} onPress={buy} loading={busy === 'purchase'} disabled={busy != null} />
+          <Button title={buyTitle(chosen, priceOf(chosen))} onPress={buy} loading={busy === 'purchase'} disabled={busy != null} />
 
           {notice ? (
             <View accessibilityLiveRegion="polite" style={[styles.notice, { backgroundColor: notice.kind === 'error' ? theme.accentSoft : theme.primarySoft }]}>
@@ -171,9 +211,7 @@ export default function Paywall() {
           ) : null}
 
           <AppText variant="caption" color="textTertiary" align="center" style={styles.fine}>
-            {selected === 'weekly'
-              ? `주간 구독은 해지하지 않으면 매주 ${priceOf('weekly')}이 ${storeName} 계정으로 자동 결제돼요. 현재 기간이 끝나기 24시간 전까지 ${storeName} 계정 설정의 구독 메뉴에서 언제든 해지할 수 있어요.`
-              : `평생권은 ${priceOf('lifetime')} 1회 결제이며 자동으로 다시 결제되지 않아요. 같은 ${storeName} 계정이면 기기를 바꿔도 「구매 복원」으로 다시 쓸 수 있어요.`}
+            {fineText(chosen, priceOf(chosen), storeName)}
           </AppText>
         </>
       ) : (
@@ -182,7 +220,7 @@ export default function Paywall() {
             프리미엄은 앱에서 시작할 수 있어요
           </AppText>
           <AppText variant="caption" color="textSecondary" align="center">
-            iPhone · Android 앱에서 평생권 {FALLBACK_PRICES.lifetime} 또는 주간 구독 {FALLBACK_PRICES.weekly}/주로 이용할 수 있어요. 웹에서는 매일 무료 코칭이 충전돼요.
+            iPhone · Android 앱에서 하루 이용권 {FALLBACK_PRICES.day}, 주간 구독 {FALLBACK_PRICES.weekly}/주, 평생권 {FALLBACK_PRICES.lifetime}, 횟수권 {CREDITS_PER_PACK}회 {FALLBACK_PRICES.credits}으로 이용할 수 있어요. 웹에서는 매일 무료 코칭이 충전돼요.
           </AppText>
         </View>
       )}
@@ -208,6 +246,28 @@ export default function Paywall() {
       </View>
     </Screen>
   );
+}
+
+function buyTitle(plan: PlanKey, price: string): string {
+  switch (plan) {
+    case 'day':
+      return `하루 이용권 ${price} 결제하기`;
+    case 'weekly':
+      return `주간 구독 시작하기 · ${price}/주`;
+    case 'lifetime':
+      return `평생권 ${price} 결제하기`;
+    case 'credits':
+      return `횟수권 ${CREDITS_PER_PACK}회 ${price} 결제하기`;
+  }
+}
+
+function fineText(plan: PlanKey, price: string, storeName: string): string {
+  if (plan === 'weekly')
+    return `주간 구독은 해지하지 않으면 매주 ${price}이 ${storeName} 계정으로 자동 결제돼요. 현재 기간이 끝나기 24시간 전까지 ${storeName} 계정 설정의 구독 메뉴에서 언제든 해지할 수 있어요.`;
+  if (plan === 'lifetime') return `평생권은 ${price} 1회 결제이며 자동으로 다시 결제되지 않아요. 같은 ${storeName} 계정이면 기기를 바꿔도 「구매 복원」으로 다시 쓸 수 있어요.`;
+  const common = '자동으로 다시 결제되지 않고, 결제한 이 기기에서 쓸 수 있어요 (다른 기기로 옮기거나 복원되지 않아요).';
+  if (plan === 'day') return `하루 이용권은 ${price} 1회 결제로 결제한 때부터 24시간 동안 무제한이에요. 이미 이용 중이면 24시간이 이어서 늘어나요. ${common}`;
+  return `횟수권은 ${price} 1회 결제로 코칭 ${CREDITS_PER_PACK}회가 충전되고 기간 제한이 없어요. 무료 횟수를 먼저 쓰고 그다음 횟수권이 차감돼요. ${common}`;
 }
 
 interface PlanCardProps {
@@ -270,4 +330,5 @@ const styles = StyleSheet.create({
   notice: { borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
   webNotice: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.xs },
   links: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.lg, flexWrap: 'wrap' },
+  statusPill: { paddingHorizontal: Spacing.md, paddingVertical: 4, borderRadius: Radius.pill, marginTop: Spacing.xs },
 });

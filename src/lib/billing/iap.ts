@@ -5,7 +5,16 @@
 import { Platform } from 'react-native';
 
 import { entitlementFrom } from '@/lib/billing/entitlement';
-import { ANDROID_PACKAGE, ANDROID_WEEKLY_BASE_PLAN, FALLBACK_PRICES, PRODUCT_IDS, planOfProduct, type PlanKey } from '@/lib/billing/plans';
+import {
+  ANDROID_PACKAGE,
+  ANDROID_WEEKLY_BASE_PLAN,
+  FALLBACK_PRICES,
+  PRODUCT_IDS,
+  isConsumablePlan,
+  planOfProduct,
+  type ConsumablePlanKey,
+  type PlanKey,
+} from '@/lib/billing/plans';
 import type { PremiumState } from '@/lib/billing/quota';
 
 type IapModule = typeof import('expo-iap');
@@ -25,16 +34,21 @@ export interface PlanProduct {
   displayPrice: string;
   /** Android 구독 결제에 필요한 오퍼 토큰 */
   offerToken?: string | null;
+  /** 스토어에서 이 상품을 찾았는지 (스토어에 아직 없는 상품은 화면에서 숨긴다) */
+  available?: boolean;
 }
 
 export type PurchaseOutcome =
   | { status: 'purchased'; premium: PremiumState }
+  | { status: 'granted'; plan: ConsumablePlanKey }
   | { status: 'pending' }
   | { status: 'cancelled' }
   | { status: 'error'; message: string };
 
 interface Handlers {
   onPremium: (premium: PremiumState) => void;
+  /** 하루 이용권·횟수권 결제 1건 — 거래 ID 로 중복 충전을 막는다 */
+  onConsumable: (plan: ConsumablePlanKey, transactionId: string) => void;
 }
 
 let connected = false;
@@ -70,7 +84,14 @@ async function ensureConnected(): Promise<boolean> {
   subscriptions = [
     iap.purchaseUpdatedListener(async (purchase) => {
       if (purchase.purchaseState === 'pending') return settle({ status: 'pending' });
-      if (purchase.purchaseState !== 'purchased' || !planOfProduct(purchase.productId)) return;
+      const plan = planOfProduct(purchase.productId);
+      if (purchase.purchaseState !== 'purchased' || !plan) return;
+      if (isConsumablePlan(plan)) {
+        // 충전 먼저, 그다음 「소비 완료」 — 순서가 바뀌면 앱이 그 사이 꺼졌을 때 충전 없이 결제만 끝난다
+        handlers?.onConsumable(plan, transactionKey(purchase));
+        await iap.finishTransaction({ purchase, isConsumable: true }).catch(() => {});
+        return settle({ status: 'granted', plan });
+      }
       try {
         // 스토어에 「지급 완료」를 알린다. Android 는 3일 안에 하지 않으면 자동 환불된다
         await iap.finishTransaction({ purchase, isConsumable: false });
@@ -90,6 +111,10 @@ async function ensureConnected(): Promise<boolean> {
   return connected;
 }
 
+/** 같은 결제를 구분하는 키 (iOS 거래 ID / Android 구매 토큰) */
+const transactionKey = (purchase: { id?: string | null; purchaseToken?: string | null; transactionDate?: number; productId: string }) =>
+  purchase.id || purchase.purchaseToken || `${purchase.productId}:${purchase.transactionDate ?? ''}`;
+
 /** 앱 시작 시 한 번 호출. 스토어 연결 + 구매 이벤트 수신 + 현재 구매 상태 반환 */
 export async function initBilling(h: Handlers): Promise<PremiumState | null | undefined> {
   if (!IAP || !billingSupported) return undefined;
@@ -107,13 +132,14 @@ export function endBilling() {
 
 /** 스토어에서 상품 정보(현지 통화 표시 가격)를 가져온다. 실패하면 기본 표시 가격을 쓴다 */
 export async function loadPlanProducts(): Promise<PlanProduct[]> {
-  const fallback: PlanProduct[] = (['lifetime', 'weekly'] as PlanKey[]).map((plan) => ({ plan, productId: PRODUCT_IDS[plan], displayPrice: FALLBACK_PRICES[plan] }));
+  const order: PlanKey[] = ['day', 'weekly', 'lifetime', 'credits'];
+  const fallback: PlanProduct[] = order.map((plan) => ({ plan, productId: PRODUCT_IDS[plan], displayPrice: FALLBACK_PRICES[plan] }));
   if (!IAP || !(await ensureConnected())) return fallback;
   try {
     const items = (await IAP.fetchProducts({ skus: Object.values(PRODUCT_IDS), type: 'all' })) ?? [];
     return fallback.map((f) => {
       const item = items.find((i) => i.id === f.productId);
-      if (!item) return f;
+      if (!item) return { ...f, available: false };
       let offerToken: string | null | undefined;
       let displayPrice = item.displayPrice;
       if (item.platform === 'android' && item.type === 'subs') {
@@ -122,7 +148,7 @@ export async function loadPlanProducts(): Promise<PlanProduct[]> {
         offerToken = offer?.offerTokenAndroid;
         displayPrice = offer?.displayPrice || displayPrice;
       }
-      return { ...f, displayPrice: displayPrice || f.displayPrice, offerToken };
+      return { ...f, displayPrice: displayPrice || f.displayPrice, offerToken, available: true };
     });
   } catch {
     return fallback;
@@ -165,8 +191,16 @@ export async function queryEntitlement(): Promise<PremiumState | null | undefine
   try {
     const purchases = (await IAP.getAvailablePurchases({ onlyIncludeActiveItemsIOS: true })) ?? [];
     for (const p of purchases) {
+      const plan = planOfProduct(p.productId);
+      if (p.purchaseState !== 'purchased' || !plan) continue;
+      // 결제 직후 앱이 종료돼 충전·소비 처리가 안 된 이용권을 마무리한다 (거래 ID 로 중복 충전 방지)
+      if (isConsumablePlan(plan)) {
+        handlers?.onConsumable(plan, transactionKey(p));
+        await IAP.finishTransaction({ purchase: p, isConsumable: true }).catch(() => {});
+        continue;
+      }
       // 결제 직후 앱이 종료돼 「지급 완료」 처리가 안 된 Android 구매를 마무리한다
-      if (p.purchaseState === 'purchased' && 'isAcknowledgedAndroid' in p && p.isAcknowledgedAndroid === false && planOfProduct(p.productId)) {
+      if ('isAcknowledgedAndroid' in p && p.isAcknowledgedAndroid === false) {
         await IAP.finishTransaction({ purchase: p, isConsumable: false }).catch(() => {});
       }
     }

@@ -1,12 +1,20 @@
 /**
  * 요금제 정의. 상품 ID 는 App Store Connect / Play Console 에 등록한 것과 같아야 합니다.
  * 실제 표시 가격은 스토어에서 받아온 값(displayPrice)을 쓰고, 아래 값은 불러오기 전/실패 시의 표시용입니다.
+ *
+ * 요금 사다리 (2026-10 회의): 하루 2,700원 · 일주일 9,900원 · 평생 29,800원 · 횟수제
+ * - weekly / lifetime : 프리미엄. 스토어 구매 내역으로 상태를 판정한다 (복원 가능)
+ * - day / credits     : 소모성 상품. 살 때마다 이 기기에 충전한다 (하루 이용권 24시간, 횟수권 10회)
  */
-export type PlanKey = 'weekly' | 'lifetime';
+export type PlanKey = 'weekly' | 'lifetime' | 'day' | 'credits';
+export type PremiumPlanKey = 'weekly' | 'lifetime';
+export type ConsumablePlanKey = 'day' | 'credits';
 
 export const PRODUCT_IDS: Record<PlanKey, string> = {
   weekly: 'mylovecoach.premium.weekly',
   lifetime: 'mylovecoach.premium.lifetime',
+  day: 'mylovecoach.pass.day',
+  credits: 'mylovecoach.credits.10',
 };
 
 /** Play 구독의 기본 요금제(base plan) ID */
@@ -14,9 +22,16 @@ export const ANDROID_WEEKLY_BASE_PLAN = 'weekly';
 export const ANDROID_PACKAGE = 'app.mylovecoach.android';
 
 export const FALLBACK_PRICES: Record<PlanKey, string> = {
+  day: '₩2,700',
   weekly: '₩9,900',
   lifetime: '₩29,800',
+  credits: '₩4,900',
 };
+
+/** 횟수권 한 번에 충전되는 코칭 횟수 */
+export const CREDITS_PER_PACK = 10;
+/** 하루 이용권 길이 */
+export const DAY_PASS_MS = 24 * 60 * 60 * 1000;
 
 /**
  * 무료 횟수 제한과 프리미엄 안내를 모두 끄는 스위치. 기본은 꺼짐(= 유료 판매).
@@ -33,5 +48,13 @@ export const FREE_TRIAL_TOTAL = 3;
 /** 체험을 다 쓴 뒤 매일 충전되는 무료 횟수 */
 export const FREE_DAILY = 1;
 
+export const isConsumablePlan = (plan: PlanKey): plan is ConsumablePlanKey => plan === 'day' || plan === 'credits';
+
 export const planOfProduct = (productId: string): PlanKey | null =>
-  productId === PRODUCT_IDS.lifetime ? 'lifetime' : productId === PRODUCT_IDS.weekly ? 'weekly' : null;
+  (Object.keys(PRODUCT_IDS) as PlanKey[]).find((k) => PRODUCT_IDS[k] === productId) ?? null;
+
+/** 프리미엄(구독·평생권) 상품만 */
+export const premiumPlanOfProduct = (productId: string): PremiumPlanKey | null => {
+  const plan = planOfProduct(productId);
+  return plan === 'weekly' || plan === 'lifetime' ? plan : null;
+};

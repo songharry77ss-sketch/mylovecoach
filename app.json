@@ -26,7 +26,7 @@
       "package": "app.mylovecoach.android",
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#EEF7FF",
+        "backgroundColor": "#6491F2",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -35,7 +35,6 @@
         "com.android.vending.BILLING"
       ],
       "blockedPermissions": [
-        "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT",
         "android.permission.READ_MEDIA_IMAGES"

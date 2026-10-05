@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 
 import { Radius, Shadow, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { haptic } from '@/lib/haptics';
 
 interface CardProps extends PropsWithChildren {
   style?: ViewStyle;
@@ -25,8 +26,11 @@ export function Card({ children, style, onPress, tone = 'surface', padding = Spa
     return (
       <Pressable
         accessibilityRole="button"
-        onPress={onPress}
-        style={({ pressed }) => [...base, pressed ? { opacity: 0.85, transform: [{ scale: 0.99 }] } : null]}>
+        onPress={() => {
+          haptic.soft();
+          onPress();
+        }}
+        style={({ pressed }) => [...base, pressed ? { opacity: 0.88, transform: [{ scale: 0.98 }] } : null]}>
         {children}
       </Pressable>
     );

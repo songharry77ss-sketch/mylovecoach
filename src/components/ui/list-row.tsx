@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/ui/app-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { haptic } from '@/lib/haptics';
 
 interface ListRowProps {
   icon?: keyof typeof Ionicons.glyphMap;
@@ -21,7 +22,14 @@ export function ListRow({ icon, iconColor, title, subtitle, value, onPress, dest
   return (
     <Pressable
       accessibilityRole={onPress ? 'button' : undefined}
-      onPress={onPress}
+      onPress={
+        onPress
+          ? () => {
+              haptic.select();
+              onPress();
+            }
+          : undefined
+      }
       disabled={!onPress}
       style={({ pressed }) => [styles.row, { backgroundColor: pressed ? theme.surface : 'transparent' }]}>
       {icon ? (

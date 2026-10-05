@@ -14,13 +14,16 @@ import { useToast } from '@/components/ui/toast';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { pickImage } from '@/lib/images';
-import { CRUSH_STYLE_TAGS, GENDERS, MBTI_LIST, RELATIONSHIPS } from '@/lib/labels';
-import type { Crush, Gender, Relationship } from '@/lib/types';
+import { CRUSH_GOALS, CRUSH_STYLE_TAGS, GENDERS, MBTI_LIST, RELATIONSHIPS, SPEECH_OPTIONS } from '@/lib/labels';
+import type { Crush, Gender, Relationship, SpeechPref } from '@/lib/types';
 
-export type CrushFormValue = Omit<Crush, 'id' | 'createdAt' | 'updatedAt' | 'lastMessageAt' | 'lastTemperature' | 'lastInterestScore'>;
+export type CrushFormValue = Omit<
+  Crush,
+  'id' | 'createdAt' | 'updatedAt' | 'lastMessageAt' | 'lastTemperature' | 'lastInterestScore' | 'heat' | 'heatLog' | 'detected' | 'report' | 'secret'
+>;
 
 interface CrushFormProps {
-  initial?: Partial<CrushFormValue>;
+  initial?: Partial<CrushFormValue> & Pick<Partial<Crush>, 'detected'>;
   submitTitle: string;
   onSubmit: (value: CrushFormValue) => void;
 }
@@ -36,6 +39,9 @@ export function CrushForm({ initial, submitTitle, onSubmit }: CrushFormProps) {
   const [style, setStyle] = useState<string[]>(initial?.style ?? []);
   const [notes, setNotes] = useState(initial?.notes ?? '');
   const [photoUri, setPhotoUri] = useState<string | undefined>(initial?.photoUri);
+  const [callName, setCallName] = useState(initial?.callName ?? '');
+  const [speech, setSpeech] = useState<SpeechPref>(initial?.speech ?? 'auto');
+  const [goal, setGoal] = useState<string | undefined>(initial?.goal);
   const [mbtiOpen, setMbtiOpen] = useState(false);
   const [nameError, setNameError] = useState<string | undefined>();
 
@@ -63,6 +69,9 @@ export function CrushForm({ initial, submitTitle, onSubmit }: CrushFormProps) {
       style,
       notes: notes.trim(),
       photoUri,
+      callName: callName.trim() || undefined,
+      speech,
+      goal,
     });
   };
 
@@ -130,6 +139,49 @@ export function CrushForm({ initial, submitTitle, onSubmit }: CrushFormProps) {
         </View>
       </View>
 
+      <View style={styles.block}>
+        <TextField
+          label="내가 부르는 호칭 (선택)"
+          placeholder="예: 언니, 오빠, 선배님, 민지야"
+          value={callName}
+          onChangeText={setCallName}
+          maxLength={12}
+          helper={
+            initial?.detected?.callName && !callName.trim()
+              ? `캡처에서 읽은 호칭 「${initial.detected.callName}」을 쓰고 있어요. 비워 두면 계속 알아서 읽어요.`
+              : '비워 두면 대화 캡처에서 알아서 읽어요. 답장도 같은 호칭으로 나와요.'
+          }
+        />
+        <View>
+          <AppText variant="smallStrong" color="textSecondary" style={styles.label}>
+            답장 말투
+          </AppText>
+          <View style={styles.chips}>
+            {SPEECH_OPTIONS.map((o) => (
+              <Chip key={o.key} label={o.label} selected={speech === o.key} onPress={() => setSpeech(o.key)} />
+            ))}
+          </View>
+          <AppText variant="caption" color="textTertiary" style={styles.helper}>
+            {speech === 'auto'
+              ? initial?.detected?.speech
+                ? `캡처에서 ${initial.detected.speech === 'polite' ? '존댓말' : '반말'}을 쓰고 있어서 그대로 이어가요.`
+                : '존댓말을 쓰던 사이면 존댓말로, 반말이면 반말로 이어가요.'
+              : SPEECH_OPTIONS.find((o) => o.key === speech)?.description}
+          </AppText>
+        </View>
+      </View>
+
+      <View>
+        <AppText variant="smallStrong" color="textSecondary" style={styles.label}>
+          이 사람과의 목표 (선택)
+        </AppText>
+        <View style={styles.chips}>
+          {CRUSH_GOALS.map((g) => (
+            <Chip key={g} label={g} selected={goal === g} onPress={() => setGoal(goal === g ? undefined : g)} tone="accent" />
+          ))}
+        </View>
+      </View>
+
       <View>
         <SectionHeader title="상대 스타일" subtitle="최대 6개 · 코치가 참고해요" />
         <TagPicker options={CRUSH_STYLE_TAGS} value={style} onChange={setStyle} max={6} />
@@ -165,6 +217,8 @@ const styles = StyleSheet.create({
   photo: { position: 'relative' },
   photoBadge: { position: 'absolute', right: -4, bottom: -4, width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
   label: { marginBottom: Spacing.sm },
+  block: { gap: Spacing.lg },
+  helper: { marginTop: Spacing.sm, marginLeft: Spacing.xs },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   twoCol: { flexDirection: 'row', gap: Spacing.md },
   col: { flex: 1 },

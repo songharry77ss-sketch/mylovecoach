@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, type ViewStyle } from 'react-native';
 
 import { Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { haptic as feedback } from '@/lib/haptics';
 
 interface IconButtonProps {
   name: keyof typeof Ionicons.glyphMap;
@@ -13,15 +14,20 @@ interface IconButtonProps {
   style?: ViewStyle;
   accessibilityLabel: string;
   disabled?: boolean;
+  /** 누를 때 가벼운 진동 (기본 true) */
+  haptic?: boolean;
 }
 
-export function IconButton({ name, onPress, size = 22, color, background, style, accessibilityLabel, disabled }: IconButtonProps) {
+export function IconButton({ name, onPress, size = 22, color, background, style, accessibilityLabel, disabled, haptic = true }: IconButtonProps) {
   const theme = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      onPress={onPress}
+      onPress={() => {
+        if (haptic) feedback.tap();
+        onPress?.();
+      }}
       disabled={disabled}
       hitSlop={8}
       style={({ pressed }) => [

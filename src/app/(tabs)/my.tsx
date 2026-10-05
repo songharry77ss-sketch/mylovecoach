@@ -1,6 +1,7 @@
-import { useRouter } from 'expo-router';
-import { Alert, Linking, Platform, StyleSheet, Switch, View } from 'react-native';
 import Constants from 'expo-constants';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, AppState, Linking, Platform, StyleSheet, Switch, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { Avatar } from '@/components/ui/avatar';
@@ -11,11 +12,13 @@ import { SectionHeader } from '@/components/ui/section-header';
 import { useToast } from '@/components/ui/toast';
 import { Spacing } from '@/constants/theme';
 import { flushAnalytics, setConsent as setAnalyticsConsentFlag, track } from '@/lib/analytics';
-import { useQuota } from '@/lib/billing/gate';
+import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { billingSupported, openSubscriptionManagement, restorePremium } from '@/lib/billing/iap';
 import { quotaLabel } from '@/lib/billing/quota';
 import { APP_CONFIG } from '@/lib/config';
 import { isDemoMode } from '@/lib/demo';
+import * as Floating from '@/lib/floating';
+import { haptic, setHapticsEnabled } from '@/lib/haptics';
 import { genderLabel, toneLabel } from '@/lib/labels';
 import { useAppStore } from '@/store/app-store';
 import { saveApiKey } from '@/store/storage';
@@ -24,15 +27,65 @@ export default function MyScreen() {
   const router = useRouter();
   const toast = useToast();
   const user = useAppStore((s) => s.user);
+  const kkti = useAppStore((s) => s.kkti);
   const hasApiKey = useAppStore((s) => s.hasApiKey);
   const resetAll = useAppStore((s) => s.resetAll);
-  const crushCount = useAppStore((s) => Object.keys(s.crushes).length);
+  const crushCount = useAppStore((s) => Object.values(s.crushes).filter((c) => !c.secret).length);
   const premium = useAppStore((s) => s.premium);
+  const wallet = useAppStore((s) => s.wallet);
   const setPremium = useAppStore((s) => s.setPremium);
   const analyticsConsent = useAppStore((s) => s.analyticsConsent);
   const setAnalyticsConsent = useAppStore((s) => s.setAnalyticsConsent);
+  const hapticsOn = useAppStore((s) => s.hapticsOn);
+  const setHapticsOn = useAppStore((s) => s.setHapticsOn);
+  const hidePreviews = useAppStore((s) => s.hidePreviews);
+  const setHidePreviews = useAppStore((s) => s.setHidePreviews);
+  const createSecretChat = useAppStore((s) => s.createSecretChat);
   const quota = useQuota();
   const isPremium = quota.enforced && quota.kind === 'premium';
+
+  // 플로팅 버블 (안드로이드) — 권한 설정 화면에서 돌아오면 다시 확인해 켠다
+  const [bubbleOn, setBubbleOn] = useState(false);
+  const wantBubble = useRef(false);
+  const refreshBubble = useCallback(() => {
+    if (!Floating.floatingSupported) return;
+    if (wantBubble.current && Floating.canDrawOverlays()) {
+      wantBubble.current = false;
+      if (Floating.start()) {
+        haptic.success();
+        toast.show('버블을 켰어요. 카톡을 보다가 버블을 톡 누르면 바로 코칭돼요 💬', 'success');
+      }
+    }
+    setBubbleOn(Floating.isRunning());
+  }, [toast]);
+  useFocusEffect(refreshBubble);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => state === 'active' && refreshBubble());
+    return () => sub.remove();
+  }, [refreshBubble]);
+
+  const toggleBubble = (on: boolean) => {
+    if (!on) {
+      Floating.stop();
+      setBubbleOn(false);
+      return;
+    }
+    if (Floating.canDrawOverlays()) {
+      wantBubble.current = true;
+      refreshBubble();
+      return;
+    }
+    Alert.alert('다른 앱 위에 표시 권한', '카톡을 쓰면서 버블을 누르려면 「다른 앱 위에 표시」를 허용해 주세요. 목록이 나오면 「연애코치」를 찾아 켜고 돌아오면 버블이 켜져요.', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '설정 열기',
+        onPress: () => {
+          wantBubble.current = true;
+          Floating.openOverlaySettings();
+        },
+      },
+    ]);
+  };
 
   const restore = async () => {
     const result = await restorePremium();
@@ -48,18 +101,22 @@ export default function MyScreen() {
     const run = async () => {
       await saveApiKey(null);
       resetAll();
+      haptic.heavy();
       toast.show('모든 데이터를 삭제했어요.');
       router.replace('/start');
     };
     if (Platform.OS === 'web') {
-      if (globalThis.confirm?.('채팅방, 캡처, 프로필을 모두 삭제할까요? 되돌릴 수 없어요.')) run();
+      if (globalThis.confirm?.('채팅방, 캡처, 프로필, 연습 기록을 모두 삭제할까요? 되돌릴 수 없어요.')) run();
       return;
     }
-    Alert.alert('모든 데이터 삭제', '채팅방, 캡처, 프로필을 모두 삭제할까요? 되돌릴 수 없어요.', [
+    Alert.alert('모든 데이터 삭제', '채팅방, 캡처, 프로필, 연습 기록을 모두 삭제할까요? 되돌릴 수 없어요.', [
       { text: '취소', style: 'cancel' },
       { text: '삭제', style: 'destructive', onPress: run },
     ]);
   };
+
+  const planValue = premium?.plan === 'lifetime' ? '평생권' : premium?.plan === 'weekly' ? '주간 구독' : quota.kind === 'pass' ? '하루 이용권' : '';
+  const walletNote = [wallet.credits > 0 ? `횟수권 ${wallet.credits}회` : null].filter(Boolean).join(' · ');
 
   return (
     <Screen safeTop>
@@ -68,36 +125,78 @@ export default function MyScreen() {
       </AppText>
 
       <Card tone="primary" onPress={() => router.push('/settings/profile')} style={styles.profile}>
-        <Avatar name={user?.name ?? '나'} size={56} />
+        <Avatar name={user?.name || '나'} size={56} />
         <View style={styles.profileTexts}>
-          <AppText variant="title3">{user?.name ?? '이름 없음'}</AppText>
+          <AppText variant="title3">{user?.name || '이름 없음'}</AppText>
           <AppText variant="small" color="textSecondary">
             {[user ? genderLabel(user.gender) : null, user?.age ? `${user.age}세` : null, user?.mbti].filter(Boolean).join(' · ') || '프로필을 채워보세요'}
           </AppText>
           <AppText variant="caption" color="primary">
-            기본 톤 {toneLabel(user?.defaultTone ?? 'natural').emoji} {toneLabel(user?.defaultTone ?? 'natural').label} · 채팅방 {crushCount}개
+            {user?.vibes?.length ? `✨ ${user.vibes.join(' · ')}` : `기본 톤 ${toneLabel(user?.defaultTone ?? 'natural').emoji} ${toneLabel(user?.defaultTone ?? 'natural').label}`} · 채팅방 {crushCount}개
           </AppText>
+          {user?.goal ? (
+            <AppText variant="caption" color="accent">
+              🎯 {user.goal}
+            </AppText>
+          ) : null}
         </View>
       </Card>
 
       {quota.enforced ? (
         <>
-          <SectionHeader title="프리미엄" />
-          {isPremium ? (
-            <ListRow icon="heart" title="프리미엄 이용 중" value={premium?.plan === 'lifetime' ? '평생권' : '주간 구독'} onPress={() => router.push({ pathname: '/paywall', params: { reason: 'my' } })} />
+          <SectionHeader title="이용권" />
+          {isUnlimited(quota) ? (
+            <ListRow icon="heart" title={`${planValue || '프리미엄'} 이용 중`} subtitle={quota.kind === 'pass' ? quotaLabel(quota) : undefined} value={walletNote || undefined} onPress={() => router.push({ pathname: '/paywall', params: { reason: 'my' } })} />
           ) : (
-            <ListRow icon="heart-outline" title="프리미엄 시작하기" subtitle={quotaLabel(quota)} value="무제한 코칭" onPress={() => router.push({ pathname: '/paywall', params: { reason: 'my' } })} />
+            <ListRow icon="heart-outline" title="이용권 보기" subtitle={quotaLabel(quota)} value="하루 2,700원부터" onPress={() => router.push({ pathname: '/paywall', params: { reason: 'my' } })} />
           )}
           {billingSupported && premium?.plan === 'weekly' ? <ListRow icon="card-outline" title="구독 관리 · 해지" onPress={() => openSubscriptionManagement().catch(() => {})} /> : null}
-          {billingSupported && !isPremium ? <ListRow icon="refresh-outline" title="구매 복원" onPress={restore} /> : null}
+          {billingSupported && !isPremium ? <ListRow icon="refresh-outline" title="구매 복원" subtitle="주간 구독·평생권" onPress={restore} /> : null}
         </>
       ) : null}
 
-      <SectionHeader title="AI 코치" />
-      <ListRow icon="sparkles-outline" title="AI 코치 연결" value={connection} onPress={() => router.push('/settings/api-key')} />
-      <ListRow icon="person-outline" title="내 프로필 수정" onPress={() => router.push('/settings/profile')} />
+      <SectionHeader title="바로 쓰기" />
+      {Floating.floatingSupported ? (
+        <ListRow
+          icon="radio-button-on-outline"
+          title="플로팅 버블"
+          subtitle="카톡을 보다가 화면 위 버블을 누르면 바로 코칭"
+          right={<Switch value={bubbleOn} onValueChange={toggleBubble} />}
+        />
+      ) : (
+        <ListRow icon="flash-outline" title="빠른 코칭" subtitle={Platform.OS === 'ios' ? '아이폰 뒷면 두 번 톡으로 바로 열기 안내' : '캡처·복사한 대화로 바로 코칭'} onPress={() => router.push('/quick')} />
+      )}
+      <ListRow icon="phone-portrait-outline" title="진동 효과" subtitle="온도가 오를 때 두근두근, 넘길 때 톡톡" right={
+        <Switch
+          value={hapticsOn}
+          onValueChange={(v) => {
+            setHapticsOn(v);
+            setHapticsEnabled(v);
+            if (v) haptic.celebrate();
+          }}
+        />
+      } />
 
-      <SectionHeader title="개인정보" />
+      <SectionHeader title="재미" />
+      <ListRow icon="flask-outline" title="KKTI 테스트" subtitle="카톡으로 보는 진짜 연애 MBTI" value={kkti ? `${kkti.emoji} ${kkti.code}` : undefined} onPress={() => router.push('/kkti')} />
+      <ListRow icon="game-controller-outline" title="연애 연습" subtitle="AI 상대와 카톡 리허설" onPress={() => router.push('/(tabs)/practice')} />
+
+      <SectionHeader title="프라이버시" />
+      <ListRow
+        icon="glasses-outline"
+        title="비밀 상담 시작"
+        subtitle="기기에 저장되지 않고, 나가면 대화·캡처가 지워져요"
+        onPress={() => {
+          const id = createSecretChat();
+          router.push({ pathname: '/crush/[id]', params: { id } });
+        }}
+      />
+      <ListRow
+        icon="eye-off-outline"
+        title="채팅 미리보기 숨기기"
+        subtitle="채팅 목록에 대화 내용이 보이지 않아요"
+        right={<Switch value={hidePreviews} onValueChange={setHidePreviews} />}
+      />
       <ListRow
         icon="bar-chart-outline"
         title="이용 기록 수집 (선택)"
@@ -121,6 +220,10 @@ export default function MyScreen() {
           />
         }
       />
+
+      <SectionHeader title="AI 코치" />
+      <ListRow icon="sparkles-outline" title="AI 코치 연결" value={connection} onPress={() => router.push('/settings/api-key')} />
+      <ListRow icon="person-outline" title="내 프로필 · 추구미 · 목표" onPress={() => router.push('/settings/profile')} />
 
       <SectionHeader title="정보" />
       <ListRow icon="shield-checkmark-outline" title="개인정보 처리방침" onPress={() => Linking.openURL(APP_CONFIG.privacyUrl)} />

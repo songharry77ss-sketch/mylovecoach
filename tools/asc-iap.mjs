@@ -1,7 +1,10 @@
-// PC 에서 실행: node tools/asc-iap.mjs [--secrets <폴더>]
-// App Store Connect 에 인앱결제 상품 2개를 만든다 (앱 레코드가 먼저 있어야 함). 여러 번 실행해도 안전하다.
+// PC 에서 실행: node tools/asc-iap.mjs [--secrets <폴더>] [--consumables]
+// App Store Connect 에 인앱결제 상품을 만든다 (앱 레코드가 먼저 있어야 함). 여러 번 실행해도 안전하다.
 //   mylovecoach.premium.weekly   — 자동 갱신 구독 1주, ₩9,900  (구독 그룹 「프리미엄」)
 //   mylovecoach.premium.lifetime — 비소모성, ₩29,800
+//   --consumables 를 주면 2026-10 회의에서 정한 소모성 상품 2개도 만든다 (상품 ID 는 한 번 만들면 다시 못 쓰니 가격 확정 뒤에):
+//   mylovecoach.pass.day         — 소모성, 하루(24시간) 이용권 ₩2,700
+//   mylovecoach.credits.10       — 소모성, 코칭 10회 횟수권 ₩4,900 (가안)
 // 각 상품: 한국어 표시 이름·설명, 가격(대한민국 기준), 판매 지역(대한민국), 심사용 스크린샷·메모.
 // ※ 첫 인앱결제는 앱 버전과 함께 심사에 올라가야 한다 → 버전 페이지의 「앱 내 구입 및 구독」에서 두 상품을 선택 (화면 작업).
 import { readFileSync } from 'node:fs';
@@ -17,10 +20,14 @@ const LOCALE = 'ko';
 const TERRITORY = 'KOR';
 const REVIEW_SHOT = join(repo, 'docs', 'store-assets', 'iap-review-paywall.png');
 const REVIEW_NOTE =
-  '무료 코칭(처음 3회 + 이후 하루 1회)을 다 쓰거나, 마이 탭 → 「프리미엄 시작하기」를 누르면 구매 화면이 열립니다. 구매하면 코칭 횟수 제한이 없어집니다. 같은 화면에 구매 복원, 이용약관, 개인정보 처리방침 링크가 있습니다.';
+  '무료 코칭(처음 3회 + 이후 하루 1회)을 다 쓰거나, 마이 탭 → 「이용권 보기」를 누르면 구매 화면이 열립니다. 하루 이용권은 24시간, 주간 구독·평생권은 기간 동안 코칭 횟수 제한이 없어지고, 횟수권은 코칭 10회가 충전됩니다. 같은 화면에 구매 복원, 이용약관, 개인정보 처리방침 링크가 있습니다.';
 
 const WEEKLY = { productId: 'mylovecoach.premium.weekly', reference: '주간 프리미엄', name: '주간 프리미엄', description: '횟수 제한 없는 AI 연애 코칭 (매주 자동 갱신)', price: 9900 };
-const LIFETIME = { productId: 'mylovecoach.premium.lifetime', reference: '평생 프리미엄', name: '평생 프리미엄', description: '한 번 결제로 횟수 제한 없는 AI 연애 코칭', price: 29800 };
+const LIFETIME = { productId: 'mylovecoach.premium.lifetime', reference: '평생 프리미엄', name: '평생 프리미엄', description: '한 번 결제로 횟수 제한 없는 AI 연애 코칭', price: 29800, type: 'NON_CONSUMABLE', label: '평생권' };
+// 앱 코드의 src/lib/billing/plans.ts 와 같은 상품 ID·가격이어야 한다
+const DAY_PASS = { productId: 'mylovecoach.pass.day', reference: '하루 이용권', name: '하루 이용권', description: '결제 후 24시간 동안 AI 연애 코칭 무제한', price: 2700, type: 'CONSUMABLE', label: '하루 이용권' };
+const CREDITS = { productId: 'mylovecoach.credits.10', reference: '코칭 10회권', name: '코칭 10회권', description: 'AI 연애 코칭 10회 (기간 제한 없음)', price: 4900, type: 'CONSUMABLE', label: '횟수권' };
+const withConsumables = process.argv.includes('--consumables');
 const GROUP = { reference: '프리미엄', name: '프리미엄' };
 
 const rel = (type, id) => ({ data: { type, id } });
@@ -110,22 +117,23 @@ async function ensureSubscription(app) {
   });
 }
 
-async function ensureLifetime(app) {
+/** 비소모성(평생권)·소모성(하루 이용권·횟수권) 상품 하나를 만든다 */
+async function ensureInApp(app, LIFETIME) {
   let iap;
-  await step(`비소모성 상품 ${LIFETIME.productId}`, async () => {
+  await step(`${LIFETIME.type === 'CONSUMABLE' ? '소모성' : '비소모성'} 상품 ${LIFETIME.productId}`, async () => {
     const list = await getAll(`/v1/apps/${app.id}/inAppPurchasesV2?limit=50`);
     iap = list.find((i) => i.attributes.productId === LIFETIME.productId);
     if (!iap)
       iap = (
         await api('POST', '/v2/inAppPurchases', {
-          data: { type: 'inAppPurchases', attributes: { name: LIFETIME.reference, productId: LIFETIME.productId, inAppPurchaseType: 'NON_CONSUMABLE', familySharable: false, reviewNote: REVIEW_NOTE }, relationships: { app: rel('apps', app.id) } },
+          data: { type: 'inAppPurchases', attributes: { name: LIFETIME.reference, productId: LIFETIME.productId, inAppPurchaseType: LIFETIME.type, familySharable: false, reviewNote: REVIEW_NOTE }, relationships: { app: rel('apps', app.id) } },
         })
       ).data;
     return `${iap.attributes.state ?? ''}`;
   });
   if (!iap) return;
 
-  await step('평생권: 한국어 표시 이름·설명', async () => {
+  await step(`${LIFETIME.label}: 한국어 표시 이름·설명`, async () => {
     const locs = await getAll(`/v2/inAppPurchases/${iap.id}/inAppPurchaseLocalizations?limit=50`);
     const attrs = { name: LIFETIME.name, description: LIFETIME.description };
     const loc = locs.find((l) => l.attributes.locale === LOCALE);
@@ -134,7 +142,7 @@ async function ensureLifetime(app) {
     return '';
   });
 
-  await step('평생권: 판매 지역 (대한민국)', () =>
+  await step(`${LIFETIME.label}: 판매 지역 (대한민국)`, () =>
     tolerate409(
       api('POST', '/v1/inAppPurchaseAvailabilities', {
         data: { type: 'inAppPurchaseAvailabilities', attributes: { availableInNewTerritories: false }, relationships: { inAppPurchase: rel('inAppPurchases', iap.id), availableTerritories: { data: [{ type: 'territories', id: TERRITORY }] } } },
@@ -142,11 +150,11 @@ async function ensureLifetime(app) {
     ),
   );
 
-  await step(`평생권: 가격 ₩${LIFETIME.price.toLocaleString()}`, async () => {
+  await step(`${LIFETIME.label}: 가격 ₩${LIFETIME.price.toLocaleString()}`, async () => {
     const points = await getAll(`/v2/inAppPurchases/${iap.id}/pricePoints?filter[territory]=${TERRITORY}&limit=200`);
     const pick = pickPricePoint(points, LIFETIME.price);
     if (!pick) throw new Error('가격 포인트를 찾지 못했습니다');
-    if (!pick.exact) notes.push(`평생권: ₩${LIFETIME.price} 가격 포인트가 없어 가장 가까운 ₩${pick.price} 로 설정했습니다 (앱 화면은 스토어 가격을 그대로 표시)`);
+    if (!pick.exact) notes.push(`${LIFETIME.label}: ₩${LIFETIME.price} 가격 포인트가 없어 가장 가까운 ₩${pick.price} 로 설정했습니다 (앱 화면은 스토어 가격을 그대로 표시)`);
     await api('POST', '/v1/inAppPurchasePriceSchedules', {
       data: {
         type: 'inAppPurchasePriceSchedules',
@@ -164,7 +172,7 @@ async function ensureLifetime(app) {
     return `₩${pick.price}`;
   });
 
-  await step('평생권: 심사용 스크린샷', async () => {
+  await step(`${LIFETIME.label}: 심사용 스크린샷`, async () => {
     const cur = await api('GET', `/v2/inAppPurchases/${iap.id}/appStoreReviewScreenshot`).catch(() => null);
     if (cur?.data) return '이미 있음';
     const buf = readFileSync(REVIEW_SHOT);
@@ -183,7 +191,11 @@ async function main() {
   }
   console.log(`앱: ${app.attributes.name} (id ${app.id})`);
   await ensureSubscription(app);
-  await ensureLifetime(app);
+  await ensureInApp(app, LIFETIME);
+  if (withConsumables) {
+    await ensureInApp(app, DAY_PASS);
+    await ensureInApp(app, CREDITS);
+  }
   for (const n of notes) console.log(`· ${n}`);
   console.log('\n다음: App Store Connect → 앱 → 버전 1.0.0 → 「앱 내 구입 및 구독」에서 두 상품을 선택해 버전과 함께 심사에 제출합니다.');
   console.log('      (유료 앱 계약·은행·세금 정보가 활성 상태여야 상품이 「제출 준비 완료」가 됩니다)');

@@ -23,7 +23,9 @@ describe('toGeminiSchema', () => {
     expect(s.properties.interestScore).toEqual(expect.objectContaining({ type: 'number', nullable: true }));
     expect(s.properties.temperature.enum).toContain('warm');
     expect(s.properties.replies.items?.type).toBe('object');
-    expect(s.propertyOrdering[0]).toBe('summary');
+    // 호칭·말투를 먼저 읽게 해야 답장에서도 같은 호칭·말투를 쓴다
+    expect(s.propertyOrdering.slice(0, 3)).toEqual(['callName', 'speechLevel', 'summary']);
+    expect(s.properties.callName).toEqual(expect.objectContaining({ type: 'string', nullable: true }));
   });
 });
 

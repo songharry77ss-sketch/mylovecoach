@@ -1,34 +1,31 @@
 /**
  * Vercel Serverless Function: POST /api/coach
- * 앱에서 받은 대화 캡처 + 프로필을 Claude에 전달하고 구조화된 코칭 결과를 돌려줍니다.
+ * 앱에서 받은 대화 캡처 + 프로필을 AI 에 전달하고 구조화된 코칭 결과를 돌려줍니다.
+ * 요청 본문의 mode 로 다른 기능도 처리합니다 (없으면 예전 앱의 코칭 요청):
+ *   coach(코칭) · report(상대 분석 보고서) · mind(속마음 풀이) · practice(연애 연습 상대역)
  * 환경변수:
  *   ANTHROPIC_API_KEY 또는 GEMINI_API_KEY (둘 중 하나 필수. 둘 다 있으면 AI_PROVIDER 로 선택, 기본 anthropic)
  *   AI_PROVIDER = anthropic | gemini (선택), GEMINI_MODEL (선택, 기본 gemini-3.5-flash)
  *   COACH_APP_TOKEN (선택, 앱 토큰 검사)
  */
 import Anthropic from '@anthropic-ai/sdk';
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
+import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-import {
-  COACH_MODEL,
-  COACH_SYSTEM_PROMPT,
-  CoachAnalysisSchema,
-  CoachRequestSchema,
-  buildMessageContent,
-  normalizeAnalysis,
-} from '../src/lib/coach-schema';
-import { callGemini } from '../src/lib/gemini';
+import { buildTask, parseAiRequest, type AiTask } from '../src/lib/ai-tasks';
+import { COACH_MODEL } from '../src/lib/coach-schema';
+import { callGeminiTask } from '../src/lib/gemini';
 import { insert } from './_supabase';
 
 export const config = { maxDuration: 120 };
 
 /**
- * 무단 대량 호출 억제용 간이 제한 (IP 당 10분에 30회).
+ * 무단 대량 호출 억제용 간이 제한 (IP 당 10분에 60회).
+ * 연애 연습은 한 마디마다 요청이 가서 예전(30회)보다 넉넉하게 둔다.
  * 서버리스 인스턴스별 메모리에만 있으므로 완벽하지 않지만, 한 인스턴스로 몰리는 반복 호출은 걸러 준다.
  */
 const RATE_WINDOW_MS = 10 * 60 * 1000;
-const RATE_MAX = 30;
+const RATE_MAX = 60;
 const hits = new Map<string, number[]>();
 
 function rateLimited(ip: string, now = Date.now()): boolean {
@@ -118,30 +115,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const parsed = CoachRequestSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: '요청 형식이 올바르지 않아요.', issues: parsed.error.issues.slice(0, 3) });
+  const parsed = parseAiRequest(req.body);
+  if (!parsed.ok) {
+    res.status(400).json({ error: '요청 형식이 올바르지 않아요.', issues: parsed.issues.slice(0, 3) });
     return;
   }
-  const coachReq = parsed.data;
+  const task: AiTask = buildTask(parsed);
+  // 코칭만 (이용 기록에 동의한 앱에 한해) 기록한다. 보고서·속마음·연습 내용은 저장하지 않는다
+  const log = (result: { analysis?: Record<string, unknown>; provider?: string; error?: string }) =>
+    parsed.mode === 'coach' ? logCoach(req, parsed.req, result, startedAt) : Promise.resolve();
+  const reply = (output: unknown, usage: unknown) =>
+    res.status(200).json(parsed.mode === 'coach' ? { analysis: output, usage, provider } : { mode: parsed.mode, result: output, usage, provider });
 
   if (provider === 'gemini') {
     try {
-      const result = await callGemini(coachReq, process.env.GEMINI_API_KEY!, { model: process.env.GEMINI_MODEL });
+      const result = await callGeminiTask(task, process.env.GEMINI_API_KEY!, { model: process.env.GEMINI_MODEL });
       if (!result.ok) {
-        await logCoach(req, coachReq, { provider, error: result.code }, startedAt);
+        await log({ provider, error: result.code });
         res.status(result.code === 'auth' ? 500 : result.code === 'rate_limit' ? 429 : result.code === 'refused' ? 422 : 502).json({ error: result.message });
         return;
       }
-      const json = CoachAnalysisSchema.safeParse(JSON.parse(result.text));
+      const json = task.schema.safeParse(JSON.parse(result.text));
       if (!json.success) {
-        await logCoach(req, coachReq, { provider, error: 'parse' }, startedAt);
+        await log({ provider, error: 'parse' });
         res.status(502).json({ error: '응답 형식이 올바르지 않아요. 다시 시도해주세요.' });
         return;
       }
-      const analysis = normalizeAnalysis(json.data);
-      await logCoach(req, coachReq, { analysis, provider }, startedAt);
-      res.status(200).json({ analysis, usage: result.usage, provider });
+      const output = task.normalize(json.data);
+      await log({ analysis: output as Record<string, unknown>, provider });
+      reply(output, result.usage);
     } catch {
       res.status(502).json({ error: 'AI 서버와 통신하지 못했어요.' });
     }
@@ -150,12 +152,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const client = new Anthropic();
-    const response = await client.messages.parse({
+    const content: Anthropic.Beta.Messages.BetaContentBlockParam[] = [{ type: 'text', text: task.context }];
+    if (task.image) content.push({ type: 'image', source: { type: 'base64', media_type: task.image.mediaType, data: task.image.base64 } });
+    content.push({ type: 'text', text: task.task });
+    const response = await client.beta.messages.parse({
       model: COACH_MODEL,
-      max_tokens: 4096,
-      system: [{ type: 'text', text: COACH_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
-      messages: [{ role: 'user', content: buildMessageContent(coachReq) }],
-      output_config: { effort: 'medium', format: zodOutputFormat(CoachAnalysisSchema) },
+      max_tokens: 16000,
+      // 안전 분류기가 거절하면 서버가 권장 대체 모델로 다시 돌린다
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+      system: [{ type: 'text', text: task.system, cache_control: { type: 'ephemeral' } }],
+      messages: [{ role: 'user', content }],
+      output_config: { effort: 'medium', format: betaZodOutputFormat(task.schema) },
     });
 
     if (response.stop_reason === 'refusal') {
@@ -166,13 +174,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.status(502).json({ error: '응답을 이해하지 못했어요. 다시 시도해주세요.' });
       return;
     }
-    const analysis = normalizeAnalysis(response.parsed_output);
-    await logCoach(req, coachReq, { analysis, provider }, startedAt);
-    res.status(200).json({
-      analysis,
-      usage: { input: response.usage.input_tokens, output: response.usage.output_tokens },
-      provider,
-    });
+    const output = task.normalize(response.parsed_output);
+    await log({ analysis: output as Record<string, unknown>, provider });
+    reply(output, { input: response.usage.input_tokens, output: response.usage.output_tokens });
   } catch (error) {
     if (error instanceof Anthropic.AuthenticationError) {
       res.status(500).json({ error: '서버 API 키가 올바르지 않아요.' });

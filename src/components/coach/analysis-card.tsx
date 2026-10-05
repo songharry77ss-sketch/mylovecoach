@@ -1,56 +1,73 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
-import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
-import { Platform, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, Share, StyleSheet, View } from 'react-native';
+import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 
+import { HeatGauge } from '@/components/coach/heat-gauge';
+import { ReplyCarousel } from '@/components/coach/reply-carousel';
 import { TemperatureGauge } from '@/components/coach/temperature-gauge';
+import { useCelebrate } from '@/components/fx/celebration';
 import { AppText } from '@/components/ui/app-text';
+import { PressableScale } from '@/components/ui/pressable-scale';
 import { useToast } from '@/components/ui/toast';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { toneLabel } from '@/lib/labels';
-import type { CoachAnalysis, Tone } from '@/lib/types';
+import { haptic } from '@/lib/haptics';
+import { TEMPERATURES } from '@/lib/labels';
+import type { ChatMessage, CoachAnalysis, Tone } from '@/lib/types';
 
 interface AnalysisCardProps {
   analysis: CoachAnalysis;
+  /** 이 분석으로 바뀐 누적 온도 */
+  heat?: ChatMessage['heat'];
+  /** 처음 도착했을 때 한 번만 애니메이션을 보여 주기 위한 키 */
+  revealKey?: string;
+  /** 상대 이름 (예상 반응 표시용) */
+  partnerName?: string;
   selectedReplyIndex?: number;
   onSelectReply: (index: number) => void;
   onRegenerate?: (tone?: Tone) => void;
   regenerating?: boolean;
 }
 
+const SPEECH_CHIP = { polite: '🙇 존댓말 유지', casual: '👋 반말 유지', mixed: '🔀 말투 섞임', unknown: null } as const;
+
 /**
- * 결과 카드 — 보낼 답장 하나를 크게 보여주고 복사 버튼을 가장 눈에 띄게 둔다.
- * 다른 톤은 칩으로 바꿔 보고, 이유·다음 스텝·주의점은 접어둔다.
+ * 결과 카드 — 누적 호감 온도가 차오르고, 답장 여러 버전을 스와이프로 넘겨 본다.
+ * 카드를 누르거나 아래 버튼으로 복사하면 하트가 터진다. 이유·다음 스텝은 접어 둔다.
  */
-export function AnalysisCard({ analysis, selectedReplyIndex, onSelectReply, onRegenerate, regenerating }: AnalysisCardProps) {
+export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedReplyIndex, onSelectReply, onRegenerate, regenerating }: AnalysisCardProps) {
   const theme = useTheme();
   const toast = useToast();
+  const celebrate = useCelebrate();
   // 예전에 골라 둔 답장이 있으면 그것부터 보여 준다
   const [shown, setShown] = useState(selectedReplyIndex ?? 0);
   const [open, setOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<number | null>(null);
 
   const replies = analysis.replies;
-  const reply = replies[Math.min(shown, replies.length - 1)];
+  const current = Math.min(shown, Math.max(0, replies.length - 1));
+  const reply = replies[current];
   const hasDetails = Boolean(reply?.why || analysis.insights.length || analysis.nextStep || analysis.warnings.length);
-  // 답장들의 말투가 전부 같으면 말투 이름으로는 구분이 안 된다
-  const sameTone = new Set(replies.map((r) => r.tone)).size <= 1;
+  const speechChip = analysis.speechLevel ? SPEECH_CHIP[analysis.speechLevel] : null;
+  const vibe = TEMPERATURES[analysis.temperature];
 
-  const copy = async () => {
-    if (!reply) return;
-    await Clipboard.setStringAsync(reply.text);
-    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    setCopied(true);
-    onSelectReply(shown);
+  const copy = async (index = current, at?: { x: number; y: number }) => {
+    const target = replies[index];
+    if (!target) return;
+    await Clipboard.setStringAsync(target.text);
+    setCopied(index);
+    onSelectReply(index);
+    celebrate({ kind: 'hearts', x: at?.x, y: at?.y, count: 12 });
     toast.show('복사했어요. 카톡에 붙여넣기만 하면 끝!', 'success');
   };
 
   // 복사 대신 카톡 등으로 바로 보내고 싶을 때 (웹에서는 공유 기능이 없으면 복사로 대체)
   const shareReply = async () => {
     if (!reply) return;
-    onSelectReply(shown);
+    haptic.tap();
+    onSelectReply(current);
     if (Platform.OS === 'web') {
       const webShare = (globalThis as { navigator?: { share?: (d: { text: string }) => Promise<void> } }).navigator?.share;
       if (!webShare) return copy();
@@ -62,8 +79,16 @@ export function AnalysisCard({ analysis, selectedReplyIndex, onSelectReply, onRe
 
   if (!reply) {
     return (
-      <View style={[styles.card, { backgroundColor: theme.surface }]}>
-        <AppText variant="body">{analysis.summary}</AppText>
+      <View style={styles.wrap}>
+        <View style={[styles.card, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}>
+          {heat ? <HeatGauge value={heat.after} from={heat.before} delta={heat.delta} revealKey={revealKey} compact caption={`이번 대화 ${vibe.emoji} ${vibe.label}`} /> : null}
+          <AppText variant="body">{analysis.summary}</AppText>
+          {analysis.nextStep ? (
+            <AppText variant="small" color="primary">
+              👉 {analysis.nextStep}
+            </AppText>
+          ) : null}
+        </View>
       </View>
     );
   }
@@ -71,67 +96,78 @@ export function AnalysisCard({ analysis, selectedReplyIndex, onSelectReply, onRe
   return (
     <View style={styles.wrap}>
       <View style={[styles.card, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}>
-        {/* 한 줄 요약: 호감 온도 */}
-        {analysis.temperature !== 'unknown' || analysis.interestScore != null ? (
+        {/* 누적 호감 온도 (예전 결과는 그때의 호감 점수) */}
+        {heat ? (
+          <HeatGauge value={heat.after} from={heat.before} delta={heat.delta} revealKey={revealKey} compact caption={`이번 대화 ${vibe.emoji} ${vibe.label}`} />
+        ) : analysis.temperature !== 'unknown' || analysis.interestScore != null ? (
           <TemperatureGauge temperature={analysis.temperature} score={analysis.interestScore} compact />
         ) : null}
 
-        {/* 보낼 답장 */}
-        <Pressable accessibilityRole="button" accessibilityLabel="답장 복사" onPress={copy} style={({ pressed }) => [styles.replyBox, { opacity: pressed ? 0.7 : 1 }]}>
-          <AppText style={styles.replyText}>{reply.text}</AppText>
-        </Pressable>
+        {/* 코치가 알아챈 호칭·말투 — 「언니면 언니」 그대로 쓴다는 걸 보여 준다 */}
+        {analysis.callName || speechChip ? (
+          <Animated.View entering={FadeInDown.delay(200).duration(260)} style={styles.detected}>
+            {analysis.callName ? (
+              <View style={[styles.detectChip, { backgroundColor: theme.accentSoft }]}>
+                <AppText variant="caption" color="accent" weight="700">
+                  🗣️ 호칭 「{analysis.callName}」 그대로
+                </AppText>
+              </View>
+            ) : null}
+            {speechChip ? (
+              <View style={[styles.detectChip, { backgroundColor: theme.primarySoft }]}>
+                <AppText variant="caption" color="primary" weight="700">
+                  {speechChip}
+                </AppText>
+              </View>
+            ) : null}
+          </Animated.View>
+        ) : null}
+
+        {/* 답장 버전들 — 옆으로 넘겨 본다 */}
+        <ReplyCarousel
+          replies={replies}
+          index={current}
+          onIndexChange={(i) => {
+            setShown(i);
+          }}
+          onCopy={(i, at) => copy(i, at)}
+          copiedIndex={copied}
+          partnerName={partnerName}
+        />
 
         <View style={styles.actions}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={copy}
-            style={({ pressed }) => [styles.copyBtn, { backgroundColor: copied ? theme.primarySoft : theme.primary, opacity: pressed ? 0.9 : 1 }]}>
-            <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={17} color={copied ? theme.primary : theme.primaryText} />
-            <AppText variant="bodyStrong" color={copied ? 'primary' : theme.primaryText}>
-              {copied ? '복사했어요' : '이 답장 복사하기'}
+          <PressableScale
+            accessibilityLabel="이 답장 복사하기"
+            feedback={false}
+            onPress={() => copy()}
+            style={[styles.copyBtn, { backgroundColor: copied === current ? theme.primarySoft : theme.primary }]}>
+            {copied === current ? (
+              <Animated.View entering={ZoomIn.springify()}>
+                <Ionicons name="checkmark-circle" size={18} color={theme.primary} />
+              </Animated.View>
+            ) : (
+              <Ionicons name="copy-outline" size={17} color={theme.primaryText} />
+            )}
+            <AppText variant="bodyStrong" color={copied === current ? 'primary' : theme.primaryText}>
+              {copied === current ? '복사했어요' : replies.length > 1 ? `버전 ${current + 1} 복사하기` : '이 답장 복사하기'}
             </AppText>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="답장 공유하기"
-            onPress={shareReply}
-            style={({ pressed }) => [styles.shareBtn, { backgroundColor: theme.surface, opacity: pressed ? 0.7 : 1 }]}>
+          </PressableScale>
+          <PressableScale accessibilityLabel="답장 공유하기" feedback={false} onPress={shareReply} style={[styles.shareBtn, { backgroundColor: theme.surface }]}>
             <Ionicons name="share-outline" size={19} color={theme.textSecondary} />
-          </Pressable>
+          </PressableScale>
         </View>
-
-        {/* 다른 답장으로 바꿔 보기.
-            코치는 보통 「요청한 한 가지 말투」로 각도만 다른 답장 3개를 주므로
-            말투 이름이 전부 같아진다. 그럴 땐 번호로 구분해야 고를 수 있다. */}
-        {replies.length > 1 ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tones}>
-            {replies.map((r, i) => {
-              const t = toneLabel(r.tone);
-              const label = sameTone ? `답장 ${i + 1}` : `${t.emoji} ${t.label}`;
-              const on = i === shown;
-              return (
-                <Pressable
-                  key={i}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: on }}
-                  onPress={() => {
-                    setShown(i);
-                    setCopied(false);
-                  }}
-                  style={[styles.toneChip, { backgroundColor: on ? theme.primarySoft : theme.surface, borderColor: on ? theme.primary : 'transparent' }]}>
-                  <AppText variant="caption" color={on ? 'primary' : 'textSecondary'}>
-                    {label}
-                  </AppText>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        ) : null}
       </View>
 
       {/* 자세한 설명은 접어둔다 */}
       {hasDetails ? (
-        <Pressable accessibilityRole="button" onPress={() => setOpen((v) => !v)} style={styles.moreRow} hitSlop={6}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            haptic.select();
+            setOpen((v) => !v);
+          }}
+          style={styles.moreRow}
+          hitSlop={6}>
           <AppText variant="caption" color="textSecondary">
             {open ? '설명 접기' : '왜 이렇게 답할까? · 다음 스텝 보기'}
           </AppText>
@@ -140,28 +176,27 @@ export function AnalysisCard({ analysis, selectedReplyIndex, onSelectReply, onRe
       ) : null}
 
       {open ? (
-        <View style={styles.details}>
-          {analysis.summary ? (
-            <Detail title="지금 분위기" body={analysis.summary} />
-          ) : null}
+        <Animated.View entering={FadeInDown.duration(220)} style={styles.details}>
+          {analysis.summary ? <Detail title="지금 분위기" body={analysis.summary} /> : null}
           {reply.why ? <Detail title="이 답장을 고른 이유" body={reply.why} /> : null}
           {analysis.insights.length ? <Detail title="읽어낸 포인트" lines={analysis.insights} /> : null}
           {analysis.nextStep ? <Detail title="다음 스텝" body={analysis.nextStep} tone="primary" /> : null}
           {analysis.warnings.length ? <Detail title="주의할 점" lines={analysis.warnings} tone="accent" /> : null}
-        </View>
+        </Animated.View>
       ) : null}
 
       {onRegenerate ? (
-        <Pressable
-          accessibilityRole="button"
+        <PressableScale
+          accessibilityLabel="다른 답장 더 보기"
+          feedback="tap"
           onPress={() => onRegenerate()}
           disabled={regenerating}
-          style={({ pressed }) => [styles.again, { backgroundColor: theme.surface, opacity: pressed || regenerating ? 0.7 : 1 }]}>
+          style={[styles.again, { backgroundColor: theme.surface, opacity: regenerating ? 0.7 : 1 }]}>
           <Ionicons name="refresh" size={14} color={theme.textSecondary} />
           <AppText variant="caption" color="textSecondary">
-            {regenerating ? '새로 만드는 중…' : '다른 답장 더 보기'}
+            {regenerating ? '새로 만드는 중…' : '다른 버전 더 보기'}
           </AppText>
-        </Pressable>
+        </PressableScale>
       ) : null}
     </View>
   );
@@ -192,13 +227,11 @@ function Detail({ title, body, lines, tone }: { title: string; body?: string; li
 const styles = StyleSheet.create({
   wrap: { gap: Spacing.sm, alignSelf: 'stretch' },
   card: { borderRadius: Radius.lg, borderTopLeftRadius: Radius.sm, borderWidth: 1, padding: Spacing.lg, gap: Spacing.md },
-  replyBox: { paddingVertical: Spacing.xs },
-  replyText: { fontSize: 18, lineHeight: 28, fontWeight: '500', letterSpacing: -0.2 },
+  detected: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  detectChip: { paddingHorizontal: Spacing.sm + 2, paddingVertical: 4, borderRadius: Radius.pill },
   actions: { flexDirection: 'row', gap: Spacing.sm },
-  copyBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, height: 48, borderRadius: Radius.md },
-  shareBtn: { width: 48, height: 48, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
-  tones: { gap: Spacing.xs },
-  toneChip: { paddingHorizontal: Spacing.md, paddingVertical: 6, borderRadius: Radius.pill, borderWidth: 1 },
+  copyBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, height: 50, borderRadius: Radius.md },
+  shareBtn: { width: 50, height: 50, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
   moreRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, paddingHorizontal: Spacing.xs },
   details: { gap: Spacing.md, paddingHorizontal: Spacing.xs, paddingBottom: Spacing.xs },
   detail: { gap: 2 },

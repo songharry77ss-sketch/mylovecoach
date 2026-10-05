@@ -1,11 +1,11 @@
-import * as Haptics from 'expo-haptics';
 import { type ReactNode } from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { AppText } from '@/components/ui/app-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { haptic as feedback } from '@/lib/haptics';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -59,13 +59,13 @@ export function Button({
       accessibilityState={{ disabled: disabled || loading }}
       disabled={disabled || loading}
       onPressIn={() => {
-        scale.value = withSpring(0.97, { damping: 20, stiffness: 300 });
+        scale.value = withSpring(0.95, { damping: 18, stiffness: 380 });
       }}
       onPressOut={() => {
-        scale.value = withSpring(1, { damping: 20, stiffness: 300 });
+        scale.value = withSpring(1, { damping: 11, stiffness: 260 });
       }}
       onPress={() => {
-        if (haptic && Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+        if (haptic) (size === 'lg' ? feedback.thud : feedback.tap)();
         onPress?.();
       }}
       style={[

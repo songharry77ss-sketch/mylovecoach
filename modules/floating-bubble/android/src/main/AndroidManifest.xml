@@ -1,0 +1,19 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 다른 앱 위에 버블을 띄우기 위한 권한 (사용자가 설정에서 직접 켠다) -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- 버블이 떠 있는 동안 프로세스가 정리되지 않도록 포그라운드 서비스로 유지한다 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
+    <application>
+        <service
+            android:name="expo.modules.floatingbubble.FloatingBubbleService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <!-- Play Console 의 포그라운드 서비스 신고와 같은 내용으로 유지할 것 -->
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="User-enabled floating shortcut bubble drawn over other apps (SYSTEM_ALERT_WINDOW). Tapping it opens the app's quick coaching screen while the user is chatting in another app. The service only keeps this bubble alive and stops when the user drags it to the close target or taps the notification." />
+        </service>
+    </application>
+</manifest>

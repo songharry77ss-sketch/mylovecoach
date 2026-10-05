@@ -6,11 +6,14 @@ import { AppState, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { CelebrationProvider } from '@/components/fx/celebration';
 import { ToastProvider } from '@/components/ui/toast';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { flushAnalytics, initAnalytics, trackScreen, updateIdentity } from '@/lib/analytics';
 import { endBilling, initBilling } from '@/lib/billing/iap';
+import { haptic, setHapticsEnabled } from '@/lib/haptics';
+import { cleanupOrphanImages } from '@/lib/images';
 import { useAppStore } from '@/store/app-store';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -32,7 +35,13 @@ export default function RootLayout() {
   const colors = Colors[scheme];
 
   const setHydrated = useAppStore((s) => s.setHydrated);
+  const hapticsOn = useAppStore((s) => s.hapticsOn);
   const pathname = usePathname();
+
+  // 마이 탭의 「진동 효과」 설정을 진동 모듈에 반영
+  useEffect(() => {
+    setHapticsEnabled(hapticsOn);
+  }, [hapticsOn]);
 
   useEffect(() => {
     if (hydrated) {
@@ -43,6 +52,19 @@ export default function RootLayout() {
     const t = setTimeout(() => setHydrated(), 2500);
     return () => clearTimeout(t);
   }, [hydrated, setHydrated]);
+
+  // 저장소를 다 읽은 뒤, 어떤 채팅방에도 연결되지 않은 캡처 파일을 지운다 (비밀 상담 흔적 포함)
+  useEffect(() => {
+    if (!hydrated) return;
+    const t = setTimeout(() => {
+      const s = useAppStore.getState();
+      const keep = new Set<string>();
+      Object.values(s.messages).forEach((list) => list.forEach((m) => m.imageUri && keep.add(m.imageUri)));
+      Object.values(s.crushes).forEach((c) => c.photoUri && keep.add(c.photoUri));
+      cleanupOrphanImages(keep);
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [hydrated]);
 
   // 이용 기록 수집 (동의한 경우에만 실제로 전송됨)
   useEffect(() => {
@@ -82,7 +104,12 @@ export default function RootLayout() {
   useEffect(() => {
     if (!hydrated) return;
     let alive = true;
-    initBilling({ onPremium: (premium) => useAppStore.getState().setPremium(premium) })
+    initBilling({
+      onPremium: (premium) => useAppStore.getState().setPremium(premium),
+      onConsumable: (plan, transactionId) => {
+        if (useAppStore.getState().grantConsumable(plan, transactionId)) haptic.celebrate();
+      },
+    })
       .then((result) => {
         if (alive && result !== undefined) useAppStore.getState().setPremium(result);
       })
@@ -110,6 +137,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ThemeProvider value={navTheme}>
           <ToastProvider>
+            <CelebrationProvider>
             <Stack
               screenOptions={{
                 headerShadowVisible: false,
@@ -124,11 +152,19 @@ export default function RootLayout() {
               <Stack.Screen name="crush/new" options={{ title: '새 채팅방', presentation: 'modal' }} />
               <Stack.Screen name="crush/[id]/index" options={{ title: '' }} />
               <Stack.Screen name="crush/[id]/edit" options={{ title: '상대 정보 수정', presentation: 'modal' }} />
+              <Stack.Screen name="crush/[id]/report" options={{ title: '상대 분석 보고서' }} />
+              <Stack.Screen name="practice/[id]" options={{ title: '' }} />
+              <Stack.Screen name="practice/custom" options={{ title: '연습 상대 만들기', presentation: 'modal' }} />
+              <Stack.Screen name="mind" options={{ title: '속마음 풀이' }} />
+              <Stack.Screen name="quick" options={{ title: '빠른 코칭', presentation: 'modal' }} />
+              <Stack.Screen name="kkti/index" options={{ headerShown: false }} />
+              <Stack.Screen name="kkti/result" options={{ headerShown: false }} />
               <Stack.Screen name="settings/profile" options={{ title: '내 프로필' }} />
               <Stack.Screen name="settings/api-key" options={{ title: 'AI 코치 연결' }} />
               <Stack.Screen name="paywall" options={{ headerShown: false, presentation: 'modal' }} />
               <Stack.Screen name="+not-found" options={{ title: '페이지를 찾을 수 없어요' }} />
             </Stack>
+            </CelebrationProvider>
             <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
           </ToastProvider>
         </ThemeProvider>

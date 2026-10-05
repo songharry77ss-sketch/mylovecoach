@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, type ViewStyle } from 'react-native';
 import { AppText } from '@/components/ui/app-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { haptic } from '@/lib/haptics';
 
 interface ChipProps {
   label: string;
@@ -22,7 +23,14 @@ export function Chip({ label, selected, onPress, emoji, style, size = 'md', tone
     <Pressable
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityState={{ selected }}
-      onPress={onPress}
+      onPress={
+        onPress
+          ? () => {
+              haptic.select();
+              onPress();
+            }
+          : undefined
+      }
       disabled={!onPress}
       style={({ pressed }) => [
         styles.chip,

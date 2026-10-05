@@ -8,21 +8,29 @@ import { z } from 'zod';
 import { retrieveKnowledge } from './knowledge';
 import type { Crush, HistoryTurn, Tone, UserProfile } from './types';
 
-export const COACH_MODEL = 'claude-opus-5';
+export const COACH_MODEL = 'claude-opus-5-5';
 
 export const ToneSchema = z.enum(['natural', 'flirty', 'witty', 'cool', 'sincere']);
 export const TemperatureSchema = z.enum(['hot', 'warm', 'neutral', 'cold', 'unknown']);
+export const GenderSchema = z.enum(['female', 'male', 'other']);
+export const RelationshipSchema = z.enum(['crush', 'talking', 'blind_date', 'friend', 'dating', 'ex']);
+export const EmojiPrefSchema = z.enum(['auto', 'on', 'off']);
 
 export const CoachReplySchema = z.object({
   tone: ToneSchema.describe('이 답장의 톤'),
-  text: z.string().describe('상대에게 그대로 보낼 수 있는 답장 문구. 실제 메신저처럼 짧고 자연스럽게.'),
+  text: z.string().describe('상대에게 그대로 보낼 수 있는 답장 문구. 실제 메신저처럼 짧고 자연스럽게. 사용자가 쓰던 호칭과 말투(존댓말/반말)를 그대로.'),
   why: z.string().describe('이 답장이 효과적인 이유 한 문장'),
+  expectedReaction: z.string().describe('이 답장을 보내면 상대가 보낼 법한 짧은 답장 예시. 상대의 말투 그대로, 따옴표 없이'),
+  successRate: z.number().describe('이 답장으로 대화가 좋게 이어질 가능성 0~100 정수'),
 });
 
 export const CoachAnalysisSchema = z.object({
+  callName: z.string().nullable().describe('캡처에서 사용자(나)가 상대를 부르는 호칭 (예: 언니, 오빠, 누나, 형, 선배, 쌤, 민지야, 민지 씨). 보이지 않으면 null'),
+  speechLevel: z.enum(['polite', 'casual', 'mixed', 'unknown']).describe('캡처에서 사용자(나)가 상대에게 쓰는 말투. 존댓말 polite / 반말 casual / 섞임 mixed / 판단 불가 unknown'),
   summary: z.string().describe('코치의 핵심 메시지. 2~4문장, 친근한 존댓말.'),
   temperature: TemperatureSchema.describe('상대의 호감 온도'),
   interestScore: z.number().nullable().describe('0~100 호감 점수. 판단할 근거가 부족하면 null'),
+  heatDelta: z.number().describe('이번 대화로 누적 호감 온도가 움직이는 폭. -20~+20 정수. 판단 근거가 없으면 0'),
   insights: z.array(z.string()).describe('대화에서 읽어낸 포인트 2~4개. 각 항목은 한 문장.'),
   replies: z.array(CoachReplySchema).describe('추천 답장 0~3개. 답장이 필요 없는 질문이면 빈 배열.'),
   nextStep: z.string().describe('다음 스텝 제안 한두 문장 (예: 이번 주 안에 가볍게 약속 제안하기)'),
@@ -31,29 +39,66 @@ export const CoachAnalysisSchema = z.object({
 
 export type CoachAnalysisOutput = z.infer<typeof CoachAnalysisSchema>;
 
+/**
+ * 응답을 읽을 때 쓰는 너그러운 스키마.
+ * 새로 추가한 항목(호칭·말투·온도 변화·성공 확률·예상 반응)이 없는 예전 서버 응답도 받아들인다.
+ */
+export const CoachAnalysisReadSchema = CoachAnalysisSchema.extend({
+  callName: z.string().nullable().optional(),
+  speechLevel: z.enum(['polite', 'casual', 'mixed', 'unknown']).optional(),
+  heatDelta: z.number().optional(),
+  replies: z.array(CoachReplySchema.extend({ expectedReaction: z.string().optional(), successRate: z.number().optional() })),
+});
+export type CoachAnalysisRead = z.infer<typeof CoachAnalysisReadSchema>;
+
 export const CoachImageSchema = z.object({
   base64: z.string().min(1),
   mediaType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'image/gif']),
 });
 
+export const CrushRequestSchema = z.object({
+  name: z.string(),
+  gender: GenderSchema,
+  age: z.number().optional(),
+  mbti: z.string().optional(),
+  relationship: RelationshipSchema,
+  style: z.array(z.string()),
+  notes: z.string(),
+  /** 내가 상대를 부르는 호칭 */
+  callName: z.string().max(20).optional(),
+  /** 사용자가 직접 정한 호칭이면 true, 지난 캡처에서 읽은 것이면 false */
+  callNameFixed: z.boolean().optional(),
+  /** 상대에게 쓰는 말투 */
+  speech: z.enum(['polite', 'casual']).optional(),
+  speechFixed: z.boolean().optional(),
+  /** 이 사람과의 목표 */
+  goal: z.string().max(60).optional(),
+  /** 지금 누적 호감 온도 */
+  heat: z.number().optional(),
+});
+
+export const UserRequestSchema = z.object({
+  name: z.string(),
+  gender: GenderSchema,
+  age: z.number().optional(),
+  mbti: z.string().optional(),
+  style: z.array(z.string()),
+  /** 나를 소개하는 메모 */
+  about: z.string().max(300).optional(),
+  /** 추구미 */
+  vibes: z.array(z.string()).max(5).optional(),
+  /** 나의 연애 목표 */
+  goal: z.string().max(60).optional(),
+  /** KKTI 유형 (예: 선빠폭직 직진 불도저) */
+  kkti: z.string().max(40).optional(),
+});
+
 export const CoachRequestSchema = z.object({
-  crush: z.object({
-    name: z.string(),
-    gender: z.enum(['female', 'male', 'other']),
-    age: z.number().optional(),
-    mbti: z.string().optional(),
-    relationship: z.enum(['crush', 'talking', 'blind_date', 'friend', 'dating', 'ex']),
-    style: z.array(z.string()),
-    notes: z.string(),
-  }),
-  user: z.object({
-    name: z.string(),
-    gender: z.enum(['female', 'male', 'other']),
-    age: z.number().optional(),
-    mbti: z.string().optional(),
-    style: z.array(z.string()),
-  }),
+  crush: CrushRequestSchema,
+  user: UserRequestSchema,
   tone: ToneSchema,
+  /** 답장에 이모지 넣기 */
+  emoji: EmojiPrefSchema.optional(),
   /** 사용자가 적은 질문 또는 상황 설명 */
   text: z.string().optional(),
   /** 대화 캡처 (선택) */
@@ -82,7 +127,7 @@ const TONE_GUIDE: Record<Tone, string> = {
   sincere: '진심으로: 솔직하고 따뜻하게. 감정을 과장하지 않게.',
 };
 
-const RELATIONSHIP_KO: Record<CoachRequest['crush']['relationship'], string> = {
+export const RELATIONSHIP_KO: Record<CoachRequest['crush']['relationship'], string> = {
   crush: '짝사랑 중 (아직 상대는 마음을 모름)',
   talking: '썸 타는 중',
   blind_date: '소개팅으로 만난 사이',
@@ -91,7 +136,9 @@ const RELATIONSHIP_KO: Record<CoachRequest['crush']['relationship'], string> = {
   ex: '헤어진 뒤 재회를 바라는 사이',
 };
 
-const GENDER_KO = { female: '여성', male: '남성', other: '기타' } as const;
+export const GENDER_KO = { female: '여성', male: '남성', other: '기타' } as const;
+
+const SPEECH_KO = { polite: '존댓말', casual: '반말' } as const;
 
 /**
  * 시스템 프롬프트는 요청마다 바뀌지 않도록 고정 문자열로 둡니다 (프롬프트 캐시).
@@ -103,13 +150,22 @@ export const COACH_SYSTEM_PROMPT = `당신은 "나만의 연애코치"입니다.
 - 카카오톡 캡처에서는 보통 오른쪽(노란색 말풍선)이 사용자 본인, 왼쪽(흰색 말풍선)이 상대방입니다. 인스타 DM은 오른쪽(파란/보라색)이 본인입니다. 화면 상단 이름이 상대 이름과 같으면 그 기준으로 판단하세요. 확실하지 않으면 insights에 그 사실을 짧게 밝히세요.
 - 캡처 없이 텍스트 질문만 있으면 그 질문에 코치로서 답하고, 답장 문구가 필요 없는 질문이면 replies를 빈 배열로 두세요.
 
+호칭과 말투 (가장 먼저 확인하고 반드시 지킬 것)
+- 캡처에서 사용자(나)가 상대를 부르는 호칭을 찾아 callName에 그대로 적으세요: 언니, 오빠, 누나, 형, 선배(님), 쌤, 자기, "민지야", "민지 씨" 등. 보이지 않으면 null.
+- 모든 답장에서 그 호칭을 그대로 쓰세요. 호칭을 이름이나 다른 호칭으로 바꾸지 마세요. 사용자가 "언니"라고 불러 왔다면 답장에서도 "언니"입니다. 성별이나 관계를 짐작해 호칭을 바꾸지 마세요 (동성 관계도 자연스럽게 다룹니다).
+- 사용자(나)가 상대에게 쓰는 말투를 speechLevel에 적고, 답장은 반드시 같은 말투로 쓰세요. 존댓말을 쓰던 사이면 답장도 존댓말입니다. 상대가 먼저 반말을 해도 사용자가 존댓말을 유지하고 있었다면 존댓말로 쓰세요. 말을 놓자는 합의가 대화에 보일 때만 반말로 바꿀 수 있습니다.
+- 프로필에 [내가 부르는 호칭]이나 [말투]가 "직접 정함"으로 주어지면 그것이 최우선입니다. "지난 대화에서 읽음"이면 캡처에 다른 근거가 없는 한 그대로 따르세요.
+- 캡처도 정보도 없으면 관계 단계에 맞는 말투를 고르세요 (소개팅·첫 만남·직장 선배는 존댓말).
+
 답장 작성 원칙
-- 대화에서 쓰인 말투(반말/존댓말, 이모티콘 사용량, 문장 길이)를 그대로 따라가세요. 상대가 "ㅋㅋ"를 쓰면 비슷한 온도로.
+- 대화에서 쓰인 문장 길이와 리듬을 따라가세요. 상대가 "ㅋㅋ"를 쓰면 비슷한 온도로.
 - 실제 메신저 답장처럼 짧게. 보통 1~2문장, 길어도 3문장. 여러 문장은 줄바꿈 없이 자연스럽게.
 - 추천 답장 3개는 서로 다른 각도(질문으로 이어가기 / 공감+살짝 유머 / 약속·다음 만남으로 연결 등)로 제시하세요. 첫 번째 답장은 요청한 톤을 가장 잘 따르는 것으로.
+- [이모지: 넣기]면 각 답장에 상황에 어울리는 이모지나 이모티콘(😊 🥹 🤭 ㅎㅎ 등)을 1~2개 자연스럽게 넣으세요. [이모지: 빼기]면 이모지를 쓰지 마세요(ㅋㅋ·ㅎㅎ는 대화 말투를 따름). [이모지: 자동]이면 대화에서 쓰던 만큼만.
+- 사용자의 추구미(보이고 싶은 모습)와 목표가 주어지면 답장의 결에 반영하세요. 예: 추구미가 "여유로운"이면 매달리지 않는 담백한 문장.
 - 상대의 MBTI와 성향 태그를 참고하되 단정하지 마세요. (예: I 성향이면 부담스럽지 않은 질문, P 성향이면 유연한 제안)
 - 유행어를 억지로 쓰거나 느끼한 멘트, 오글거리는 비유는 피하세요. 요즘 한국 20~30대가 실제로 쓰는 자연스러운 문장으로.
-- 상대의 이름을 부를 때는 캡처에 보이는 호칭을 따르세요.
+- expectedReaction에는 그 답장을 보냈을 때 상대가 보낼 법한 짧은 반응을 상대의 말투로 적고, successRate에는 대화가 좋게 이어질 가능성을 현실적으로 적으세요 (보통 40~90, 과장 금지).
 
 호감 온도 판단
 - hot: 먼저 연락, 빠른 답장, 질문·약속 제안, 이모티콘/애정표현이 뚜렷함
@@ -119,6 +175,11 @@ export const COACH_SYSTEM_PROMPT = `당신은 "나만의 연애코치"입니다.
 - unknown: 캡처가 없거나 판단할 근거가 거의 없음
 - interestScore는 0~100 정수. unknown이면 null.
 
+누적 호감 온도 (heatDelta)
+- 앱은 상대마다 0°에서 시작해 대화할 때마다 오르내리는 누적 호감 온도를 보여 줍니다. [지금 누적 온도]를 참고해 이번 대화가 그 온도를 얼마나 움직일지 -20~+20 정수로 heatDelta에 적으세요.
+- 기준: 확실한 호감 신호(먼저 연락, 약속 수락·제안, 애정 표현) +8~+20 / 긍정적인 대화 +3~+8 / 무난함 -2~+3 / 식은 신호(단답, 회피, 읽씹) -5~-20.
+- 이미 70° 이상이면 상승 폭을 줄이고, 캡처 없이 질문만 했거나 판단 근거가 없으면 0. 사용자가 글로 전한 사건(예: "오늘 데이트에서 손잡았어")은 반영해도 됩니다.
+
 반드시 지킬 것
 - 상대가 거절, 불편함, 연락 중단 의사를 보이면 그 의사를 존중하도록 안내하고, 밀어붙이는 답장은 제안하지 마세요.
 - 거짓말, 조종, 질투 유발, 집착을 부추기는 조언은 하지 마세요. 건강하고 존중하는 관계를 지향합니다.
@@ -126,7 +187,7 @@ export const COACH_SYSTEM_PROMPT = `당신은 "나만의 연애코치"입니다.
 - summary와 insights, nextStep, warnings는 사용자에게 말하는 친근한 존댓말("~해요", "~해보세요")로 씁니다.
 - 출력은 오직 요청된 JSON 구조로만 합니다.`;
 
-export function buildProfileBlock(req: CoachRequest): string {
+export function buildProfileBlock(req: Pick<CoachRequest, 'crush' | 'user'>): string {
   const { crush, user } = req;
   const lines: string[] = [];
   lines.push(`[상대방 프로필]`);
@@ -137,6 +198,9 @@ export function buildProfileBlock(req: CoachRequest): string {
   lines.push(`- 관계 단계: ${RELATIONSHIP_KO[crush.relationship]}`);
   if (crush.style.length) lines.push(`- 성향/스타일: ${crush.style.join(', ')}`);
   if (crush.notes.trim()) lines.push(`- 메모: ${crush.notes.trim()}`);
+  if (crush.callName?.trim()) lines.push(`- [내가 부르는 호칭] ${crush.callName.trim()} (${crush.callNameFixed ? '직접 정함' : '지난 대화에서 읽음'})`);
+  if (crush.speech) lines.push(`- [말투] ${SPEECH_KO[crush.speech]} (${crush.speechFixed ? '직접 정함' : '지난 대화에서 읽음'})`);
+  if (crush.goal?.trim()) lines.push(`- 이 사람과의 목표: ${crush.goal.trim()}`);
   lines.push('');
   lines.push(`[사용자(나) 프로필]`);
   if (user.name.trim()) lines.push(`- 이름: ${user.name.trim()}`);
@@ -144,6 +208,10 @@ export function buildProfileBlock(req: CoachRequest): string {
   if (user.age) lines.push(`- 나이: ${user.age}세`);
   if (user.mbti) lines.push(`- MBTI: ${user.mbti}`);
   if (user.style.length) lines.push(`- 나의 스타일: ${user.style.join(', ')}`);
+  if (user.vibes?.length) lines.push(`- 추구미(보이고 싶은 모습): ${user.vibes.join(', ')}`);
+  if (user.goal?.trim()) lines.push(`- 나의 연애 목표: ${user.goal.trim()}`);
+  if (user.kkti?.trim()) lines.push(`- 카톡 연애 유형(KKTI): ${user.kkti.trim()}`);
+  if (user.about?.trim()) lines.push(`- 자기소개: ${user.about.trim()}`);
   return lines.join('\n');
 }
 
@@ -160,12 +228,16 @@ export function buildHistoryBlock(history: HistoryTurn[]): string {
   return lines.join('\n');
 }
 
+const EMOJI_KO = { auto: '자동 (대화에서 쓰던 만큼)', on: '넣기', off: '빼기' } as const;
+
 export function buildTaskBlock(req: CoachRequest): string {
   const lines: string[] = [];
   lines.push(`[이번 요청]`);
   lines.push(`- 원하는 답장 톤: ${TONE_GUIDE[req.tone]}`);
+  lines.push(`- [이모지: ${EMOJI_KO[req.emoji ?? 'auto']}]`);
+  lines.push(`- [지금 누적 온도] ${Math.round(req.crush.heat ?? 0)}°`);
   if (req.image) {
-    lines.push(`- 첨부한 대화 캡처를 분석해서 상황을 읽고, 위 톤으로 답장 3개를 추천해주세요.`);
+    lines.push(`- 첨부한 대화 캡처를 분석해서 상황을 읽고, 호칭과 말투를 그대로 살려 위 톤으로 답장 3개를 추천해주세요.`);
   }
   if (req.text?.trim()) {
     lines.push(`- 사용자의 말: "${req.text.trim()}"`);
@@ -217,22 +289,36 @@ export function coachOutputJsonSchema() {
   return z.toJSONSchema(CoachAnalysisSchema, { target: 'draft-2020-12', io: 'output' });
 }
 
-/** 모델 출력 후처리: 점수 범위/개수 보정 */
-export function normalizeAnalysis(a: CoachAnalysisOutput): CoachAnalysisOutput {
+const clampInt = (n: number | undefined, min: number, max: number): number | undefined =>
+  n == null || Number.isNaN(n) ? undefined : Math.max(min, Math.min(max, Math.round(n)));
+
+/** 모델 출력 후처리: 점수 범위/개수 보정. 예전 서버 응답(새 항목 없음)도 받는다 */
+export function normalizeAnalysis<T extends CoachAnalysisRead>(a: T): T {
   const score =
     a.interestScore === null || Number.isNaN(a.interestScore)
       ? null
       : Math.max(0, Math.min(100, Math.round(a.interestScore)));
+  const callName = typeof a.callName === 'string' ? a.callName.trim().replace(/^["'“”]+|["'“”]+$/g, '').slice(0, 20) || null : a.callName;
   return {
     ...a,
+    callName,
     interestScore: a.temperature === 'unknown' ? null : score,
+    heatDelta: clampInt(a.heatDelta, -20, 20),
     insights: a.insights.filter((s) => s.trim()).slice(0, 5),
-    replies: a.replies.filter((r) => r.text.trim()).slice(0, 3),
+    replies: a.replies
+      .filter((r) => r.text.trim())
+      .slice(0, 3)
+      .map((r) => ({ ...r, successRate: clampInt(r.successRate, 1, 99), expectedReaction: r.expectedReaction?.trim() || undefined })),
     warnings: a.warnings.filter((s) => s.trim()).slice(0, 3),
   };
 }
 
+/** 앱의 상대 정보를 요청 형태로. 직접 정한 호칭·말투가 없으면 지난 캡처에서 읽은 값을 쓴다 */
 export function crushToRequest(crush: Crush): CoachRequest['crush'] {
+  const fixedCall = crush.callName?.trim();
+  const fixedSpeech = crush.speech && crush.speech !== 'auto' ? crush.speech : undefined;
+  const callName = fixedCall || crush.detected?.callName;
+  const speech = fixedSpeech ?? crush.detected?.speech;
   return {
     name: crush.name,
     gender: crush.gender,
@@ -241,9 +327,23 @@ export function crushToRequest(crush: Crush): CoachRequest['crush'] {
     relationship: crush.relationship,
     style: crush.style,
     notes: crush.notes,
+    ...(callName ? { callName, callNameFixed: Boolean(fixedCall) } : {}),
+    ...(speech ? { speech, speechFixed: Boolean(fixedSpeech) } : {}),
+    ...(crush.goal?.trim() ? { goal: crush.goal.trim() } : {}),
+    heat: crush.heat ?? 0,
   };
 }
 
-export function userToRequest(user: UserProfile): CoachRequest['user'] {
-  return { name: user.name, gender: user.gender, age: user.age, mbti: user.mbti, style: user.style };
+export function userToRequest(user: UserProfile, kkti?: string): CoachRequest['user'] {
+  return {
+    name: user.name,
+    gender: user.gender,
+    age: user.age,
+    mbti: user.mbti,
+    style: user.style,
+    ...(user.about?.trim() ? { about: user.about.trim().slice(0, 300) } : {}),
+    ...(user.vibes?.length ? { vibes: user.vibes.slice(0, 5) } : {}),
+    ...(user.goal?.trim() ? { goal: user.goal.trim() } : {}),
+    ...(kkti ? { kkti } : {}),
+  };
 }

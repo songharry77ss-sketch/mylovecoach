@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSequence, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/app-text';
@@ -10,13 +11,17 @@ import { IconButton } from '@/components/ui/icon-button';
 import { Radius, Spacing, Typography } from '@/constants/theme';
 import { useKeyboardVisible } from '@/hooks/use-keyboard';
 import { useTheme } from '@/hooks/use-theme';
-import { TONES } from '@/lib/labels';
-import type { Tone } from '@/lib/types';
+import { haptic } from '@/lib/haptics';
 import type { PickedImage } from '@/lib/images';
+import { TONES } from '@/lib/labels';
+import type { EmojiPref, Tone } from '@/lib/types';
 
 interface ComposerProps {
   tone: Tone;
   onToneChange: (tone: Tone) => void;
+  /** 답장에 이모지 넣기 */
+  emoji: EmojiPref;
+  onEmojiChange: (emoji: EmojiPref) => void;
   image: PickedImage | null;
   onPickImage: () => void;
   onClearImage: () => void;
@@ -25,20 +30,32 @@ interface ComposerProps {
   sending?: boolean;
   /** 입력창 위에 보여 줄 안내 (무료 횟수 등) */
   notice?: { text: string; actionLabel?: string; onAction?: () => void; emphasized?: boolean } | null;
+  /** 입력창이 비었을 때 띄울 무작위 질문들 (누르면 바로 물어본다) */
+  questions?: string[];
+  onQuestion?: (question: string) => void;
+  onShuffleQuestions?: () => void;
 }
 
-export function Composer({ tone, onToneChange, image, onPickImage, onClearImage, onSend, sending, notice }: ComposerProps) {
+const EMOJI_NEXT: Record<EmojiPref, EmojiPref> = { on: 'off', off: 'auto', auto: 'on' };
+const EMOJI_LABEL: Record<EmojiPref, string> = { on: '😊 이모지 넣기', off: '🚫 이모지 빼기', auto: '🪞 이모지 자동' };
+
+export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPickImage, onClearImage, onSend, sending, notice, questions, onQuestion, onShuffleQuestions }: ComposerProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const keyboardVisible = useKeyboardVisible();
   const [text, setText] = useState('');
+  const sendScale = useSharedValue(1);
+  const sendStyle = useAnimatedStyle(() => ({ transform: [{ scale: sendScale.value }] }));
   // 키보드가 올라오면 홈 인디케이터 여백이 필요 없다 — 그대로 두면 키보드와 입력창 사이가 벌어진다
   const bottomPad = (keyboardVisible ? 0 : insets.bottom) + Spacing.sm;
   const canSend = !sending && (Boolean(image) || text.trim().length > 0);
+  const showQuestions = Boolean(questions?.length) && !text && !image && !sending;
 
   const submit = () => {
     if (!canSend) return;
     if (onSend(text.trim()) === false) return;
+    haptic.thud();
+    sendScale.value = withSequence(withSpring(0.8, { damping: 10, stiffness: 400 }), withSpring(1, { damping: 8, stiffness: 260 }));
     setText('');
   };
 
@@ -61,7 +78,48 @@ export function Composer({ tone, onToneChange, image, onPickImage, onClearImage,
         </Pressable>
       ) : null}
 
+      {/* 「그 사람은 지금 무슨 생각일까?」 같은 질문을 무작위로 띄워 바로 물어보게 한다 */}
+      {showQuestions ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.questions} keyboardShouldPersistTaps="handled">
+          {onShuffleQuestions ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="다른 질문 보기"
+              onPress={() => {
+                haptic.select();
+                onShuffleQuestions();
+              }}
+              style={[styles.dice, { backgroundColor: theme.accentSoft }]}>
+              <AppText style={styles.diceText}>🎲</AppText>
+            </Pressable>
+          ) : null}
+          {questions!.map((q) => (
+            <Animated.View key={q} entering={FadeIn.duration(240)}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  haptic.tap();
+                  onQuestion?.(q);
+                }}
+                style={({ pressed }) => [styles.question, { backgroundColor: theme.surface, borderColor: theme.border, opacity: pressed ? 0.7 : 1 }]}>
+                <AppText variant="caption" color="textSecondary">
+                  {q}
+                </AppText>
+              </Pressable>
+            </Animated.View>
+          ))}
+        </ScrollView>
+      ) : null}
+
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tones} keyboardShouldPersistTaps="handled">
+        <Chip
+          label={EMOJI_LABEL[emoji]}
+          selected={emoji !== 'off'}
+          tone="accent"
+          size="sm"
+          onPress={() => onEmojiChange(EMOJI_NEXT[emoji])}
+        />
+        <View style={[styles.divider, { backgroundColor: theme.border }]} />
         {TONES.map((t) => (
           <Chip key={t.key} label={t.label} emoji={t.emoji} selected={tone === t.key} onPress={() => onToneChange(t.key)} size="sm" />
         ))}
@@ -74,7 +132,7 @@ export function Composer({ tone, onToneChange, image, onPickImage, onClearImage,
             <Ionicons name="close" size={14} color={theme.background} />
           </Pressable>
           <AppText variant="caption" color="textSecondary">
-            캡처 1장 첨부됨
+            캡처 1장 첨부됨 · 호칭과 말투도 같이 읽어요
           </AppText>
         </View>
       ) : null}
@@ -100,14 +158,17 @@ export function Composer({ tone, onToneChange, image, onPickImage, onClearImage,
             style={[styles.input, Typography.body, { color: theme.text }]}
           />
         </View>
-        <IconButton
-          name="arrow-up"
-          accessibilityLabel="코치에게 보내기"
-          onPress={submit}
-          disabled={!canSend}
-          color={theme.primaryText}
-          background={canSend ? theme.primary : theme.surfaceSelected}
-        />
+        <Animated.View style={sendStyle}>
+          <IconButton
+            name="arrow-up"
+            accessibilityLabel="코치에게 보내기"
+            onPress={submit}
+            disabled={!canSend}
+            color={theme.primaryText}
+            background={canSend ? theme.primary : theme.surfaceSelected}
+            haptic={false}
+          />
+        </Animated.View>
       </View>
     </View>
   );
@@ -117,7 +178,12 @@ const styles = StyleSheet.create({
   wrap: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: Spacing.sm, paddingHorizontal: Spacing.md, gap: Spacing.sm },
   notice: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
   noticeText: { flex: 1 },
-  tones: { gap: Spacing.sm, paddingHorizontal: Spacing.xs },
+  questions: { gap: Spacing.xs, paddingHorizontal: Spacing.xs, alignItems: 'center' },
+  dice: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  diceText: { fontSize: 16, lineHeight: 20 },
+  question: { paddingHorizontal: Spacing.md, paddingVertical: 7, borderRadius: Radius.pill, borderWidth: 1 },
+  tones: { gap: Spacing.sm, paddingHorizontal: Spacing.xs, alignItems: 'center' },
+  divider: { width: 1, height: 18 },
   preview: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   previewImage: { width: 44, height: 60, borderRadius: Radius.sm },
   previewClose: { position: 'absolute', left: 32, top: -6, width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },

@@ -49,13 +49,19 @@ npx tsc --noEmit && npx eslint src --max-warnings=0 && npx jest
 
 ## 구조
 
-- `src/app/` — 화면 (expo-router). 첫 화면은 `start.tsx`, 채팅은 `crush/[id]/index.tsx`
-- `src/components/coach/` — 결과 카드(`analysis-card.tsx`), 입력창(`composer.tsx`)
-- `src/lib/coach-schema.ts` — 요청·응답 스키마와 프롬프트. 앱과 서버가 같이 쓴다
-- `src/store/app-store.ts` — zustand + AsyncStorage
+- `src/app/` — 화면 (expo-router). 첫 화면은 `start.tsx`(시연 루프 애니메이션 `components/fx/demo-reel.tsx`), 채팅은 `crush/[id]/index.tsx`
+  - 탭: 채팅 `(tabs)/index` · 연애 연습 `(tabs)/practice` · 속마음 `(tabs)/tips` · 마이 `(tabs)/my`
+  - 상대 분석 보고서 `crush/[id]/report`, 연습 대화 `practice/[id]`·`practice/custom`, 속마음 풀이 `mind`, 빠른 코칭 `quick`(플로팅 버블·`mylovecoach://quick` 이 여는 곳), KKTI 테스트 `kkti/`
+- `src/components/coach/` — 결과 카드(`analysis-card.tsx`), 답장 스와이프(`reply-carousel.tsx`), 누적 온도계(`heat-gauge.tsx`), 입력창(`composer.tsx`)
+- `src/components/fx/celebration.tsx` — 하트·꽃가루 효과 (`useCelebrate()`), `src/lib/haptics.ts` — 진동 패턴 모음 (마이 탭에서 끌 수 있음)
+- `src/lib/coach-schema.ts` — 코칭 요청·응답 스키마와 프롬프트(호칭·존댓말·이모지·누적 온도). 앱과 서버가 같이 쓴다
+- `src/lib/ai-tasks.ts` · `ai-schemas.ts` — 모드별(coach·report·mind·practice) 요청·프롬프트·출력. 서버는 `mode` 로 나눠 처리하고, mode 가 없으면 예전 앱의 코칭 요청
+- `src/store/app-store.ts` — zustand + AsyncStorage. 비밀 상담(`crush.secret`)은 `partialize` 에서 빠져 저장되지 않는다
+- `src/lib/billing/` — 요금제 4종: 주간·평생(스토어 구매 내역으로 판정) + 하루 이용권·횟수권(소모성, 기기 지갑 `wallet` 에 충전)
+- `modules/floating-bubble/` — 안드로이드 플로팅 버블 로컬 Expo 모듈 (iOS·웹은 아무것도 안 함)
 - `api/` — Vercel 서버리스 (`coach.ts` 가 Gemini 호출, `track.ts`·`admin.ts` 는 이용 기록)
 - `tools/` — 스토어 자동화 스크립트. 워크플로가 이걸 불러 쓴다
-- `docs/TESTER_GUIDE.md` — 테스터에게 보낼 안내문과 설치 링크
+- `docs/TESTER_GUIDE.md` — 테스터에게 보낼 안내문과 설치 링크, `docs/MARKETING.md` — 틱톡·X·스레드 마케팅 실행안
 
 ## 알아둘 함정
 
@@ -69,6 +75,9 @@ npx tsc --noEmit && npx eslint src --max-warnings=0 && npx jest
 - 내부 테스트 **참여 링크**(`play.google.com/apps/internaltest/숫자`)도 API 로 조회되지 않는다. Console 의 테스터 탭에서 복사.
 - 무료 무제한 스위치 `FREE_UNLIMITED` 는 빌드 환경변수 `EXPO_PUBLIC_FREE_UNLIMITED=1` 일 때만 켜진다. **스토어 빌드(ios.yml·android.yml)와 웹은 유료 판매**(무료 3회 + 하루 1회 → 페이월), **직접 설치 APK(android-apk.yml)만 무료 무제한**이다 (APK 는 스토어 결제가 안 되므로). 스토어 문구(`docs/STORE_LISTING.md`)·지원 페이지도 유료 기준이다.
 - 평생권 가격은 Play ₩29,800, App Store ₩29,900 (애플에 ₩29,800 가격대가 없음). 그래서 공용 설명에는 평생권 금액을 적지 않는다. 앱은 스토어가 주는 실제 가격을 표시한다.
+- 하루 이용권(`mylovecoach.pass.day`)·횟수권(`mylovecoach.credits.10`)은 스토어에 **아직 없다**. `tools/asc-iap.mjs --consumables`, `tools/play-setup.mjs --products --consumables` 로 만든다 (상품 ID 는 한 번 만들면 재사용 불가 → 가격 확정 뒤). 스토어에 없는 상품은 결제 화면에서 자동으로 숨는다.
+- 소모성 상품은 복원이 안 된다(기기 지갑). 같은 결제가 두 번 충전되지 않게 거래 ID 를 `wallet.granted` 에 남긴다.
+- 플로팅 버블 때문에 `SYSTEM_ALERT_WINDOW` 를 더 이상 막지 않는다. Play Console 에 포그라운드 서비스(specialUse) 신고가 필요하다.
 - App Store 「앱이 수집하는 개인정보」 설문은 API 가 없다 (`/v1/apps/{id}/appDataUsages` 등 전부 404). 답안은 `docs/APP_PRIVACY.md`. 화면에서 **게시**하면 `app-store-autosubmit.yml` 이 15분 안에 심사 제출한다.
 - 개인정보 설문 답과 `site/privacy.html` 은 실제 전송 항목(`src/lib/analytics.ts`, `api/coach.ts`)과 맞아야 한다. 수집 항목을 바꾸면 셋을 같이 고칠 것.
 - 문의처는 `songharry77ss@gmail.com` (`mylovecoach.app` 도메인은 존재하지 않는다). 지원 URL 은 `/support.html`.

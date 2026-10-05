@@ -2,7 +2,8 @@
  * Google Gemini 프로바이더 (REST, generateContent).
  * 앱 직접 호출 모드와 서버(api/coach.ts) 양쪽에서 사용합니다. 순수 TS 만 사용.
  */
-import { COACH_SYSTEM_PROMPT, buildContextText, buildTaskBlock, coachOutputJsonSchema, type CoachRequest } from './coach-schema';
+import { buildCoachTask, jsonSchemaOf, type AiTask } from './ai-tasks';
+import type { CoachRequest } from './coach-schema';
 
 export const GEMINI_DEFAULT_MODEL = 'gemini-3.5-flash';
 /** 기본 모델이 과부하(503)·한도 초과(429)일 때 순서대로 시도하는 대체 모델 */
@@ -44,24 +45,25 @@ export function toGeminiSchema(schema: JsonSchema): JsonSchema {
  */
 export const GEMINI_MEDIA_RESOLUTION = process.env.GEMINI_MEDIA_RESOLUTION ?? process.env.EXPO_PUBLIC_GEMINI_MEDIA_RESOLUTION ?? 'MEDIA_RESOLUTION_MEDIUM';
 
-export function buildGeminiBody(req: CoachRequest) {
+/** 어떤 모드의 작업이든 Gemini generateContent 본문으로 */
+export function buildGeminiTaskBody(task: AiTask) {
   const parts: ({ inlineData: { mimeType: string; data: string } } | { text: string })[] = [];
   // 순서: 고정 맥락 텍스트 → 캡처 → 이번 요청 (암시적 캐시 프리픽스 극대화)
-  parts.push({ text: buildContextText(req) });
-  if (req.image) parts.push({ inlineData: { mimeType: req.image.mediaType, data: req.image.base64 } });
-  parts.push({ text: buildTaskBlock(req) });
+  parts.push({ text: task.context });
+  if (task.image) parts.push({ inlineData: { mimeType: task.image.mediaType, data: task.image.base64 } });
+  parts.push({ text: task.task });
   return {
-    systemInstruction: { parts: [{ text: COACH_SYSTEM_PROMPT }] },
+    systemInstruction: { parts: [{ text: task.system }] },
     contents: [{ role: 'user', parts }],
     generationConfig: {
-      temperature: 0.8,
-      // 실제 출력은 500~700토큰. 상한을 낮춰 폭주 비용 방지
-      maxOutputTokens: 2048,
+      temperature: task.temperature,
+      // 상한을 낮춰 폭주 비용 방지
+      maxOutputTokens: task.maxOutputTokens,
       mediaResolution: GEMINI_MEDIA_RESOLUTION,
       // 답장 생성엔 긴 추론이 필요 없어 낮은 생각 수준으로 응답 속도를 줄입니다 (측정: 17초 → 10초)
       thinkingConfig: { thinkingLevel: 'low' },
       responseMimeType: 'application/json',
-      responseSchema: toGeminiSchema(coachOutputJsonSchema() as JsonSchema),
+      responseSchema: toGeminiSchema(jsonSchemaOf(task.schema)),
     },
     safetySettings: [
       { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
@@ -70,6 +72,11 @@ export function buildGeminiBody(req: CoachRequest) {
       { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
     ],
   };
+}
+
+/** 코칭 요청용 본문 (예전 호출부 호환) */
+export function buildGeminiBody(req: CoachRequest) {
+  return buildGeminiTaskBody(buildCoachTask(req) as AiTask);
 }
 
 export interface GeminiResult {
@@ -103,13 +110,19 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * 결과 텍스트(JSON 문자열)를 돌려줍니다.
  */
 export async function callGemini(req: CoachRequest, apiKey: string, options: CallGeminiOptions = {}): Promise<GeminiResult | GeminiFailure> {
+  return callGeminiTask(buildCoachTask(req) as AiTask, apiKey, options);
+}
+
+/** 모드에 상관없이 작업 하나를 Gemini 로 보낸다 */
+export async function callGeminiTask(task: AiTask, apiKey: string, options: CallGeminiOptions = {}): Promise<GeminiResult | GeminiFailure> {
+  const body = buildGeminiTaskBody(task);
   const primary = options.model || GEMINI_DEFAULT_MODEL;
   const chain = [primary, ...(options.fallbackModels ?? GEMINI_FALLBACK_MODELS).filter((m) => m !== primary)];
   const delay = options.retryDelayMs ?? 800;
   let last: GeminiFailure | null = null;
   for (const model of chain) {
     for (let attempt = 0; attempt < 2; attempt++) {
-      const result = await callGeminiOnce(req, apiKey, model, options);
+      const result = await callGeminiOnce(body, apiKey, model, options);
       if (result.ok) return { ...result, model };
       last = result;
       const transient = result.status === 503 || result.status === 429;
@@ -121,7 +134,7 @@ export async function callGemini(req: CoachRequest, apiKey: string, options: Cal
 }
 
 async function callGeminiOnce(
-  req: CoachRequest,
+  requestBody: ReturnType<typeof buildGeminiTaskBody>,
   apiKey: string,
   model: string,
   options: CallGeminiOptions,
@@ -130,7 +143,7 @@ async function callGeminiOnce(
   const res = await f(`${GEMINI_API_BASE}/models/${encodeURIComponent(model)}:generateContent`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
-    body: JSON.stringify(buildGeminiBody(req)),
+    body: JSON.stringify(requestBody),
     signal: options.signal,
   });
   let body: GeminiResponse | null = null;

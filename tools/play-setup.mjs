@@ -2,6 +2,7 @@
 // Play Console 에 앱을 만들고(패키지 이름 포함) 서비스 계정에 앱 권한을 준 뒤 쓸 수 있다. 일회성 상품은 결제 권한이 든 AAB 가 먼저 올라가야 만들어진다 (tools/play-upload.mjs).
 //   --listing  : 스토어 등록 정보(제목·설명), 아이콘·그래픽 이미지·휴대전화 스크린샷, 연락처
 //   --products : 인앱 상품 — 주간 구독 mylovecoach.premium.weekly(기본 요금제 weekly, ₩9,900) + 일회성 mylovecoach.premium.lifetime(₩29,800)
+//   --products --consumables : 위에 더해 하루 이용권 mylovecoach.pass.day(₩2,700) · 횟수권 mylovecoach.credits.10(₩4,900, 가안)
 //   옵션이 없으면 둘 다 실행. 여러 번 실행해도 안전하다. 서비스 계정에 이 앱 권한이 있어야 한다 (Play Console → 사용자 및 권한).
 // API 로 안 되는 것(화면 작업): 앱 만들기, 첫 AAB 업로드, 앱 콘텐츠 선언(개인정보처리방침·광고·콘텐츠 등급·타겟층·데이터 보안), 가격(무료)·국가.
 import { Buffer } from 'node:buffer';
@@ -124,20 +125,29 @@ async function products() {
     return exists ? '이미 있음 · 활성 확인' : '생성 · 활성화';
   });
 
-  const lifetime = 'mylovecoach.premium.lifetime';
-  await step(`일회성 상품 ${lifetime} (₩29,800)`, async () => {
+  await oneTimeProduct({ productId: 'mylovecoach.premium.lifetime', optionId: 'lifetime', title: '평생 프리미엄', description: '한 번 결제로 횟수 제한 없는 AI 연애 코칭', price: 29800 });
+  // 2026-10 회의 요금제 — 소모성(앱이 충전 후 consume). 상품 ID 는 다시 못 쓰니 가격 확정 뒤에 --consumables 로 만든다
+  if (process.argv.includes('--consumables')) {
+    await oneTimeProduct({ productId: 'mylovecoach.pass.day', optionId: 'day', title: '하루 이용권', description: '결제 후 24시간 동안 AI 연애 코칭 무제한', price: 2700 });
+    await oneTimeProduct({ productId: 'mylovecoach.credits.10', optionId: 'credits10', title: '코칭 10회권', description: 'AI 연애 코칭 10회 (기간 제한 없음)', price: 4900 });
+  }
+}
+
+/** 일회성 상품 하나 (평생권·하루 이용권·횟수권) */
+async function oneTimeProduct({ productId: lifetime, optionId, title, description, price }) {
+  await step(`일회성 상품 ${lifetime} (₩${price.toLocaleString()})`, async () => {
     // 옛 inappproducts API 는 새 앱에서 막혀 있어(403 "migrate to the new publishing API") 신규 onetimeproducts API 를 쓴다
     const base = `${BASE}/oneTimeProducts/${lifetime}`;
     const exists = await call('GET', base).catch((e) => (e.status === 404 ? null : Promise.reject(e)));
     const body = {
       packageName: PACKAGE,
       productId: lifetime,
-      listings: [{ languageCode: LANG, title: '평생 프리미엄', description: '한 번 결제로 횟수 제한 없는 AI 연애 코칭' }],
+      listings: [{ languageCode: LANG, title, description }],
       purchaseOptions: [
         {
-          purchaseOptionId: 'lifetime',
+          purchaseOptionId: optionId,
           buyOption: { legacyCompatible: true, multiQuantityEnabled: false },
-          regionalPricingAndAvailabilityConfigs: [{ regionCode: 'KR', price: { currencyCode: 'KRW', units: '29800' }, availability: 'AVAILABLE' }],
+          regionalPricingAndAvailabilityConfigs: [{ regionCode: 'KR', price: { currencyCode: 'KRW', units: String(price) }, availability: 'AVAILABLE' }],
         },
       ],
     };
@@ -147,10 +157,10 @@ async function products() {
         requests: [{ oneTimeProduct: body, updateMask: 'listings,purchaseOptions', allowMissing: true, regionsVersion: { version: '2022/02' }, latencyTolerance: 'PRODUCT_UPDATE_LATENCY_TOLERANCE_LATENCY_SENSITIVE' }],
       });
     const cur = exists ?? (await call('GET', base));
-    const opt = (cur.purchaseOptions ?? []).find((o) => o.purchaseOptionId === 'lifetime');
+    const opt = (cur.purchaseOptions ?? []).find((o) => o.purchaseOptionId === optionId);
     if (opt?.state !== 'ACTIVE')
       await call('POST', `${BASE}/oneTimeProducts/${lifetime}/purchaseOptions:batchUpdateStates`, {
-        requests: [{ activatePurchaseOptionRequest: { packageName: PACKAGE, productId: lifetime, purchaseOptionId: 'lifetime' } }],
+        requests: [{ activatePurchaseOptionRequest: { packageName: PACKAGE, productId: lifetime, purchaseOptionId: optionId } }],
       });
     return exists ? `이미 있음 · 상태 ${opt?.state ?? '?'} → 활성 확인` : '생성 · 활성화';
   });

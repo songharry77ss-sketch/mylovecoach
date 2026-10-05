@@ -16,14 +16,18 @@ const UNLIMITED: QuotaStatus = { kind: 'premium', remaining: Infinity };
 
 export function currentQuota(now = Date.now()): QuotaStatus {
   if (!quotaEnforced) return UNLIMITED;
-  const { premium, usage } = useAppStore.getState();
-  return quotaStatus(premium, usage, now);
+  const { premium, usage, wallet } = useAppStore.getState();
+  return quotaStatus(premium, usage, now, wallet);
 }
 
 /** 화면용: 저장소 변화에 맞춰 다시 계산되는 남은 횟수 */
 export function useQuota(): QuotaStatus & { enforced: boolean } {
   const premium = useAppStore((s) => s.premium);
   const usage = useAppStore((s) => s.usage);
+  const wallet = useAppStore((s) => s.wallet);
   if (!quotaEnforced) return { ...UNLIMITED, enforced: false };
-  return { ...quotaStatus(premium, usage, Date.now()), enforced: true };
+  return { ...quotaStatus(premium, usage, Date.now(), wallet), enforced: true };
 }
+
+/** 무제한(프리미엄·하루 이용권·제한 없음)인지 */
+export const isUnlimited = (q: QuotaStatus) => q.kind === 'premium' || q.kind === 'pass';
