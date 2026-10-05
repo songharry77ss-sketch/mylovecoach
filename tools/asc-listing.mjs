@@ -106,7 +106,8 @@ async function main() {
   let version;
   await step(`버전 ${VERSION}`, async () => {
     const vs = await api('GET', `/v1/apps/${app.id}/appStoreVersions?filter[platform]=IOS`);
-    version = vs.data.find((v) => ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED', 'REJECTED', 'METADATA_REJECTED', 'INVALID_BINARY'].includes(v.attributes.appStoreState ?? v.attributes.appVersionState));
+    // READY_FOR_REVIEW(심사 묶음에 담겼지만 아직 안 낸 초안)도 빌드·설명을 고칠 수 있다 (2026-10-05 실제로 확인)
+    version = vs.data.find((v) => ['PREPARE_FOR_SUBMISSION', 'READY_FOR_REVIEW', 'DEVELOPER_REJECTED', 'REJECTED', 'METADATA_REJECTED', 'INVALID_BINARY'].includes(v.attributes.appStoreState ?? v.attributes.appVersionState));
     if (!version && vs.data.length === 0)
       version = (await api('POST', '/v1/appStoreVersions', { data: { type: 'appStoreVersions', attributes: { platform: 'IOS', versionString: VERSION }, relationships: { app: { data: { type: 'apps', id: app.id } } } } })).data;
     if (!version) throw new Error(`편집 가능한 버전이 없습니다 (현재 상태: ${vs.data.map((v) => v.attributes.appStoreState).join(', ')})`);
