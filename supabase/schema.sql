@@ -144,6 +144,21 @@ as $$
     'avg_session_sec',(select coalesce(round(avg(duration_ms) / 1000.0), 0) from app_session, span where started_at >= span.since and duration_ms is not null),
     'coach_requests', (select count(*) from coach_log,  span where created_at >= span.since),
     'with_image',     (select count(*) from coach_log,  span where created_at >= span.since and has_image),
+    'signups_by_day', (
+      select coalesce(json_agg(row_to_json(d) order by d.day), '[]'::json) from (
+        select to_char(date_trunc('day', first_seen_at), 'MM-DD') as day, count(*) as users
+        from app_user, span where first_seen_at >= span.since
+        group by 1 order by 1
+      ) d
+    ),
+    'signup_sources', (
+      select coalesce(json_agg(row_to_json(s) order by s.users desc), '[]'::json) from (
+        select coalesce(nullif(source_detail->>'source', ''), nullif(source_detail->>'referrer', ''), nullif(source_detail->>'channel', ''), platform, '(모름)') as source,
+               count(*) as users
+        from app_user, span where first_seen_at >= span.since
+        group by 1 order by 2 desc limit 20
+      ) s
+    ),
     'by_day', (
       select coalesce(json_agg(row_to_json(d) order by d.day), '[]'::json) from (
         select to_char(date_trunc('day', created_at), 'MM-DD') as day,
