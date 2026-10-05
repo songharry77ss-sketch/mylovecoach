@@ -19,14 +19,15 @@ const { api, getAll, uploadAsset, findApp } = createAscClient(secretsRoot(proces
 const LOCALE = 'ko';
 const TERRITORY = 'KOR';
 const REVIEW_SHOT = join(repo, 'docs', 'store-assets', 'iap-review-paywall.png');
-const REVIEW_NOTE =
-  '무료 코칭(처음 3회 + 이후 하루 1회)을 다 쓰거나, 마이 탭 → 「이용권 보기」를 누르면 구매 화면이 열립니다. 하루 이용권은 24시간, 주간 구독·평생권은 기간 동안 코칭 횟수 제한이 없어지고, 횟수권은 코칭 10회가 충전됩니다. 같은 화면에 구매 복원, 이용약관, 개인정보 처리방침 링크가 있습니다.';
+// 심사 메모는 상품마다 그 상품 설명만 적는다 (아직 스토어에 없는 상품을 적으면 심사에서 혼동된다)
+const reviewNote = (what) =>
+  `무료 코칭(처음 3회 + 이후 하루 1회)을 다 쓰거나, 마이 탭 → 「이용권 보기」를 누르면 구매 화면이 열립니다. ${what} 같은 화면에 구매 복원, 이용약관, 개인정보 처리방침 링크가 있습니다.`;
 
-const WEEKLY = { productId: 'mylovecoach.premium.weekly', reference: '주간 프리미엄', name: '주간 프리미엄', description: '횟수 제한 없는 AI 연애 코칭 (매주 자동 갱신)', price: 9900 };
-const LIFETIME = { productId: 'mylovecoach.premium.lifetime', reference: '평생 프리미엄', name: '평생 프리미엄', description: '한 번 결제로 횟수 제한 없는 AI 연애 코칭', price: 29800, type: 'NON_CONSUMABLE', label: '평생권' };
+const WEEKLY = { productId: 'mylovecoach.premium.weekly', reference: '주간 프리미엄', name: '주간 프리미엄', description: '횟수 제한 없는 AI 연애 코칭 (매주 자동 갱신)', price: 9900, note: reviewNote('주간 구독은 1주마다 자동 갱신되며, 구독 기간 동안 코칭 횟수 제한이 없어집니다.') };
+const LIFETIME = { productId: 'mylovecoach.premium.lifetime', reference: '평생 프리미엄', name: '평생 프리미엄', description: '한 번 결제로 횟수 제한 없는 AI 연애 코칭', price: 29800, type: 'NON_CONSUMABLE', label: '평생권', note: reviewNote('평생권은 1회 결제로 코칭 횟수 제한이 계속 없어집니다.') };
 // 앱 코드의 src/lib/billing/plans.ts 와 같은 상품 ID·가격이어야 한다
-const DAY_PASS = { productId: 'mylovecoach.pass.day', reference: '하루 이용권', name: '하루 이용권', description: '결제 후 24시간 동안 AI 연애 코칭 무제한', price: 2700, type: 'CONSUMABLE', label: '하루 이용권' };
-const CREDITS = { productId: 'mylovecoach.credits.10', reference: '코칭 10회권', name: '코칭 10회권', description: 'AI 연애 코칭 10회 (기간 제한 없음)', price: 4900, type: 'CONSUMABLE', label: '횟수권' };
+const DAY_PASS = { productId: 'mylovecoach.pass.day', reference: '하루 이용권', name: '하루 이용권', description: '결제 후 24시간 동안 AI 연애 코칭 무제한', price: 2700, type: 'CONSUMABLE', label: '하루 이용권', note: reviewNote('하루 이용권은 결제한 때부터 24시간 동안 코칭 횟수 제한이 없어집니다.') };
+const CREDITS = { productId: 'mylovecoach.credits.10', reference: '코칭 10회권', name: '코칭 10회권', description: 'AI 연애 코칭 10회 (기간 제한 없음)', price: 4900, type: 'CONSUMABLE', label: '횟수권', note: reviewNote('횟수권은 코칭 10회가 충전되고 기간 제한이 없습니다.') };
 const withConsumables = process.argv.includes('--consumables');
 const GROUP = { reference: '프리미엄', name: '프리미엄' };
 
@@ -64,7 +65,7 @@ async function ensureSubscription(app) {
         await api('POST', '/v1/subscriptions', {
           data: {
             type: 'subscriptions',
-            attributes: { name: WEEKLY.reference, productId: WEEKLY.productId, subscriptionPeriod: 'ONE_WEEK', familySharable: false, groupLevel: 1, reviewNote: REVIEW_NOTE },
+            attributes: { name: WEEKLY.reference, productId: WEEKLY.productId, subscriptionPeriod: 'ONE_WEEK', familySharable: false, groupLevel: 1, reviewNote: WEEKLY.note },
             relationships: { group: rel('subscriptionGroups', group.id) },
           },
         })
@@ -126,7 +127,7 @@ async function ensureInApp(app, LIFETIME) {
     if (!iap)
       iap = (
         await api('POST', '/v2/inAppPurchases', {
-          data: { type: 'inAppPurchases', attributes: { name: LIFETIME.reference, productId: LIFETIME.productId, inAppPurchaseType: LIFETIME.type, familySharable: false, reviewNote: REVIEW_NOTE }, relationships: { app: rel('apps', app.id) } },
+          data: { type: 'inAppPurchases', attributes: { name: LIFETIME.reference, productId: LIFETIME.productId, inAppPurchaseType: LIFETIME.type, familySharable: false, reviewNote: LIFETIME.note }, relationships: { app: rel('apps', app.id) } },
         })
       ).data;
     return `${iap.attributes.state ?? ''}`;

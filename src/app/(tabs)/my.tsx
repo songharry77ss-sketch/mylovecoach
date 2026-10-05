@@ -11,6 +11,7 @@ import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section-header';
 import { useToast } from '@/components/ui/toast';
 import { Spacing } from '@/constants/theme';
+import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
 import { flushAnalytics, setConsent as setAnalyticsConsentFlag, track } from '@/lib/analytics';
 import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { billingSupported, openSubscriptionManagement, restorePremium } from '@/lib/billing/iap';
@@ -43,6 +44,11 @@ export default function MyScreen() {
   const createSecretChat = useAppStore((s) => s.createSecretChat);
   const quota = useQuota();
   const isPremium = quota.enforced && quota.kind === 'premium';
+  // 「~부터」 가격은 스토어에서 확인된 가장 싼 상품으로만 적는다
+  const products = usePlanProducts();
+  const dayPrice = onSalePrice(products, 'day');
+  const weeklyPrice = onSalePrice(products, 'weekly');
+  const fromPrice = dayPrice ? `하루 ${dayPrice}부터` : weeklyPrice ? `주 ${weeklyPrice}부터` : undefined;
 
   // 플로팅 버블 (안드로이드) — 권한 설정 화면에서 돌아오면 다시 확인해 켠다
   const [bubbleOn, setBubbleOn] = useState(false);
@@ -148,7 +154,7 @@ export default function MyScreen() {
           {isUnlimited(quota) ? (
             <ListRow icon="heart" title={`${planValue || '프리미엄'} 이용 중`} subtitle={quota.kind === 'pass' ? quotaLabel(quota) : undefined} value={walletNote || undefined} onPress={() => router.push({ pathname: '/paywall', params: { reason: 'my' } })} />
           ) : (
-            <ListRow icon="heart-outline" title="이용권 보기" subtitle={quotaLabel(quota)} value="하루 2,700원부터" onPress={() => router.push({ pathname: '/paywall', params: { reason: 'my' } })} />
+            <ListRow icon="heart-outline" title="이용권 보기" subtitle={quotaLabel(quota)} value={fromPrice} onPress={() => router.push({ pathname: '/paywall', params: { reason: 'my' } })} />
           )}
           {billingSupported && premium?.plan === 'weekly' ? <ListRow icon="card-outline" title="구독 관리 · 해지" onPress={() => openSubscriptionManagement().catch(() => {})} /> : null}
           {billingSupported && !isPremium ? <ListRow icon="refresh-outline" title="구매 복원" subtitle="주간 구독·평생권" onPress={restore} /> : null}

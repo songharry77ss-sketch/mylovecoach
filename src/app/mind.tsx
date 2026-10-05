@@ -14,6 +14,7 @@ import { Screen } from '@/components/ui/screen';
 import { useToast } from '@/components/ui/toast';
 import { Radius, Spacing } from '@/constants/theme';
 import { useAiAction } from '@/hooks/use-ai-action';
+import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
 import { useTheme } from '@/hooks/use-theme';
 import { requestAi } from '@/lib/coach-client';
 import { haptic } from '@/lib/haptics';
@@ -33,6 +34,7 @@ export default function MindScreen() {
   const user = useAppStore((s) => s.user);
   const history = useAppStore((s) => s.mindHistory);
   const { run, busy, error, blocked, openPaywall } = useAiAction();
+  const hasDayPass = onSalePrice(usePlanProducts(), 'day') != null;
   const fromHistory = params.history != null ? history[Number(params.history)] : undefined;
   const perspective: Gender = fromHistory?.perspective ?? (params.perspective === 'female' || params.perspective === 'other' ? params.perspective : 'male');
   const situation = fromHistory?.situation ?? params.situation ?? '';
@@ -82,7 +84,7 @@ export default function MindScreen() {
         <View style={[styles.error, { backgroundColor: theme.primarySoft }]}>
           <AppText variant="smallStrong">오늘 쓸 수 있는 횟수를 다 썼어요</AppText>
           <AppText variant="small" color="textSecondary">
-            하루 이용권이면 지금부터 24시간 동안 속마음을 마음껏 물어볼 수 있어요.
+            {hasDayPass ? '하루 이용권이면 지금부터 24시간 동안 속마음을 마음껏 물어볼 수 있어요.' : '이용권이면 횟수 걱정 없이 속마음을 마음껏 물어볼 수 있어요.'}
           </AppText>
           <View style={styles.row}>
             <Button title="이용권 보기" size="sm" fullWidth={false} onPress={() => openPaywall('mind')} />

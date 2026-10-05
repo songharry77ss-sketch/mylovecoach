@@ -20,6 +20,7 @@ import { useToast } from '@/components/ui/toast';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useCoach } from '@/hooks/use-coach';
 import { useKeyboardVisible } from '@/hooks/use-keyboard';
+import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
 import { useTheme } from '@/hooks/use-theme';
 import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { quotaLabel } from '@/lib/billing/quota';
@@ -46,6 +47,7 @@ export default function CrushChat() {
   const dismissUpsell = useAppStore((s) => s.dismissUpsell);
   const { send, sending } = useCoach();
   const quota = useQuota();
+  const hasDayPass = onSalePrice(usePlanProducts(), 'day') != null;
 
   const [tone, setTone] = useState<Tone>(user?.defaultTone ?? 'natural');
   const [emoji, setEmoji] = useState<EmojiPref>(user?.emoji ?? 'on');
@@ -404,7 +406,7 @@ export default function CrushChat() {
                 <View style={styles.upsellTexts}>
                   <AppText variant="smallStrong">답장이 도움이 됐나요?</AppText>
                   <AppText variant="caption" color="textSecondary">
-                    하루 이용권이면 오늘 하루 무제한, 마음에 드는 답장이 나올 때까지 받아볼 수 있어요.
+                    {hasDayPass ? '하루 이용권이면 오늘 하루 무제한, 마음에 드는 답장이 나올 때까지 받아볼 수 있어요.' : '이용권이면 횟수 제한 없이, 마음에 드는 답장이 나올 때까지 받아볼 수 있어요.'}
                   </AppText>
                 </View>
                 <View style={styles.upsellActions}>

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { AppText } from '@/components/ui/app-text';
@@ -9,10 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { useToast } from '@/components/ui/toast';
 import { Radius, Spacing } from '@/constants/theme';
+import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
-import { billingSupported, loadPlanProducts, purchasePlan, restorePremium, type PlanProduct } from '@/lib/billing/iap';
-import { CREDITS_PER_PACK, FALLBACK_PRICES, PRODUCT_IDS, type PlanKey } from '@/lib/billing/plans';
+import { billingSupported, purchasePlan, restorePremium, type PlanProduct } from '@/lib/billing/iap';
+import { CREDITS_PER_PACK, FALLBACK_PRICES, PRODUCT_IDS, isConsumablePlan, type PlanKey } from '@/lib/billing/plans';
 import { isPremiumActive, quotaLabel, quotaStatus } from '@/lib/billing/quota';
 import { haptic } from '@/lib/haptics';
 import { APP_CONFIG } from '@/lib/config';
@@ -21,7 +22,8 @@ import { useAppStore } from '@/store/app-store';
 type Reason = 'quota' | 'regenerate' | 'my' | 'banner' | 'report' | 'practice' | 'mind';
 
 const HEADLINES: Record<Reason, { title: string; subtitle: string }> = {
-  quota: { title: '오늘의 무료 코칭을\n다 썼어요', subtitle: '하루 이용권이면 2,700원으로 지금 바로 이어서 코칭받을 수 있어요.' },
+  // 하루 이용권이 스토어에 있으면 화면에서 가격을 넣은 문구로 바꾼다
+  quota: { title: '오늘의 무료 코칭을\n다 썼어요', subtitle: '이용권이면 횟수 제한 없이 지금 바로 이어서 코칭받을 수 있어요.' },
   regenerate: { title: '마음에 드는 답장이\n나올 때까지', subtitle: '이용권이면 다른 버전도 횟수 제한 없이 넘겨 볼 수 있어요.' },
   my: { title: '답장 고민,\n이제 무제한으로', subtitle: '횟수 걱정 없이 필요한 순간마다 코치를 불러보세요.' },
   banner: { title: '답장 고민,\n이제 무제한으로', subtitle: '횟수 걱정 없이 필요한 순간마다 코치를 불러보세요.' },
@@ -64,7 +66,9 @@ export default function Paywall() {
   const wallet = useAppStore((s) => s.wallet);
   const setPremium = useAppStore((s) => s.setPremium);
 
-  const [products, setProducts] = useState<PlanProduct[]>(DEFAULT_PRODUCTS);
+  // 앱에서는 스토어 응답을 받은 뒤에 상품을 보여 준다 (스토어에 없는 상품이 잠깐이라도 보이지 않도록)
+  const storeProducts = usePlanProducts();
+  const products = billingSupported && !previewStore ? storeProducts : DEFAULT_PRODUCTS;
   // 지금 막혀서 들어온 사람에게는 가장 가벼운 하루 이용권부터 보여 준다
   const [selected, setSelected] = useState<PlanKey>(reason === 'my' || reason === 'banner' ? 'lifetime' : 'day');
   const [busy, setBusy] = useState<'purchase' | 'restore' | null>(null);
@@ -74,24 +78,22 @@ export default function Paywall() {
 
   useEffect(() => {
     track('paywall_open', { reason });
-    let alive = true;
-    loadPlanProducts().then((list) => alive && setProducts(list));
-    return () => {
-      alive = false;
-    };
   }, [reason]);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
-  const priceOf = (plan: PlanKey) => products.find((p) => p.plan === plan)?.displayPrice ?? FALLBACK_PRICES[plan];
-  // 스토어에 아직 등록되지 않은 상품은 숨긴다 (미리보기에서는 전부 보여 줌)
-  const visible = products.filter((p) => previewStore || !billingSupported || p.available !== false);
+  const priceOf = (plan: PlanKey) => products?.find((p) => p.plan === plan)?.displayPrice ?? FALLBACK_PRICES[plan];
+  // 스토어에서 확인된 상품만 보여 준다. 스토어에 닿지 못했으면 이미 등록된 프리미엄(주간·평생)만 (미리보기·웹은 전부)
+  const confirmed = products?.some((p) => p.available === true) ?? false;
+  const visible = (products ?? []).filter((p) => previewStore || !billingSupported || (confirmed ? p.available === true : !isConsumablePlan(p.plan)));
   const chosen = visible.some((p) => p.plan === selected) ? selected : (visible[0]?.plan ?? 'lifetime');
+  const dayPrice = onSalePrice(products, 'day');
+  const subtitle = reason === 'quota' && dayPrice ? `하루 이용권이면 ${dayPrice}으로 지금 바로 이어서 코칭받을 수 있어요.` : HEADLINES[reason].subtitle;
   const active = isPremiumActive(premium, Date.now());
   const status = quotaStatus(premium, usage, Date.now(), wallet);
   const storeName = Platform.OS === 'ios' || previewStore === 'ios' ? 'App Store' : 'Google Play';
 
   const buy = async () => {
-    const product = products.find((p) => p.plan === chosen);
+    const product = products?.find((p) => p.plan === chosen);
     if (!product || busy) return;
     haptic.thud();
     setBusy('purchase');
@@ -151,7 +153,7 @@ export default function Paywall() {
           {active ? '프리미엄 이용 중이에요' : headline.title}
         </AppText>
         <AppText variant="body" color="textSecondary" align="center">
-          {active ? (premium?.plan === 'lifetime' ? '평생권으로 모든 기능을 무제한으로 쓰고 있어요.' : '주간 구독으로 모든 기능을 무제한으로 쓰고 있어요.') : headline.subtitle}
+          {active ? (premium?.plan === 'lifetime' ? '평생권으로 모든 기능을 무제한으로 쓰고 있어요.' : '주간 구독으로 모든 기능을 무제한으로 쓰고 있어요.') : subtitle}
         </AppText>
         {!active && (status.kind === 'pass' || (status.credits ?? 0) > 0) ? (
           <View style={[styles.statusPill, { backgroundColor: theme.primarySoft }]}>
@@ -180,6 +182,13 @@ export default function Paywall() {
 
       {active ? (
         <Button title="확인" onPress={close} />
+      ) : showPlans && !products ? (
+        <View style={styles.loading}>
+          <ActivityIndicator color={theme.primary} />
+          <AppText variant="caption" color="textTertiary">
+            상품 정보를 불러오는 중…
+          </AppText>
+        </View>
       ) : showPlans ? (
         <>
           <View style={styles.plans}>
@@ -220,7 +229,7 @@ export default function Paywall() {
             프리미엄은 앱에서 시작할 수 있어요
           </AppText>
           <AppText variant="caption" color="textSecondary" align="center">
-            iPhone · Android 앱에서 하루 이용권 {FALLBACK_PRICES.day}, 주간 구독 {FALLBACK_PRICES.weekly}/주, 평생권 {FALLBACK_PRICES.lifetime}, 횟수권 {CREDITS_PER_PACK}회 {FALLBACK_PRICES.credits}으로 이용할 수 있어요. 웹에서는 매일 무료 코칭이 충전돼요.
+            iPhone · Android 앱에서 이용권을 결제하면 횟수 제한 없이 코칭받을 수 있어요. 웹에서는 매일 무료 코칭이 충전돼요.
           </AppText>
         </View>
       )}
@@ -320,6 +329,7 @@ const styles = StyleSheet.create({
   benefitIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   benefitTexts: { flex: 1, gap: 2 },
   plans: { gap: Spacing.sm },
+  loading: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xl },
   plan: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderWidth: 1.5, borderRadius: Radius.lg, padding: Spacing.lg },
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   radioDot: { width: 10, height: 10, borderRadius: 5 },
