@@ -93,8 +93,8 @@ npx expo-doctor
 
 ## 준비된 스토어 자산
 
-- `docs/store-assets/ios-6.7/` – iPhone 6.7" 규격(1290×2796) 스크린샷 6장
-- `docs/store-assets/android/` – 안드로이드 규격(1082×2402) 스크린샷 6장
+- `docs/store-assets/ios-6.7/` – 원본 캡처(1290×2796) 6장 — Play 도 이 원본을 씀
+- `docs/store-assets/ios-6.7-framed/` · `play-framed/` – 카피를 얹은 스토어용(App Store 1290×2796 · Play 1242×2208), `python scripts/make-store-shots.py` 로 다시 만듦
 - `docs/store-assets/feature-graphic-1024x500.png` – Play 스토어 그래픽 이미지
 - `assets/images/icon.png` – 앱 아이콘 1024×1024
 - 등록 문구: `docs/STORE_LISTING.md`

@@ -2,7 +2,8 @@
 
   python scripts/make-store-shots.py
 
-입력:  docs/store-assets/android/*.png (1082x2402), docs/store-assets/ios-6.7/*.png (1290x2796)
+입력:  docs/store-assets/ios-6.7/*.png (1290x2796) — Play 용도 같은 원본을 비율 그대로 줄여 쓴다
+       (원본은 웹 화면을 430x932 @3x 로 캡처. 2026-10-05 판은 운영 AI 답변으로 찍었다)
 출력:  docs/store-assets/play-framed/*.png   1242x2208 (9:16 — Play 는 긴 변이 짧은 변의 2배를 넘으면 거부)
        docs/store-assets/ios-6.7-framed/*.png 1290x2796 (App Store 6.7")
        docs/store-assets/play-icon-512.png
@@ -19,12 +20,12 @@ FONT = os.environ.get("FONT", r"C:\Windows\Fonts\malgunbd.ttf")
 
 # (원본 파일, 카피) — 스토어에 보이는 순서
 SHOTS = [
-    ("5-chat-replies.png", "캡처 한 장이면\n답장 3개가 바로"),
-    ("3-chat-top.png", "상대의 호감 온도를\n숫자로 확인해요"),
-    ("4-new-crush.png", "MBTI·성향까지\n상대 맞춤 코칭"),
-    ("2-home.png", "상대마다 따로,\n나만의 채팅방"),
-    ("6-tips.png", "바로 써먹는\n연애 팁 모음"),
-    ("1-onboarding.png", "가입 없이\n캡처만 올리면 끝"),
+    ("1-chat-replies.png", "캡처 한 장이면\n답장 여러 버전이 바로"),
+    ("2-practice.png", "실전 전에\nAI 상대와 카톡 연습"),
+    ("3-mind.png", "그 사람 속마음,\n가능성까지 풀어줘요"),
+    ("4-report.png", "0°에서 오르는 호감 온도\n상대 분석 보고서까지"),
+    ("5-kkti.png", "1분 KKTI 테스트로\n나만의 연애 컬러 찾기"),
+    ("6-home.png", "연습·속마음·비밀 상담\n앱 하나로 끝"),
 ]
 
 TOP = (234, 245, 255)  # 하늘색
@@ -77,7 +78,7 @@ def frame(src: Path, caption: str, size, out: Path):
 def main():
     for i, (name, caption) in enumerate(SHOTS, 1):
         stem = f"{i}-{name.split('-', 1)[1]}"
-        print("play", frame(ASSETS / "android" / name, caption, (1242, 2208), ASSETS / "play-framed" / stem), stem)
+        print("play", frame(ASSETS / "ios-6.7" / name, caption, (1242, 2208), ASSETS / "play-framed" / stem), stem)
         print("ios ", frame(ASSETS / "ios-6.7" / name, caption, (1290, 2796), ASSETS / "ios-6.7-framed" / stem), stem)
     icon = Image.open(ROOT / "assets" / "images" / "icon.png").convert("RGBA").resize((512, 512), Image.LANCZOS)
     icon.save(ASSETS / "play-icon-512.png", optimize=True)
