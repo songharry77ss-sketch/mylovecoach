@@ -18,6 +18,9 @@ import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { billingSupported, openSubscriptionManagement, restorePremium } from '@/lib/billing/iap';
 import { quotaLabel } from '@/lib/billing/quota';
 import { refreshTeam } from '@/lib/billing/team';
+import { deleteAccount, providerLabel, signOut } from '@/lib/auth';
+import { SIGNUP_BONUS } from '@/lib/billing/plans';
+import { authAvailable } from '@/lib/supabase';
 import { APP_CONFIG } from '@/lib/config';
 import { isDemoMode } from '@/lib/demo';
 import * as Floating from '@/lib/floating';
@@ -38,6 +41,7 @@ export default function MyScreen() {
   const wallet = useAppStore((s) => s.wallet);
   const team = useAppStore((s) => s.team);
   const deviceId = useAppStore((s) => s.deviceId);
+  const member = useAppStore((s) => s.member);
   const setPremium = useAppStore((s) => s.setPremium);
   const analyticsConsent = useAppStore((s) => s.analyticsConsent);
   const setAnalyticsConsent = useAppStore((s) => s.setAnalyticsConsent);
@@ -113,6 +117,34 @@ export default function MyScreen() {
 
   const connection = isDemoMode ? '데모 모드 · 샘플 결과' : APP_CONFIG.apiUrl || APP_CONFIG.apiSameOrigin ? '연결됨 · 코치 서버' : hasApiKey ? '연결됨 · 내 API 키' : '연결 필요';
 
+  const confirm = (title: string, message: string, action: string, run: () => void) => {
+    if (Platform.OS === 'web') {
+      if (globalThis.confirm?.(`${title}\n\n${message}`)) run();
+      return;
+    }
+    Alert.alert(title, message, [
+      { text: '취소', style: 'cancel' },
+      { text: action, style: 'destructive', onPress: run },
+    ]);
+  };
+
+  const logout = () =>
+    confirm('로그아웃', '이 기기에서 로그아웃할까요? 다시 로그인하면 그대로 이어서 쓸 수 있어요.', '로그아웃', async () => {
+      await signOut();
+      toast.show('로그아웃했어요.');
+    });
+
+  const withdraw = () =>
+    confirm('회원 탈퇴', '회원 정보와 서버에 저장된 이용 기록을 모두 지워요. 이 기기의 채팅방은 남아 있어요. 되돌릴 수 없어요.', '탈퇴', async () => {
+      try {
+        await deleteAccount();
+        haptic.heavy();
+        toast.show('탈퇴했어요. 그동안 고마웠어요.');
+      } catch (e) {
+        toast.show(e instanceof Error ? e.message : '탈퇴를 마치지 못했어요. 잠시 후 다시 시도해주세요.', 'error');
+      }
+    });
+
   const confirmReset = () => {
     const run = async () => {
       await saveApiKey(null);
@@ -163,6 +195,25 @@ export default function MyScreen() {
           ) : null}
         </View>
       </Card>
+
+      {authAvailable ? (
+        <>
+          <SectionHeader title="계정" />
+          {member ? (
+            <>
+              <ListRow
+                icon="person-circle-outline"
+                title={`${providerLabel(member.provider)}로 가입됨`}
+                subtitle={[member.nickname, `${new Date(member.joinedAt).toLocaleDateString('ko-KR')} 가입`].filter(Boolean).join(' · ')}
+              />
+              <ListRow icon="log-out-outline" title="로그아웃" onPress={logout} />
+              <ListRow icon="person-remove-outline" title="회원 탈퇴" destructive onPress={withdraw} />
+            </>
+          ) : (
+            <ListRow icon="gift-outline" title={`가입하고 무료 코칭 ${SIGNUP_BONUS}회 받기`} subtitle="카카오 · Apple 로 바로 가입" onPress={() => router.push('/signup')} />
+          )}
+        </>
+      ) : null}
 
       {quota.enforced ? (
         <>

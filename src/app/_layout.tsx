@@ -13,6 +13,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { flushAnalytics, initAnalytics, launchAcquisition, trackScreen, updateIdentity } from '@/lib/analytics';
 import { endBilling, initBilling } from '@/lib/billing/iap';
 import { refreshTeam } from '@/lib/billing/team';
+import { linkMember } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import { haptic, setHapticsEnabled } from '@/lib/haptics';
 import { cleanupOrphanImages } from '@/lib/images';
 import { useAppStore } from '@/store/app-store';
@@ -135,6 +137,17 @@ export default function RootLayout() {
     return () => sub.remove();
   }, [hydrated]);
 
+  // 로그인은 돼 있는데 회원 연결을 못 마친 경우(웹에서 돌아오다 끊김 등) 조용히 다시 잇는다
+  useEffect(() => {
+    if (!hydrated || !supabase) return;
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (data.session && !useAppStore.getState().member) return linkMember();
+      })
+      .catch(() => {});
+  }, [hydrated]);
+
   const navTheme = {
     ...(scheme === 'dark' ? DarkTheme : DefaultTheme),
     colors: {
@@ -177,6 +190,8 @@ export default function RootLayout() {
               <Stack.Screen name="settings/profile" options={{ title: '내 프로필' }} />
               <Stack.Screen name="settings/api-key" options={{ title: 'AI 코치 연결' }} />
               <Stack.Screen name="paywall" options={{ headerShown: false, presentation: 'modal' }} />
+              <Stack.Screen name="signup" options={{ headerShown: false, presentation: 'modal' }} />
+              <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
               <Stack.Screen name="+not-found" options={{ title: '페이지를 찾을 수 없어요' }} />
             </Stack>
             </CelebrationProvider>

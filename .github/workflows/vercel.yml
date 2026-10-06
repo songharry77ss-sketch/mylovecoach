@@ -20,6 +20,9 @@ jobs:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       COACH_APP_TOKEN: ${{ secrets.EXPO_PUBLIC_API_TOKEN }}
+      # 웹 회원가입용 공개 값 (저장소 변수)
+      EXPO_PUBLIC_SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
       # 팀 범위 토큰이면 필수: 저장소 변수 VERCEL_SCOPE 에 팀 슬러그 (없으면 "User not found" 오류)
       VERCEL_SCOPE: ${{ vars.VERCEL_SCOPE }}
     steps:
@@ -54,6 +57,8 @@ jobs:
           # 웹 번들도 같은 토큰을 헤더로 보내야 하므로 빌드 환경변수로도 넣는다.
           # 이 값은 어차피 클라이언트 번들에 박히므로(남용 억제용 키이지 비밀이 아님) config 로 등록한다.
           add_env EXPO_PUBLIC_API_TOKEN "$COACH_APP_TOKEN" config
+          add_env EXPO_PUBLIC_SUPABASE_URL "$EXPO_PUBLIC_SUPABASE_URL" config
+          add_env EXPO_PUBLIC_SUPABASE_ANON_KEY "$EXPO_PUBLIC_SUPABASE_ANON_KEY" config
       - name: 프로덕션 배포
         id: deploy
         run: |

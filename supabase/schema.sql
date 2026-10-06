@@ -101,6 +101,87 @@ create table if not exists team_member (
   created_at  timestamptz not null default now()
 );
 
+-- ── 회원 (카카오·Apple 로그인, Supabase Auth 의 auth.users 와 같은 id) ──
+create table if not exists member (
+  user_id       uuid primary key,
+  provider      text,                        -- kakao · apple
+  nickname      text,
+  email         text,                        -- 제공자가 알려 준 경우만 (Apple 은 가린 주소일 수 있음)
+  device_id     text,                        -- 마지막으로 로그인한 기기
+  bonus_device  text,                        -- 가입 보너스를 준 기기 (기기당 한 번)
+  bonus_at      timestamptz,
+  created_at    timestamptz not null default now(),
+  last_login_at timestamptz not null default now()
+);
+create index if not exists member_device_idx on member (device_id);
+create unique index if not exists member_bonus_device_idx on member (bonus_device) where bonus_device is not null;
+alter table app_user add column if not exists user_id uuid;   -- 가입한 회원이면 그 id
+
+-- 로그인할 때마다: 회원을 만들거나 갱신하고, 기기와 잇고, 처음이면 보너스 (회원당·기기당 한 번)
+create or replace function member_link(p_user uuid, p_provider text, p_nickname text, p_email text, p_device text)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_new   boolean;
+  v_bonus boolean := false;
+  m       member;
+begin
+  insert into member (user_id, provider, nickname, email, device_id)
+  values (p_user, p_provider, p_nickname, p_email, p_device)
+  on conflict (user_id) do update
+    set last_login_at = now(),
+        device_id     = coalesce(excluded.device_id, member.device_id),
+        nickname      = coalesce(member.nickname, excluded.nickname),
+        email         = coalesce(excluded.email, member.email)
+  returning (xmax = 0) into v_new;
+
+  if p_device is not null and not exists (select 1 from member where bonus_device = p_device) then
+    begin
+      update member set bonus_device = p_device, bonus_at = now() where user_id = p_user and bonus_at is null;
+      v_bonus := found;
+    exception when unique_violation then
+      v_bonus := false;   -- 같은 기기로 동시에 가입한 다른 계정이 먼저 받음
+    end;
+  end if;
+
+  if p_device is not null then
+    update app_user set user_id = p_user where device_id = p_device;
+  end if;
+
+  select * into m from member where user_id = p_user;
+  return json_build_object('new', v_new, 'bonus', v_bonus, 'provider', m.provider, 'nickname', m.nickname, 'created_at', m.created_at);
+end $$;
+
+-- 회원 탈퇴: 회원 기록과, 그 회원이 쓴 기기들의 이용 기록을 지운다 (로그인 계정은 서버가 Auth API 로 지움)
+create or replace function member_delete(p_user uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_devices text[];
+begin
+  select array_agg(distinct d) into v_devices from (
+    select device_id as d from member where user_id = p_user and device_id is not null
+    union select bonus_device from member where user_id = p_user and bonus_device is not null
+    union select device_id from app_user where user_id = p_user
+  ) x;
+  if v_devices is not null then
+    delete from coach_log   where device_id = any (v_devices);
+    delete from app_event   where device_id = any (v_devices);
+    delete from screen_view where device_id = any (v_devices);
+    delete from app_session where device_id = any (v_devices);
+    delete from app_user    where device_id = any (v_devices);
+  end if;
+  -- 보너스 기록은 남겨 같은 기기로 다시 가입해도 보너스를 또 받지 않게 한다 (개인정보는 비움)
+  update member set provider = null, nickname = null, email = null, device_id = null where user_id = p_user and bonus_device is not null;
+  delete from member where user_id = p_user and bonus_device is null;
+end $$;
+
 -- ── 관리자 로그인 시도 (비밀번호 대입 방지, 성공하면 그 IP 기록은 지움) ─
 create table if not exists admin_auth_fail (
   id         bigserial primary key,
@@ -117,6 +198,7 @@ alter table coach_log       enable row level security;
 alter table app_event       enable row level security;
 alter table team_member     enable row level security;
 alter table admin_auth_fail enable row level security;
+alter table member          enable row level security;
 
 -- ── 관리자 대시보드용 집계 ────────────────────────────────────────────
 -- 화면 경로의 채팅방·연습 ID 를 묶는다 (/crush/c_abc123 → /crush/[id])
@@ -140,6 +222,20 @@ as $$
     'users_active',   (select count(*) from app_user, span where last_seen_at  >= span.since),
     'online_now',     (select count(*) from app_user where last_seen_at >= now() - interval '5 minutes'),
     'premium_users',  (select count(*) from app_user where premium_plan is not null),
+    'members_total',  (select count(*) from member where provider is not null),
+    'members_new',    (select count(*) from member, span where provider is not null and created_at >= span.since),
+    'members_by_provider', (
+      select coalesce(json_agg(row_to_json(p) order by p.users desc), '[]'::json) from (
+        select provider, count(*) as users from member, span
+        where provider is not null and created_at >= span.since group by 1 order by 2 desc
+      ) p
+    ),
+    'members_by_day', (
+      select coalesce(json_agg(row_to_json(d) order by d.day), '[]'::json) from (
+        select to_char(date_trunc('day', created_at), 'MM-DD') as day, count(*) as users
+        from member, span where provider is not null and created_at >= span.since group by 1 order by 1
+      ) d
+    ),
     'sessions',       (select count(*) from app_session, span where started_at >= span.since),
     'avg_session_sec',(select coalesce(round(avg(duration_ms) / 1000.0), 0) from app_session, span where started_at >= span.since and duration_ms is not null),
     'coach_requests', (select count(*) from coach_log,  span where created_at >= span.since),
@@ -222,8 +318,10 @@ as $$
            (select count(*) from app_session s where s.device_id = u.device_id)                                as sessions,
            (select round(coalesce(sum(v.duration_ms), 0) / 1000.0) from screen_view v where v.device_id = u.device_id) as total_sec,
            (select count(*) from coach_log c where c.device_id = u.device_id)                                  as coach_count,
-           exists (select 1 from team_member t where t.device_id = u.device_id)                                as is_team
+           exists (select 1 from team_member t where t.device_id = u.device_id)                                as is_team,
+           m.provider as member_provider, m.nickname as member_nickname, m.created_at as member_since
     from recent u
+    left join member m on m.user_id = u.user_id and m.provider is not null
   ) r;
 $$;
 
@@ -239,6 +337,8 @@ as $$
   select json_build_object(
     'user',    (select row_to_json(a) from app_user a where a.device_id = p_device),
     'is_team', exists (select 1 from team_member t where t.device_id = p_device),
+    'member',  (select json_build_object('provider', m.provider, 'nickname', m.nickname, 'email', m.email, 'created_at', m.created_at, 'last_login_at', m.last_login_at)
+                from app_user a join member m on m.user_id = a.user_id where a.device_id = p_device and m.provider is not null),
     'screens', (
       select coalesce(json_agg(row_to_json(s) order by s.total_sec desc), '[]'::json) from (
         select screen_name(screen) as screen, count(*) as views, round(coalesce(sum(duration_ms), 0) / 1000.0) as total_sec
@@ -277,8 +377,10 @@ comment on function admin_user is '관리자 페이지 이용자 상세';
 -- ── 관리자 함수는 서버(service_role)만 부를 수 있게 ──────────────────
 do $$
 begin
-  revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text) from public;
+  revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text),
+    member_link(uuid, text, text, text, text), member_delete(uuid) from public;
   if exists (select 1 from pg_roles where rolname = 'anon') then
-    revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text) from anon, authenticated;
+    revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text),
+      member_link(uuid, text, text, text, text), member_delete(uuid) from anon, authenticated;
   end if;
 end $$;

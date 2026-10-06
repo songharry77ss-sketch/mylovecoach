@@ -96,6 +96,37 @@ export async function select<T = unknown>(table: string, q: string): Promise<T[]
   return (await query<T>(table, q)) ?? [];
 }
 
+export interface AuthUser {
+  id: string;
+  email?: string | null;
+  app_metadata?: { provider?: string };
+  user_metadata?: Record<string, unknown>;
+}
+
+/** 앱이 보낸 로그인 토큰으로 회원 확인 (Supabase Auth). 유효하지 않으면 null */
+export async function authUser(accessToken: string): Promise<AuthUser | null> {
+  if (!supabaseReady() || !accessToken) return null;
+  try {
+    const res = await fetch(`${URL_ENV()}/auth/v1/user`, { headers: { apikey: KEY_ENV(), Authorization: `Bearer ${accessToken}` } });
+    if (!res.ok) return null;
+    const user = (await res.json()) as AuthUser;
+    return user?.id ? user : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 로그인 계정 삭제 (회원 탈퇴) */
+export async function deleteAuthUser(userId: string): Promise<boolean> {
+  if (!supabaseReady()) return false;
+  try {
+    const res = await fetch(`${URL_ENV()}/auth/v1/admin/users/${encodeURIComponent(userId)}`, { method: 'DELETE', headers: headers() });
+    return res.ok || res.status === 404;
+  } catch {
+    return false;
+  }
+}
+
 /** 저장 프로시저 호출 (집계용) */
 export async function rpc<T = unknown>(fn: string, args: Record<string, unknown> = {}): Promise<T | null> {
   if (!supabaseReady()) return null;
@@ -105,7 +136,9 @@ export async function rpc<T = unknown>(fn: string, args: Record<string, unknown>
       console.warn(`[supabase] rpc ${fn} ${res.status}: ${(await res.text()).slice(0, 200)}`);
       return null;
     }
-    return (await res.json()) as T;
+    // 돌려주는 값이 없는 함수(void)는 빈 응답 → 성공 표시로 true
+    const text = await res.text();
+    return (text ? JSON.parse(text) : true) as T;
   } catch {
     return null;
   }

@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-import type { ConsumablePlanKey } from '@/lib/billing/plans';
+import { freeRules, type ConsumablePlanKey } from '@/lib/billing/plans';
 import type { Acquisition } from '@/lib/analytics';
-import { consumeOne, EMPTY_USAGE, EMPTY_WALLET, grantConsumable, type PremiumState, type TeamState, type UsageState, type WalletState } from '@/lib/billing/quota';
+import { consumeOne, EMPTY_USAGE, EMPTY_WALLET, grantConsumable, grantSignupBonus, type PremiumState, type TeamState, type UsageState, type WalletState } from '@/lib/billing/quota';
 import { createId } from '@/lib/id';
+import { authAvailable } from '@/lib/supabase';
 import type {
   ChatMessage,
   CoachAnalysis,
@@ -21,6 +22,15 @@ import type {
   UserProfile,
 } from '@/lib/types';
 import { appStorage } from '@/store/storage';
+
+/** 카카오·Apple 로 가입한 회원 정보 (로그인 세션은 Supabase 가 따로 저장) */
+export interface MemberState {
+  userId: string;
+  /** kakao · apple */
+  provider: string;
+  nickname: string | null;
+  joinedAt: number;
+}
 
 export interface AppState {
   hydrated: boolean;
@@ -39,6 +49,8 @@ export interface AppState {
   wallet: WalletState;
   /** 관리자가 무제한을 허용한 팀원 기기면 그 정보 (서버 확인 결과의 캐시) */
   team: TeamState | null;
+  /** 가입한 회원이면 그 정보. null 이면 비회원 */
+  member: MemberState | null;
   /** 채팅 하단의 프리미엄 안내 카드를 닫았는지 */
   upsellDismissed: boolean;
   /** 기기 구분용 무작위 ID (광고 ID 아님, 이용 기록 수집에만 사용) */
@@ -86,6 +98,9 @@ export interface AppState {
   setAcquisition: (acquisition: Acquisition) => void;
   setPremium: (premium: PremiumState | null) => void;
   setTeam: (team: TeamState | null) => void;
+  setMember: (member: MemberState | null) => void;
+  /** 가입 보너스 지급 (같은 회원에게 한 번). 지급했으면 true */
+  grantSignupBonus: (userId: string) => boolean;
   /** 하루 이용권·횟수권 결제 1건 충전. 이미 충전한 거래면 무시하고 false */
   grantConsumable: (plan: ConsumablePlanKey, transactionId: string) => boolean;
   /** AI 를 한 번 쓴 만큼 차감 (무료 → 횟수권 순, 프리미엄·하루 이용권은 차감 없음) */
@@ -131,6 +146,7 @@ export const useAppStore = create<AppState>()(
       usage: EMPTY_USAGE,
       wallet: EMPTY_WALLET,
       team: null,
+      member: null,
       upsellDismissed: false,
       deviceId: createId('d_'),
       analyticsConsent: null,
@@ -269,6 +285,13 @@ export const useAppStore = create<AppState>()(
       setAcquisition: (acquisition) => set({ acquisition }),
       setPremium: (premium) => set({ premium }),
       setTeam: (team) => set({ team }),
+      setMember: (member) => set({ member }),
+      grantSignupBonus: (userId) => {
+        const next = grantSignupBonus(get().wallet, userId);
+        if (!next) return false;
+        set({ wallet: next });
+        return true;
+      },
       grantConsumable: (plan, transactionId) => {
         const next = grantConsumable(get().wallet, plan, transactionId, Date.now());
         if (!next) return false;
@@ -277,7 +300,7 @@ export const useAppStore = create<AppState>()(
       },
       consumeQuota: () =>
         set((s) => {
-          const next = consumeOne(s.premium, s.usage, s.wallet, Date.now(), s.team);
+          const next = consumeOne(s.premium, s.usage, s.wallet, Date.now(), s.team, freeRules(authAvailable, s.member != null));
           return { usage: next.usage, wallet: next.wallet };
         }),
       consumeFreeCredit: () => get().consumeQuota(),
@@ -336,7 +359,7 @@ export const useAppStore = create<AppState>()(
           return { practice };
         }),
       addMindAnswer: (answer) => set((s) => ({ mindHistory: [answer, ...s.mindHistory].slice(0, 10) })),
-      // 구매 상태·이용권·무료 사용량·팀원 여부는 「모든 데이터 삭제」로 지우지 않는다 (구매는 스토어 계정에 묶여 있고, 삭제로 무료 횟수가 초기화되면 안 됨)
+      // 구매 상태·이용권·무료 사용량·팀원·회원 여부는 「모든 데이터 삭제」로 지우지 않는다 (회원은 마이 → 로그아웃·탈퇴로) (구매는 스토어 계정에 묶여 있고, 삭제로 무료 횟수가 초기화되면 안 됨)
       resetAll: () => set({ user: null, crushes: {}, messages: {}, hasApiKey: false, analysisCache: {}, kkti: null, practice: {}, mindHistory: [] }),
     }),
     {
@@ -360,6 +383,7 @@ export const useAppStore = create<AppState>()(
           usage: s.usage,
           wallet: s.wallet,
           team: s.team,
+          member: s.member,
           upsellDismissed: s.upsellDismissed,
           deviceId: s.deviceId,
           analyticsConsent: s.analyticsConsent,
