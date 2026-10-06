@@ -26,7 +26,7 @@
 | 카카오 앱 「나만의 연애코치」(ID 1599398): 카카오 로그인 ON, 리다이렉트 URI, 닉네임 필수·프로필 사진 선택, 아이콘 | ✅ |
 | 카카오 **비즈 앱 전환**(사업자 정보 또는 개인 개발자 본인인증) → 이메일 「선택 동의」 | 🙋 사장님 |
 | Supabase Kakao provider 에 REST API 키·클라이언트 시크릿 붙여넣기 + 「Allow users without an email」 | 🙋 사장님 (키 입력) |
-| Apple Developer 앱 ID 에 Sign in with Apple 기능 → 1.1 빌드 | 다음 |
+| Apple Developer 앱 ID `app.mylovecoach.ios` 에 Sign In with Apple 켬 (기존 In-App Purchase 유지, 기존 배포 프로파일은 무효 → `ios.yml` 의 `fetch-signing-files --create` 가 새로 받음) | ✅ 10-06 |
 | 카카오 연결 해제 웹훅(User Unlinked) → member_delete | 나중에 |
 
 ## 1. Supabase (한 번)
