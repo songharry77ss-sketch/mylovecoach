@@ -17,6 +17,18 @@
 - 대화 캡처·채팅방은 가입해도 기기에만 저장됩니다. 서버에는 회원 정보(제공자·닉네임·이메일·기기 ID)만 남습니다.
 - 애플 규정: 아이폰에서 카카오 로그인을 보여 주면 Apple 로그인도 함께 보여 줘야 해서(4.8), Apple 버튼을 위에 둡니다. 계정을 만들 수 있으면 앱 안에서 탈퇴도 돼야 해서(5.1.1(v)) 마이 탭에 「회원 탈퇴」가 있습니다.
 
+## 현황 (2026-10-06)
+
+| 단계 | 상태 |
+|---|---|
+| Supabase 프로젝트 `mylovecoach` (조직 CRAVING, ref `cridqlgriezwkzevytjs`, 서울) · schema.sql · Vercel 연결 · GitHub 변수 | ✅ |
+| Supabase Auth: Site URL·Redirect URLs, Apple(Client ID `app.mylovecoach.ios`) 켬, Email 가입 끔 | ✅ |
+| 카카오 앱 「나만의 연애코치」(ID 1599398): 카카오 로그인 ON, 리다이렉트 URI, 닉네임 필수·프로필 사진 선택, 아이콘 | ✅ |
+| 카카오 **비즈 앱 전환**(사업자 정보 또는 개인 개발자 본인인증) → 이메일 「선택 동의」 | 🙋 사장님 |
+| Supabase Kakao provider 에 REST API 키·클라이언트 시크릿 붙여넣기 + 「Allow users without an email」 | 🙋 사장님 (키 입력) |
+| Apple Developer 앱 ID 에 Sign in with Apple 기능 → 1.1 빌드 | 다음 |
+| 카카오 연결 해제 웹훅(User Unlinked) → member_delete | 나중에 |
+
 ## 1. Supabase (한 번)
 
 1. 프로젝트 생성 후 SQL Editor 에 `supabase/schema.sql` 전체를 붙여넣고 Run (여러 번 실행해도 안전)
