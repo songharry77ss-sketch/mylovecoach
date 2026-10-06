@@ -60,6 +60,7 @@
 ## 나중에 바꿔야 하는 경우
 
 - **광고·크래시 수집 도구를 넣을 때** — 해당 항목을 추가하고 추적 여부를 다시 판단하세요.
+- **AI 로 보내는 회사를 바꿀 때** — `src/lib/coach-client.ts` 의 `RELAY_ROUTE`, `api/coach.ts`(지금은 Gemini 로만 보냄), AI 분석 동의 시트 문구(`src/components/coach/ai-consent-sheet.tsx`), 처리방침 2번(국외 이전 표)을 같이 고치세요. 서버는 앱이 알려 준 동의 회사(`x-ai-consent` 헤더)와 자기가 보낼 회사가 다르면 거절합니다.
 - 개인정보 처리방침 [site/privacy.html](../site/privacy.html) 도 같이 맞춰야 합니다.
 
 ## 2026-10-06 이용 기록 저장 켬 (Supabase 연결)
@@ -81,4 +82,5 @@
 | 비밀 상담 | 코칭 요청은 보내지만 기기 ID 헤더를 빼서 서버가 기록하지 않음, 기기에도 저장 안 함 | 수집 줄어듦 |
 | 하루 이용권 · 횟수권 | 결제는 스토어가 처리, 잔여·거래 ID 는 기기에만 | 「구입 내역」 항목 그대로 |
 | 플로팅 버블(Android) | 화면 내용을 읽지 않음. 바로가기 버블만 띄움 | 수집 없음 |
-| AI 분석 동의 시트 (지침 5.1.2(i)) | 없음. 처음 AI 를 쓸 때 Google(Gemini)로 무엇을 보내는지 알리고 동의를 받는다. 동의 여부·시각·안내한 회사는 기기에만 저장 (`src/lib/ai-consent.ts`). 이용 기록에 동의했으면 `ai_consent` 이벤트만 | 수집 늘지 않음. 동의 전·거절 시 AI 로 아무것도 보내지 않음 |
+| AI 분석 동의 시트 (지침 5.1.2(i)) | 없음. 처음 AI 를 쓸 때 무엇을 어디로 보내는지(중계는 Google(Gemini), 개인 키면 그 키의 회사 · 국외 이전) 알리고 동의를 받는다. 동의 여부·시각·안내한 회사는 기기에만 저장 (`src/store/app-store.ts` 의 `aiConsent`·`aiConsentProvider`·`aiConsentAt`). 이용 기록에 동의했으면 `ai_consent`(agreed·provider·via)와 `ai_consent_withdraw` 이벤트만 | 수집 늘지 않음. 동의 전·거절 시 AI 로 아무것도 보내지 않음 |
+| 이용 기록 동의 다시 받기 | 첫 화면 체크박스 기본값을 꺼짐으로. 예전에 미리 체크된 채로 저장된 동의(`analyticsConsentVersion` 없음)는 「아직 묻지 않음」으로 읽어, 마이 탭에서 다시 켜야 수집 | 수집 줄어듦 |

@@ -78,8 +78,8 @@ interface ConsentRow {
 }
 
 /**
- * 시트 문구. 개인정보 처리방침(site/privacy.html 1·2·4·5번)에 적힌 내용만 쓴다 — 처리방침을 고치면 여기도 같이 고칠 것.
- * 서버를 거치면 Google(Gemini), 개인 키면 그 키의 회사로 바로 간다.
+ * 시트 문구. 개인정보 처리방침(site/privacy.html 1·2번(국외 이전 표 포함)·4·5번)에 적힌 내용만 쓴다 — 처리방침을 고치면 여기도 같이 고칠 것.
+ * 서버를 거치면 Google(Gemini), 개인 키면 그 키의 회사로 바로 간다. 둘 다 미국 등 해외 서버라 국외 이전이다.
  */
 function consentCopy(route: AiRoute) {
   const { company, ai } = AI_PROVIDER_LABEL[route.provider];
@@ -93,7 +93,9 @@ function consentCopy(route: AiRoute) {
     {
       icon: 'paper-plane-outline',
       label: '받는 곳',
-      text: relay ? 'Google LLC의 Gemini API예요. 앱의 중계 서버를 거쳐 암호화(HTTPS)해서 보내요.' : `내가 등록한 API 키의 회사(${company})예요. 중계 서버 없이 이 기기에서 바로 보내요.`,
+      text: relay
+        ? 'Google LLC의 Gemini API예요. AI 기능을 쓸 때마다 중계 서버(Vercel)를 거쳐 미국 등 해외 서버로 암호화해서 보내요(국외 이전).'
+        : `내가 등록한 API 키의 회사(${company})예요. 중계 서버 없이 이 기기에서 미국 등 해외 서버로 바로 보내요(국외 이전).`,
     },
     {
       icon: 'sparkles-outline',
@@ -104,13 +106,13 @@ function consentCopy(route: AiRoute) {
       icon: 'server-outline',
       label: '보관',
       text: relay
-        ? '중계 서버는 요청을 저장하지 않고 전달만 해요. 이용 기록 수집에 따로 동의했다면 캡처 이미지를 뺀 코칭 요청·답변 일부가 기록돼요. Google에서는 Gemini API 약관과 개인정보처리방침에 따라 처리돼요.'
-        : `우리 서버를 거치지 않아서 보낸 내용이 우리 쪽에 남지 않아요. ${company}에서는 그 회사의 약관과 개인정보 정책에 따라 처리돼요.`,
+        ? '중계 서버는 저장하지 않고 전달만 해요(이용 기록에 따로 동의했다면 캡처를 뺀 코칭 질문·답은 1년 보관). Google에서는 Gemini API 약관에 따라 보관·처리돼요.'
+        : `우리 서버를 거치지 않아 우리 쪽엔 남지 않아요. ${company}에서는 그 회사의 약관과 개인정보 정책에 따라 보관·처리돼요.`,
     },
     {
       icon: 'hand-left-outline',
       label: '동의하지 않으면',
-      text: '답장 추천 같은 AI 기능을 쓸 수 없어요. 동의한 뒤에도 마이 탭에서 언제든 철회할 수 있어요.',
+      text: '답장 추천 같은 AI 기능을 쓸 수 없어요. 동의한 뒤에도 마이 → AI 분석 동의에서 언제든 철회할 수 있어요.',
     },
   ];
   return {
@@ -124,7 +126,14 @@ function ConsentSheet({ route, onAnswer }: { route: AiRoute; onAnswer: (agreed: 
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
+  const scrollRef = useRef<ScrollView>(null);
   const copy = consentCopy(route);
+
+  // 작은 화면에서는 안내가 한 화면을 넘는다 — 뜰 때 스크롤 막대를 잠깐 보여 아래에 더 있다는 걸 알린다
+  useEffect(() => {
+    const t = setTimeout(() => scrollRef.current?.flashScrollIndicators(), 400);
+    return () => clearTimeout(t);
+  }, []);
 
   return (
     <View style={[StyleSheet.absoluteFill, styles.root]}>
@@ -132,8 +141,10 @@ function ConsentSheet({ route, onAnswer }: { route: AiRoute; onAnswer: (agreed: 
       <View style={[StyleSheet.absoluteFill, styles.backdrop]} />
       <View
         accessibilityViewIsModal
+        // VoiceOver 닫기 제스처(두 손가락 문지르기)는 동의 안 함 — 안드로이드 뒤로 가기·웹 Esc 와 같다
+        onAccessibilityEscape={() => onAnswer(false)}
         style={[styles.sheet, { backgroundColor: theme.background, paddingBottom: insets.bottom + Spacing.lg, maxHeight: height - insets.top - Spacing.lg }]}>
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+        <ScrollView ref={scrollRef} style={styles.scroll} contentContainerStyle={styles.body}>
           <View style={[styles.badge, { backgroundColor: theme.primarySoft }]}>
             <Ionicons name="shield-checkmark" size={22} color={theme.primary} />
           </View>
@@ -156,11 +167,12 @@ function ConsentSheet({ route, onAnswer }: { route: AiRoute; onAnswer: (agreed: 
               </View>
             ))}
           </View>
-          <AppText variant="smallStrong" color="primary" accessibilityRole="link" onPress={() => Linking.openURL(APP_CONFIG.privacyUrl)} style={styles.link}>
-            개인정보 처리방침 자세히 보기 ›
-          </AppText>
         </ScrollView>
         <View style={styles.actions}>
+          {/* 처리방침 링크는 스크롤과 상관없이 늘 보이게 버튼 위에 둔다 (2번: AI 전송·국외 이전) */}
+          <AppText variant="smallStrong" color="primary" align="center" accessibilityRole="link" onPress={() => Linking.openURL(`${APP_CONFIG.privacyUrl}#ai`)} style={styles.link}>
+            개인정보 처리방침 자세히 보기 ›
+          </AppText>
           <Button title="동의하고 계속" onPress={() => onAnswer(true)} />
           <Button title="동의 안 함" variant="ghost" size="md" onPress={() => onAnswer(false)} />
         </View>
@@ -188,6 +200,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: Spacing.md, alignItems: 'flex-start' },
   rowIcon: { marginTop: 1 },
   rowTexts: { flex: 1, gap: 2 },
-  link: { alignSelf: 'flex-start', paddingVertical: Spacing.xs },
+  link: { alignSelf: 'center', paddingVertical: Spacing.xs },
   actions: { gap: Spacing.xs, paddingTop: Spacing.sm },
 });

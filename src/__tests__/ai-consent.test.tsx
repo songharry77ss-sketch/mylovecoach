@@ -98,6 +98,8 @@ describe('AI 분석 동의 관문', () => {
     expect(ask).toHaveBeenCalledWith(RELAY);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe('https://coach.test/api/coach');
+    // 서버가 동의받은 회사로만 보내는지 확인할 수 있게 동의한 회사를 같이 보낸다
+    expect((fetchMock.mock.calls[0][1] as { headers: Record<string, string> }).headers['x-ai-consent']).toBe('google');
     expect(analysis.summary).toBe('좋은 분위기예요');
     const s = useAppStore.getState();
     expect(s.aiConsent).toBe(true);
@@ -190,6 +192,22 @@ describe('AI 분석 동의 관문', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('개인 Gemini 키로 답장을 받을 때도 먼저 Google 로 묻고, 동의 안 함이면 보내지 않는다', async () => {
+    APP_CONFIG.apiUrl = '';
+    ask.mockResolvedValue(false);
+    await expect(requestCoaching(coachInput(), { directApiKey: 'AIza-test' })).rejects.toMatchObject({ code: 'consent' });
+    expect(ask).toHaveBeenCalledWith({ provider: 'google', via: 'direct' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('개인 Gemini 키로 속마음 풀이를 받을 때도 같다', async () => {
+    APP_CONFIG.apiUrl = '';
+    ask.mockResolvedValue(false);
+    await expect(requestAi('mind', mindInput, { directApiKey: 'AIza-test' })).rejects.toMatchObject({ code: 'consent', message: 'AI 분석에 동의해야 속마음을 풀어 드릴 수 있어요.' });
+    expect(ask).toHaveBeenCalledWith({ provider: 'google', via: 'direct' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('연결된 AI 가 없으면 묻지도 보내지도 않는다', async () => {
     APP_CONFIG.apiUrl = '';
     await expect(requestCoaching(coachInput())).rejects.toMatchObject({ code: 'not_configured' });
@@ -269,19 +287,103 @@ describe('동의 시트가 떠도 고른 캡처와 무료 횟수는 그대로', 
   });
 });
 
+describe('동의를 기다리는 동안에는 분석이 시작된 것처럼 보이지 않는다', () => {
+  const capture = { uri: 'file:///capture.jpg', width: 1080, height: 1920 };
+  /** 시트를 띄운 채로 두고, 답은 테스트가 고른다 */
+  function holdSheet(): (agreed: boolean) => void {
+    let answer: (agreed: boolean) => void = () => {};
+    ask.mockImplementation(
+      () =>
+        new Promise<boolean>((resolve) => {
+          answer = resolve;
+        }),
+    );
+    return (agreed) => answer(agreed);
+  }
+
+  it('채팅: 내 캡처만 보이고 「분석 중」 말풍선은 동의한 뒤에 뜬다', async () => {
+    const answer = holdSheet();
+    const crushId = useAppStore.getState().quickStart();
+    const coach = mountHook(useCoach);
+    let sent: Promise<unknown> = Promise.resolve();
+    await act(async () => {
+      sent = coach().send({ crushId, image: capture, text: '', tone: 'natural' });
+      await flush();
+    });
+    expect(ask).toHaveBeenCalledTimes(1);
+    expect(useAppStore.getState().messages[crushId]).toEqual([expect.objectContaining({ role: 'user', imageUri: capture.uri })]);
+    expect(coach().sending).toBe(false);
+    await act(async () => {
+      answer(true);
+      await sent;
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(useAppStore.getState().messages[crushId][1].analysis?.summary).toBe('좋은 분위기예요');
+  });
+
+  it('보고서·속마음·연습: 동의한 뒤에야 「분석 중」(busy)이 켜진다', async () => {
+    const answer = holdSheet();
+    const action = mountHook(useAiAction);
+    let done: Promise<unknown> = Promise.resolve();
+    await act(async () => {
+      done = action().run('mind', (o) => requestAi('mind', mindInput, o), { reason: 'mind' });
+      await flush();
+    });
+    expect(ask).toHaveBeenCalledTimes(1);
+    expect(action().busy).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+    await act(async () => {
+      answer(true);
+      await done;
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(action().error).toBeNull();
+  });
+});
+
 describe('AI 분석 동의 저장', () => {
   const KEY = 'mylovecoach.store.v1';
 
   it('예전 버전 저장값(동의 기록 없음)은 「아직 묻지 않음」으로 읽고, 다른 기록은 그대로 둔다', async () => {
-    await AsyncStorage.setItem(KEY, JSON.stringify({ version: 1, state: { deviceId: 'd_old', analyticsConsent: true, usage: { total: 2, day: '2026-10-05', dayCount: 0 } } }));
+    await AsyncStorage.setItem(KEY, JSON.stringify({ version: 1, state: { deviceId: 'd_old', analyticsConsent: false, usage: { total: 2, day: '2026-10-05', dayCount: 0 } } }));
     await useAppStore.persist.rehydrate();
     const s = useAppStore.getState();
     expect(s.aiConsent).toBeNull();
     expect(s.aiConsentProvider).toBeNull();
     expect(s.aiConsentAt).toBeNull();
     expect(s.deviceId).toBe('d_old');
-    expect(s.analyticsConsent).toBe(true);
+    expect(s.analyticsConsent).toBe(false);
     expect(s.usage.total).toBe(2);
+  });
+
+  it('미리 체크된 첫 화면에서 저장된 이용 기록 동의(판 표시 없음)는 다시 묻고, 직접 켠 동의는 그대로 둔다', async () => {
+    await AsyncStorage.setItem(KEY, JSON.stringify({ version: 1, state: { analyticsConsent: true } }));
+    await useAppStore.persist.rehydrate();
+    expect(useAppStore.getState().analyticsConsent).toBeNull();
+    // 마이 탭·새 첫 화면에서 직접 켜면 판 표시와 함께 저장돼 다음 실행에도 유지된다
+    useAppStore.getState().setAnalyticsConsent(true);
+    const saved = useAppStore.persist.getOptions().partialize?.(useAppStore.getState()) as Partial<AppState>;
+    expect(saved).toEqual(expect.objectContaining({ analyticsConsent: true, analyticsConsentVersion: 2 }));
+    await AsyncStorage.setItem(KEY, JSON.stringify({ version: 1, state: saved }));
+    await useAppStore.persist.rehydrate();
+    expect(useAppStore.getState().analyticsConsent).toBe(true);
+  });
+
+  it('「분석 중」인 채로 저장된 말풍선(답을 받기 전에 앱이 닫힘)은 「다시 시도」할 수 있는 실패로 읽는다', async () => {
+    const mine = { id: 'm_1', crushId: 'c_1', role: 'user', imageUri: 'file:///capture.jpg', createdAt: 1 };
+    await AsyncStorage.setItem(KEY, JSON.stringify({ version: 1, state: { messages: { c_1: [mine, { id: 'm_2', crushId: 'c_1', role: 'coach', pending: true, createdAt: 2 }] } } }));
+    await useAppStore.persist.rehydrate();
+    const [first, reply] = useAppStore.getState().messages.c_1;
+    expect(first).toEqual(mine);
+    expect(reply).toEqual(expect.objectContaining({ id: 'm_2', pending: false, error: '분석이 중간에 멈췄어요. 다시 시도해주세요.', text: 'network' }));
+  });
+
+  it('저장소를 늦게 다 읽어도, 그사이 시트에서 고른 답이 더 새로우면 그 답을 남긴다', async () => {
+    useAppStore.getState().setAiConsent(null);
+    // 늦게 도착한 예전 저장값은 동의였다
+    await AsyncStorage.setItem(KEY, JSON.stringify({ version: 1, state: { aiConsent: true, aiConsentProvider: 'google', aiConsentAt: 1 } }));
+    await useAppStore.persist.rehydrate();
+    expect(useAppStore.getState().aiConsent).toBe(false);
   });
 
   it('알 수 없는 값은 동의로 보지 않는다', async () => {

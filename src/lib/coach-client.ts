@@ -70,7 +70,10 @@ export function isCoachConfigured(directApiKey?: string | null): boolean {
 
 const viaServer = () => Boolean(APP_CONFIG.apiUrl || APP_CONFIG.apiSameOrigin);
 
-/** 서버를 거치는 요청은 Google(Gemini)로 간다 (서버 AI_PROVIDER=gemini, 개인정보 처리방침 2번) */
+/**
+ * 서버를 거치는 요청은 Google(Gemini)로 간다 — api/coach.ts 는 Gemini 로만 보내고, 동의 시트·개인정보 처리방침 2번도 Google 로 안내한다.
+ * 받는 곳을 바꾸려면 이 값·서버·동의 시트 문구·처리방침을 같이 고칠 것 (서버는 x-ai-consent 헤더의 회사와 자기가 보낼 회사가 다르면 거절한다)
+ */
 const RELAY_ROUTE: AiRoute = { provider: 'google', via: 'relay' };
 
 /** 개인 키로 직접 보낼 회사 — runDirect 와 같은 판별 (Gemini 키가 아니면 Anthropic 으로 보낸다) */
@@ -84,7 +87,7 @@ export function aiRouteOf(directApiKey?: string | null): AiRoute | null {
   return key ? directRoute(key) : null;
 }
 
-type AiFeature = 'coach' | keyof ModeIO;
+export type AiFeature = 'coach' | keyof ModeIO;
 
 /** AI 분석에 동의하지 않았을 때 화면에 그대로 보이는 안내 */
 const CONSENT_NEEDED: Record<AiFeature, string> = {
@@ -97,6 +100,16 @@ const CONSENT_NEEDED: Record<AiFeature, string> = {
 /** 실제로 보내기 바로 앞의 관문. 동의를 받지 못하면 아무것도 보내지 않고 끝낸다 (횟수도 차감되지 않음) */
 async function requireConsent(feature: AiFeature, route: AiRoute): Promise<void> {
   if (!(await ensureAiConsent(route))) throw new CoachError(CONSENT_NEEDED[feature], 'consent');
+}
+
+/**
+ * 화면이 「분석 중」을 띄우기 전에 먼저 동의를 받는다 — 동의 시트가 떠 있는 동안 분석이 시작된 것처럼 보이지 않게.
+ * 보낼 곳이 없으면(데모·연결 안 됨) 묻지 않는다. 동의하지 않으면 CoachError('consent').
+ * 보내기 바로 앞의 관문(requireConsent)은 마지막 안전장치로 그대로 남는다
+ */
+export async function requireAiConsent(feature: AiFeature, directApiKey?: string | null): Promise<void> {
+  const route = aiRouteOf(directApiKey);
+  if (route) await requireConsent(feature, route);
 }
 
 /**
@@ -144,6 +157,8 @@ async function postToServer(feature: AiFeature, body: unknown, extraHeaders: Rec
       headers: {
         'content-type': 'application/json',
         ...(APP_CONFIG.apiToken ? { 'x-app-token': APP_CONFIG.apiToken } : {}),
+        // 사용자가 보내도 된다고 동의한 AI 회사 — 서버가 실제로 보낼 회사와 다르면 보내지 않고 거절한다
+        'x-ai-consent': RELAY_ROUTE.provider,
         ...extraHeaders,
       },
       body: JSON.stringify(body),

@@ -72,7 +72,9 @@ describe('AI 분석 동의 시트', () => {
     const shown = texts(tree).join('\n');
     expect(shown).toContain('대화 내용을 Google AI로 보내도 될까요?');
     expect(shown).toContain('Google LLC의 Gemini API예요');
+    expect(shown).toContain('국외 이전');
     expect(shown).toContain('대화 캡처 이미지');
+    expect(shown).toContain('마이 → AI 분석 동의');
     expect(shown).toContain('개인정보 처리방침');
     expect(shown).toContain('동의 안 함');
     await act(async () => press(tree, '동의하고 계속'));
@@ -117,6 +119,16 @@ describe('AI 분석 동의 시트', () => {
     } finally {
       os.restore();
     }
+  });
+
+  it('VoiceOver 닫기 제스처(두 손가락 문지르기)는 동의 안 함으로 본다', async () => {
+    const tree = mount();
+    const { answer } = await ask({ provider: 'google', via: 'relay' });
+    const sheet = tree.root.findAll((node) => node.props.accessibilityViewIsModal === true && typeof node.props.onAccessibilityEscape === 'function')[0];
+    await act(async () => sheet.props.onAccessibilityEscape());
+    await expect(answer).resolves.toBe(false);
+    expect(texts(tree)).toEqual([]);
+    act(() => tree.unmount());
   });
 
   it('시트가 사라지면 기다리던 요청은 거절로 끝나 멈춰 있지 않는다', async () => {

@@ -216,13 +216,14 @@ export default function MyScreen() {
           icon="radio-button-on-outline"
           title="플로팅 버블"
           subtitle="카톡을 보다가 화면 위 버블을 누르면 바로 코칭"
-          right={<Switch value={bubbleOn} onValueChange={toggleBubble} />}
+          right={<Switch accessibilityLabel="플로팅 버블" value={bubbleOn} onValueChange={toggleBubble} />}
         />
       ) : (
         <ListRow icon="flash-outline" title="빠른 코칭" subtitle={Platform.OS === 'ios' ? '아이폰 뒷면 두 번 톡으로 바로 열기 안내' : '캡처·복사한 대화로 바로 코칭'} onPress={() => router.push('/quick')} />
       )}
       <ListRow icon="phone-portrait-outline" title="진동 효과" subtitle="온도가 오를 때 두근두근, 넘길 때 톡톡" right={
         <Switch
+          accessibilityLabel="진동 효과"
           value={hapticsOn}
           onValueChange={(v) => {
             setHapticsOn(v);
@@ -250,14 +251,14 @@ export default function MyScreen() {
         icon="eye-off-outline"
         title="채팅 미리보기 숨기기"
         subtitle="채팅 목록에 대화 내용이 보이지 않아요"
-        right={<Switch value={hidePreviews} onValueChange={setHidePreviews} />}
+        right={<Switch accessibilityLabel="채팅 미리보기 숨기기" value={hidePreviews} onValueChange={setHidePreviews} />}
       />
       {!isDemoMode ? (
         <ListRow
           icon="cloud-upload-outline"
           title="AI 분석 동의"
           subtitle={aiConsentNote}
-          right={<Switch value={aiConsent === true} onValueChange={toggleAiConsent} />}
+          right={<Switch accessibilityLabel="AI 분석 동의" value={aiConsent === true} onValueChange={toggleAiConsent} />}
         />
       ) : null}
       <ListRow
@@ -266,6 +267,7 @@ export default function MyScreen() {
         subtitle="서비스 개선에만 사용해요. 캡처 이미지는 저장하지 않아요."
         right={
           <Switch
+            accessibilityLabel="이용 기록 수집 (선택)"
             value={analyticsConsent === true}
             onValueChange={(v) => {
               if (v) {

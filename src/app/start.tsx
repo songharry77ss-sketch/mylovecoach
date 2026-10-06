@@ -142,9 +142,13 @@ export default function Start() {
               {consent ? <Ionicons name="checkmark" size={12} color={theme.primaryText} /> : null}
             </View>
             <AppText variant="caption" color="textSecondary" style={styles.consentText}>
-              (선택) 서비스 개선을 위한 이용 기록 수집에 동의해요. 올린 캡처 이미지는 저장하지 않고, 마이 탭에서 언제든 끌 수 있어요.
+              (선택) 서비스 개선을 위해 이용 기록(기기 ID·프로필·화면 이용·코칭 질문과 답)을 1년 동안 보관하는 데 동의해요. 동의하지 않아도 모든 기능을 쓸 수 있어요. 캡처 이미지는 저장하지 않고, 마이 탭에서 언제든 끌 수 있어요.
             </AppText>
           </Pressable>
+          {/* 체크박스 줄 밖에 둔다 — 안에 두면 링크를 눌러도 체크가 바뀌고, 화면 읽기에서 링크에 닿지 못한다 */}
+          <AppText variant="caption" color="primary" accessibilityRole="link" onPress={() => Linking.openURL(`${APP_CONFIG.privacyUrl}#analytics`)} style={styles.consentMore}>
+            수집 항목·보관 기간 자세히 보기 ›
+          </AppText>
 
           <AppText variant="caption" color="textTertiary" align="center">
             시작하면{' '}
@@ -177,4 +181,6 @@ const styles = StyleSheet.create({
   consent: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, marginTop: Spacing.xs },
   checkbox: { width: 18, height: 18, borderRadius: 5, borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
   consentText: { flex: 1 },
+  // 체크박스(18) + 간격만큼 들여 안내 글과 줄을 맞춘다
+  consentMore: { alignSelf: 'flex-start', marginLeft: 18 + Spacing.sm, marginTop: -Spacing.xs },
 });
