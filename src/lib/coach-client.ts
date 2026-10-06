@@ -1,3 +1,4 @@
+import { ensureAiConsent, type AiRoute } from '@/lib/ai-consent';
 import type { CrushReport, MindReading, PracticeReply } from '@/lib/ai-schemas';
 import {
   buildCoachTask,
@@ -19,7 +20,7 @@ import type { CoachAnalysis } from '@/lib/types';
 export class CoachError extends Error {
   constructor(
     message: string,
-    readonly code: 'not_configured' | 'network' | 'auth' | 'rate_limit' | 'refused' | 'server' | 'parse',
+    readonly code: 'not_configured' | 'network' | 'auth' | 'rate_limit' | 'refused' | 'server' | 'parse' | 'consent',
   ) {
     super(message);
     this.name = 'CoachError';
@@ -69,6 +70,35 @@ export function isCoachConfigured(directApiKey?: string | null): boolean {
 
 const viaServer = () => Boolean(APP_CONFIG.apiUrl || APP_CONFIG.apiSameOrigin);
 
+/** 서버를 거치는 요청은 Google(Gemini)로 간다 (서버 AI_PROVIDER=gemini, 개인정보 처리방침 2번) */
+const RELAY_ROUTE: AiRoute = { provider: 'google', via: 'relay' };
+
+/** 개인 키로 직접 보낼 회사 — runDirect 와 같은 판별 (Gemini 키가 아니면 Anthropic 으로 보낸다) */
+const directRoute = (apiKey: string): AiRoute => ({ provider: detectProvider(apiKey) === 'gemini' ? 'google' : 'anthropic', via: 'direct' });
+
+/** 지금 설정에서 AI 요청이 가는 곳. 데모이거나 서버·개인 키가 모두 없으면 null (아무 데도 보내지 않음) */
+export function aiRouteOf(directApiKey?: string | null): AiRoute | null {
+  if (isDemoMode) return null;
+  if (viaServer()) return RELAY_ROUTE;
+  const key = directApiKey?.trim();
+  return key ? directRoute(key) : null;
+}
+
+type AiFeature = 'coach' | keyof ModeIO;
+
+/** AI 분석에 동의하지 않았을 때 화면에 그대로 보이는 안내 */
+const CONSENT_NEEDED: Record<AiFeature, string> = {
+  coach: 'AI 분석에 동의해야 답장을 만들 수 있어요.',
+  report: 'AI 분석에 동의해야 보고서를 만들 수 있어요.',
+  mind: 'AI 분석에 동의해야 속마음을 풀어 드릴 수 있어요.',
+  practice: 'AI 분석에 동의해야 연습 상대가 답장할 수 있어요.',
+};
+
+/** 실제로 보내기 바로 앞의 관문. 동의를 받지 못하면 아무것도 보내지 않고 끝낸다 (횟수도 차감되지 않음) */
+async function requireConsent(feature: AiFeature, route: AiRoute): Promise<void> {
+  if (!(await ensureAiConsent(route))) throw new CoachError(CONSENT_NEEDED[feature], 'consent');
+}
+
 /**
  * 코치 분석 요청. 프록시 서버가 설정돼 있으면 서버를, 아니면 개인 키로 AI 를 직접 호출합니다.
  */
@@ -76,10 +106,10 @@ export async function requestCoaching(input: CoachRequestInput, options: CoachCl
   const req = CoachRequestSchema.parse(input);
   if (isDemoMode) return demoAnalysis(req);
   if (viaServer()) {
-    const body = await postToServer(req, { ...consentHeaders(options.deviceId) }, options.signal);
+    const body = await postToServer('coach', req, { ...consentHeaders(options.deviceId) }, options.signal);
     return parseCoach((body as { analysis?: unknown })?.analysis);
   }
-  const text = await runDirect(buildCoachTask(req) as AiTask, options);
+  const text = await runDirect('coach', buildCoachTask(req) as AiTask, options);
   return parseCoach(parseJson(text));
 }
 
@@ -99,13 +129,14 @@ export async function requestAi<M extends keyof ModeIO>(mode: M, input: ModeIO[M
     return (await demoPractice(parsed.req)) as ModeIO[M]['output'];
   }
   const task = buildTask(parsed);
-  const raw = viaServer() ? ((await postToServer(parsed.req, {}, options.signal)) as { result?: unknown })?.result : parseJson(await runDirect(task, options));
+  const raw = viaServer() ? ((await postToServer(mode, parsed.req, {}, options.signal)) as { result?: unknown })?.result : parseJson(await runDirect(mode, task, options));
   const checked = task.schema.safeParse(raw);
   if (!checked.success) throw new CoachError('응답 형식이 올바르지 않아요. 다시 시도해주세요.', 'parse');
   return task.normalize(checked.data) as ModeIO[M]['output'];
 }
 
-async function postToServer(body: unknown, extraHeaders: Record<string, string>, signal?: AbortSignal): Promise<unknown> {
+async function postToServer(feature: AiFeature, body: unknown, extraHeaders: Record<string, string>, signal?: AbortSignal): Promise<unknown> {
+  await requireConsent(feature, RELAY_ROUTE);
   let res: Response;
   try {
     res = await fetch(`${APP_CONFIG.apiUrl}/api/coach`, {
@@ -130,9 +161,10 @@ async function postToServer(body: unknown, extraHeaders: Record<string, string>,
 }
 
 /** 개인 키 직접 호출 — 결과 JSON 문자열을 돌려준다 */
-async function runDirect(task: AiTask, options: CoachClientOptions): Promise<string> {
+async function runDirect(feature: AiFeature, task: AiTask, options: CoachClientOptions): Promise<string> {
   const key = options.directApiKey?.trim();
   if (!key) throw new CoachError('AI 코치 서버가 아직 연결되지 않았어요. 설정에서 API 키를 등록해주세요.', 'not_configured');
+  await requireConsent(feature, directRoute(key));
   if (detectProvider(key) === 'gemini') {
     let result: Awaited<ReturnType<typeof callGeminiTask>>;
     try {

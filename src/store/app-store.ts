@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+import type { AiProvider } from '@/lib/ai-consent';
 import type { ConsumablePlanKey } from '@/lib/billing/plans';
 import type { Acquisition } from '@/lib/analytics';
 import { consumeOne, EMPTY_USAGE, EMPTY_WALLET, grantConsumable, type PremiumState, type TeamState, type UsageState, type WalletState } from '@/lib/billing/quota';
@@ -45,6 +46,12 @@ export interface AppState {
   deviceId: string;
   /** 서비스 개선을 위한 이용 기록 수집 동의 (선택) — null 이면 아직 묻지 않음 */
   analyticsConsent: boolean | null;
+  /** AI 분석 동의 (대화 캡처·글·프로필을 외부 AI 로 보내기) — null 이면 아직 묻지 않음, false 면 동의 안 함·철회 */
+  aiConsent: boolean | null;
+  /** 동의할 때 안내한 AI 회사. 개인 키로 다른 회사에 보내게 되면 다시 묻는다 */
+  aiConsentProvider: AiProvider | null;
+  /** AI 분석 동의에 마지막으로 답한(동의·동의 안 함·철회) 시각 */
+  aiConsentAt: number | null;
   /** 처음 앱을 연 곳 (동의한 경우에만 이용 기록과 함께 전송) */
   acquisition: Acquisition | null;
   /** 진동 효과 */
@@ -83,6 +90,8 @@ export interface AppState {
   getCachedAnalysis: (key: string) => CoachAnalysis | null;
   putCachedAnalysis: (key: string, analysis: CoachAnalysis) => void;
   setAnalyticsConsent: (consent: boolean) => void;
+  /** AI 분석 동의 기록 — 동의한 AI 회사, 동의 안 함·철회면 null */
+  setAiConsent: (provider: AiProvider | null) => void;
   setAcquisition: (acquisition: Acquisition) => void;
   setPremium: (premium: PremiumState | null) => void;
   setTeam: (team: TeamState | null) => void;
@@ -134,6 +143,9 @@ export const useAppStore = create<AppState>()(
       upsellDismissed: false,
       deviceId: createId('d_'),
       analyticsConsent: null,
+      aiConsent: null,
+      aiConsentProvider: null,
+      aiConsentAt: null,
       acquisition: null,
       hapticsOn: true,
       hidePreviews: false,
@@ -266,6 +278,7 @@ export const useAppStore = create<AppState>()(
           return { analysisCache: { ...Object.fromEntries(entries), [key]: { analysis, at: Date.now() } } };
         }),
       setAnalyticsConsent: (analyticsConsent) => set({ analyticsConsent }),
+      setAiConsent: (provider) => set({ aiConsent: provider !== null, aiConsentProvider: provider, aiConsentAt: Date.now() }),
       setAcquisition: (acquisition) => set({ acquisition }),
       setPremium: (premium) => set({ premium }),
       setTeam: (team) => set({ team }),
@@ -337,7 +350,9 @@ export const useAppStore = create<AppState>()(
         }),
       addMindAnswer: (answer) => set((s) => ({ mindHistory: [answer, ...s.mindHistory].slice(0, 10) })),
       // 구매 상태·이용권·무료 사용량·팀원 여부는 「모든 데이터 삭제」로 지우지 않는다 (구매는 스토어 계정에 묶여 있고, 삭제로 무료 횟수가 초기화되면 안 됨)
-      resetAll: () => set({ user: null, crushes: {}, messages: {}, hasApiKey: false, analysisCache: {}, kkti: null, practice: {}, mindHistory: [] }),
+      // AI 분석 동의는 처음 상태로 돌려, 다시 AI 를 쓸 때 묻는다
+      resetAll: () =>
+        set({ user: null, crushes: {}, messages: {}, hasApiKey: false, analysisCache: {}, kkti: null, practice: {}, mindHistory: [], aiConsent: null, aiConsentProvider: null, aiConsentAt: null }),
     }),
     {
       name: 'mylovecoach.store.v1',
@@ -363,12 +378,28 @@ export const useAppStore = create<AppState>()(
           upsellDismissed: s.upsellDismissed,
           deviceId: s.deviceId,
           analyticsConsent: s.analyticsConsent,
+          aiConsent: s.aiConsent,
+          aiConsentProvider: s.aiConsentProvider,
+          aiConsentAt: s.aiConsentAt,
           acquisition: s.acquisition,
           hapticsOn: s.hapticsOn,
           hidePreviews: s.hidePreviews,
           kkti: s.kkti,
           practice: s.practice,
           mindHistory: s.mindHistory,
+        };
+      },
+      // 예전 버전에서 올라온 기기에는 AI 분석 동의 기록이 없다 → 「아직 묻지 않음」(null)으로 읽어 처음 AI 를 쓸 때 묻는다.
+      // version 을 올리면 이전 버전 앱(되돌린 웹 배포 등)이 저장값을 통째로 버리므로, 올리지 않고 읽을 때 바로잡는다
+      merge: (persisted, current) => {
+        const saved = (persisted ?? {}) as Partial<AppState>;
+        const provider = saved.aiConsentProvider === 'google' || saved.aiConsentProvider === 'anthropic' ? saved.aiConsentProvider : null;
+        return {
+          ...current,
+          ...saved,
+          aiConsent: saved.aiConsent === false ? false : saved.aiConsent === true && provider ? true : null,
+          aiConsentProvider: provider,
+          aiConsentAt: typeof saved.aiConsentAt === 'number' ? saved.aiConsentAt : null,
         };
       },
       onRehydrateStorage: () => (state) => state?.setHydrated(),

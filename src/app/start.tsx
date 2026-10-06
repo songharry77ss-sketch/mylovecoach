@@ -33,7 +33,8 @@ export default function Start() {
   const quickStart = useAppStore((s) => s.quickStart);
   const createSecretChat = useAppStore((s) => s.createSecretChat);
   const setAnalyticsConsent = useAppStore((s) => s.setAnalyticsConsent);
-  const [consent, setConsent] = useState(true);
+  // (선택) 이용 기록 수집은 직접 체크해야 켜진다 — 기본은 꺼짐
+  const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
 
   // 메인 버튼이 은은하게 빛나며 숨 쉰다
