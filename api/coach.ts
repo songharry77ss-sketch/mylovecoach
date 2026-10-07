@@ -15,7 +15,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { buildTask, parseAiRequest, type AiTask } from '../src/lib/ai-tasks';
 import { COACH_MODEL } from '../src/lib/coach-schema';
 import { callGeminiTask } from '../src/lib/gemini';
-import { analyticsEnabled, insert } from './_supabase';
+import { analyticsEnabled, consentVersionOk, DEVICE_ID, insert } from './_supabase';
 
 export const config = { maxDuration: 120 };
 
@@ -46,8 +46,8 @@ function resolveProvider(): 'anthropic' | 'gemini' | null {
 }
 
 /**
- * 코칭 기록 저장 — 이용 기록 수집에 동의한 앱만 x-device-id 헤더를 보냅니다.
- * 동의 헤더가 없으면 아무것도 기록하지 않습니다. 캡처 이미지는 저장하지 않습니다.
+ * 코칭 기록 저장 — 이용 기록 수집에 동의한 앱만 x-device-id·x-consent-version 헤더를 보냅니다.
+ * 기기 ID 가 없거나 동의 판이 2 미만(미리 체크된 예전 동의)이면 아무것도 기록하지 않습니다. 캡처 이미지는 저장하지 않습니다.
  */
 async function logCoach(
   req: VercelRequest,
@@ -56,7 +56,9 @@ async function logCoach(
   startedAt: number,
 ): Promise<void> {
   const deviceId = req.headers['x-device-id'];
-  if (typeof deviceId !== 'string' || !deviceId || !analyticsEnabled()) return;
+  if (typeof deviceId !== 'string' || !DEVICE_ID.test(deviceId) || !analyticsEnabled()) return;
+  // 직접 체크해 받은 동의(판 2 이상)만 저장한다 — 판 표시가 없으면 예전 미리 체크된 동의
+  if (!consentVersionOk(req.headers['x-consent-version'])) return;
   const sessionId = typeof req.headers['x-session-id'] === 'string' ? req.headers['x-session-id'] : undefined;
   const a = result.analysis;
   await insert('coach_log', {

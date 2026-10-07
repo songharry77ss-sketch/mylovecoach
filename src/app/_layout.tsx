@@ -10,7 +10,7 @@ import { CelebrationProvider } from '@/components/fx/celebration';
 import { ToastProvider } from '@/components/ui/toast';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { flushAnalytics, initAnalytics, launchAcquisition, trackScreen, updateIdentity } from '@/lib/analytics';
+import { flushAnalytics, initAnalytics, launchAcquisition, resumeAnalytics, trackScreen, updateIdentity } from '@/lib/analytics';
 import { endBilling, initBilling } from '@/lib/billing/iap';
 import { refreshTeam } from '@/lib/billing/team';
 import { haptic, setHapticsEnabled } from '@/lib/haptics';
@@ -18,6 +18,15 @@ import { cleanupOrphanImages } from '@/lib/images';
 import { useAppStore } from '@/store/app-store';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+/**
+ * 이용 기록 동의를 받은 방식의 판. 동의 수정판은 store 에 analyticsConsentVersion(직접 체크 = 2)을 둔다.
+ * 그 값이 없으면 예전 미리 체크된 동의라 null — 서버는 이 기록을 저장하지 않는다.
+ */
+const consentVersionOf = (s: object): number | null => {
+  const v = (s as { analyticsConsentVersion?: unknown }).analyticsConsentVersion;
+  return typeof v === 'number' ? v : null;
+};
 
 // 데모 웹 빌드가 임의의 경로(예: 호스팅 페이지 하위 경로)에서 열려도 라우터가 '/'에서 시작하도록 합니다.
 if (Platform.OS === 'web' && process.env.EXPO_PUBLIC_DEMO_MODE === '1' && typeof window !== 'undefined') {
@@ -80,6 +89,7 @@ export default function RootLayout() {
       premiumPlan: s.premium?.plan ?? null,
       crushCount: Object.keys(s.crushes).length,
       acquisition: s.acquisition,
+      consentVersion: consentVersionOf(s),
     });
     const unsubscribe = useAppStore.subscribe((next) =>
       updateIdentity({
@@ -88,10 +98,13 @@ export default function RootLayout() {
         premiumPlan: next.premium?.plan ?? null,
         crushCount: Object.keys(next.crushes).length,
         acquisition: next.acquisition,
+        consentVersion: consentVersionOf(next),
       }),
     );
+    // 떠날 때 남은 기록을 보내고 세션을 끝낸다. 돌아오면 백그라운드에 있던 시간은 빼고 새로 센다
     const sub = AppState.addEventListener('change', (state) => {
-      if (state !== 'active') flushAnalytics(true);
+      if (state === 'active') resumeAnalytics();
+      else flushAnalytics(true);
     });
     return () => {
       flushAnalytics(true);

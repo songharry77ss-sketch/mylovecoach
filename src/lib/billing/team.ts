@@ -33,13 +33,18 @@ export async function fetchTeamStatus(deviceId: string, now = Date.now()): Promi
 
 let lastCheckedAt = 0;
 
-/** 팀원 여부를 다시 확인해 저장한다 (무료 횟수 제한이 걸린 빌드에서만) */
-export async function refreshTeam(): Promise<void> {
+/**
+ * 팀원 여부를 다시 확인해 저장한다 (무료 횟수 제한이 걸린 빌드에서만).
+ * 기기 ID 를 서버로 보내는 일이라, 「내 기기 ID」를 눌러 팀원 등록을 하려는 기기와 이미 팀원인 기기에서만 묻는다
+ * (이용 기록에 동의하지 않은 일반 이용자의 기기 ID 는 보내지 않는다).
+ */
+export async function refreshTeam(options: { force?: boolean } = {}): Promise<void> {
   if (!quotaEnforced) return;
+  const { deviceId, setTeam, team, teamCheck } = useAppStore.getState();
+  if (!team && !teamCheck) return;
   const now = Date.now();
-  if (now - lastCheckedAt < MIN_INTERVAL_MS) return;
+  if (!options.force && now - lastCheckedAt < MIN_INTERVAL_MS) return;
   lastCheckedAt = now;
-  const { deviceId, setTeam } = useAppStore.getState();
   const result = await fetchTeamStatus(deviceId, now);
   if (result !== undefined) setTeam(result);
 }

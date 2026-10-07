@@ -132,7 +132,11 @@ language sql
 security definer
 set search_path = public
 as $$
-  with span as (select now() - make_interval(days => greatest(p_days, 1)) as since)
+  -- 「오늘」(1일)은 한국 시간 자정부터, 그 밖은 지금부터 N일 전부터. 날짜별 묶음도 한국 시간 기준
+  with span as (
+    select case when p_days <= 1 then date_trunc('day', now() at time zone 'Asia/Seoul') at time zone 'Asia/Seoul'
+                else now() - make_interval(days => p_days) end as since
+  )
   select json_build_object(
     'days', p_days,
     'users_total',    (select count(*) from app_user),
@@ -145,10 +149,10 @@ as $$
     'coach_requests', (select count(*) from coach_log,  span where created_at >= span.since),
     'with_image',     (select count(*) from coach_log,  span where created_at >= span.since and has_image),
     'signups_by_day', (
-      select coalesce(json_agg(row_to_json(d) order by d.day), '[]'::json) from (
-        select to_char(date_trunc('day', first_seen_at), 'MM-DD') as day, count(*) as users
+      select coalesce(json_agg(json_build_object('day', to_char(d.d, 'MM-DD'), 'users', d.users) order by d.d), '[]'::json) from (
+        select (first_seen_at at time zone 'Asia/Seoul')::date as d, count(*) as users
         from app_user, span where first_seen_at >= span.since
-        group by 1 order by 1
+        group by 1
       ) d
     ),
     'signup_sources', (
@@ -160,12 +164,12 @@ as $$
       ) s
     ),
     'by_day', (
-      select coalesce(json_agg(row_to_json(d) order by d.day), '[]'::json) from (
-        select to_char(date_trunc('day', created_at), 'MM-DD') as day,
-               count(*)                       as requests,
-               count(distinct device_id)      as users
+      select coalesce(json_agg(json_build_object('day', to_char(d.d, 'MM-DD'), 'requests', d.requests, 'users', d.users) order by d.d), '[]'::json) from (
+        select (created_at at time zone 'Asia/Seoul')::date as d,
+               count(*)                  as requests,
+               count(distinct device_id) as users
         from coach_log, span where created_at >= span.since
-        group by 1 order by 1
+        group by 1
       ) d
     ),
     'top_screens', (
@@ -274,11 +278,57 @@ $$;
 
 comment on function admin_user is '관리자 페이지 이용자 상세';
 
+-- ── 기기 하나의 이용 기록을 모두 지움 (동의 철회·삭제 요청·관리자 「기록 삭제」) ─
+create or replace function delete_device(p_device text)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  delete from coach_log   where device_id = p_device;
+  delete from app_event   where device_id = p_device;
+  delete from screen_view where device_id = p_device;
+  delete from app_session where device_id = p_device;
+  delete from app_user    where device_id = p_device;
+$$;
+
+comment on function delete_device is '기기 ID 하나의 이용 기록 삭제 (DELETE /api/track, 관리자 기록 삭제)';
+
+-- ── 1년 지난 이용 기록 파기 (처리방침 4번 「수집일로부터 1년이 지나면 파기」) ─
+create or replace function purge_old_records()
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  delete from coach_log       where created_at   < now() - interval '1 year';
+  delete from app_event       where created_at   < now() - interval '1 year';
+  delete from screen_view     where created_at   < now() - interval '1 year';
+  delete from app_session     where started_at   < now() - interval '1 year';
+  delete from app_user        where last_seen_at < now() - interval '1 year';
+  delete from admin_auth_fail where created_at   < now() - interval '30 days';
+$$;
+
+comment on function purge_old_records is '1년 지난 이용 기록·30일 지난 관리자 로그인 시도 파기 (pg_cron 매일 03:30 KST)';
+
+-- 매일 03:30(한국 시간) = 18:30 UTC 에 파기. pg_cron 을 쓸 수 없는 곳(로컬 시험 등)에서는 건너뛴다
+do $$
+begin
+  begin
+    create extension if not exists pg_cron;
+  exception when others then
+    raise notice 'pg_cron 을 켤 수 없어 1년 파기 예약을 건너뜁니다: %', sqlerrm;
+    return;
+  end;
+  perform cron.unschedule(jobid) from cron.job where jobname = 'mylovecoach-purge';
+  perform cron.schedule('mylovecoach-purge', '30 18 * * *', 'select public.purge_old_records()');
+end $$;
+
 -- ── 관리자 함수는 서버(service_role)만 부를 수 있게 ──────────────────
 do $$
 begin
-  revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text) from public;
+  revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text), delete_device(text), purge_old_records() from public;
   if exists (select 1 from pg_roles where rolname = 'anon') then
-    revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text) from anon, authenticated;
+    revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text), delete_device(text), purge_old_records() from anon, authenticated;
   end if;
 end $$;

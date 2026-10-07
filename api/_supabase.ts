@@ -18,6 +18,14 @@ export const analyticsEnabled = (): boolean => supabaseReady() && process.env.AN
 /** 앱이 만든 기기 ID 형식 (src/lib/id.ts 의 createId('d_')) */
 export const DEVICE_ID = /^[A-Za-z0-9_-]{6,64}$/;
 
+/**
+ * 이용 기록을 저장해도 되는 동의의 판. 2 = 첫 화면 체크박스를 이용자가 직접 눌러야 켜지는 방식.
+ * 판 표시가 없는 예전 동의는 미리 체크된 체크박스로 받은 것이라 저장하지 않는다 (개인정보 선택 동의는 미리 체크 금지).
+ */
+export const MIN_ANALYTICS_CONSENT_VERSION = 2;
+
+export const consentVersionOk = (value: unknown): boolean => Number(value) >= MIN_ANALYTICS_CONSENT_VERSION;
+
 function headers(extra: Record<string, string> = {}): Record<string, string> {
   return {
     apikey: KEY_ENV(),

@@ -84,6 +84,7 @@
     <input id="token" type="password" placeholder="관리자 비밀번호" autocomplete="current-password" />
     <button id="loginBtn">들어가기</button>
     <div class="err" id="loginErr"></div>
+    <p class="muted" id="deviceNote" style="margin:10px 0 0"></p>
   </div>
 
   <div id="app" class="hide">
@@ -158,6 +159,20 @@
 <script>
   const $ = (id) => document.getElementById(id);
   const KEY = 'mylovecoach.admin.token';
+  // 관리자 기기 열쇠: `node tools/admin-enroll.mjs` 가 연 등록 링크(#enroll=…)로 이 브라우저에 한 번 저장된다.
+  // 이 열쇠가 있는 브라우저에서만 비밀번호가 통한다 (다른 곳에서는 비밀번호를 알아도 못 들어옴)
+  const DEVICE_KEY = 'mylovecoach.admin.device';
+  const store = {
+    get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* 저장소를 못 쓰면 등록 불가 */ } },
+  };
+  (() => {
+    const m = location.hash.match(/^#enroll=([A-Za-z0-9_-]{20,})$/);
+    if (!m) return;
+    store.set(DEVICE_KEY, m[1]);
+    history.replaceState(null, '', location.pathname + location.search);
+  })();
+  const deviceKey = () => store.get(DEVICE_KEY) || '';
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const num = (n) => Number(n ?? 0).toLocaleString('ko-KR');
 
@@ -271,24 +286,50 @@
   async function api(path, body) {
     const res = await fetch(path, {
       method: body ? 'POST' : 'GET',
-      headers: { Authorization: `Bearer ${sessionStorage.getItem(KEY)}`, ...(body ? { 'content-type': 'application/json' } : {}) },
+      headers: {
+        Authorization: `Bearer ${sessionStorage.getItem(KEY)}`,
+        'x-admin-device': deviceKey(),
+        ...(body ? { 'content-type': 'application/json' } : {}),
+      },
       body: body ? JSON.stringify(body) : undefined,
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       const err = new Error(data.error || '불러오지 못했어요.');
       err.status = res.status;
+      err.code = data.code;
       throw err;
     }
     return data;
   }
+
+  // 비밀번호·잠금 문제(401·429)일 때만 로그인 화면으로 돌아간다. 그 밖의 오류는 해당 칸에만 보여 준다
+  const isAuthError = (e) => e.status === 401 || e.status === 429;
 
   function logout(message) {
     sessionStorage.removeItem(KEY);
     $('app').classList.add('hide');
     $('login').classList.remove('hide');
     $('loginErr').textContent = message;
+    showDeviceNote();
   }
+
+  function showDeviceNote() {
+    $('deviceNote').textContent = deviceKey()
+      ? '이 브라우저는 관리자 기기로 등록돼 있어요.'
+      : '이 브라우저는 아직 관리자 기기로 등록되지 않았어요. 컴퓨터에서 `node tools/admin-enroll.mjs` 를 실행하면 등록 링크가 열려요.';
+  }
+
+  const propsText = (p) => {
+    try {
+      return Object.entries(p || {})
+        .map(([k, v]) => `${k}=${v !== null && typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
+        .join(' ')
+        .slice(0, 60);
+    } catch {
+      return '';
+    }
+  };
 
   // ── 이용자 목록 · 상세 ────────────────────────────────────────────
   let users = [];
@@ -326,7 +367,7 @@
     try {
       renderDetail(await api(`/api/admin?view=user&deviceId=${encodeURIComponent(deviceId)}`));
     } catch (e) {
-      if (e.status === 401 || e.status === 429) return logout(e.message);
+      if (isAuthError(e)) return logout(e.message);
       box.innerHTML = `<p class="err">${esc(e.message)}</p>`;
     }
   }
@@ -342,6 +383,7 @@
         <h2 style="margin:0; font-size:18px">${esc(u.name || '이름 없음')} ${isLive(u.last_seen_at) ? '<span class="pill live">접속 중</span>' : ''}</h2>
         <div style="display:flex; gap:8px">
           ${d.is_team ? '<span class="pill">팀원 무제한</span>' : `<button class="ghost" data-team-user="${esc(u.device_id)}" data-team-label="${esc(u.name || '')}">팀원으로 무제한 허용</button>`}
+          <button class="danger" data-device-delete="${esc(u.device_id)}" title="삭제 요청을 받았을 때 — 이 기기의 서버 기록을 모두 지워요">기록 삭제</button>
           <button class="ghost" data-close-detail>닫기</button>
         </div>
       </div>
@@ -367,7 +409,7 @@
           ? `<ul class="timeline">${d.path.map((p) => `<li><span class="t">${when(p.created_at)}</span><span style="flex:1">${esc(screenLabel(p.screen))}</span><span class="muted">${secs(p.sec)}</span></li>`).join('')}</ul>`
           : '<p class="muted">아직 기록이 없어요.</p>'}</div>
         <div><h2>버튼·행동 기록</h2>${(d.events || []).length
-          ? `<ul class="timeline">${d.events.map((e) => `<li><span class="t">${when(e.created_at)}</span><span style="flex:1">${esc(eventLabel(e.name))}</span><span class="muted mono">${esc(e.props ? Object.entries(e.props).map(([k, v]) => `${k}=${v}`).join(' ').slice(0, 60) : '')}</span></li>`).join('')}</ul>`
+          ? `<ul class="timeline">${d.events.map((e) => `<li><span class="t">${when(e.created_at)}</span><span style="flex:1">${esc(eventLabel(e.name))}</span><span class="muted mono">${esc(propsText(e.props))}</span></li>`).join('')}</ul>`
           : '<p class="muted">아직 기록이 없어요.</p>'}</div>
       </div>
       <div style="margin-top:16px"><h2>코칭 대화 <span class="muted">${num(chats.length)}건 · 최근 순 · 캡처 이미지는 저장하지 않아요</span></h2>${chats.length
@@ -389,14 +431,21 @@
     $('reload').disabled = true;
     try {
       const days = $('days').value;
-      const [data, list] = await Promise.all([api(`/api/admin?days=${days}&limit=60`), api(`/api/admin?view=users&days=${days}`)]);
+      // 집계가 통과한 뒤에 이용자 목록을 부른다 (틀린 비밀번호 한 번이 두 번으로 세어지지 않게)
+      const data = await api(`/api/admin?days=${days}&limit=60`);
       $('login').classList.add('hide');
       $('app').classList.remove('hide');
       render(data);
-      users = list.users || [];
-      renderUsers();
+      try {
+        users = (await api(`/api/admin?view=users&days=${days}`)).users || [];
+        renderUsers();
+      } catch (e) {
+        if (isAuthError(e)) return logout(e.message);
+        $('users').innerHTML = `<p class="err">${esc(e.message)}</p>`;
+      }
     } catch (e) {
-      logout(e.message);
+      if (isAuthError(e)) logout(e.message);
+      else $('loginErr').textContent = e.message;
     } finally {
       $('reload').disabled = false;
     }
@@ -411,7 +460,7 @@
       $('teamOk').textContent = okMessage;
       return true;
     } catch (e) {
-      if (e.status === 401 || e.status === 429) logout(e.message);
+      if (isAuthError(e)) logout(e.message);
       else $('teamErr').textContent = e.message;
       return false;
     }
@@ -450,6 +499,31 @@
       } else teamUserBtn.disabled = false;
       return;
     }
+    // 기기 기록 삭제 — 되돌릴 수 없으니 두 번 눌러야 한다
+    const deleteBtn = e.target.closest('[data-device-delete]');
+    if (deleteBtn) {
+      if (!deleteBtn.classList.contains('armed')) {
+        deleteBtn.classList.add('armed');
+        deleteBtn.textContent = '한 번 더 누르면 영구 삭제';
+        setTimeout(() => { deleteBtn.classList.remove('armed'); deleteBtn.textContent = '기록 삭제'; }, 3000);
+        return;
+      }
+      deleteBtn.disabled = true;
+      const id = deleteBtn.dataset.deviceDelete;
+      try {
+        await api('/api/admin', { action: 'device_delete', deviceId: id });
+        users = users.filter((u) => u.device_id !== id);
+        openDevice = '';
+        $('userDetail').classList.add('hide');
+        renderUsers();
+        $('teamOk').textContent = '그 기기의 서버 기록을 모두 지웠어요.';
+      } catch (err) {
+        if (isAuthError(err)) return logout(err.message);
+        deleteBtn.disabled = false;
+        $('userDetail').insertAdjacentHTML('afterbegin', `<p class="err">${esc(err.message)}</p>`);
+      }
+      return;
+    }
     const removeBtn = e.target.closest('[data-remove]');
     if (removeBtn) {
       if (!removeBtn.classList.contains('armed')) {
@@ -480,6 +554,7 @@
   $('token').onkeydown = (e) => { if (e.key === 'Enter') $('loginBtn').click(); };
   $('reload').onclick = load;
   $('days').onchange = load;
+  showDeviceNote();
   load();
 </script>
 </body>
