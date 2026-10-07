@@ -5,6 +5,7 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { Platform } from 'react-native';
 
+import { discardQueuedAnalytics } from '@/lib/analytics';
 import { AuthCancelled, deleteAccount, SessionMissing } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/app-store';
@@ -27,7 +28,7 @@ jest.mock('@/lib/supabase', () => ({
   authAvailable: true,
 }));
 jest.mock('expo-apple-authentication', () => ({ signInAsync: jest.fn(), isAvailableAsync: jest.fn(async () => true), AppleAuthenticationScope: {} }));
-jest.mock('@/lib/analytics', () => ({ track: jest.fn() }));
+jest.mock('@/lib/analytics', () => ({ track: jest.fn(), discardQueuedAnalytics: jest.fn() }));
 
 const getSession = supabase!.auth.getSession as jest.Mock;
 const signInAsync = AppleAuthentication.signInAsync as jest.Mock;
@@ -66,6 +67,8 @@ describe('deleteAccount (회원 탈퇴)', () => {
     signInAsync.mockResolvedValue({ authorizationCode: 'apple-code' });
     await deleteAccount();
     expect(deleteCalls()).toHaveLength(1);
+    // 탈퇴 요청 전에 아직 보내지 않은 이용 기록을 버린다 (탈퇴 뒤 다시 저장되지 않게)
+    expect((discardQueuedAnalytics as jest.Mock).mock.invocationCallOrder[0]).toBeLessThan(fetchMock.mock.invocationCallOrder[0]);
     expect(JSON.parse(deleteCalls()[0][1].body)).toEqual({ appleAuthorizationCode: 'apple-code' });
     expect(useAppStore.getState().member).toBeNull();
   });
@@ -82,6 +85,7 @@ describe('deleteAccount (회원 탈퇴)', () => {
     signInAsync.mockRejectedValue(Object.assign(new Error('canceled'), { code: 'ERR_REQUEST_CANCELED' }));
     await expect(deleteAccount()).rejects.toBeInstanceOf(AuthCancelled);
     expect(deleteCalls()).toHaveLength(0);
+    expect(discardQueuedAnalytics).not.toHaveBeenCalled();
     expect(useAppStore.getState().member).not.toBeNull();
   });
 });

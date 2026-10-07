@@ -91,12 +91,18 @@ export function useCoach() {
       if (!cached && quota.kind !== 'premium') useAppStore.getState().consumeQuota();
       // 누적 온도는 새로 분석한 대화에서만 움직인다 (같은 캡처 재사용·다른 답장 더 보기는 그대로)
       useAppStore.getState().completeAnalysis(crush.id, coachMessage.id, analysis, { applyHeat: !cached && !input.variationOf, fromCapture: Boolean(image) });
-      track('coach_success', { cached: Boolean(cached), hasImage: Boolean(image), tone: input.tone, variation: Boolean(input.variationOf), temperature: analysis.temperature, secret, emoji });
+      // 비밀 상담은 내용(결과 온도·톤·캡처 여부)을 이용 기록으로 보내지 않고 이용했다는 사실만 남긴다
+      track(
+        'coach_success',
+        secret
+          ? { secret: true }
+          : { cached: Boolean(cached), hasImage: Boolean(image), tone: input.tone, variation: Boolean(input.variationOf), temperature: analysis.temperature, secret, emoji },
+      );
     } catch (e) {
       const message = e instanceof CoachError ? e.message : e instanceof Error ? e.message : '알 수 없는 오류가 발생했어요.';
       const code = e instanceof CoachError ? e.code : 'server';
       useAppStore.getState().updateMessage(crush.id, coachMessage.id, { pending: false, error: message, text: code });
-      track('coach_error', { code });
+      track('coach_error', secret ? { code, secret: true } : { code });
     } finally {
       if (abortRef.current === controller) abortRef.current = null;
       setSending(false);

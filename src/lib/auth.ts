@@ -10,7 +10,7 @@ import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 
-import { track } from '@/lib/analytics';
+import { discardQueuedAnalytics, track } from '@/lib/analytics';
 import { APP_CONFIG } from '@/lib/config';
 import { authStorageKey, supabase } from '@/lib/supabase';
 import { useAppStore, type MemberState } from '@/store/app-store';
@@ -219,6 +219,8 @@ export async function deleteAccount(): Promise<void> {
   await currentSession();
   const member = useAppStore.getState().member;
   const appleAuthorizationCode = member?.provider === 'apple' ? await appleCodeForRevoke() : undefined;
+  // 아직 보내지 않은 이용 기록은 버린다 (탈퇴로 지운 뒤에 탈퇴 전 기록이 다시 저장되지 않게)
+  discardQueuedAnalytics();
   await memberApi('DELETE', appleAuthorizationCode ? { appleAuthorizationCode } : undefined);
   await dropLocalSession();
   useAppStore.getState().setMember(null);

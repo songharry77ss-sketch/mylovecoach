@@ -92,6 +92,7 @@
       <div>
         <h1>이용 현황</h1>
         <div class="muted" id="updated"></div>
+        <div class="err" id="appErr"></div>
       </div>
       <div style="display:flex; gap:8px; align-items:center">
         <select id="days">
@@ -107,7 +108,8 @@
     <div class="card" style="margin-bottom:20px">
       <h2>팀원 무제한</h2>
       <p class="muted" style="margin:0">팀원 앱의 「마이 → 내 기기 ID」를 눌러 복사한 값을 받아 넣으면, 그 기기는 무료 횟수 제한 없이 써요.
-        앱을 지우고 다시 설치하면 ID가 바뀌니 다시 등록해 주세요. 앱에는 마이 탭을 열거나 앱을 다시 켤 때 반영돼요.</p>
+        앱을 지우고 다시 설치하면 ID가 바뀌니 다시 등록해 주세요. 앱에는 마이 탭을 열거나 앱을 다시 켤 때 반영돼요.
+        목록에서 바로 등록한 기기도 그 사람이 앱에서 「내 기기 ID」를 한 번 눌러야 적용돼요(앱은 누른 뒤 14일 동안만 팀원 여부를 물어요).</p>
       <div class="row">
         <input id="teamDevice" placeholder="기기 ID (예: d_mg3k2x9a1b2c3d)" autocomplete="off" spellcheck="false" />
         <input id="teamLabel" placeholder="이름·메모 (예: 디자인 지민)" maxlength="40" autocomplete="off" />
@@ -138,6 +140,11 @@
         <input id="userSearch" placeholder="이름·기기 ID·유입 검색" autocomplete="off" style="flex:0 1 240px" />
       </div>
       <p class="muted" style="margin:6px 0 10px">이용 기록 수집에 동의한 사람만 보여요. 줄을 누르면 어디서 얼마나 머물렀는지, 어떤 코칭을 받았는지 볼 수 있어요.</p>
+      <div class="row" style="margin-bottom:10px">
+        <input id="openDeviceId" placeholder="기기 ID로 열기 (메일로 받은 삭제 요청 등 — 목록에 없는 기기도)" autocomplete="off" spellcheck="false" />
+        <button class="ghost" id="openDeviceBtn">열기</button>
+      </div>
+      <div class="err" id="openDeviceErr"></div>
       <div id="users" style="overflow-x:auto"></div>
     </div>
 
@@ -373,22 +380,22 @@
     box.innerHTML = '<p class="muted">불러오는 중…</p>';
     box.scrollIntoView({ behavior: 'smooth', block: 'start' });
     try {
-      renderDetail(await api(`/api/admin?view=user&deviceId=${encodeURIComponent(deviceId)}`));
+      renderDetail(await api(`/api/admin?view=user&deviceId=${encodeURIComponent(deviceId)}`), deviceId);
     } catch (e) {
       if (isAuthError(e)) return logout(e.message);
       box.innerHTML = `<p class="err">${esc(e.message)}</p>`;
     }
   }
 
-  function renderDetail(d) {
-    const u = d.user || {};
+  function renderDetail(d, requestedId) {
+    const u = d.user || { device_id: requestedId };
     const meta = users.find((x) => x.device_id === u.device_id) || {};
     const acq = u.source_detail || {};
     const chats = d.chats || [];
     const kv = (rows) => `<dl class="kv">${rows.filter(([, v]) => v != null && v !== '').map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
     $('userDetail').innerHTML = `
       <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; margin-bottom:14px">
-        <h2 style="margin:0; font-size:18px">${esc(u.name || '이름 없음')} ${isLive(u.last_seen_at) ? '<span class="pill live">접속 중</span>' : ''}</h2>
+        <h2 style="margin:0; font-size:18px">${esc(u.name || (d.user ? '이름 없음' : '이용자 정보 없음 (남은 기록만)'))} ${isLive(u.last_seen_at) ? '<span class="pill live">접속 중</span>' : ''}</h2>
         <div style="display:flex; gap:8px">
           ${d.is_team ? '<span class="pill">팀원 무제한</span>' : `<button class="ghost" data-team-user="${esc(u.device_id)}" data-team-label="${esc(u.name || '')}">팀원으로 무제한 허용</button>`}
           <button class="danger" data-device-delete="${esc(u.device_id)}" title="삭제 요청을 받았을 때 — 이 기기의 서버 기록을 모두 지워요">기록 삭제</button>
@@ -435,18 +442,25 @@
 
   $('userSearch').oninput = renderUsers;
 
+  let loadSeq = 0;
   async function load() {
     if (!sessionStorage.getItem(KEY)) return;
+    const seq = ++loadSeq;
     $('reload').disabled = true;
+    $('days').disabled = true;
     try {
       const days = $('days').value;
       // 집계가 통과한 뒤에 이용자 목록을 부른다 (틀린 비밀번호 한 번이 두 번으로 세어지지 않게)
       const data = await api(`/api/admin?days=${days}&limit=60`);
+      if (seq !== loadSeq) return;
       $('login').classList.add('hide');
       $('app').classList.remove('hide');
+      $('appErr').textContent = '';
       render(data);
       try {
-        users = (await api(`/api/admin?view=users&days=${days}`)).users || [];
+        const list = (await api(`/api/admin?view=users&days=${days}`)).users || [];
+        if (seq !== loadSeq) return;
+        users = list;
         renderUsers();
       } catch (e) {
         if (isAuthError(e)) return logout(e.message);
@@ -454,11 +468,27 @@
       }
     } catch (e) {
       if (isAuthError(e)) logout(e.message);
+      // 대시보드가 보이는 중이면 머리에, 아니면 로그인 칸에 보여 준다 (이전 숫자가 그대로 남아 있음을 알림)
+      else if (!$('app').classList.contains('hide')) $('appErr').textContent = `새로 불러오지 못했어요 — 아래는 이전 숫자예요. ${e.message}`;
       else $('loginErr').textContent = e.message;
     } finally {
-      $('reload').disabled = false;
+      if (seq === loadSeq) {
+        $('reload').disabled = false;
+        $('days').disabled = false;
+      }
     }
   }
+
+  $('openDeviceBtn').onclick = () => {
+    const id = $('openDeviceId').value.trim();
+    $('openDeviceErr').textContent = '';
+    if (!/^[A-Za-z0-9_-]{6,64}$/.test(id)) {
+      $('openDeviceErr').textContent = '기기 ID 형식이 아니에요 (앱 「마이 → 내 기기 ID」 값, 예: d_mg3k2x9a1b2c3d).';
+      return;
+    }
+    openUser(id);
+  };
+  $('openDeviceId').onkeydown = (e) => { if (e.key === 'Enter') $('openDeviceBtn').click(); };
 
   async function teamAction(body, okMessage) {
     $('teamErr').textContent = '';

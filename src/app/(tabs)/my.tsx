@@ -13,7 +13,7 @@ import { SectionHeader } from '@/components/ui/section-header';
 import { useToast } from '@/components/ui/toast';
 import { Spacing } from '@/constants/theme';
 import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
-import { requestServerDeletion, setConsent as setAnalyticsConsentFlag, track } from '@/lib/analytics';
+import { setConsent as setAnalyticsConsentFlag, track } from '@/lib/analytics';
 import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { billingSupported, openSubscriptionManagement, restorePremium } from '@/lib/billing/iap';
 import { quotaLabel } from '@/lib/billing/quota';
@@ -25,6 +25,7 @@ import { APP_CONFIG } from '@/lib/config';
 import { isDemoMode } from '@/lib/demo';
 import * as Floating from '@/lib/floating';
 import { haptic, setHapticsEnabled } from '@/lib/haptics';
+import { cleanupOrphanImages } from '@/lib/images';
 import { genderLabel, toneLabel } from '@/lib/labels';
 import { useAppStore } from '@/store/app-store';
 import { saveApiKey } from '@/store/storage';
@@ -163,16 +164,19 @@ export default function MyScreen() {
   const confirmReset = () => {
     const run = async () => {
       await saveApiKey(null);
+      // 서버에 남은 이용 기록 삭제도 함께 요청된다 (store.resetAll → pendingDeletion)
       resetAll();
+      // 캡처·상대 사진 파일을 바로 지운다 (평소 정리는 다음 실행 때 10분 지난 파일만)
+      cleanupOrphanImages(new Set(), Date.now(), 0);
       haptic.heavy();
       toast.show('모든 데이터를 삭제했어요.');
       router.replace('/start');
     };
     if (Platform.OS === 'web') {
-      if (globalThis.confirm?.('채팅방, 캡처, 프로필, 연습 기록을 모두 삭제할까요? 되돌릴 수 없어요.')) run();
+      if (globalThis.confirm?.('채팅방, 캡처, 프로필, 연습 기록과 서버에 남은 이용 기록을 모두 삭제할까요? 되돌릴 수 없어요.')) run();
       return;
     }
-    Alert.alert('모든 데이터 삭제', '채팅방, 캡처, 프로필, 연습 기록을 모두 삭제할까요? 되돌릴 수 없어요.', [
+    Alert.alert('모든 데이터 삭제', '채팅방, 캡처, 프로필, 연습 기록과 서버에 남은 이용 기록을 모두 삭제할까요? 되돌릴 수 없어요.', [
       { text: '취소', style: 'cancel' },
       { text: '삭제', style: 'destructive', onPress: run },
     ]);
@@ -297,7 +301,7 @@ export default function MyScreen() {
       <ListRow
         icon="bar-chart-outline"
         title="이용 기록 수집 (선택)"
-        subtitle="켜면 코칭 질문·답과 화면 이용 기록이 서비스 개선을 위해 서버에 1년 보관돼요. 끄면 서버 기록도 지워요. 캡처 이미지는 저장하지 않아요."
+        subtitle="켜면 코칭 요청 글(붙여 넣은 대화 포함)·답변과 화면 이용 기록이 서비스 개선을 위해 서버에 1년 보관돼요. 끄면 서버 기록도 지워요. 캡처 이미지는 저장하지 않아요."
         right={
           <Switch
             value={analyticsConsent === true}
@@ -307,12 +311,10 @@ export default function MyScreen() {
                 setAnalyticsConsentFlag(true);
                 track('analytics_opt_in');
               } else {
-                // 끄면 더 보내지 않고(대기 중인 기록도 버림), 서버에 남은 이 기기의 기록을 지워 달라고 한다.
-                // 이미 보내는 중이던 기록이 먼저 저장되도록 잠시 뒤에 지운다
+                // 끄면 더 보내지 않고(대기 중인 기록도 버림), 서버에 남은 이 기기의 기록 삭제를 요청한다.
+                // 요청은 store 에 남아 서버가 지웠다고 답할 때까지 다시 보내진다 (lib/server-deletion)
                 setAnalyticsConsentFlag(false);
                 setAnalyticsConsent(false);
-                const id = useAppStore.getState().deviceId;
-                setTimeout(() => requestServerDeletion(id), 3000);
               }
               toast.show(v ? '이용 기록 수집을 켰어요.' : '이용 기록 수집을 껐어요. 서버에 남은 기록도 지울게요.');
             }}

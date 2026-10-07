@@ -10,13 +10,14 @@ import { CelebrationProvider } from '@/components/fx/celebration';
 import { ToastProvider } from '@/components/ui/toast';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { flushAnalytics, initAnalytics, launchAcquisition, resumeAnalytics, trackScreen, updateIdentity } from '@/lib/analytics';
+import { flushAnalytics, initAnalytics, launchAcquisition, pauseAnalytics, resumeAnalytics, setConsent, trackScreen, updateIdentity } from '@/lib/analytics';
 import { endBilling, initBilling } from '@/lib/billing/iap';
 import { refreshTeam } from '@/lib/billing/team';
 import { linkMember } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { haptic, setHapticsEnabled } from '@/lib/haptics';
 import { cleanupOrphanImages } from '@/lib/images';
+import { processPendingDeletion } from '@/lib/server-deletion';
 import { useAppStore } from '@/store/app-store';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -93,20 +94,28 @@ export default function RootLayout() {
       acquisition: s.acquisition,
       consentVersion: consentVersionOf(s),
     });
-    const unsubscribe = useAppStore.subscribe((next) =>
+    // 서버에 남은 기록 삭제 요청이 있으면(지난번에 못 보냈거나 방금 생김) 보낸다
+    processPendingDeletion().catch(() => {});
+    const unsubscribe = useAppStore.subscribe((next, prev) => {
+      setConsent(next.analyticsConsent === true);
       updateIdentity({
-        consent: next.analyticsConsent === true,
         user: next.user,
         premiumPlan: next.premium?.plan ?? null,
         crushCount: Object.keys(next.crushes).length,
         acquisition: next.acquisition,
         consentVersion: consentVersionOf(next),
-      }),
-    );
-    // 떠날 때 남은 기록을 보내고 세션을 끝낸다. 돌아오면 백그라운드에 있던 시간은 빼고 새로 센다
+      });
+      // 동의한 채로 나이를 만 14세 미만으로 바꾸면 서버에 쌓인 기록도 지운다 (법정대리인 동의를 받지 않으므로)
+      const under = (u: typeof next.user) => u?.age != null && u.age < 14;
+      if (next.analyticsConsent === true && under(next.user) && !under(prev.user)) next.requestServerDeletion();
+      if (next.pendingDeletion && next.pendingDeletion !== prev.pendingDeletion) processPendingDeletion().catch(() => {});
+    });
+    // 떠날 때 남은 기록과 세션 끝을 보낸다. 30분 안에 돌아오면 같은 세션을 이어 쓰고, 떠나 있던 시간은 세지 않는다
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') resumeAnalytics();
-      else flushAnalytics(true);
+      if (state === 'active') {
+        resumeAnalytics();
+        processPendingDeletion().catch(() => {});
+      } else pauseAnalytics(state);
     });
     return () => {
       flushAnalytics(true);

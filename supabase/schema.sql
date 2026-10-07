@@ -242,6 +242,31 @@ begin
 end $$;
 
 -- ── 관리자 로그인 시도 (비밀번호 대입 방지, 성공하면 그 IP 기록은 지움) ─
+-- ── 하루 저장량 상한 (공개 API 로 무료 DB 를 채우지 못하게, 날짜·종류별 저장 행 수) ─
+create table if not exists usage_quota (
+  day   date   not null,                   -- 한국 날짜
+  kind  text   not null,                   -- track(이용 기록) · coach(코칭 기록)
+  rows  bigint not null default 0,
+  primary key (day, kind)
+);
+
+-- 오늘 저장할 행 수를 더하고, 상한 안이면 true (넘으면 false — 서버는 저장하지 않음)
+create or replace function take_quota(p_kind text, p_rows int, p_limit bigint)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_total bigint;
+begin
+  insert into usage_quota (day, kind, rows)
+  values ((now() at time zone 'Asia/Seoul')::date, p_kind, greatest(p_rows, 0))
+  on conflict (day, kind) do update set rows = usage_quota.rows + excluded.rows
+  returning rows into v_total;
+  return v_total <= p_limit;
+end $$;
+
 create table if not exists admin_auth_fail (
   id         bigserial primary key,
   ip         text,
@@ -260,6 +285,7 @@ alter table admin_auth_fail enable row level security;
 alter table member          enable row level security;
 alter table member_device   enable row level security;
 alter table bonus_spent     enable row level security;
+alter table usage_quota     enable row level security;
 
 -- ── 관리자 대시보드용 집계 ────────────────────────────────────────────
 -- 화면 경로의 채팅방·연습 ID 를 묶는다 (/crush/c_abc123 → /crush/[id])
@@ -370,9 +396,13 @@ language sql
 security definer
 set search_path = public
 as $$
-  with recent as (
-    select * from app_user
-    where last_seen_at >= now() - make_interval(days => greatest(p_days, 1))
+  -- 「오늘」(1일)은 집계(admin_stats)와 같이 한국 시간 자정부터
+  with span as (
+    select case when p_days <= 1 then date_trunc('day', now() at time zone 'Asia/Seoul') at time zone 'Asia/Seoul'
+                else now() - make_interval(days => p_days) end as since
+  ), recent as (
+    select app_user.* from app_user, span
+    where last_seen_at >= span.since
     order by last_seen_at desc
     limit greatest(p_limit, 1)
   )
@@ -440,20 +470,23 @@ $$;
 comment on function admin_user is '관리자 페이지 이용자 상세';
 
 -- ── 기기 하나의 이용 기록을 모두 지움 (동의 철회·삭제 요청·관리자 「기록 삭제」) ─
-create or replace function delete_device(p_device text)
+-- p_before 를 주면 그 시각 전에 생긴 기록만 지운다 (동의를 철회한 뒤 다시 동의해 생긴 새 기록은 남김). 없으면 모두.
+-- 예전 판(인자 하나)은 지운다 — 같은 이름이 두 개면 PostgREST 가 어느 쪽인지 고르지 못한다
+drop function if exists delete_device(text);
+create or replace function delete_device(p_device text, p_before timestamptz default null)
 returns void
 language sql
 security definer
 set search_path = public
 as $$
-  delete from coach_log   where device_id = p_device;
-  delete from app_event   where device_id = p_device;
-  delete from screen_view where device_id = p_device;
-  delete from app_session where device_id = p_device;
-  delete from app_user    where device_id = p_device;
+  delete from coach_log   where device_id = p_device and (p_before is null or created_at    < p_before);
+  delete from app_event   where device_id = p_device and (p_before is null or created_at    < p_before);
+  delete from screen_view where device_id = p_device and (p_before is null or created_at    < p_before);
+  delete from app_session where device_id = p_device and (p_before is null or started_at    < p_before);
+  delete from app_user    where device_id = p_device and (p_before is null or first_seen_at < p_before);
 $$;
 
-comment on function delete_device is '기기 ID 하나의 이용 기록 삭제 (DELETE /api/track, 관리자 기록 삭제)';
+comment on function delete_device is '기기 ID 하나의 이용 기록 삭제 (DELETE /api/track, 관리자 기록 삭제, 만 14세 미만)';
 
 -- ── 1년 지난 이용 기록 파기 (처리방침 4번 「수집일로부터 1년이 지나면 파기」) ─
 create or replace function purge_old_records()
@@ -470,10 +503,14 @@ as $$
   delete from bonus_spent     where withdrawn_at < now() - interval '1 year';
   -- 로그인한 기기 이력은 회원 정보라 1년 파기 대상이 아니다(탈퇴할 때 member_delete 가 지움). 회원 행이 따로 지워져 남은 것만 정리
   delete from member_device   where not exists (select 1 from member m where m.user_id = member_device.user_id);
+  -- 처음 들어온 경로는 계속 쓰는 이용자라도 수집 1년이 지나면 지운다
+  update app_user set source = null, source_detail = null
+   where first_seen_at < now() - interval '1 year' and (source is not null or source_detail is not null);
   delete from admin_auth_fail where created_at   < now() - interval '30 days';
+  delete from usage_quota     where day < (now() at time zone 'Asia/Seoul')::date - 7;
 $$;
 
-comment on function purge_old_records is '1년 지난 이용 기록·탈퇴 1년 지난 보너스 기기·회원이 없는 기기 이력·30일 지난 관리자 로그인 시도 파기 (pg_cron 매일 03:30 KST)';
+comment on function purge_old_records is '1년 지난 이용 기록·유입 경로, 탈퇴 1년 지난 보너스 기기, 회원이 없는 기기 이력, 30일 지난 관리자 로그인 시도, 7일 지난 저장량 기록 파기 (pg_cron 매일 03:30 KST)';
 
 -- 매일 03:30(한국 시간) = 18:30 UTC 에 파기. pg_cron 을 쓸 수 없는 곳(로컬 시험 등)에서는 건너뛴다
 do $$
@@ -491,10 +528,10 @@ end $$;
 -- ── 관리자 함수는 서버(service_role)만 부를 수 있게 ──────────────────
 do $$
 begin
-  revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text), delete_device(text), purge_old_records(),
-    member_link(uuid, text, text, text, text), member_delete(uuid), app_user_member() from public;
+  revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text), delete_device(text, timestamptz), purge_old_records(),
+    take_quota(text, int, bigint), member_link(uuid, text, text, text, text), member_delete(uuid), app_user_member() from public;
   if exists (select 1 from pg_roles where rolname = 'anon') then
-    revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text), delete_device(text), purge_old_records(),
-      member_link(uuid, text, text, text, text), member_delete(uuid), app_user_member() from anon, authenticated;
+    revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text), delete_device(text, timestamptz), purge_old_records(),
+      take_quota(text, int, bigint), member_link(uuid, text, text, text, text), member_delete(uuid), app_user_member() from anon, authenticated;
   end if;
 end $$;
