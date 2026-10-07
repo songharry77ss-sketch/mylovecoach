@@ -1,13 +1,14 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AiConsentHost } from '@/components/coach/ai-consent-sheet';
 import { CelebrationProvider } from '@/components/fx/celebration';
+import { IntroSplash } from '@/components/fx/intro-splash';
 import { ToastProvider } from '@/components/ui/toast';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -15,11 +16,28 @@ import { flushAnalytics, initAnalytics, launchAcquisition, pauseAnalytics, resum
 import { endBilling, initBilling } from '@/lib/billing/iap';
 import { refreshTeam } from '@/lib/billing/team';
 import { haptic, setHapticsEnabled } from '@/lib/haptics';
+import { isDemoMode } from '@/lib/demo';
 import { cleanupOrphanImages, clearImageCaches } from '@/lib/images';
 import { processPendingDeletion } from '@/lib/server-deletion';
 import { useAppStore } from '@/store/app-store';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+/** 켤 때 로고 인트로 — 홈페이지에 넣은 데모(자동 재생)에서는 바로 시작한다 */
+const SHOW_INTRO = !isDemoMode;
+/** 인트로가 끝나지 않는 일이 생겨도 이 시간이 지나면 화면을 연다 */
+const INTRO_SAFETY_MS = 7000;
+
+const hideNativeSplash = () => {
+  SplashScreen.hideAsync().catch(() => {});
+};
+
+/** 인트로에서 로고가 두근할 때 — 저장소를 읽었고 진동을 켜 둔 경우에만 (웹은 화면을 누르기 전 진동이 막혀 있어 부르지 않는다) */
+const introBeat = () => {
+  if (Platform.OS === 'web') return;
+  const s = useAppStore.getState();
+  if (s.hydrated && s.hapticsOn) haptic.heartbeat();
+};
 
 /**
  * 이용 기록 동의를 받은 방식의 판. 동의 수정판은 store 에 analyticsConsentVersion(직접 체크 = 2)을 둔다.
@@ -49,6 +67,7 @@ export default function RootLayout() {
   const setHydrated = useAppStore((s) => s.setHydrated);
   const hapticsOn = useAppStore((s) => s.hapticsOn);
   const pathname = usePathname();
+  const [introDone, setIntroDone] = useState(!SHOW_INTRO);
 
   // 마이 탭의 「진동 효과」 설정을 진동 모듈에 반영
   useEffect(() => {
@@ -57,13 +76,24 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (hydrated) {
-      SplashScreen.hideAsync().catch(() => {});
-      return;
+      // 인트로는 첫 화면(네이티브 스플래시와 같은 로고)을 그리자마자 스스로 내린다 — 여기서는 혹시 안 내려졌을 때만 (이미 내렸으면 아무 일도 없음)
+      const t = setTimeout(hideNativeSplash, SHOW_INTRO ? 1500 : 0);
+      return () => clearTimeout(t);
     }
     // 저장소 접근이 막힌 환경(사생활 보호 모드 등)에서도 앱이 멈추지 않도록 안전장치
     const t = setTimeout(() => setHydrated(), 2500);
     return () => clearTimeout(t);
   }, [hydrated, setHydrated]);
+
+  // 인트로가 어떤 이유로 끝나지 않아도 화면이 막히지 않게
+  useEffect(() => {
+    if (introDone) return;
+    const t = setTimeout(() => {
+      hideNativeSplash();
+      setIntroDone(true);
+    }, INTRO_SAFETY_MS);
+    return () => clearTimeout(t);
+  }, [introDone]);
 
   // 저장소를 다 읽은 뒤, 어떤 채팅방에도 연결되지 않은 캡처 파일을 지운다 (비밀 상담 흔적 포함)
   useEffect(() => {
@@ -210,6 +240,8 @@ export default function RootLayout() {
             <AiConsentHost />
             <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
           </ToastProvider>
+          {/* 켤 때 로고 인트로 — 모든 화면 위에 덮였다가 저장소를 읽고 나면 사라진다 */}
+          {introDone ? null : <IntroSplash ready={hydrated} onShown={hideNativeSplash} onBeat={introBeat} onDone={() => setIntroDone(true)} />}
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
