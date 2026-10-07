@@ -73,8 +73,11 @@ export function useAiAction() {
         track(`${name}_error`, { code: e instanceof CoachError ? e.code : 'server' });
         return null;
       } finally {
-        if (abortRef.current === controller) abortRef.current = null;
-        setBusy(false);
+        // 새 요청이 이어받았으면(빠르게 두 번 누름) 그 요청이 아직 진행 중이니 busy 는 그대로 둔다
+        if (abortRef.current === controller) {
+          abortRef.current = null;
+          setBusy(false);
+        }
       }
     },
     [ensureQuota],

@@ -5,6 +5,7 @@ import type { AiProvider } from '@/lib/ai-consent';
 import type { ConsumablePlanKey } from '@/lib/billing/plans';
 import type { Acquisition } from '@/lib/analytics';
 import { consumeOne, EMPTY_USAGE, EMPTY_WALLET, grantConsumable, type PremiumState, type TeamState, type UsageState, type WalletState } from '@/lib/billing/quota';
+import type { CoachRequest } from '@/lib/coach-schema';
 import { createId } from '@/lib/id';
 import type {
   ChatMessage,
@@ -81,7 +82,8 @@ export interface AppState {
   createSecretChat: () => string;
   updateCrush: (id: string, patch: Partial<Omit<Crush, 'id' | 'createdAt'>>) => void;
   removeCrush: (id: string) => void;
-  saveReport: (crushId: string, report: CrushReport, basedOn: number) => void;
+  /** 보고서 저장. profileKey 는 보고서를 만들 때 보낸 프로필의 지문 (reportProfileKey) */
+  saveReport: (crushId: string, report: CrushReport, basedOn: number, profileKey?: string) => void;
 
   addMessage: (message: Omit<ChatMessage, 'id' | 'createdAt'> & { id?: string; createdAt?: number }) => ChatMessage;
   updateMessage: (crushId: string, id: string, patch: Partial<ChatMessage>) => void;
@@ -230,11 +232,11 @@ export const useAppStore = create<AppState>()(
           delete messages[id];
           return { crushes, messages };
         }),
-      saveReport: (crushId, report, basedOn) =>
+      saveReport: (crushId, report, basedOn, profileKey) =>
         set((s) => {
           const crush = s.crushes[crushId];
           if (!crush) return {};
-          return { crushes: { ...s.crushes, [crushId]: { ...crush, report: { data: report, at: Date.now(), basedOn } } } };
+          return { crushes: { ...s.crushes, [crushId]: { ...crush, report: { data: report, at: Date.now(), basedOn, profileKey } } } };
         }),
 
       addMessage: (input) => {
@@ -521,6 +523,28 @@ export function hasNewSessionsSince(report: { at: number; basedOn: number } | un
   if (!report) return true;
   const analyzed = messages.filter((m) => m.analysis);
   return analyzed.length > report.basedOn || analyzed.some((m) => m.createdAt > report.at);
+}
+
+/**
+ * 보고서 요청에 넣는 상대·내 프로필의 지문 (관계 단계·목표·MBTI·메모·호칭·말투·내 프로필·KKTI 등 보내는 그대로).
+ * 누적 온도는 뺀다 — 온도는 새 코칭 기록과 함께만 바뀌어서 hasNewSessionsSince 가 따로 본다
+ */
+export function reportProfileKey(profile: { crush: CoachRequest['crush']; user: CoachRequest['user'] }): string {
+  return quickHash(JSON.stringify({ crush: { ...profile.crush, heat: undefined }, user: profile.user }));
+}
+
+/**
+ * 보고서를 (다시) 만들 수 있는 까닭 — 같은 기록·같은 프로필로 다시 부르면 비슷한 보고서에 1회만 쓰이므로 바뀐 게 없으면 null 로 막는다.
+ * first: 아직 보고서가 없음 · sessions: 새 코칭 기록이 생김 · profile: 상대·내 프로필이 바뀜 ·
+ * unknown: 지문이 없는 예전 보고서 (프로필이 바뀌었는지 알 수 없어 열어 둔다)
+ */
+export type ReportRefresh = 'first' | 'sessions' | 'profile' | 'unknown' | null;
+
+export function reportRefresh(report: Crush['report'], messages: ChatMessage[], profileKey: string): ReportRefresh {
+  if (!report) return 'first';
+  if (hasNewSessionsSince(report, messages)) return 'sessions';
+  if (!report.profileKey) return 'unknown';
+  return report.profileKey === profileKey ? null : 'profile';
 }
 
 /** 채팅방 목록 정렬 (최근 활동순). 셀렉터 안에서 새 배열을 만들면 무한 렌더가 나므로 useMemo 로 감싸 사용 */

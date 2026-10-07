@@ -52,13 +52,18 @@ curl -X POST https://<배포주소>/api/coach -H 'content-type: application/json
 | `GEMINI_THINKING_COACH` · `_REPORT` · `_MIND` · `_PRACTICE` | 모드별 | `minimal` · `low` · `medium` · `high` | `low` |
 | `GEMINI_OMIT_TEMPERATURE` | 모든 모드 | `1` 이면 temperature 를 보내지 않음 (모델 기본값) | 보냄 (모드마다 0.7~0.9) |
 
-- 잘못된 값은 서버가 무시하고 기본값을 쓰며, Vercel 로그에 `[ai-flags]` 경고를 한 번 남깁니다.
-- gemini-3.7·3.8 Flash 는 `minimal` 이 없어 400 오류가 납니다. 그 모델에는 `low` 이상을 쓰세요.
-- 과부하(503)·한도(429)면 같은 모델을 한 번 더, 그다음 `gemini-3.5-flash-lite`(기본 모델이 이미 그것이면 `gemini-3.5-flash`)로 한 번 넘어갑니다. 최대 3번.
+- `medium`·`high` 는 생각 토큰이 출력 상한(코칭 2,560 · 보고서 2,048 · 속마음 1,536 · 연습 1,024)을 같이 써서 잘림(`MAX_TOKENS`)이 늘 수 있습니다. 잘린 응답은 상한만큼 과금된 채 502 로 끝나고, 사용자가 다시 누르면 또 과금됩니다. 켜기 전에 `--thinking medium` 으로 A/B 를 돌려 보고서의 실패 이유(`MAX_TOKENS`)부터 확인하세요.
+- 잘못된 값은 서버가 무시하고 기본값을 쓰며, Vercel 로그에 `[ai-flags]` 경고를 한 번 남깁니다 (이름과 글자 수만 — 값은 남기지 않음).
+- gemini-3.7·3.8 Flash 는 `minimal` 이 없어 400 오류가 납니다. 그 모델에는 `low` 이상을 쓰세요. 이런 Google 오류는 사용자에게 원문(영어) 대신 「AI 서버와 통신하지 못했어요」로 보이고, 로그의 `upstreamStatus`(예: 400)·`upstreamError`(예: `INVALID_ARGUMENT`)로 원인을 봅니다.
+- 과부하(503)·한도(429)면 같은 모델을 한 번 더, 그다음 `gemini-3.5-flash-lite` 로 한 번 넘어갑니다. 이미 그 모델이면(속마음·연습에 `GEMINI_MODEL_LIGHT` 로 켠 경우 등) `GEMINI_MODEL`, 그것도 같으면 `gemini-3.5-flash` 로. 최대 3번.
+- 스위치로 고른 모델이 없다고(404 — 이름 오타·지원 종료) 하면 기본 모델(`gemini-3.5-flash`)로 한 번만 넘어갑니다. 오타 하나로 모든 요청이 실패하지 않게 하려는 것이니, 로그에 `upstreamStatus: 404` 가 보이면 이름을 고치세요.
 - **넣는 방법**: GitHub 저장소 → Settings → Secrets and variables → Actions → **Variables** 에 같은 이름으로 넣고 `gh workflow run vercel.yml`. 값이 있는 것만 Vercel 에 등록됩니다. 직접 넣으려면 `vercel env add GEMINI_THINKING_MIND production` 처럼.
 - **되돌리기**: 저장소 변수를 지워도 Vercel 에 이미 등록된 값은 남습니다. Vercel 환경변수에서도 지우고(`vercel env rm 이름 production`) 다시 배포하세요.
-- 요청마다 Vercel 로그에 `"log":"coach_api"` 한 줄이 남습니다 (모드·모델·입력/출력/생각/캐시 토큰·종료 이유·시도 횟수·걸린 시간). 대화 글·이름·IP 는 남기지 않습니다. 스위치를 바꾼 뒤 토큰이 실제로 줄었는지 여기서 확인합니다.
-- 스위치와 상관없이 늘 켜져 있는 보호: 입력 길이 상한(코칭 글 2,000자·이름 100자·메모 2,000자·태그 40자 20개·캡처 base64 2.5MB — `src/lib/coach-schema.ts` 의 `REQUEST_LIMITS`, 앱 한도보다 넉넉함)을 넘으면 400·413 으로 AI 를 부르지 않습니다. 85초가 지나거나 앱이 연결을 끊으면(`vercel.json` 의 `supportsCancellation`) Gemini 응답을 더 기다리지 않고 함수를 끝냅니다 — Google 쪽에서 이미 시작된 처리의 과금이 멈추는지는 확인되지 않았습니다.
+- 요청마다 Vercel 로그에 `"log":"coach_api"` 한 줄이 남습니다 (모드·모델·입력/출력/생각/캐시 토큰·종료 이유·시도 횟수·걸린 시간·Google 오류 코드). 대화 글·이름·IP 는 남기지 않습니다. 스위치를 바꾼 뒤 토큰이 실제로 줄었는지 여기서 확인합니다.
+- Gemini 를 부르기 직전마다 `"log":"coach_api_start"` 줄(모드·모델·몇 번째)도 남습니다. `supportsCancellation` 때문에 앱이 끊은 요청은 함수가 그 자리에서 끝나 끝 줄이 없을 수 있으므로, 실제로 부른 횟수는 이 시작 줄 수로 셉니다.
+- 스위치와 상관없이 늘 켜져 있는 보호: 입력 길이 상한(코칭 글 2,000자·이름 100자·메모 2,000자·태그 40자 20개·캡처 base64 4.2MB — `src/lib/coach-schema.ts` 의 `REQUEST_LIMITS`, 앱 한도보다 넉넉함)을 넘으면 400·413 으로 AI 를 부르지 않습니다. 지난 기록 칸(1,000·1,000·500자)은 거절하지 않고 잘라서 받습니다. 길이 64 를 넘는 배열과 4.5MB 를 넘는 본문(content-length)은 검사기를 거치지 않고 바로 거절합니다. 캡처 상한은 Vercel 본문 한도(4.5MB) 바로 아래라서, 예전에도 Vercel 에서 막혔을 캡처만 막힙니다(이미지 토큰은 크기와 상관없이 1장에 정해져 있어 비용과는 무관).
+- 1건 최악치: 사용자가 정할 수 있는 글은 코칭 약 2만 6,500자·보고서 약 4만 자입니다. 상한이 글자 수라 드문 한글 음절·한자는 글자당 3토큰까지 가므로, 입력은 최악 약 8만·12만 토큰(gemini-3.5-flash 입력 $1.50/100만 → 약 $0.12·$0.18)으로 잡습니다.
+- 85초가 지나거나 앱이 연결을 끊으면(`vercel.json` 의 `supportsCancellation`) Gemini 응답을 더 기다리지 않고 함수를 끝냅니다 — Google 쪽에서 이미 시작된 처리의 과금이 멈추는지는 확인되지 않았습니다.
 
 ## 2. EAS 프로젝트 연결 💻
 

@@ -2,9 +2,10 @@ import { EventEmitter } from 'node:events';
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-import handler, { SERVER_DEADLINE_MS } from '../../api/coach';
+import handler, { MAX_BODY_BYTES, SERVER_DEADLINE_MS } from '../../api/coach';
+import { MAX_REQUEST_ARRAY_LENGTH } from '@/lib/ai-tasks';
 import { IMAGE_TOO_LARGE_MESSAGE, MAX_IMAGE_BASE64_LENGTH } from '@/lib/coach-schema';
-import { callGeminiTask, type CallGeminiOptions } from '@/lib/gemini';
+import { callGeminiTask, GEMINI_FALLBACK_MODELS, type CallGeminiOptions } from '@/lib/gemini';
 
 // 실제 Gemini 는 부르지 않는다 — 불렸는지만 본다 (기본은 실패로 돌려 응답은 502). 나머지(모델 이름·생각 수준 목록)는 진짜를 쓴다
 jest.mock('@/lib/gemini', () => ({ ...jest.requireActual('@/lib/gemini'), callGeminiTask: jest.fn(async () => ({ ok: false, code: 'server', message: 'AI 오류' })) }));
@@ -172,6 +173,81 @@ describe('사용량 로그', () => {
     expect(res.statusCode).toBe(502);
     expect(logLines(logSpy)[0]).toEqual(expect.objectContaining({ status: 502, error: 'parse', finishReason: 'MAX_TOKENS', thoughtsTokens: 2000 }));
   });
+
+  it('Gemini 를 부르기 직전마다 시작 줄 — 함수가 취소로 끝나 끝 줄이 없어도 부른 횟수를 셀 수 있게', async () => {
+    succeed(ANALYSIS, { attempts: 2 });
+    await post({}, { ...BODY, crush: { ...BODY.crush, notes: '헬스장에서 만난 사람' } });
+    const starts = logSpy.mock.calls.map((c) => String(c[0])).filter((l) => l.includes('"log":"coach_api_start"'));
+    expect(starts.map((l) => JSON.parse(l))).toEqual([
+      { log: 'coach_api_start', mode: 'coach', model: 'gemini-3.5-flash', attempt: 1 },
+      { log: 'coach_api_start', mode: 'coach', model: 'gemini-3.5-flash', attempt: 2 },
+    ]);
+    expect(starts.join('\n')).not.toContain('헬스장');
+  });
+
+  it('Google 원문 오류(없는 모델 404 등)는 화면에 보내지 않고 고정 안내로 — 로그에는 Google 상태 코드·이름만', async () => {
+    const raw = 'models/gemini-3.6-flsh is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models.';
+    gemini.mockImplementationOnce(async () => ({ ok: false, status: 404, code: 'server', message: raw, upstreamStatus: 404, upstreamError: 'NOT_FOUND', model: 'gemini-3.5-flash', attempts: 2 }));
+    const res = await post();
+    expect(res.statusCode).toBe(502);
+    expect(res.body).toEqual({ error: 'AI 서버와 통신하지 못했어요. 잠시 후 다시 시도해주세요.' });
+    expect(logLines(logSpy)[0]).toEqual(expect.objectContaining({ status: 502, error: 'server', upstreamStatus: 404, upstreamError: 'NOT_FOUND' }));
+    expect(logSpy.mock.calls.map((c) => String(c[0])).join('\n')).not.toContain('ListModels');
+    // 우리가 쓴 안내(혼잡·한도·거절)는 그대로 간다
+    gemini.mockImplementationOnce(async () => ({ ok: false, status: 503, code: 'server', message: 'AI 서버가 혼잡해요. 잠시 후 다시 시도해주세요.', upstreamStatus: 503 }));
+    expect((await post()).body).toEqual({ error: 'AI 서버가 혼잡해요. 잠시 후 다시 시도해주세요.' });
+    gemini.mockImplementationOnce(async () => ({ ok: false, status: 429, code: 'rate_limit', message: '요청이 너무 많아요. 잠시 후 다시 시도해주세요.', upstreamStatus: 429 }));
+    expect(await post()).toEqual(expect.objectContaining({ statusCode: 429, body: { error: '요청이 너무 많아요. 잠시 후 다시 시도해주세요.' } }));
+  });
+});
+
+describe('본문(JSON)은 인증·호출 제한을 지난 뒤에 읽는다', () => {
+  /** 읽을 때마다 세고, 깨진 JSON 처럼 던지는 본문 (@vercel/node 의 req.body 는 읽는 순간 파싱한다) */
+  function brokenBodyRequest(headers: Record<string, string>) {
+    const seen = { reads: 0 };
+    const req = { method: 'POST', headers, socket: {} };
+    Object.defineProperty(req, 'body', {
+      get() {
+        seen.reads += 1;
+        throw new Error('Invalid JSON');
+      },
+    });
+    return { req: req as unknown as VercelRequest, seen };
+  }
+
+  it('깨진 JSON 은 400 과 로그 한 줄 (Vercel 기본 오류로 새지 않는다)', async () => {
+    const { req, seen } = brokenBodyRequest({ 'x-forwarded-for': '10.8.0.1' });
+    const res = fakeRes();
+    await handler(req, res as unknown as VercelResponse);
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toEqual({ error: '요청 형식이 올바르지 않아요.' });
+    expect(seen.reads).toBe(1);
+    expect(gemini).not.toHaveBeenCalled();
+    expect(logLines(logSpy)).toEqual([expect.objectContaining({ status: 400, error: 'invalid_json', mode: 'coach' })]);
+  });
+
+  it('앱 토큰이 틀리면 본문을 읽지 않고 401', async () => {
+    process.env.COACH_APP_TOKEN = 'app-token';
+    const { req, seen } = brokenBodyRequest({ 'x-forwarded-for': '10.8.0.2', 'x-app-token': 'wrong' });
+    const res = fakeRes();
+    await handler(req, res as unknown as VercelResponse);
+    expect(res.statusCode).toBe(401);
+    expect(seen.reads).toBe(0);
+  });
+
+  it('호출 제한에 걸리면 본문을 읽지 않고 429 — 깨진 JSON 도 호출 제한에 센다', async () => {
+    const headers = { 'x-forwarded-for': '10.8.0.3' };
+    for (let i = 0; i < 60; i++) {
+      const res = fakeRes();
+      await handler(brokenBodyRequest(headers).req, res as unknown as VercelResponse);
+      expect(res.statusCode).toBe(400);
+    }
+    const { req, seen } = brokenBodyRequest(headers);
+    const res = fakeRes();
+    await handler(req, res as unknown as VercelResponse);
+    expect(res.statusCode).toBe(429);
+    expect(seen.reads).toBe(0);
+  });
 });
 
 describe('입력 길이 상한 (비용·남용 방지)', () => {
@@ -226,21 +302,83 @@ describe('입력 길이 상한 (비용·남용 방지)', () => {
     expect(gemini).not.toHaveBeenCalled();
   });
 
-  it('캡처가 상한(base64 2.5MB)을 넘으면 413 과 앱이 그대로 보여 줄 안내', async () => {
+  it('캡처가 상한(base64 4.2MB — Vercel 본문 한도 바로 아래)을 넘으면 413 과 앱이 그대로 보여 줄 안내', async () => {
+    expect(MAX_IMAGE_BASE64_LENGTH).toBe(4_200_000);
+    // 상한까지는 받는다 (예전에 Gemini 까지 가던 긴 스크롤 캡처가 새로 막히지 않게)
+    succeed(ANALYSIS);
+    const atLimit = await post({}, { ...BODY, image: { base64: 'A'.repeat(MAX_IMAGE_BASE64_LENGTH), mediaType: 'image/jpeg' } });
+    expect(atLimit.statusCode).toBe(200);
+    gemini.mockClear();
     const res = await post({}, { ...BODY, image: { base64: 'A'.repeat(MAX_IMAGE_BASE64_LENGTH + 4), mediaType: 'image/jpeg' } });
     expect(res.statusCode).toBe(413);
     expect(res.body).toEqual({ error: IMAGE_TOO_LARGE_MESSAGE });
     expect(gemini).not.toHaveBeenCalled();
-    expect(logLines(logSpy)[0]).toEqual(expect.objectContaining({ status: 413, error: 'image_too_large' }));
+    expect(logLines(logSpy)[1]).toEqual(expect.objectContaining({ status: 413, error: 'image_too_large' }));
   });
 
-  it('지난 기록 칸은 넘으면 잘라서 받는다 (거절하면 그 채팅방이 계속 막히므로)', async () => {
+  it('본문이 content-length 로 상한보다 크면 JSON 을 읽지도 않고 413', async () => {
+    let reads = 0;
+    const req = { method: 'POST', headers: { 'x-forwarded-for': '10.9.0.1', 'content-length': String(MAX_BODY_BYTES + 1) }, socket: {} };
+    Object.defineProperty(req, 'body', {
+      get() {
+        reads += 1;
+        return BODY;
+      },
+    });
+    const res = fakeRes();
+    await handler(req as unknown as VercelRequest, res as unknown as VercelResponse);
+    expect(res.statusCode).toBe(413);
+    expect(res.body).toEqual({ error: IMAGE_TOO_LARGE_MESSAGE });
+    expect(reads).toBe(0);
+    expect(gemini).not.toHaveBeenCalled();
+    expect(logLines(logSpy)[0]).toEqual(expect.objectContaining({ status: 413, error: 'body_too_large' }));
+  });
+
+  it('모든 칸을 서버 상한까지 채운 요청도 본문 상한(= Vercel 4.5MB) 안에 들어가고 통과한다', async () => {
+    const tags = (n: number) => Array.from({ length: n }, () => longText(40));
+    const schemaMax = {
+      crush: { name: longText(100), gender: 'female', age: 26, mbti: longText(10), relationship: 'talking', style: tags(20), notes: longText(2000), callName: longText(20), callNameFixed: true, speech: 'polite', speechFixed: true, goal: longText(60), heat: 37 },
+      user: { name: longText(100), gender: 'male', age: 28, mbti: longText(10), style: tags(20), about: longText(300), vibes: tags(5), goal: longText(60), kkti: longText(40) },
+      tone: 'flirty',
+      emoji: 'on',
+      text: longText(2000),
+      image: { base64: 'A'.repeat(MAX_IMAGE_BASE64_LENGTH), mediaType: 'image/jpeg' },
+      history: Array.from({ length: 8 }, () => ({ userNote: longText(1000), coachSummary: longText(1000), chosenReply: longText(500) })),
+    };
+    const bytes = Buffer.byteLength(JSON.stringify(schemaMax));
+    expect(bytes).toBeLessThan(MAX_BODY_BYTES);
+    expect(bytes - MAX_IMAGE_BASE64_LENGTH).toBeLessThan(150_000);
     succeed(ANALYSIS);
-    const res = await post({}, { ...BODY, history: [{ userNote: longText(5000), coachSummary: `${longText(1999)}끝${longText(100)}`, chosenReply: longText(3000) }] });
+    expect((await post({ 'content-length': String(bytes) }, schemaMax)).statusCode).toBe(200);
+  });
+
+  it('원소가 아주 많은 배열은 zod 를 거치지 않고 바로 400 (메모리·시간을 쓰지 않는다)', async () => {
+    const started = Date.now();
+    const res = await post({}, { ...BODY, crush: { ...BODY.crush, style: new Array(1_000_000).fill(0) } });
+    expect(Date.now() - started).toBeLessThan(1_000);
+    expect(res.statusCode).toBe(400);
+    // zod 가 원소마다 만들었을 이슈 100만 개가 아니라, 미리 훑어본 이슈 하나
+    expect((res.body as { issues: unknown[] }).issues).toEqual([expect.objectContaining({ code: 'too_big', path: ['crush', 'style'], maximum: MAX_REQUEST_ARRAY_LENGTH })]);
+    expect(gemini).not.toHaveBeenCalled();
+    // 안쪽 배열도 본다 (보고서 기록의 포인트 목록)
+    const report = await post({}, {
+      mode: 'report',
+      crush: BODY.crush,
+      user: BODY.user,
+      sessions: [{ at: 1, summary: '요약', insights: new Array(10_000).fill(''), temperature: 'warm' }],
+    });
+    expect(report.statusCode).toBe(400);
+    expect((report.body as { issues: { path: unknown[] }[] }).issues[0].path).toEqual(['sessions', 0, 'insights']);
+    expect(gemini).not.toHaveBeenCalled();
+  });
+
+  it('지난 기록 칸은 넘으면 잘라서 받는다 (거절하면 그 채팅방이 계속 막히므로) — 앱 값보다 조금 큰 1,000·1,000·500자', async () => {
+    succeed(ANALYSIS);
+    const res = await post({}, { ...BODY, history: [{ userNote: longText(5000), coachSummary: `${longText(999)}끝${longText(100)}`, chosenReply: longText(3000) }] });
     expect(res.statusCode).toBe(200);
     const task = gemini.mock.calls[0][0];
-    expect(task.context).toContain(`사용자: ${longText(2000)} / 코치: ${longText(1999)}끝 / 사용자가 보낸 답장: "${longText(1000)}"`);
-    expect(task.context).not.toContain(longText(2001));
+    expect(task.context).toContain(`사용자: ${longText(1000)} / 코치: ${longText(999)}끝 / 사용자가 보낸 답장: "${longText(500)}"`);
+    expect(task.context).not.toContain(longText(1001));
   });
 
   it('보고서·속마음·연습의 태그·MBTI 도 상한이 있다', async () => {
@@ -261,10 +399,12 @@ describe('입력 길이 상한 (비용·남용 방지)', () => {
 describe('모드별 비용 스위치 (서버 환경변수)', () => {
   const MIND_BODY = { mode: 'mind', situation: '읽고 답이 없어요', perspective: 'male' };
 
-  it('하나도 없으면 지금 그대로 — 모든 모드가 gemini-3.5-flash · 생각 low · temperature 보냄', async () => {
+  it('하나도 없으면 지금 그대로 — 모든 모드가 gemini-3.5-flash · 생각 low · temperature 보냄 · 대체 모델도 그대로', async () => {
     await post();
     await post({}, MIND_BODY);
-    for (const call of gemini.mock.calls) expect(call[2]).toEqual(expect.objectContaining({ model: 'gemini-3.5-flash', thinkingLevel: 'low', omitTemperature: false }));
+    for (const call of gemini.mock.calls) {
+      expect(call[2]).toEqual(expect.objectContaining({ model: 'gemini-3.5-flash', thinkingLevel: 'low', omitTemperature: false, fallbackModels: GEMINI_FALLBACK_MODELS }));
+    }
   });
 
   it('GEMINI_MODEL 은 코칭·보고서, GEMINI_MODEL_LIGHT 는 속마음·연습, 생각 수준은 모드마다', async () => {
@@ -273,6 +413,9 @@ describe('모드별 비용 스위치 (서버 환경변수)', () => {
     await post({}, MIND_BODY);
     expect(gemini.mock.calls[0][2]).toEqual(expect.objectContaining({ model: 'gemini-3.6-flash', thinkingLevel: 'low', omitTemperature: true }));
     expect(gemini.mock.calls[1][2]).toEqual(expect.objectContaining({ model: 'gemini-3.5-flash-lite', thinkingLevel: 'minimal', omitTemperature: true }));
+    // 속마음이 혼잡하면 넘어갈 곳은 운영자가 고른 GEMINI_MODEL (기본 gemini-3.5-flash 가 아니라)
+    const mind = gemini.mock.calls[1][2] as CallGeminiOptions;
+    expect(mind.fallbackModels?.find((m) => m !== mind.model)).toBe('gemini-3.6-flash');
   });
 
   it('잘못된 값은 무시하고 기본값을 쓰며 경고를 남긴다', async () => {

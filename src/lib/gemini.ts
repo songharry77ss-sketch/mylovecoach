@@ -9,6 +9,7 @@ export const GEMINI_DEFAULT_MODEL = 'gemini-3.5-flash';
 /**
  * 기본 모델이 과부하(503)·한도 초과(429)일 때 한 번 넘어가 보는 모델. 앞에서부터 기본 모델과 다른 첫 번째 하나만 쓴다
  * (보통은 가벼운 gemini-3.5-flash-lite, 기본 모델이 이미 그것이면 gemini-3.5-flash).
+ * 서버는 비용 스위치에 맞춘 후보를 따로 넘긴다 (api/_ai-flags.ts — 가벼운 모델 다음은 GEMINI_MODEL).
  * gemini-flash-latest 는 2026-05 부터 gemini-3.5-flash 를 가리켜 같은 모델을 한 번 더 부르는 셈이라 뺐다
  */
 export const GEMINI_FALLBACK_MODELS = ['gemini-3.5-flash-lite', GEMINI_DEFAULT_MODEL];
@@ -133,7 +134,12 @@ export interface GeminiFailure {
   ok: false;
   status: number;
   code: 'auth' | 'rate_limit' | 'refused' | 'server' | 'parse';
+  /** 화면에 보일 안내. code 가 server 이고 503 이 아니면 Google 의 원문(영어)이라, 중계 서버는 대신 고정 안내를 보낸다 */
   message: string;
+  /** Google 이 돌려준 HTTP 상태 (HTTP 오류일 때만 — 거절·형식 오류는 없음) */
+  upstreamStatus?: number;
+  /** Google 오류 본문의 상태 이름 (예: INVALID_ARGUMENT · NOT_FOUND). 원문 메시지는 담지 않는다 — 로그용 */
+  upstreamError?: string;
   /** 마지막으로 부른 모델 */
   model?: string;
   usage?: GeminiUsage;
@@ -145,7 +151,7 @@ export interface GeminiFailure {
 
 export interface CallGeminiOptions extends GeminiBodyOptions {
   model?: string;
-  /** 기본 모델이 과부하·한도일 때 넘어갈 모델 후보 — 기본 모델과 다른 첫 번째 하나만 쓴다 (기본: GEMINI_FALLBACK_MODELS, [] 면 넘어가지 않음) */
+  /** 기본 모델이 과부하·한도일 때 넘어갈 모델 후보 — 기본 모델과 다른 첫 번째 하나만 쓴다 (기본: GEMINI_FALLBACK_MODELS, [] 면 404 때도 넘어가지 않음) */
   fallbackModels?: string[];
   /** 끊기면 기다리던 응답과 남은 재시도를 그만둔다 */
   signal?: AbortSignal;
@@ -195,7 +201,8 @@ const isTransient = (f: GeminiFailure) => f.status === 503 || f.status === 429;
  * 모드에 상관없이 작업 하나를 Gemini 로 보낸다. 최대 3번 부른다.
  * 과부하(503)·한도(429)면 같은 모델을 한 번 더 부르고 — Retry-After 가 있으면 그만큼 기다리고(5초보다 길면 건너뜀), 없으면 잠깐 —
  * 그래도 안 되면 대체 모델로 한 번 넘어간다.
- * 그 밖의 실패(키 오류·400·404·거절)와 출력 상한에 걸린 응답(MAX_TOKENS)은 다시 부르지 않는다 — 다시 불러도 같은 결과에 비용만 든다
+ * 기본 모델이 아닌 모델(서버 스위치)이 없다고(404) 하면 이름 오타·지원 종료로 보고 기본 모델로 한 번만 넘어간다 — 오타 하나로 모든 요청이 실패하지 않게.
+ * 그 밖의 실패(키 오류·400·거절)와 출력 상한에 걸린 응답(MAX_TOKENS)은 다시 부르지 않는다 — 다시 불러도 같은 결과에 비용만 든다
  */
 export async function callGeminiTask(task: AiTask, apiKey: string, options: CallGeminiOptions = {}): Promise<GeminiResult | GeminiFailure> {
   const body = buildGeminiTaskBody(task, options);
@@ -211,6 +218,8 @@ export async function callGeminiTask(task: AiTask, apiKey: string, options: Call
   };
 
   let result = await attempt(primary);
+  // 대체 모델을 [] 로 주면(A/B 비교처럼 모델을 바꾸면 안 될 때) 넘어가지 않는다. 스위치가 없으면 primary 가 기본 모델이라 지금 그대로
+  if (!result.ok && result.upstreamStatus === 404 && primary !== GEMINI_DEFAULT_MODEL && options.fallbackModels?.length !== 0) return attempt(GEMINI_DEFAULT_MODEL);
   if (result.ok || !isTransient(result)) return result;
   const wait = result.retryAfterMs ?? options.retryDelayMs ?? RETRY_BACKOFF_MS;
   if (wait <= MAX_RETRY_WAIT_MS) {
@@ -266,16 +275,21 @@ async function callGeminiOnce(
   try {
     body = (await res.json()) as GeminiResponse;
   } catch {
+    // 응답 머리를 받은 뒤 본문을 읽다가 끊기면(서버 시한·앱이 끊음) 끊김 그대로 던진다 — 본문이 없다고 보고 「거절」로 바꾸지 않게
+    if (options.signal?.aborted) throw abortError();
     body = null;
   }
   if (!res.ok) {
     const message = body?.error?.message ?? `Gemini API 오류 (${res.status})`;
-    if (res.status === 400 && /API key/i.test(message)) return { ok: false, status: res.status, code: 'auth', message: 'Gemini API 키가 올바르지 않아요.' };
-    if (res.status === 401 || res.status === 403) return { ok: false, status: res.status, code: 'auth', message: 'Gemini API 키가 올바르지 않아요.' };
+    // 로그에는 상태 코드와 상태 이름(INVALID_ARGUMENT 같은 대문자 이름표)만 — 원문 메시지는 남기지 않는다
+    const name = body?.error?.status;
+    const upstream = { upstreamStatus: res.status, upstreamError: typeof name === 'string' && /^[A-Z_]{1,40}$/.test(name) ? name : undefined };
+    if (res.status === 400 && /API key/i.test(message)) return { ok: false, status: res.status, code: 'auth', message: 'Gemini API 키가 올바르지 않아요.', ...upstream };
+    if (res.status === 401 || res.status === 403) return { ok: false, status: res.status, code: 'auth', message: 'Gemini API 키가 올바르지 않아요.', ...upstream };
     const retryAfterMs = res.status === 429 || res.status === 503 ? retryAfterMsOf(res.headers?.get?.('retry-after'), body) : undefined;
-    if (res.status === 429) return { ok: false, status: res.status, code: 'rate_limit', message: '요청이 너무 많아요. 잠시 후 다시 시도해주세요.', retryAfterMs };
-    if (res.status === 503) return { ok: false, status: res.status, code: 'server', message: 'AI 서버가 혼잡해요. 잠시 후 다시 시도해주세요.', retryAfterMs };
-    return { ok: false, status: res.status, code: 'server', message };
+    if (res.status === 429) return { ok: false, status: res.status, code: 'rate_limit', message: '요청이 너무 많아요. 잠시 후 다시 시도해주세요.', retryAfterMs, ...upstream };
+    if (res.status === 503) return { ok: false, status: res.status, code: 'server', message: 'AI 서버가 혼잡해요. 잠시 후 다시 시도해주세요.', retryAfterMs, ...upstream };
+    return { ok: false, status: res.status, code: 'server', message, ...upstream };
   }
   const usage = usageOf(body?.usageMetadata);
   const candidate = body?.candidates?.[0];

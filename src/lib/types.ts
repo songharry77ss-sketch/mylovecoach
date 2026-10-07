@@ -95,8 +95,8 @@ export interface Crush {
   heat?: number;
   /** 온도 변화 기록 (오래된 순, 최근 60개) */
   heatLog?: HeatPoint[];
-  /** 마지막으로 만든 상대 분석 보고서 */
-  report?: { data: CrushReport; at: number; basedOn: number };
+  /** 마지막으로 만든 상대 분석 보고서. profileKey 는 그때 보낸 상대·내 프로필의 지문 (reportProfileKey — 예전 보고서에는 없다) */
+  report?: { data: CrushReport; at: number; basedOn: number; profileKey?: string };
   /** 비밀 상담 — 기기에 저장하지 않고 채팅방을 나가면 지운다 */
   secret?: boolean;
 }

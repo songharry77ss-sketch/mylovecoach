@@ -148,6 +148,39 @@ describe('callGemini — 다시 부르기', () => {
     expect(models).toHaveLength(1);
   });
 
+  it('Google 오류는 상태 코드와 상태 이름만 따로 싣는다 (로그용, 원문 메시지는 아님)', async () => {
+    const { fetchImpl } = fakeFetch(() => json({ error: { code: 400, status: 'INVALID_ARGUMENT', message: 'Thinking level MINIMAL is not supported for this model.' } }, 400));
+    expect(await callGemini(req, 'k', { fetchImpl })).toEqual(expect.objectContaining({ ok: false, code: 'server', upstreamStatus: 400, upstreamError: 'INVALID_ARGUMENT' }));
+    // 이름표 모양이 아닌 상태 값은 버린다
+    const odd = fakeFetch(() => json({ error: { status: 'see https://example.com', message: 'x' } }, 500));
+    expect(await callGemini(req, 'k', { fetchImpl: odd.fetchImpl })).toEqual(expect.objectContaining({ upstreamStatus: 500, upstreamError: undefined }));
+  });
+
+  describe('스위치로 고른 모델이 없으면(404)', () => {
+    const notFound = () => json({ error: { code: 404, status: 'NOT_FOUND', message: 'models/gemini-3.6-flsh is not found for API version v1beta. Call ListModels to see the list of available models.' } }, 404);
+
+    it('기본 모델로 한 번만 넘어간다 (이름 오타 하나로 모든 요청이 실패하지 않게)', async () => {
+      const { fetchImpl, models } = fakeFetch((model) => (model === 'gemini-3.6-flsh' ? notFound() : json(OK_BODY)));
+      const result = await callGemini(req, 'k', { fetchImpl, model: 'gemini-3.6-flsh', fallbackModels: ['gemini-3.5-flash-lite', 'gemini-3.6-flsh', 'gemini-3.5-flash'] });
+      expect(result).toEqual(expect.objectContaining({ ok: true, model: 'gemini-3.5-flash', attempts: 2 }));
+      expect(models).toEqual(['gemini-3.6-flsh', 'gemini-3.5-flash']);
+    });
+
+    it('기본 모델까지 없다고 하면 거기서 멈춘다', async () => {
+      const { fetchImpl, models } = fakeFetch(() => notFound());
+      const result = await callGemini(req, 'k', { fetchImpl, model: 'gemini-3.6-flsh' });
+      expect(result).toEqual(expect.objectContaining({ ok: false, upstreamStatus: 404, upstreamError: 'NOT_FOUND', attempts: 2 }));
+      expect(models).toEqual(['gemini-3.6-flsh', 'gemini-3.5-flash']);
+    });
+
+    it('대체 모델을 [] 로 주면(A/B 비교) 넘어가지 않는다', async () => {
+      const { fetchImpl, models } = fakeFetch(() => notFound());
+      const result = await callGemini(req, 'k', { fetchImpl, model: 'gemini-3.6-flsh', fallbackModels: [] });
+      expect(result).toEqual(expect.objectContaining({ ok: false, upstreamStatus: 404, attempts: 1 }));
+      expect(models).toEqual(['gemini-3.6-flsh']);
+    });
+  });
+
   it('안전 거절도 다시 부르지 않는다', async () => {
     const { fetchImpl, models } = fakeFetch(() => json({ promptFeedback: { blockReason: 'SAFETY' } }));
     expect(await callGemini(req, 'x', { fetchImpl })).toEqual(expect.objectContaining({ ok: false, code: 'refused' }));
@@ -220,6 +253,30 @@ describe('callGemini — 끊기면 멈춘다', () => {
     controller.abort();
     await expect(callGemini(req, 'k', { fetchImpl, signal: controller.signal })).rejects.toMatchObject({ name: 'AbortError' });
     expect(models).toHaveLength(0);
+  });
+
+  /** 응답 머리는 왔는데 본문을 읽는 사이에 끊기는 응답 흉내 (fetch 는 이때 AbortError 로 거절한다) */
+  const abortWhileReading = (controller: AbortController, status: number) =>
+    jest.fn(async () => ({
+      ok: status < 400,
+      status,
+      headers: new Headers(),
+      json: async () => {
+        controller.abort();
+        throw Object.assign(new Error('This operation was aborted'), { name: 'AbortError' });
+      },
+    })) as unknown as typeof fetch;
+
+  it('본문을 읽는 중에 끊기면 「거절」(422)로 바꾸지 않고 끊김(AbortError) 그대로 던진다', async () => {
+    const controller = new AbortController();
+    await expect(callGemini(req, 'k', { fetchImpl: abortWhileReading(controller, 200), signal: controller.signal })).rejects.toMatchObject({ name: 'AbortError' });
+  });
+
+  it('오류 본문을 읽다가 끊겨도 다시 부르지 않고 끊김으로 끝난다', async () => {
+    const controller = new AbortController();
+    const fetchImpl = abortWhileReading(controller, 503);
+    await expect(callGemini(req, 'k', { fetchImpl, signal: controller.signal, retryDelayMs: 0 })).rejects.toMatchObject({ name: 'AbortError' });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
   it('다시 부르려고 기다리는 중에 끊기면 더 부르지 않는다', async () => {

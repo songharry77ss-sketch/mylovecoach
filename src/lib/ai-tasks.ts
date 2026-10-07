@@ -102,6 +102,33 @@ export type MindRequestInput = z.input<typeof MindRequestSchema>;
 export type PracticeRequest = z.infer<typeof PracticeRequestSchema>;
 export type PracticeRequestInput = z.input<typeof PracticeRequestSchema>;
 
+/**
+ * 요청에 든 배열 길이의 바깥 상한. 앱이 보내는 배열은 가장 긴 것이 50개 안쪽이다(연습 대화 12마디·온도 기록 40개).
+ * zod 는 배열 원소를 전부 검사한 뒤에야 .max() 를 보므로, 원소 수백만 개짜리 본문 하나로 이슈 객체가 수백만 개 생겨 메모리가 터진다.
+ * 그래서 zod 에 넘기기 전에 길이만 싸게 훑어 거절한다
+ */
+export const MAX_REQUEST_ARRAY_LENGTH = 64;
+/** 요청 스키마에서 배열이 있는 가장 깊은 곳은 3단계(sessions[i].insights) — 4단계까지 본다 */
+const ARRAY_SCAN_DEPTH = 4;
+
+/** 너무 긴 배열이 있으면 그 경로, 없으면 null. 글자·숫자는 들여다보지 않는다 */
+function longArrayPath(value: unknown, depth = 0): PropertyKey[] | null {
+  if (depth > ARRAY_SCAN_DEPTH || value === null || typeof value !== 'object') return null;
+  if (Array.isArray(value)) {
+    if (value.length > MAX_REQUEST_ARRAY_LENGTH) return [];
+    for (let i = 0; i < value.length; i++) {
+      const hit = longArrayPath(value[i], depth + 1);
+      if (hit) return [i, ...hit];
+    }
+    return null;
+  }
+  for (const key in value) {
+    const hit = longArrayPath((value as Record<string, unknown>)[key], depth + 1);
+    if (hit) return [key, ...hit];
+  }
+  return null;
+}
+
 /** 서버가 받는 요청 — mode 가 없으면 예전 앱의 코칭 요청으로 본다 */
 export function parseAiRequest(body: unknown):
   | { ok: true; mode: 'coach'; req: z.infer<typeof CoachRequestSchema> }
@@ -109,6 +136,13 @@ export function parseAiRequest(body: unknown):
   | { ok: true; mode: 'mind'; req: MindRequest }
   | { ok: true; mode: 'practice'; req: PracticeRequest }
   | { ok: false; issues: z.core.$ZodIssue[] } {
+  const long = longArrayPath(body);
+  if (long) {
+    return {
+      ok: false,
+      issues: [{ code: 'too_big', origin: 'array', maximum: MAX_REQUEST_ARRAY_LENGTH, inclusive: true, path: long, message: `Too big: expected array to have <=${MAX_REQUEST_ARRAY_LENGTH} items` }],
+    };
+  }
   const mode = (body as { mode?: unknown } | null)?.mode;
   const pick = () => {
     switch (mode) {

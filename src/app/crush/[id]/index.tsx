@@ -268,12 +268,15 @@ export default function CrushChat() {
                   <AppText variant="small" color="danger">
                     {item.error}
                   </AppText>
-                  <View style={styles.errorActions}>
-                    <Button title="다시 시도" size="sm" variant="secondary" fullWidth={false} onPress={() => retry(item)} />
-                    {item.text === 'not_configured' || item.text === 'auth' ? (
-                      <Button title="AI 연결 설정" size="sm" variant="soft" fullWidth={false} onPress={() => router.push('/settings/api-key')} />
-                    ) : null}
-                  </View>
+                  {/* 캡처가 너무 크면 같은 캡처로 다시 해도 또 막히니 안내만 남긴다 */}
+                  {item.text !== 'too_large' ? (
+                    <View style={styles.errorActions}>
+                      <Button title="다시 시도" size="sm" variant="secondary" fullWidth={false} onPress={() => retry(item)} />
+                      {item.text === 'not_configured' || item.text === 'auth' ? (
+                        <Button title="AI 연결 설정" size="sm" variant="soft" fullWidth={false} onPress={() => router.push('/settings/api-key')} />
+                      ) : null}
+                    </View>
+                  ) : null}
                 </View>
               ) : item.analysis ? (
                 <AnalysisCard

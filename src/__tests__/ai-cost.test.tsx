@@ -1,16 +1,19 @@
 import { act } from 'react';
-import { create, type ReactTestRenderer } from 'react-test-renderer';
+import { Text } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 
+import CrushReportScreen from '@/app/crush/[id]/report';
 import { useCoach } from '@/hooks/use-coach';
 import { useMindReading } from '@/hooks/use-mind-reading';
 import { setAiConsentPrompter, withdrawAiConsent, type AiRoute } from '@/lib/ai-consent';
 import { currentQuota } from '@/lib/billing/gate';
 import { EMPTY_USAGE, EMPTY_WALLET } from '@/lib/billing/quota';
 import { CoachError, requestCoaching } from '@/lib/coach-client';
-import { IMAGE_TOO_LARGE_MESSAGE, MAX_IMAGE_BASE64_LENGTH } from '@/lib/coach-schema';
+import { IMAGE_TOO_LARGE_MESSAGE, MAX_IMAGE_BASE64_LENGTH, crushToRequest, userToRequest } from '@/lib/coach-schema';
 import { encodeForModel, modelResizeWidth } from '@/lib/images';
-import type { ChatMessage, CoachAnalysis, Gender, MindReading } from '@/lib/types';
-import { hasNewSessionsSince, mindCacheKey, useAppStore } from '@/store/app-store';
+import type { ChatMessage, CoachAnalysis, Crush, CrushReport, Gender, MindReading, UserProfile } from '@/lib/types';
+import { hasNewSessionsSince, mindCacheKey, reportProfileKey, reportRefresh, useAppStore } from '@/store/app-store';
 
 // 테스트 환경에는 기기 저장소 네이티브 모듈이 없어 메모리로 대신한다
 jest.mock('@react-native-async-storage/async-storage', () => {
@@ -28,7 +31,49 @@ jest.mock('@react-native-async-storage/async-storage', () => {
 jest.mock('@/lib/config', () => ({
   APP_CONFIG: { apiUrl: 'https://coach.test', apiSameOrigin: false, apiToken: '', supportEmail: '', privacyUrl: '', termsUrl: '' },
 }));
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
+// 보고서 화면은 채팅방 c_report 를 연다
+jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn(), dismissTo: jest.fn() }), useLocalSearchParams: () => ({ id: 'c_report' }), Stack: { Screen: () => null } }));
+// Reanimated(네이티브 worklets)는 테스트 환경에서 띄울 수 없어서, 보고서 화면이 쓰는 만큼만 바로 끝나는 흉내로 바꾼다 (애니메이션은 여기서 볼 것이 아니다)
+jest.mock('react-native-reanimated', () => {
+  const RN = jest.requireActual('react-native');
+  const { useRef } = jest.requireActual('react');
+  /** FadeInDown.delay(80).duration(300) 처럼 이어 부르는 등장 효과 — 아무것도 하지 않는다 */
+  const entering: Record<string, () => unknown> = {};
+  for (const name of ['delay', 'duration', 'springify', 'damping']) entering[name] = () => entering;
+  const same = (t: number) => t;
+  const last = (...values: unknown[]) => values[values.length - 1];
+  const target = (value: unknown) => value;
+  return {
+    __esModule: true,
+    default: { View: RN.View, Text: RN.Text, createAnimatedComponent: target },
+    FadeIn: entering,
+    FadeOut: entering,
+    FadeInDown: entering,
+    FadeInUp: entering,
+    ZoomIn: entering,
+    Easing: { out: () => same, in: () => same, inOut: () => same, cubic: same, quad: same, ease: same, linear: same },
+    useSharedValue: (value: unknown) => useRef({ value }).current,
+    useAnimatedStyle: (style: () => object) => style(),
+    useAnimatedReaction: () => {},
+    withDelay: last,
+    withSequence: last,
+    withSpring: target,
+    withTiming: target,
+    withRepeat: target,
+    interpolate: target,
+    interpolateColor: () => 'transparent',
+    runOnJS: target,
+  };
+});
+// 버튼은 눌림 애니메이션 없이 글자 버튼으로 — 막혔는지(disabled)는 그대로 넘긴다
+jest.mock('@/components/ui/button', () => {
+  const { createElement } = jest.requireActual('react');
+  const { Text: RNText } = jest.requireActual('react-native');
+  return {
+    Button: ({ title, onPress, disabled }: { title: string; onPress?: () => void; disabled?: boolean }) =>
+      createElement(RNText, { accessibilityRole: 'button', accessibilityState: { disabled: Boolean(disabled) }, onPress }, title),
+  };
+});
 jest.mock('expo-file-system', () => ({ Directory: class {}, File: class {}, Paths: {} }));
 jest.mock('expo-image-picker', () => ({}));
 /**
@@ -76,14 +121,37 @@ const MIND: MindReading = {
   advice: '',
   sampleReply: '',
 };
+const REPORT: CrushReport = {
+  headline: '천천히 데워지는 다정파',
+  keywords: ['다정'],
+  personality: '신중해요.',
+  textingStyle: '답장이 성실해요.',
+  greenFlags: ['먼저 연락해요'],
+  redFlags: [],
+  interests: ['영화'],
+  strategy: ['질문으로 이어 가기'],
+  roadmap: [{ title: '가까워지기', action: '주말 약속 잡기' }],
+  innerThought: '요즘 연락이 기다려지네',
+  compatibility: 72,
+  compatibilityNote: '대화 리듬이 잘 맞아요.',
+};
+const ANALYSIS: CoachAnalysis = { summary: 's', temperature: 'warm', interestScore: 60, insights: [], replies: [], nextStep: '', warnings: [] };
 let mindReplies = 0;
 /** 중계 서버 흉내 — 속마음은 부를 때마다 조금 다른 결과 */
-const fetchMock = jest.fn(async (_url: string, init?: { body?: string }) => {
+const fetchMock = jest.fn(async (_url: string, init?: { body?: string; signal?: AbortSignal }) => {
   const body = JSON.parse(init?.body ?? '{}') as { mode?: string };
   mindReplies += 1;
-  const json = body.mode === 'mind' ? { mode: 'mind', result: { ...MIND, headline: `${MIND.headline} #${mindReplies}` } } : { analysis: { summary: 's', temperature: 'warm', interestScore: 60, insights: [], replies: [], nextStep: '', warnings: [] } };
+  const json =
+    body.mode === 'mind'
+      ? { mode: 'mind', result: { ...MIND, headline: `${MIND.headline} #${mindReplies}` } }
+      : body.mode === 'report'
+        ? { mode: 'report', result: REPORT }
+        : { analysis: ANALYSIS };
   return { ok: true, status: 200, json: async () => json } as unknown as Response;
 });
+/** 이번 테스트에서 보낸 요청 중 그 모드의 개수 */
+const callsOf = (mode: string) => fetchMock.mock.calls.filter(([, init]) => (JSON.parse(init?.body ?? '{}') as { mode?: string }).mode === mode).length;
+const flush = () => new Promise<void>((resolve) => setImmediate(resolve));
 const ask = jest.fn<Promise<boolean>, [AiRoute]>();
 const SITUATION = '남자가 "뭐해?"라고만 보내고 2시간째 답이 없어요.';
 
@@ -197,6 +265,40 @@ describe('속마음 풀이 재사용', () => {
     expect(useAppStore.getState().mindHistory).toHaveLength(1);
   });
 
+  it('「다시 풀이」를 빠르게 두 번 누르면 앞 요청만 끊기고, 뒤 요청이 끝날 때까지 「풀이 중」이 이어진다', async () => {
+    const hook = open();
+    await askOnce(hook);
+    // 이번엔 응답을 붙잡아 둔다 — 앞 요청은 끊길 때까지, 뒤 요청은 release() 할 때까지
+    fetchMock.mockImplementationOnce((_url, init) => new Promise<Response>((_resolve, reject) => init?.signal?.addEventListener('abort', () => reject(new Error('aborted')))));
+    let release = () => {};
+    fetchMock.mockImplementationOnce(
+      () =>
+        new Promise<Response>((resolve) => {
+          release = () => resolve({ ok: true, status: 200, json: async () => ({ mode: 'mind', result: { ...MIND, headline: '두 번째 풀이' } }) } as unknown as Response);
+        }),
+    );
+    let first: Promise<unknown> = Promise.resolve();
+    let second: Promise<unknown> = Promise.resolve();
+    await act(async () => {
+      first = hook().ask(true);
+      // 앞 요청이 실제로 나간 뒤에 한 번 더 누른다
+      while (fetchMock.mock.calls.length < 2) await flush();
+      second = hook().ask(true);
+      await first;
+    });
+    await expect(first).resolves.toBe('failed');
+    // 앞 요청이 끝나며 busy 를 끄면 「다시 풀이」 버튼과 예전 풀이가 다시 떠서 또 누를 수 있게 된다
+    expect(hook().busy).toBe(true);
+    await act(async () => {
+      while (fetchMock.mock.calls.length < 3) await flush();
+      release();
+      await second;
+    });
+    await expect(second).resolves.toBe('fresh');
+    expect(hook().busy).toBe(false);
+    expect(hook().reading?.headline).toBe('두 번째 풀이');
+  });
+
   it('저장된 풀이는 30일이 지나면 쓰지 않고, 60개까지만 둔다', () => {
     const now = Date.now();
     const s = useAppStore.getState();
@@ -236,6 +338,109 @@ describe('보고서 「다시 분석하기」', () => {
     expect(hasNewSessionsSince(report, [msg(100), msg(200), msg(1_500)])).toBe(true);
     // 지운 뒤 같은 개수만큼 새로 쌓임 — 개수는 같아도 보고서보다 늦게 생긴 분석이 있다
     expect(hasNewSessionsSince(report, [msg(1_200), msg(1_300)])).toBe(true);
+  });
+
+  it('상대·내 프로필을 고치면 다시 분석할 수 있다 (보고서 요청에 들어가는 그대로 — 대화마다 바뀌는 온도는 빼고)', () => {
+    const crush: Crush = { id: 'c', name: '민지', gender: 'female', relationship: 'talking', style: [], notes: '', createdAt: 0, updatedAt: 0, heat: 10 };
+    const user = useAppStore.getState().user as UserProfile;
+    const keyOf = (c: Crush, u: UserProfile = user, kkti?: string) => reportProfileKey({ crush: crushToRequest(c), user: userToRequest(u, kkti) });
+    const messages = [msg(100), msg(200)];
+    const report = { data: REPORT, at: 1_000, basedOn: 2, profileKey: keyOf(crush) };
+    expect(reportRefresh(report, messages, keyOf(crush))).toBeNull();
+    expect(reportRefresh(report, messages, keyOf({ ...crush, heat: 55 }))).toBeNull();
+    const edits: Partial<Crush>[] = [{ relationship: 'dating' }, { goal: '고백하기' }, { mbti: 'INTJ' }, { notes: '회사 동료' }, { callName: '오빠' }, { speech: 'polite' }, { name: '민지 선배' }];
+    for (const edit of edits) expect(reportRefresh(report, messages, keyOf({ ...crush, ...edit }))).toBe('profile');
+    expect(reportRefresh(report, messages, keyOf(crush, { ...user, mbti: 'INTJ' }))).toBe('profile');
+    expect(reportRefresh(report, messages, keyOf(crush, { ...user, goal: '올해 안에 연애' }))).toBe('profile');
+    expect(reportRefresh(report, messages, keyOf(crush, user, 'ABCD 직진 불도저'))).toBe('profile');
+    // 새 코칭 기록이 먼저 · 지문이 없는 예전 보고서는 바뀌었는지 몰라 열어 둔다 · 보고서가 없으면 첫 보고서
+    expect(reportRefresh(report, [...messages, msg(1_500)], keyOf(crush))).toBe('sessions');
+    expect(reportRefresh({ data: REPORT, at: 1_000, basedOn: 2 }, messages, keyOf(crush))).toBe('unknown');
+    expect(reportRefresh(undefined, [], keyOf(crush))).toBe('first');
+  });
+});
+
+describe('보고서 화면 — 막기가 버튼과 요청에 이어져 있다', () => {
+  const ID = 'c_report';
+  const METRICS = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 47, left: 0, right: 0, bottom: 34 } };
+  const coachMsg = (id: string, createdAt: number): ChatMessage => ({ id, crushId: ID, role: 'coach', createdAt, analysis: ANALYSIS });
+
+  beforeEach(() => {
+    const now = Date.now();
+    useAppStore.setState({
+      crushes: { [ID]: { id: ID, name: '민지', gender: 'female', relationship: 'talking', style: [], notes: '', createdAt: 0, updatedAt: 0, heat: 10 } },
+      messages: { [ID]: [coachMsg('m1', now - 2_000), coachMsg('m2', now - 1_000)] },
+    });
+  });
+
+  function mount(): ReactTestRenderer {
+    let tree: ReactTestRenderer | null = null;
+    act(() => {
+      tree = create(
+        <SafeAreaProvider initialMetrics={METRICS}>
+          <CrushReportScreen />
+        </SafeAreaProvider>,
+      );
+    });
+    mounted.push(tree as unknown as ReactTestRenderer);
+    return tree as unknown as ReactTestRenderer;
+  }
+  /** 그 글의 버튼 (없으면 undefined) */
+  const button = (tree: ReactTestRenderer, title: string): ReactTestInstance | undefined =>
+    tree.root.findAllByType(Text).find((t) => t.props.children === title && t.props.accessibilityRole === 'button');
+  /** 막혀 있어도 onPress 를 직접 불러 본다 — 화면 안의 확인(이른 return)까지 보려고 */
+  const press = async (target: ReactTestInstance | undefined) => {
+    if (!target) throw new Error('버튼이 없어요');
+    await act(async () => {
+      await target.props.onPress();
+    });
+  };
+
+  it('만든 뒤에는 「다시 분석하기」가 막히고 눌러도 부르지 않는다 — 바뀐 정보나 새 대화가 생기면 다시 열린다', async () => {
+    const tree = mount();
+    await press(button(tree, '분석 보고서 만들기'));
+    expect(callsOf('report')).toBe(1);
+    expect(useAppStore.getState().crushes[ID].report).toEqual(expect.objectContaining({ basedOn: 2, profileKey: expect.any(String) }));
+
+    // 같은 기록·같은 프로필 → 막힘. 눌러도 부르지 않고 횟수도 그대로
+    const left = currentQuota().remaining;
+    const blocked = button(tree, '다시 분석하기');
+    expect(blocked?.props.accessibilityState).toEqual({ disabled: true });
+    await press(blocked);
+    expect(callsOf('report')).toBe(1);
+    expect(currentQuota().remaining).toBe(left);
+
+    // 관계 단계를 바꾸면 열리고, 다시 만들면 또 막힌다
+    // 저장소의 set 은 기기 저장 약속(promise)을 돌려줘서 act 가 비동기로 착각하지 않게 중괄호로 감싼다
+    act(() => {
+      useAppStore.getState().updateCrush(ID, { relationship: 'dating' });
+    });
+    const changed = button(tree, '바뀐 정보로 다시 분석');
+    expect(changed?.props.accessibilityState).toEqual({ disabled: false });
+    await press(changed);
+    expect(callsOf('report')).toBe(2);
+    expect(button(tree, '다시 분석하기')?.props.accessibilityState).toEqual({ disabled: true });
+
+    // 새 코칭 기록이 생겨도 열린다
+    act(() => {
+      useAppStore.getState().addMessage({ crushId: ID, role: 'coach', analysis: ANALYSIS });
+    });
+    const fresh = button(tree, '새 대화까지 반영해 다시 분석');
+    expect(fresh?.props.accessibilityState).toEqual({ disabled: false });
+    await press(fresh);
+    expect(callsOf('report')).toBe(3);
+  });
+
+  it('지문이 없는 예전 보고서는 다시 분석할 수 있게 둔다', async () => {
+    act(() => {
+      useAppStore.getState().saveReport(ID, REPORT, 2);
+    });
+    const tree = mount();
+    const again = button(tree, '다시 분석하기');
+    expect(again?.props.accessibilityState).toEqual({ disabled: false });
+    await press(again);
+    expect(callsOf('report')).toBe(1);
+    expect(useAppStore.getState().crushes[ID].report?.profileKey).toEqual(expect.any(String));
   });
 });
 

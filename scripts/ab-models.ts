@@ -3,13 +3,14 @@
  * 토큰(입력·생각·출력·캐시)·걸린 시간·예상 비용을 찍고, 조합별 결과를 나란히 놓은 마크다운 보고서를 쓴다.
  *
  * ⚠️ 실제 Gemini 를 불러서 돈이 든다. 테스트(jest)·배포(vercel.yml)에서는 돌지 않고, 사람이 PC 에서 직접 실행할 때만 돈다.
- *    기본 조합(모델 3 × 생각 2 × temperature 2 × 예시 5 = 60번)이 약 $0.4~0.7. 시작하기 전에 몇 번 부를지 먼저 찍는다.
+ *    기본 조합(모델 3 × 생각 2 × temperature 2 × 예시 5 = 60번)이 약 $0.4~0.7. 시작하기 전에 몇 번 부를지와 최대 예상 비용을 먼저 찍고,
+ *    기본 조합(고른 예시를 한 번씩)보다 많이 부르게 되면 --yes 를 붙여야 시작한다 (옵션 오타로 수천 번 부르지 않게).
  * 예시 입력은 모두 지어낸 것이다 (실제 이용자 데이터 없음). API 키는 환경변수로만 받고 보고서에 남기지 않는다.
  *
  * 사용법
  *   GEMINI_API_KEY=AIza... npx tsx scripts/ab-models.ts
  *   GEMINI_API_KEY=AIza... npx tsx scripts/ab-models.ts --models gemini-3.5-flash,gemini-3.6-flash --thinking low,minimal --temperature on,off
- *   GEMINI_API_KEY=AIza... npx tsx scripts/ab-models.ts --modes coach,mind --repeat 2 --image ./가짜캡처.png --out ./ab.md
+ *   GEMINI_API_KEY=AIza... npx tsx scripts/ab-models.ts --modes coach,mind --repeat 2 --image ./가짜캡처.png --out ./ab.md --yes
  *
  * 옵션
  *   --models       쉼표로 구분한 모델 (기본 gemini-3.5-flash,gemini-3.6-flash,gemini-3.5-flash-lite)
@@ -19,18 +20,32 @@
  *   --repeat       같은 조합을 몇 번씩 부를지 (기본 1. 결과가 들쭉날쭉한지 보려면 2~3)
  *   --image        코칭 예시에 붙일 캡처 (jpg·png·webp). 남의 대화가 담긴 실제 캡처 말고 지어낸 캡처를 쓸 것
  *   --out          보고서 파일 경로 (기본: 임시 폴더의 mylovecoach-ab-<시각>.md)
+ *   --yes          기본 조합보다 많이 불러도 묻지 않고 시작
  *
  * 비교하는 동안에는 대체 모델로 넘어가지 않는다 (과부하면 같은 모델을 한 번 더 부르고, 그래도 안 되면 실패로 적는다).
  * 비용은 아래 PRICES(2026-10 Google 가격표, 100만 토큰당 달러)로 캐시 할인 없이 계산한다. 가격이 바뀌면 고칠 것.
+ * 실패한 호출도 Google 은 과금하므로(잘린 응답은 출력 상한만큼) 비용·평균 토큰은 모든 호출로 내고, 「성공 1회당 비용」은 총비용 ÷ 성공 수다.
  */
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
 import type { CrushReport, MindReading, PracticeReply } from '../src/lib/ai-schemas';
-import { buildTask, parseAiRequest, type AiMode } from '../src/lib/ai-tasks';
+import { buildTask, parseAiRequest, type AiMode, type AiTask } from '../src/lib/ai-tasks';
 import type { CoachAnalysisOutput } from '../src/lib/coach-schema';
-import { callGeminiTask, GEMINI_DEFAULT_MODEL, GEMINI_DEFAULT_THINKING, GEMINI_THINKING_LEVELS, type GeminiThinkingLevel, type GeminiUsage } from '../src/lib/gemini';
+import {
+  buildGeminiTaskBody,
+  callGeminiTask,
+  GEMINI_DEFAULT_MODEL,
+  GEMINI_DEFAULT_THINKING,
+  GEMINI_THINKING_LEVELS,
+  type GeminiThinkingLevel,
+  type GeminiUsage,
+} from '../src/lib/gemini';
+
+const DEFAULT_MODELS = ['gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite'];
+const DEFAULT_THINKING: GeminiThinkingLevel[] = [GEMINI_DEFAULT_THINKING, 'minimal'];
+const DEFAULT_TEMPERATURES = ['on', 'off'];
 
 // ── 가격표 ──────────────────────────────────────────────────
 
@@ -59,6 +74,21 @@ function costOf(model: string, usage?: GeminiUsage): number | null {
   const p = priceOf(model);
   if (!p || !usage) return null;
   return ((usage.input ?? 0) * p.input + ((usage.output ?? 0) + (usage.thoughts ?? 0)) * p.output) / 1e6;
+}
+
+/** 캡처 1장의 입력 토큰 어림 (MEDIUM 해상도 ≈580) */
+const IMAGE_TOKENS = 600;
+
+/**
+ * 시작 전에 찍는 1회 최대 비용 어림 (달러). 입력은 보내는 글(프롬프트·응답 형식) 1자를 1토큰으로, 출력은 상한(생각 포함)을 다 쓴다고 본다.
+ * 실제로는 대개 이보다 싸다
+ */
+function maxCostOf(model: string, task: AiTask): number | null {
+  const p = priceOf(model);
+  if (!p) return null;
+  const body = buildGeminiTaskBody(task);
+  const text = JSON.stringify({ ...body, contents: body.contents.map((c) => ({ ...c, parts: c.parts.filter((part) => !('inlineData' in part)) })) });
+  return ((text.length + (task.image ? IMAGE_TOKENS : 0)) * p.input + task.maxOutputTokens * p.output) / 1e6;
 }
 
 // ── 지어낸 예시 입력 ────────────────────────────────────────
@@ -217,15 +247,24 @@ interface Combo {
 
 interface Run extends Combo {
   caseId: string;
+  mode: AiMode;
   ms: number;
   ok: boolean;
   error?: string;
+  /** 실패를 묶어 셀 짧은 이름 (MAX_TOKENS · SAFETY · server 404 · 형식 오류 · 네트워크 등) */
+  failure?: string;
   usage?: GeminiUsage;
   finishReason?: string;
   attempts?: number;
   cost: number | null;
   lines: string[];
 }
+
+/** 서버 스위치 묶음 — 모델은 묶음마다(GEMINI_MODEL · GEMINI_MODEL_LIGHT) 고르므로 요약도 묶음마다 낸다 */
+const GROUPS: { title: string; modes: AiMode[] }[] = [
+  { title: '코칭·보고서 (GEMINI_MODEL · GEMINI_THINKING_COACH/_REPORT)', modes: ['coach', 'report'] },
+  { title: '속마음·연습 (GEMINI_MODEL_LIGHT · GEMINI_THINKING_MIND/_PRACTICE)', modes: ['mind', 'practice'] },
+];
 
 const comboKey = (c: Combo) => `${c.model} · 생각 ${c.thinking} · temp ${c.temperature ? 'on' : 'off'}`;
 /** 지금 운영 중인 설정 (서버 스위치를 하나도 넣지 않았을 때) */
@@ -266,6 +305,37 @@ const usd = (n: number | null, digits = 4) => (n == null ? '?' : `$${n.toFixed(d
 const avg = (xs: number[]) => (xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : 0);
 /** 마크다운 표 칸 */
 const cell = (s: string) => s.replace(/\|/g, '\\|').replace(/\r?\n/g, '<br>');
+/** 같은 이름끼리 세기 — "MAX_TOKENS 2 · server 404 1" */
+const countBy = (names: string[]) =>
+  [...names.reduce((m, n) => m.set(n, (m.get(n) ?? 0) + 1), new Map<string, number>())].map(([n, k]) => `${n} ${k}`).join(' · ');
+
+/**
+ * 조합별 요약 표. 실패한 호출도 과금되므로(잘린 응답은 출력 상한만큼, 거절도 입력만큼) 총비용·평균 토큰은 모든 호출로 낸다.
+ * 「성공 1회당 비용」 = 총비용 ÷ 성공 수 — 실패가 많은 조합은 그만큼 비싸게 나온다. 시간은 성공한 호출만
+ */
+function summaryTable(runs: Run[], combos: Combo[]): string[] {
+  const out = [
+    '| 조합 | 성공 | 실패 이유 | 평균 시간(성공) | 평균 입력 | 평균 생각 | 평균 출력 | 평균 캐시 | 총비용 | 성공 1회당 비용 | 성공 1,000회 비용 |',
+    '|---|---|---|---|---|---|---|---|---|---|---|',
+  ];
+  for (const c of combos) {
+    const mine = runs.filter((r) => comboKey(r) === comboKey(c));
+    if (!mine.length) continue;
+    const okRuns = mine.filter((r) => r.ok);
+    const priced = mine.filter((r) => r.cost != null);
+    const spent = priced.length ? priced.reduce((s, r) => s + (r.cost ?? 0), 0) : null;
+    const perSuccess = spent != null && okRuns.length ? spent / okRuns.length : null;
+    const used = mine.filter((r) => r.usage);
+    const mean = (pick: (u: GeminiUsage) => number | undefined) => (used.length ? Math.round(avg(used.map((r) => (r.usage ? (pick(r.usage) ?? 0) : 0)))) : undefined);
+    const failures = countBy(mine.filter((r) => !r.ok).map((r) => r.failure ?? '?'));
+    const perSuccessText = spent == null ? '?' : okRuns.length ? usd(perSuccess) : '성공 없음';
+    const thousandText = spent == null ? '?' : okRuns.length ? usd(perSuccess == null ? null : perSuccess * 1000, 2) : '-';
+    out.push(
+      `| ${cell(label(c))} | ${okRuns.length}/${mine.length} | ${cell(failures || '-')} | ${okRuns.length ? `${(avg(okRuns.map((r) => r.ms)) / 1000).toFixed(1)}초` : '-'} | ${fmt(mean((u) => u.input))} | ${fmt(mean((u) => u.thoughts))} | ${fmt(mean((u) => u.output))} | ${fmt(mean((u) => u.cached))} | ${usd(spent)} | ${perSuccessText} | ${thousandText} |`,
+    );
+  }
+  return out;
+}
 
 function writeReport(runs: Run[], cases: Case[], combos: Combo[], repeat: number): string {
   const out: string[] = [];
@@ -273,21 +343,15 @@ function writeReport(runs: Run[], cases: Case[], combos: Combo[], repeat: number
   out.push(`# AI 모델 A/B 비교 (${stamp})`, '');
   out.push(`- 조합 ${combos.length}개 × 예시 ${cases.length}개 × 반복 ${repeat}번 = ${runs.length}번 호출`);
   out.push(`- 가격(100만 토큰당 입력/출력): ${Object.keys(PRICES).map((m) => { const p = priceOf(m); return `${m} $${p?.input}/$${p?.output}`; }).join(' · ')}`);
-  out.push('- 비용은 캐시 할인 없이 계산했고, 생각 토큰은 출력 단가로 셌다. 「지금 운영」이 서버 스위치를 하나도 넣지 않은 지금 설정이다.', '');
+  out.push('- 비용은 캐시 할인 없이 계산했고, 생각 토큰은 출력 단가로 셌다. 「지금 운영」이 서버 스위치를 하나도 넣지 않은 지금 설정이다.');
+  out.push('- 실패한 호출도 과금되므로 총비용·평균 토큰은 모든 호출로 냈다. 「성공 1회당 비용」은 총비용 ÷ 성공 수다.', '');
 
-  out.push('## 조합별 요약 (모든 예시 평균)', '');
-  out.push('| 조합 | 성공 | 평균 시간 | 평균 입력 | 평균 생각 | 평균 출력 | 평균 캐시 | 1회 평균 비용 | 1,000회 비용 |');
-  out.push('|---|---|---|---|---|---|---|---|---|');
-  for (const c of combos) {
-    const mine = runs.filter((r) => comboKey(r) === comboKey(c));
-    const okRuns = mine.filter((r) => r.ok);
-    const costs = okRuns.map((r) => r.cost).filter((x): x is number => x != null);
-    const mean = (pick: (u: GeminiUsage) => number | undefined) => Math.round(avg(okRuns.map((r) => (r.usage ? (pick(r.usage) ?? 0) : 0))));
-    out.push(
-      `| ${cell(label(c))} | ${okRuns.length}/${mine.length} | ${(avg(okRuns.map((r) => r.ms)) / 1000).toFixed(1)}초 | ${fmt(mean((u) => u.input))} | ${fmt(mean((u) => u.thoughts))} | ${fmt(mean((u) => u.output))} | ${fmt(mean((u) => u.cached))} | ${usd(costs.length ? avg(costs) : null)} | ${usd(costs.length ? avg(costs) * 1000 : null, 2)} |`,
-    );
+  for (const g of GROUPS) {
+    const groupRuns = runs.filter((r) => g.modes.includes(r.mode));
+    if (!groupRuns.length) continue;
+    const examples = cases.filter((k) => g.modes.includes(k.mode)).length;
+    out.push(`## 조합별 요약 — ${g.title} · 예시 ${examples}개`, '', ...summaryTable(groupRuns, combos), '');
   }
-  out.push('');
 
   out.push('## 예시별 결과 (조합별로 나란히)', '');
   for (const k of cases) {
@@ -310,10 +374,10 @@ async function main() {
   if (!key) fail('GEMINI_API_KEY 환경변수가 필요해요.');
   const args = readArgs(process.argv.slice(2));
 
-  const models = listOf(args.get('models'), ['gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite']);
-  const thinking = listOf(args.get('thinking'), [GEMINI_DEFAULT_THINKING, 'minimal']);
+  const models = listOf(args.get('models'), DEFAULT_MODELS);
+  const thinking = listOf(args.get('thinking'), DEFAULT_THINKING);
   for (const t of thinking) if (!(GEMINI_THINKING_LEVELS as readonly string[]).includes(t)) fail(`--thinking 은 ${GEMINI_THINKING_LEVELS.join('|')} 중에서: ${t}`);
-  const temps = listOf(args.get('temperature'), ['on', 'off']);
+  const temps = listOf(args.get('temperature'), DEFAULT_TEMPERATURES);
   for (const t of temps) if (t !== 'on' && t !== 'off') fail(`--temperature 는 on 또는 off: ${t}`);
   const modes = listOf(args.get('modes'), ['coach', 'report', 'mind', 'practice']);
   for (const m of modes) if (!['coach', 'report', 'mind', 'practice'].includes(m)) fail(`--modes 는 coach,report,mind,practice 중에서: ${m}`);
@@ -322,21 +386,31 @@ async function main() {
   const imagePath = args.get('image');
   const cases = buildCases(imagePath ? readImage(imagePath) : undefined).filter((c) => modes.includes(c.mode));
   const out = args.get('out') || path.join(os.tmpdir(), `mylovecoach-ab-${new Date().toISOString().replace(/[:.]/g, '-')}.md`);
+  // 부르기 전에 예시를 모두 작업으로 만들어 둔다 (형식이 틀린 예시가 있으면 한 번도 부르지 않고 끝낸다)
+  const tasks = new Map<string, AiTask>();
+  for (const k of cases) {
+    const parsed = parseAiRequest(k.body);
+    if (!parsed.ok) fail(`예시 ${k.id} 의 요청 형식이 올바르지 않아요: ${JSON.stringify(parsed.issues.slice(0, 3))}`);
+    tasks.set(k.id, buildTask(parsed));
+  }
 
   const combos: Combo[] = models.flatMap((model) => thinking.flatMap((t) => temps.map((temp) => ({ model, thinking: t as GeminiThinkingLevel, temperature: temp === 'on' }))));
   for (const m of models) if (!PRICES[m]) console.warn(`가격표에 없는 모델이라 비용은 ? 로 적어요: ${m}`);
   const total = combos.length * cases.length * repeat;
-  console.log(`조합 ${combos.length}개(모델 ${models.length} × 생각 ${thinking.length} × temperature ${temps.length}) × 예시 ${cases.length}개 × 반복 ${repeat}번 = ${total}번 부릅니다\n`);
+  const estimate = combos.reduce((sum, c) => sum + cases.reduce((s, k) => s + (maxCostOf(c.model, tasks.get(k.id)!) ?? 0), 0) * repeat, 0);
+  console.log(`조합 ${combos.length}개(모델 ${models.length} × 생각 ${thinking.length} × temperature ${temps.length}) × 예시 ${cases.length}개 × 반복 ${repeat}번 = ${total}번 부릅니다`);
+  console.log(`최대 예상 비용 약 ${usd(estimate, 2)} (출력 상한까지 다 쓴다고 본 값, 가격표에 있는 모델만 — 실제로는 대개 더 적어요)\n`);
+  // 기본 조합(고른 예시를 한 번씩)보다 많이 부르면 --yes 를 붙여야 시작한다 — 옵션 오타 하나로 수천 번 부르지 않게
+  const defaultCalls = DEFAULT_MODELS.length * DEFAULT_THINKING.length * DEFAULT_TEMPERATURES.length * cases.length;
+  if (total > defaultCalls && !args.has('yes')) fail(`기본 조합(${defaultCalls}번)보다 많이 불러요. 위 호출 수·비용이 맞으면 --yes 를 붙여 다시 실행하세요.`);
 
   const runs: Run[] = [];
   for (const k of cases) {
-    const parsed = parseAiRequest(k.body);
-    if (!parsed.ok) fail(`예시 ${k.id} 의 요청 형식이 올바르지 않아요: ${JSON.stringify(parsed.issues.slice(0, 3))}`);
-    const task = buildTask(parsed);
+    const task = tasks.get(k.id)!;
     for (const c of combos) {
       for (let i = 0; i < repeat; i++) {
         const started = Date.now();
-        const run: Run = { ...c, caseId: k.id, ms: 0, ok: false, cost: null, lines: [] };
+        const run: Run = { ...c, caseId: k.id, mode: k.mode, ms: 0, ok: false, cost: null, lines: [] };
         try {
           const result = await callGeminiTask(task, key!, { model: c.model, thinkingLevel: c.thinking, omitTemperature: !c.temperature, fallbackModels: [] });
           run.ms = Date.now() - started;
@@ -346,6 +420,7 @@ async function main() {
           run.cost = costOf(c.model, result.usage);
           if (!result.ok) {
             run.error = `${result.status} ${result.code} ${result.message}`;
+            run.failure = result.finishReason && result.finishReason !== 'STOP' ? result.finishReason : `${result.code} ${result.status}`;
           } else {
             let raw: unknown;
             try {
@@ -359,11 +434,14 @@ async function main() {
               run.lines = summarize(k.mode, task.normalize(checked.data));
             } else {
               run.error = `응답 형식 불일치 (종료 ${result.finishReason ?? '?'}): ${result.text.slice(0, 160)}`;
+              // 출력 상한에 걸려 잘린 JSON 은 상한만큼 과금된 채 실패한다
+              run.failure = result.finishReason === 'MAX_TOKENS' ? 'MAX_TOKENS' : '형식 오류';
             }
           }
         } catch (e) {
           run.ms = Date.now() - started;
           run.error = e instanceof Error ? e.message : String(e);
+          run.failure = '네트워크';
         }
         runs.push(run);
         const u = run.usage;
