@@ -56,6 +56,8 @@ export interface AppState {
    * 서버가 지웠다고 답할 때까지 남아 있다가 앱을 켤 때·돌아올 때 다시 보낸다. sent 는 성공한 횟수(철회 직후 1번 + 2분 30초 뒤 1번)
    */
   pendingDeletion: PendingDeletion | null;
+  /** 예전 판 정리(동의를 꺼 둔 기기·만 14세 미만 기기의 서버 기록 삭제 요청)를 한 번 했는지 — 저장값을 읽을 때(merge) 쓴다 */
+  legacyDeletionChecked: boolean;
   /** 채팅 하단의 프리미엄 안내 카드를 닫았는지 */
   upsellDismissed: boolean;
   /** 기기 구분용 무작위 ID (광고 ID 아님, 이용 기록 수집에만 사용) */
@@ -192,6 +194,7 @@ export const useAppStore = create<AppState>()(
       teamCheck: false,
       teamCheckAt: 0,
       pendingDeletion: null,
+      legacyDeletionChecked: false,
       upsellDismissed: false,
       deviceId: createId('d_'),
       analyticsConsent: null,
@@ -330,7 +333,7 @@ export const useAppStore = create<AppState>()(
             .slice(0, CACHE_MAX - 1);
           return { analysisCache: { ...Object.fromEntries(entries), [key]: { analysis, at: Date.now() } } };
         }),
-      // 동의 판을 함께 남긴다 (직접 체크 = 2). 동의를 껐으면(켜져 있다가 꺼짐) 어느 화면에서 껐든 서버 기록 삭제를 요청한다
+      // 동의를 껐으면(켜져 있다가 꺼짐) 어느 화면에서 껐든 서버 기록 삭제를 요청한다. 판 표시는 이용자가 직접 고른 답이라는 뜻
       setAnalyticsConsent: (analyticsConsent) =>
         set((s) =>
           s.analyticsConsent === true && analyticsConsent === false
@@ -414,7 +417,7 @@ export const useAppStore = create<AppState>()(
         }),
       addMindAnswer: (answer) => set((s) => ({ mindHistory: [answer, ...s.mindHistory].slice(0, 10) })),
       // 구매 상태·이용권·무료 사용량·팀원 여부는 「모든 데이터 삭제」로 지우지 않는다 (구매는 스토어 계정에 묶여 있고, 삭제로 무료 횟수가 초기화되면 안 됨)
-      // AI 분석 동의는 처음 상태로 돌려, 다시 AI 를 쓸 때 묻는다. 서버에 남은 이 기기의 이용 기록도 지워 달라고 요청한다
+      // 서버에 남은 이 기기의 이용 기록도 지워 달라고 요청하고, AI 분석 동의는 처음 상태로 돌려 다시 AI 를 쓸 때 묻는다
       resetAll: () =>
         set((s) => ({
           user: null,
@@ -436,7 +439,9 @@ export const useAppStore = create<AppState>()(
     {
       name: 'mylovecoach.store.v1',
       storage: appStorage,
+      // 판은 올리지 않는다 (아래 merge 설명). 10-07 의 웹 배포 하나가 판 2 로 저장했으므로, 판이 달라도 저장값을 그대로 받아 merge 에 넘긴다
       version: 1,
+      migrate: (persisted) => persisted as AppState,
       // 비밀 상담 채팅방과 그 메시지는 기기에 저장하지 않는다
       partialize: (s) => {
         const secretIds = Object.values(s.crushes)
@@ -457,6 +462,7 @@ export const useAppStore = create<AppState>()(
           teamCheck: s.teamCheck,
           teamCheckAt: s.teamCheckAt,
           pendingDeletion: s.pendingDeletion,
+          legacyDeletionChecked: s.legacyDeletionChecked,
           upsellDismissed: s.upsellDismissed,
           deviceId: s.deviceId,
           analyticsConsent: s.analyticsConsent,
@@ -477,11 +483,19 @@ export const useAppStore = create<AppState>()(
       // - 저장소를 늦게 다 읽었으면(루트 레이아웃의 2.5초 안전장치로 먼저 시작) 그사이 시트에서 고른 답이 더 새롭다 → 그 답을 남긴다
       // - 미리 체크된 첫 화면에서 받은 이용 기록 동의(판 표시 없음)는 「아직 묻지 않음」으로 읽는다. 동의 안 함은 그대로
       // - 「분석 중」인 채로 저장된 코치 말풍선은 답을 받기 전에 앱이 닫힌 것 → 「다시 시도」할 수 있는 실패로 읽는다 (막 켠 앱에는 진행 중인 요청이 없다)
+      // - 예전 판 정리(한 번, legacyDeletionChecked): 서버 기록 삭제 요청(pendingDeletion)이 생기기 전에 동의를 직접 꺼 뒀거나
+      //   만 14세 미만 나이로 저장된 기기는 서버 기록 삭제를 한 번 요청한다. 미리 체크된 예전 「동의」는 「아직 묻지 않음」으로 읽을 뿐
+      //   그 기록은 지우지 않는다 (사용자 결정 10-07 「새 동의만 저장, 예전 기록은 둔다」)
       merge: (persisted, current) => {
         const saved = (persisted ?? {}) as Partial<AppState>;
         const provider = saved.aiConsentProvider === 'google' || saved.aiConsentProvider === 'anthropic' ? saved.aiConsentProvider : null;
         const savedAiAt = typeof saved.aiConsentAt === 'number' ? saved.aiConsentAt : null;
         const answeredMeanwhile = current.aiConsentAt != null && (savedAiAt == null || current.aiConsentAt > savedAiAt);
+        const underAge = saved.user?.age != null && saved.user.age < 14;
+        const legacyDeletion =
+          !saved.legacyDeletionChecked && !saved.pendingDeletion && saved.deviceId && (saved.analyticsConsent === false || (saved.analyticsConsent === true && underAge))
+            ? { pendingDeletion: { deviceId: saved.deviceId, at: Date.now(), sent: 0 } }
+            : {};
         return {
           ...current,
           ...saved,
@@ -492,6 +506,8 @@ export const useAppStore = create<AppState>()(
             ? { analyticsConsent: savedAnalyticsConsent(saved), analyticsConsentVersion: typeof saved.analyticsConsentVersion === 'number' ? saved.analyticsConsentVersion : null }
             : {}),
           ...(saved.messages ? { messages: settlePending(saved.messages) } : {}),
+          ...legacyDeletion,
+          legacyDeletionChecked: true,
         };
       },
       onRehydrateStorage: () => (state) => state?.setHydrated(),

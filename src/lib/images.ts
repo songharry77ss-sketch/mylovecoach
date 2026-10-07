@@ -14,6 +14,34 @@ export interface PickedImage {
 
 const SCREENSHOT_DIR = 'screenshots';
 const PHOTO_DIR = 'photos';
+/** 사진 선택기(원본 사본)와 이미지 변환(모델용 축소본)이 캐시 폴더에 남기는 파일 */
+const CACHE_DIRS = ['ImagePicker', 'ImageManipulator'];
+
+/** 캐시 폴더 안의 파일이면 지운다 (문서 폴더로 옮긴 뒤의 사진 선택기 원본, 보낸 뒤의 축소본) */
+function deleteCacheCopy(uri?: string): void {
+  if (!uri || Platform.OS === 'web') return;
+  try {
+    if (!uri.startsWith(Paths.cache.uri)) return;
+    const f = new File(uri);
+    if (f.exists) f.delete();
+  } catch {
+    // 정리는 실패해도 앱 동작에 영향이 없다
+  }
+}
+
+/** 사진 선택기·이미지 변환이 캐시 폴더에 남긴 캡처 사본을 모두 지운다 (모든 데이터 삭제·비밀 상담 나가기·앱 시작) */
+export function clearImageCaches(): void {
+  if (Platform.OS === 'web') return;
+  for (const name of CACHE_DIRS) {
+    try {
+      const dir = new Directory(Paths.cache, name);
+      if (!dir.exists) continue;
+      for (const entry of dir.list()) if (entry instanceof File) entry.delete();
+    } catch {
+      // 정리는 실패해도 앱 동작에 영향이 없다
+    }
+  }
+}
 
 function ensureDir(name: string): Directory {
   const dir = new Directory(Paths.document, name);
@@ -53,6 +81,8 @@ export async function persistImage(sourceUri: string, dirName: string, width: nu
   const target = new File(dir, `${createId('img_')}.${safeExt}`);
   const source = new File(sourceUri);
   source.copy(target);
+  // 사진 선택기가 캐시 폴더에 만든 원본 사본은 바로 지운다 (같은 캡처가 두 군데 남지 않게)
+  deleteCacheCopy(sourceUri);
   return { uri: target.uri, width, height };
 }
 
@@ -75,6 +105,8 @@ export async function encodeForModel(uri: string, width?: number): Promise<Encod
   const image = await context.renderAsync();
   const saved = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.75, base64: true });
   image.release();
+  // 전송용 축소본 파일은 base64 를 받은 뒤 필요 없다
+  deleteCacheCopy(saved.uri);
   if (!saved.base64) throw new Error('이미지를 준비하지 못했어요.');
   return { base64: saved.base64, mediaType: 'image/jpeg' };
 }

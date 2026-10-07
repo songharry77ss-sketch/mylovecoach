@@ -4,7 +4,7 @@
  */
 import { refreshTeam } from '@/lib/billing/team';
 import { processPendingDeletion, resetDeletionStateForTest, SETTLE_MS } from '@/lib/server-deletion';
-import { useAppStore } from '@/store/app-store';
+import { useAppStore, type AppState } from '@/store/app-store';
 
 jest.mock('@/lib/config', () => ({
   APP_CONFIG: { apiUrl: 'https://api.example', apiSameOrigin: false, apiToken: 'tok', supportEmail: '', privacyUrl: '', termsUrl: '' },
@@ -73,7 +73,9 @@ describe('삭제 요청 보내기 (lib/server-deletion)', () => {
     await processPendingDeletion();
     expect(calls).toHaveLength(1);
     expect(calls[0]).toMatchObject({ url: 'https://api.example/api/track', method: 'DELETE' });
-    expect(JSON.parse(calls[0].body!)).toEqual({ deviceId: 'd_consent_test', before: at });
+    // 기기 시계와 상관없이 그 기기 기록을 모두 지운다 (삭제가 끝날 때까지 새 기록을 보내지 않으므로)
+    expect(JSON.parse(calls[0].body!)).toEqual({ deviceId: 'd_consent_test' });
+    expect(at).toBe(Date.now());
     expect(useAppStore.getState().pendingDeletion).toMatchObject({ sent: 1 });
 
     await jest.advanceTimersByTimeAsync(SETTLE_MS + 2000);
@@ -95,6 +97,21 @@ describe('삭제 요청 보내기 (lib/server-deletion)', () => {
     expect(useAppStore.getState().pendingDeletion).toBeNull();
   });
 
+  it('응답 없이 멈추면 15초 뒤 실패로 보고, 앱이 켜져 있는 동안 1분 뒤 다시 보낸다', async () => {
+    useAppStore.getState().requestServerDeletion();
+    jest.setSystemTime(Date.now() + SETTLE_MS + 1000);
+    (global.fetch as jest.Mock).mockImplementationOnce(
+      (_url: string, init: { signal?: AbortSignal }) =>
+        new Promise((_resolve, reject) => init.signal?.addEventListener('abort', () => reject(new Error('aborted')))),
+    );
+    const first = processPendingDeletion();
+    await jest.advanceTimersByTimeAsync(15_000);
+    await first;
+    expect(useAppStore.getState().pendingDeletion).not.toBeNull();
+    await jest.advanceTimersByTimeAsync(60_000);
+    expect(useAppStore.getState().pendingDeletion).toBeNull();
+  });
+
   it('서버가 거부해도(5xx) 남겨 두고, 형식 오류(400)는 다시 보내도 같으니 끝낸다', async () => {
     useAppStore.getState().requestServerDeletion();
     jest.setSystemTime(Date.now() + SETTLE_MS + 1000);
@@ -104,6 +121,36 @@ describe('삭제 요청 보내기 (lib/server-deletion)', () => {
     (global.fetch as jest.Mock).mockImplementationOnce(async () => ({ ok: false, status: 400 }));
     await processPendingDeletion();
     expect(useAppStore.getState().pendingDeletion).toBeNull();
+  });
+});
+
+describe('예전 판 저장 데이터 정리 (저장값을 읽을 때 한 번)', () => {
+  const options = () => useAppStore.persist.getOptions();
+  const merge = (saved: object) => options().merge!(saved, useAppStore.getState()) as AppState;
+
+  it('예전 판에서 동의를 직접 꺼 둔 기기는 처음 열 때 한 번 삭제를 요청한다', () => {
+    const s = merge({ deviceId: 'd_old_off', analyticsConsent: false });
+    expect(s.pendingDeletion).toMatchObject({ deviceId: 'd_old_off', sent: 0 });
+    expect(s.legacyDeletionChecked).toBe(true);
+  });
+
+  it('동의한 채 만 14세 미만 나이로 저장된 기기도 삭제를 요청한다', () => {
+    expect(merge({ deviceId: 'd_old_kid', analyticsConsent: true, analyticsConsentVersion: 2, user: { age: 13 } }).pendingDeletion).toMatchObject({ deviceId: 'd_old_kid' });
+  });
+
+  it('미리 체크된 예전 동의(판 표시 없음)는 「아직 묻지 않음」으로 읽고, 그 기록은 지우지 않는다 (사용자 결정)', () => {
+    const s = merge({ deviceId: 'd_prechecked', analyticsConsent: true, user: { age: 25 } });
+    expect(s.analyticsConsent).toBeNull();
+    expect(s.pendingDeletion).toBeNull();
+  });
+
+  it('한 번 정리한 기기는 다시 요청하지 않는다', () => {
+    expect(merge({ deviceId: 'd_done', analyticsConsent: false, legacyDeletionChecked: true }).pendingDeletion).toBeNull();
+  });
+
+  it('판 2 로 저장된 웹 데이터(10-07 배포 하나)도 버리지 않고 그대로 읽는다', () => {
+    expect(options().version).toBe(1);
+    expect(options().migrate!({ deviceId: 'd_v2', analyticsConsent: false }, 2)).toMatchObject({ deviceId: 'd_v2', analyticsConsent: false });
   });
 });
 

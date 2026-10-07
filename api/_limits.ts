@@ -47,6 +47,24 @@ export function rateLimitEntries(): number {
   return buckets.size;
 }
 
+/** 문자열의 UTF-8 바이트 수 */
+export function utf8Bytes(text: string): number {
+  let n = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    const c = text.charCodeAt(i);
+    if (c < 0x80) n += 1;
+    else if (c < 0x800) n += 2;
+    else if (c >= 0xd800 && c <= 0xdbff) {
+      n += 4;
+      i += 1;
+    } else n += 3;
+  }
+  return n;
+}
+
+/** 저장할 내용의 크기(KB, 올림) — 하루 저장량 상한(take_quota)에 쓴다 */
+export const storedKb = (rows: unknown): number => Math.max(1, Math.ceil(utf8Bytes(JSON.stringify(rows) ?? '') / 1024));
+
 /** 본문이 너무 크면 true (content-length 가 없으면 파싱된 본문 길이로 본다) */
 export function bodyTooLarge(req: VercelRequest, maxBytes: number): boolean {
   const declared = Number(req.headers['content-length'] ?? NaN);

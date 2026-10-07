@@ -1,24 +1,23 @@
 /**
  * 이용 기록 API
  *   POST   /api/track — 앱이 보낸 이용 기록을 Supabase 에 저장합니다.
- *   DELETE /api/track { deviceId, before? } — 이용 기록 수집을 끈 기기의 서버 기록을 지웁니다 (처리방침 「동의 철회 시 지체 없이 파기」).
- *     before(철회 시각, ms)를 주면 그 뒤 3분까지 생긴 기록만 지운다 — 철회 직전에 보낸 코칭이 늦게 저장된 것까지 지우되,
- *     다시 동의한 뒤의 새 기록은 남긴다. 없으면 그 기기 기록을 모두 지운다.
+ *   DELETE /api/track { deviceId } — 이용 기록 수집을 끈 기기의 서버 기록을 모두 지웁니다 (처리방침 「동의 철회 시 지체 없이 파기」).
+ *     앱은 삭제가 끝날 때까지 새 기록을 보내지 않으므로(lib/server-deletion) 시각 기준 없이 그 기기 기록을 모두 지운다.
  *
  * 저장 조건: 첫 화면 체크박스를 이용자가 직접 눌러 동의한 앱(consentVersion ≥ 2)만 저장합니다.
  * 판 표시가 없는 예전 동의(미리 체크된 체크박스)는 받기만 하고 저장하지 않습니다(204).
- * 만 14세 미만으로 입력한 이용자의 기록은 저장하지 않고, 남아 있던 기록도 지웁니다(법정대리인 동의를 받지 않으므로).
+ * 만 14세 미만으로 입력한 이용자의 기록은 (예전 앱이 보낸 것도) 저장하지 않고, 남아 있던 기록도 지웁니다(법정대리인 동의를 받지 않으므로).
  * SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 가 없거나 ANALYTICS_ENABLED=1 이 아니어도 조용히 204 입니다.
  *
  * 남용 막기: 앱 토큰은 공개 번들에 들어 있어 사실상 누구나 부를 수 있으므로
  * 본문 16KB · 이벤트 60개 · props 는 원시값 8개(문자열 100자)까지 · IP 당 5분 60회(삭제는 따로 5분 10회)로 제한하고,
- * 하루 전체 저장 행 수에 상한(TRACK_DAILY_ROWS, 기본 50,000)을 둬 무료 DB 가 차지 않게 합니다.
+ * 하루 저장량(저장할 내용 크기, TRACK_DAILY_KB 기본 10,000KB)과 DB 전체 크기(400MB, take_quota)에 상한을 둬 무료 DB 가 차지 않게 합니다.
  * 시각은 최근 7일 안으로, 화면 체류는 30분, 세션은 6시간으로 자릅니다.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
 
-import { bodyTooLarge, clientIp, rateLimited } from './_limits';
+import { bodyTooLarge, clientIp, rateLimited, storedKb } from './_limits';
 import { analyticsEnabled, consentVersionOk, DEVICE_ID, insert, patch, rpc, supabaseReady } from './_supabase';
 
 export const config = { maxDuration: 15 };
@@ -33,12 +32,10 @@ const MAX_SCREEN_MS = 30 * 60 * 1000;
 const MAX_SESSION_MS = 6 * 60 * 60 * 1000;
 const MAX_PROP_KEYS = 8;
 const MAX_PROP_STRING = 100;
-/** 철회 시각 뒤 이만큼까지 생긴 기록도 지운다 (철회 직전에 보낸 코칭 요청은 최대 120초 뒤에 저장됨) */
-const DELETE_GRACE_MS = 3 * 60 * 1000;
 /** 만 14세 미만은 저장하지 않는다 */
 export const MIN_AGE = 14;
 const SESSION_ID = /^[A-Za-z0-9_-]{1,64}$/;
-const dailyRows = () => Number(process.env.TRACK_DAILY_ROWS) || 50_000;
+const dailyKb = () => Number(process.env.TRACK_DAILY_KB) || 10_000;
 
 const EventSchema = z.object({
   type: z.enum(['screen', 'event']),
@@ -85,12 +82,6 @@ const BodySchema = z.object({
   endSession: z.boolean().optional(),
   events: z.array(EventSchema).max(MAX_EVENTS).default([]),
 });
-
-/** 철회 시각(before)으로 지울 범위의 끝을 정한다. 최근 30일 밖이거나 이상한 값이면 null(그 기기 기록 모두) */
-export function deleteCutoff(before: unknown, nowMs: number): string | null {
-  if (typeof before !== 'number' || !Number.isFinite(before) || before < nowMs - 30 * DAY_MS) return null;
-  return new Date(Math.min(before + DELETE_GRACE_MS, nowMs)).toISOString();
-}
 
 /** props 는 짧은 원시값만 남긴다 (중첩 객체·긴 문자열로 저장소를 채우지 못하게) */
 export function cleanProps(input: unknown): Record<string, string | number | boolean | null> | null {
@@ -146,8 +137,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (deleting) {
-    const body = parseBody(req) as { deviceId?: unknown; before?: unknown } | null;
-    const deviceId = body?.deviceId;
+    const deviceId = (parseBody(req) as { deviceId?: unknown } | null)?.deviceId;
     if (typeof deviceId !== 'string' || !DEVICE_ID.test(deviceId)) {
       res.status(400).json({ error: '기기 ID 형식이 올바르지 않아요.' });
       return;
@@ -157,8 +147,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.status(204).end();
       return;
     }
-    const cutoff = deleteCutoff(body?.before, Date.now());
-    const done = await rpc('delete_device', cutoff ? { p_device: deviceId, p_before: cutoff } : { p_device: deviceId });
+    const done = await rpc('delete_device', { p_device: deviceId });
     res.status(done === null ? 502 : 204).end();
     return;
   }
@@ -174,19 +163,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
   const b = parsed.data;
-  if (!consentVersionOk(b.consentVersion)) {
-    res.status(204).end();
-    return;
-  }
-  // 만 14세 미만으로 입력했으면 저장하지 않고, 그 전에 쌓인 기록도 지운다
+  // 만 14세 미만으로 입력했으면 저장하지 않고, 그 전에 쌓인 기록도 지운다 (동의 판이 없는 예전 앱이 보낸 것도)
   if (b.user?.age != null && b.user.age < MIN_AGE) {
     await rpc('delete_device', { p_device: b.deviceId });
     res.status(204).end();
     return;
   }
-  // 하루 전체 저장량 상한 — 넘으면 오늘은 더 저장하지 않는다 (상한 함수를 못 부르면 그대로 저장)
-  const allowed = await rpc<boolean>('take_quota', { p_kind: 'track', p_rows: b.events.length + 2, p_limit: dailyRows() });
-  if (allowed === false) {
+  if (!consentVersionOk(b.consentVersion)) {
     res.status(204).end();
     return;
   }
@@ -197,6 +180,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const userFilter = `device_id=eq.${encodeURIComponent(b.deviceId)}`;
   const acq = b.acquisition;
   const source = acq ? acq.source || acq.referrer || acq.channel || null : null;
+  const screenRows = b.events
+    .filter((e) => e.type === 'screen')
+    .map((e) => ({
+      device_id: b.deviceId,
+      session_id: toUuid(b.sessionId),
+      screen: e.name,
+      duration_ms: clampDuration(e.durationMs, MAX_SCREEN_MS),
+      created_at: iso(e.at),
+    }));
+  const eventRows = b.events
+    .filter((e) => e.type === 'event')
+    .map((e) => ({
+      device_id: b.deviceId,
+      session_id: toUuid(b.sessionId),
+      name: e.name,
+      props: cleanProps(e.props),
+      created_at: iso(e.at),
+    }));
+
+  // 하루 저장량 상한(저장할 내용의 크기)·DB 전체 크기 상한 — 넘으면 저장하지 않는다 (상한 함수를 못 부르면 그대로 저장)
+  const allowed = await rpc<boolean>('take_quota', {
+    p_kind: 'track',
+    p_units: storedKb([b.user, acq, screenRows, eventRows]) + 1,
+    p_limit: dailyKb(),
+  });
+  if (allowed === false) {
+    res.status(204).end();
+    return;
+  }
 
   // 응답을 먼저 돌려주지 않고 기다린다 (서버리스는 응답 후 작업이 중단될 수 있음)
   await Promise.all([
@@ -222,8 +234,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       { ignoreDuplicates: true },
     ).then(async (ok) => {
       if (!ok) return false;
-      // 유입 경로를 모으기 전에 만들어진 이용자는 처음 한 번만 채운다
-      if (source) await patch('app_user', `${userFilter}&source=is.null`, { source, source_detail: acq });
+      // 유입 경로를 모으기 전에 만들어진 이용자는 처음 한 번만 채운다 — 수집 1년이 지나 파기한 경로를 다시 채우지 않게 1년 안의 이용자만
+      const yearAgo = encodeURIComponent(new Date(nowMs - 365 * DAY_MS).toISOString());
+      if (source) await patch('app_user', `${userFilter}&source=is.null&first_seen_at=gte.${yearAgo}`, { source, source_detail: acq });
       return patch('app_user', userFilter, {
         last_seen_at: now,
         ...(b.user?.name ? { name: b.user.name } : {}),
@@ -248,31 +261,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       { upsert: true },
     ),
 
-    insert(
-      'screen_view',
-      b.events
-        .filter((e) => e.type === 'screen')
-        .map((e) => ({
-          device_id: b.deviceId,
-          session_id: toUuid(b.sessionId),
-          screen: e.name,
-          duration_ms: clampDuration(e.durationMs, MAX_SCREEN_MS),
-          created_at: iso(e.at),
-        })),
-    ),
+    insert('screen_view', screenRows),
 
-    insert(
-      'app_event',
-      b.events
-        .filter((e) => e.type === 'event')
-        .map((e) => ({
-          device_id: b.deviceId,
-          session_id: toUuid(b.sessionId),
-          name: e.name,
-          props: cleanProps(e.props),
-          created_at: iso(e.at),
-        })),
-    ),
+    insert('app_event', eventRows),
   ]);
 
   res.status(204).end();
