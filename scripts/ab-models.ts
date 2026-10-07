@@ -61,6 +61,7 @@ const PRICES: Record<string, Price & { until?: string; after?: Price }> = {
   'gemini-3.5-flash': { input: 1.5, output: 9.0 },
   'gemini-3.6-flash': { input: 0.75, output: 3.75, until: '2026-12-31', after: { input: 1.5, output: 7.5 } },
   'gemini-3.5-flash-lite': { input: 0.3, output: 2.5 },
+  'gemini-3.1-flash-lite': { input: 0.25, output: 1.5 },
 };
 
 function priceOf(model: string, today = new Date()): Price | null {

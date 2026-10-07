@@ -37,6 +37,20 @@ import {
 
 export type AiMode = 'coach' | 'report' | 'mind' | 'practice';
 
+/**
+ * 요청에 든 배열 길이의 바깥 상한. 앱이 보내는 배열은 가장 긴 것이 50개 안쪽이다(연습 대화 12마디 × 말풍선 최대 4개·온도 기록 40개).
+ * zod 는 배열 원소를 전부 검사한 뒤에야 .max() 를 보므로, 원소 수백만 개짜리 본문 하나로 이슈 객체가 수백만 개 생겨 메모리가 터진다.
+ * 그래서 zod 에 넘기기 전에 길이만 싸게 훑어 거절한다
+ */
+export const MAX_REQUEST_ARRAY_LENGTH = 64;
+
+/**
+ * 연습 프롬프트에 넣는 최근 말풍선 수. 앱도 이만큼만 보낸다.
+ * 서버는 예전 앱이 한 판을 통째로 보내도(12마디면 말풍선 48개까지) 받아서 최근 것만 쓴다 —
+ * 예전엔 40개 상한에 걸려 11~12마디째에 400 이 났다
+ */
+export const PRACTICE_PROMPT_TURNS = 30;
+
 export const ReportRequestSchema = z.object({
   mode: z.literal('report'),
   crush: CrushRequestSchema,
@@ -92,7 +106,7 @@ export const PracticeRequestSchema = z.object({
   }),
   user: UserRequestSchema,
   heat: z.number(),
-  turns: z.array(z.object({ role: z.enum(['me', 'them']), text: z.string().max(600) })).min(1).max(40),
+  turns: z.array(z.object({ role: z.enum(['me', 'them']), text: z.string().max(600) })).min(1).max(MAX_REQUEST_ARRAY_LENGTH),
 });
 
 export type ReportRequest = z.infer<typeof ReportRequestSchema>;
@@ -102,12 +116,6 @@ export type MindRequestInput = z.input<typeof MindRequestSchema>;
 export type PracticeRequest = z.infer<typeof PracticeRequestSchema>;
 export type PracticeRequestInput = z.input<typeof PracticeRequestSchema>;
 
-/**
- * 요청에 든 배열 길이의 바깥 상한. 앱이 보내는 배열은 가장 긴 것이 50개 안쪽이다(연습 대화 12마디·온도 기록 40개).
- * zod 는 배열 원소를 전부 검사한 뒤에야 .max() 를 보므로, 원소 수백만 개짜리 본문 하나로 이슈 객체가 수백만 개 생겨 메모리가 터진다.
- * 그래서 zod 에 넘기기 전에 길이만 싸게 훑어 거절한다
- */
-export const MAX_REQUEST_ARRAY_LENGTH = 64;
 /** 요청 스키마에서 배열이 있는 가장 깊은 곳은 3단계(sessions[i].insights) — 4단계까지 본다 */
 const ARRAY_SCAN_DEPTH = 4;
 
@@ -302,7 +310,7 @@ export function buildPracticeTask(req: PracticeRequest): AiTask<z.infer<typeof P
     .split('\n')
     .filter((l, i, all) => i >= all.indexOf('[사용자(나) 프로필]'))
     .join('\n');
-  const convo = ['[지금까지 대화 (오래된 순)]', ...req.turns.slice(-30).map((t) => `${t.role === 'me' ? '나' : p.name}: ${t.text.replace(/\s+/g, ' ').trim()}`)].join('\n');
+  const convo = ['[지금까지 대화 (오래된 순)]', ...req.turns.slice(-PRACTICE_PROMPT_TURNS).map((t) => `${t.role === 'me' ? '나' : p.name}: ${t.text.replace(/\s+/g, ' ').trim()}`)].join('\n');
   return {
     mode: 'practice',
     system: PRACTICE_SYSTEM_PROMPT,
