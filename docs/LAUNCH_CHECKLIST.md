@@ -32,7 +32,7 @@ API 와 브라우저로 할 수 있는 건 전부 끝났습니다. 🙋 표시�
 
 | 순서 | 할 일 | 누가 |
 |---|---|---|
-| 1 | Supabase SQL Editor 에 `ai_report` 조각 실행 — `supabase/schema.sql` 의 `ai_report` 표·인덱스·RLS + `purge_old_records()` 에 신고 1년 파기 한 줄. **운영 함수는 가입 브랜치(dded16c) 판이라 `bonus_spent` 파기 줄이 있으니, 그 판에 신고 줄만 더해서 다시 만든다** (1.0 판 함수를 그대로 붙이면 `bonus_spent` 파기가 빠짐) | 🙋 승인 |
+| 1 | Supabase SQL Editor 에 **`supabase/ai_report.sql` 만** 실행 — `ai_report` 표·인덱스·RLS를 만들고, 지금 운영 `purge_old_records()` 본문 끝에 신고 1년 파기 한 줄만 붙인다(이미 있으면 그대로). **`schema.sql` 전체를 붙이지 말 것**: 운영 함수는 가입 브랜치(dded16c) 판이라 `bonus_spent` 파기 줄이 있고, 1.0 판(134bf0f)은 유입 경로·`usage_quota` 정리 줄이 따로 있어 어느 한쪽 판으로 통째로 바꾸면 다른 쪽 줄이 사라진다 | 🙋 승인 |
 | 2 | 1.0 브랜치에서 `gh workflow run vercel.yml` (api/report · 처리방침 「AI 답변 신고」 · 관리자 페이지 신고 표) | 코드 (승인) |
 | 3 | 운영 확인: 앱에서 신고 1건 → 관리자 페이지 맨 아래 「AI 답변 신고」 표에 보이는지 → 시험 행 삭제 | 코드·🙋 |
 | 4 | 관리자 페이지에서 주 1회 신고를 보고, 같은 유형이 반복되면 연습 상대역 규칙(`src/lib/ai-tasks.ts`)이나 Gemini 안전 설정(`src/lib/gemini.ts`)을 고친다 | 🙋 팀 |
