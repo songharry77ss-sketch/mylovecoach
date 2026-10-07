@@ -225,4 +225,6 @@ export interface MindAnswer {
   perspective: Gender;
   reading: MindReading;
   at: number;
+  /** 재사용 키 (mindCacheKey). 같은 키의 예전 기록은 목록에서 한 번만 보인다. 예전 기록에는 없다 */
+  key?: string;
 }

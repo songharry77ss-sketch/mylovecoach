@@ -23,6 +23,14 @@ jobs:
       COACH_APP_TOKEN: ${{ secrets.EXPO_PUBLIC_API_TOKEN }}
       # 팀 범위 토큰이면 필수: 저장소 변수 VERCEL_SCOPE 에 팀 슬러그 (없으면 "User not found" 오류)
       VERCEL_SCOPE: ${{ vars.VERCEL_SCOPE }}
+      # 선택: AI 비용 스위치 (저장소 변수). 비워 두면 등록하지 않고 지금 동작 그대로 — 값과 뜻은 docs/RELEASE_GUIDE.md 「AI 비용 스위치」
+      GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+      GEMINI_MODEL_LIGHT: ${{ vars.GEMINI_MODEL_LIGHT }}
+      GEMINI_THINKING_COACH: ${{ vars.GEMINI_THINKING_COACH }}
+      GEMINI_THINKING_REPORT: ${{ vars.GEMINI_THINKING_REPORT }}
+      GEMINI_THINKING_MIND: ${{ vars.GEMINI_THINKING_MIND }}
+      GEMINI_THINKING_PRACTICE: ${{ vars.GEMINI_THINKING_PRACTICE }}
+      GEMINI_OMIT_TEMPERATURE: ${{ vars.GEMINI_OMIT_TEMPERATURE }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -55,6 +63,11 @@ jobs:
           # 웹 번들도 같은 토큰을 헤더로 보내야 하므로 빌드 환경변수로도 넣는다.
           # 이 값은 어차피 클라이언트 번들에 박히므로(남용 억제용 키이지 비밀이 아님) config 로 등록한다.
           add_env EXPO_PUBLIC_API_TOKEN "$COACH_APP_TOKEN" config
+          # 선택 스위치 — 값이 있는 것만 등록한다 (잘못된 값은 서버가 무시하고 기본값을 쓴다).
+          # 저장소 변수를 지워도 Vercel 에 예전에 등록한 값은 남으니, 되돌리려면 Vercel 환경변수에서도 지울 것
+          for name in GEMINI_MODEL GEMINI_MODEL_LIGHT GEMINI_THINKING_COACH GEMINI_THINKING_REPORT GEMINI_THINKING_MIND GEMINI_THINKING_PRACTICE GEMINI_OMIT_TEMPERATURE; do
+            add_env "$name" "${!name}"
+          done
       - name: 프로덕션 배포
         id: deploy
         run: |

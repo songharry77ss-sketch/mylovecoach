@@ -51,19 +51,66 @@ export const CoachAnalysisReadSchema = CoachAnalysisSchema.extend({
 });
 export type CoachAnalysisRead = z.infer<typeof CoachAnalysisReadSchema>;
 
+/**
+ * 서버가 받는 입력 길이 상한 (비용·남용 방지). 서버와 앱이 같은 스키마를 쓴다.
+ * 앱이 보낼 수 있는 값보다 넉넉하게 커서 예전 앱 요청도 그대로 통과한다 —
+ * 앱 입력창: 코칭 글 800자(빠른 코칭 붙여넣기 약 730자), 상대 이름 20자·메모 500자, 내 이름 20자, 태그는 미리 정한 짧은 말 6개까지
+ */
+export const REQUEST_LIMITS = {
+  /** 코칭 글 (앱 800자 + 「다른 답장」 안내 문장) */
+  text: 2_000,
+  /** 상대·내 이름 (앱 20자) */
+  name: 100,
+  /** 상대 메모 (앱 500자) */
+  notes: 2_000,
+  mbti: 10,
+  /** 성향·추구미 태그 한 개 (앱 태그는 10자 안팎) */
+  tag: 40,
+  /** 태그 개수 (앱 최대 6개) */
+  tags: 20,
+  /** 최근 코칭 맥락 한 턴의 내 글 (앱 800자) */
+  historyNote: 2_000,
+  /** 최근 코칭 맥락의 코치 요약 (AI 가 쓴 2~4문장, 보통 300자 안쪽) */
+  historySummary: 2_000,
+  /** 최근 코칭 맥락의 보낸 답장 (AI 가 쓴 1~3문장) */
+  historyReply: 1_000,
+} as const;
+
+/**
+ * 캡처 상한 (base64 글자 수 2.5MB ≈ 원본 1.9MB). Vercel 요청 본문 한도는 4.5MB.
+ * 앱은 폭 800px·JPEG 0.75 로 줄여 보내서 보통 0.2~0.35MB, 긴 스크롤 캡처도 1.2MB 안팎이다
+ */
+export const MAX_IMAGE_BASE64_LENGTH = 2_500_000;
+/** 캡처가 상한을 넘을 때 보여 줄 안내 — 서버는 413 과 함께 보내고, 앱(예전 빌드 포함)은 서버가 준 문구를 그대로 띄운다 */
+export const IMAGE_TOO_LARGE_MESSAGE = '캡처가 너무 커요. 화면을 나눠서 올려주세요.';
+
 export const CoachImageSchema = z.object({
-  base64: z.string().min(1),
-  mediaType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'image/gif']),
+  base64: z
+    .string()
+    .min(1)
+    .max(MAX_IMAGE_BASE64_LENGTH)
+    .regex(/^[A-Za-z0-9+/]+={0,2}$/),
+  mediaType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
 });
 
+/** 검사 결과에 캡처 크기 초과가 있는지 (서버는 413, 앱은 같은 안내를 보여 준다) */
+export function isImageTooLarge(issues: readonly { code?: string; path?: readonly PropertyKey[] }[]): boolean {
+  return issues.some((i) => i.code === 'too_big' && i.path?.[0] === 'image' && i.path?.[1] === 'base64');
+}
+
+const tagList = () => z.array(z.string().max(REQUEST_LIMITS.tag)).max(REQUEST_LIMITS.tags);
+
+/** 넘으면 잘라서 받는다 — 앱이 저장해 둔 지난 기록을 그대로 보내는 칸이라, 거절하면 그 채팅방의 다음 요청이 계속 막힌다 */
+const clipped = (max: number) => z.string().transform((s) => (s.length > max ? s.slice(0, max) : s));
+
 export const CrushRequestSchema = z.object({
-  name: z.string(),
+  name: z.string().max(REQUEST_LIMITS.name),
   gender: GenderSchema,
   age: z.number().optional(),
-  mbti: z.string().optional(),
+  mbti: z.string().max(REQUEST_LIMITS.mbti).optional(),
   relationship: RelationshipSchema,
-  style: z.array(z.string()),
-  notes: z.string(),
+  style: tagList(),
+  notes: z.string().max(REQUEST_LIMITS.notes),
   /** 내가 상대를 부르는 호칭 */
   callName: z.string().max(20).optional(),
   /** 사용자가 직접 정한 호칭이면 true, 지난 캡처에서 읽은 것이면 false */
@@ -78,15 +125,15 @@ export const CrushRequestSchema = z.object({
 });
 
 export const UserRequestSchema = z.object({
-  name: z.string(),
+  name: z.string().max(REQUEST_LIMITS.name),
   gender: GenderSchema,
   age: z.number().optional(),
-  mbti: z.string().optional(),
-  style: z.array(z.string()),
+  mbti: z.string().max(REQUEST_LIMITS.mbti).optional(),
+  style: tagList(),
   /** 나를 소개하는 메모 */
   about: z.string().max(300).optional(),
   /** 추구미 */
-  vibes: z.array(z.string()).max(5).optional(),
+  vibes: z.array(z.string().max(REQUEST_LIMITS.tag)).max(5).optional(),
   /** 나의 연애 목표 */
   goal: z.string().max(60).optional(),
   /** KKTI 유형 (예: 선빠폭직 직진 불도저) */
@@ -100,16 +147,16 @@ export const CoachRequestSchema = z.object({
   /** 답장에 이모지 넣기 */
   emoji: EmojiPrefSchema.optional(),
   /** 사용자가 적은 질문 또는 상황 설명 */
-  text: z.string().optional(),
+  text: z.string().max(REQUEST_LIMITS.text).optional(),
   /** 대화 캡처 (선택) */
   image: CoachImageSchema.optional(),
   /** 최근 대화 맥락 */
   history: z
     .array(
       z.object({
-        userNote: z.string().optional(),
-        coachSummary: z.string().optional(),
-        chosenReply: z.string().optional(),
+        userNote: clipped(REQUEST_LIMITS.historyNote).optional(),
+        coachSummary: clipped(REQUEST_LIMITS.historySummary).optional(),
+        chosenReply: clipped(REQUEST_LIMITS.historyReply).optional(),
       }),
     )
     .max(8)

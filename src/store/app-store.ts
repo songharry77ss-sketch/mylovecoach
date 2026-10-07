@@ -14,6 +14,7 @@ import type {
   HistoryTurn,
   KktiSaved,
   MindAnswer,
+  MindReading,
   PracticePersona,
   PracticeSession,
   PracticeTurn,
@@ -66,6 +67,8 @@ export interface AppState {
   practice: Record<string, PracticeSession>;
   /** 최근에 본 속마음 풀이 (최근 10개, 최신이 앞) */
   mindHistory: MindAnswer[];
+  /** 속마음 풀이 결과 재사용 — 같은 상황·대상 성별·내 프로필이면 AI 를 다시 부르지 않는다. 키(mindCacheKey) → { reading, at } */
+  mindCache: Record<string, { reading: MindReading; at: number }>;
 
   setHydrated: () => void;
   setUser: (user: UserProfile) => void;
@@ -114,12 +117,18 @@ export interface AppState {
   applyPracticeResult: (sessionId: string, delta: number, mood: string, ended: boolean) => void;
   endPractice: (sessionId: string) => void;
   removePractice: (sessionId: string) => void;
+  /** 속마음 기록에 넣는다. 같은 키(같은 상황·대상·내 프로필)의 예전 기록은 빼서 한 번만 보이게 */
   addMindAnswer: (answer: MindAnswer) => void;
+  getCachedMind: (key: string) => MindReading | null;
+  putCachedMind: (key: string, reading: MindReading) => void;
   resetAll: () => void;
 }
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const CACHE_MAX = 40;
+/** 속마음 풀이는 대화처럼 지나가는 내용이 아니라서 오래 둔다 (새로 풀고 싶으면 「다시 풀이」) */
+const MIND_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const MIND_CACHE_MAX = 60;
 const PRACTICE_MAX = 12;
 export const HEAT_MIN = -20;
 export const HEAT_MAX = 100;
@@ -180,6 +189,7 @@ export const useAppStore = create<AppState>()(
       kkti: null,
       practice: {},
       mindHistory: [],
+      mindCache: {},
 
       setHydrated: () => set({ hydrated: true }),
       setUser: (user) => set({ user }),
@@ -376,11 +386,25 @@ export const useAppStore = create<AppState>()(
           delete practice[sessionId];
           return { practice };
         }),
-      addMindAnswer: (answer) => set((s) => ({ mindHistory: [answer, ...s.mindHistory].slice(0, 10) })),
+      addMindAnswer: (answer) =>
+        set((s) => ({ mindHistory: [answer, ...s.mindHistory.filter((h) => !answer.key || h.key !== answer.key)].slice(0, 10) })),
+      getCachedMind: (key) => {
+        const hit = get().mindCache[key];
+        if (!hit || Date.now() - hit.at > MIND_CACHE_TTL_MS) return null;
+        return hit.reading;
+      },
+      putCachedMind: (key, reading) =>
+        set((s) => {
+          const entries = Object.entries(s.mindCache)
+            .filter(([k, v]) => k !== key && Date.now() - v.at <= MIND_CACHE_TTL_MS)
+            .sort((a, b) => b[1].at - a[1].at)
+            .slice(0, MIND_CACHE_MAX - 1);
+          return { mindCache: { ...Object.fromEntries(entries), [key]: { reading, at: Date.now() } } };
+        }),
       // 구매 상태·이용권·무료 사용량·팀원 여부는 「모든 데이터 삭제」로 지우지 않는다 (구매는 스토어 계정에 묶여 있고, 삭제로 무료 횟수가 초기화되면 안 됨)
       // AI 분석 동의는 처음 상태로 돌려, 다시 AI 를 쓸 때 묻는다
       resetAll: () =>
-        set({ user: null, crushes: {}, messages: {}, hasApiKey: false, analysisCache: {}, kkti: null, practice: {}, mindHistory: [], aiConsent: null, aiConsentProvider: null, aiConsentAt: null }),
+        set({ user: null, crushes: {}, messages: {}, hasApiKey: false, analysisCache: {}, kkti: null, practice: {}, mindHistory: [], mindCache: {}, aiConsent: null, aiConsentProvider: null, aiConsentAt: null }),
     }),
     {
       name: 'mylovecoach.store.v1',
@@ -416,6 +440,7 @@ export const useAppStore = create<AppState>()(
           kkti: s.kkti,
           practice: s.practice,
           mindHistory: s.mindHistory,
+          mindCache: s.mindCache,
         };
       },
       // 저장값은 읽을 때 바로잡는다. version 을 올리면 이전 버전 앱(되돌린 웹 배포 등)이 저장값을 통째로 버리므로 올리지 않는다
@@ -488,6 +513,16 @@ export function buildReportSessions(messages: ChatMessage[], limit = 15) {
   return sessions.slice(-limit);
 }
 
+/**
+ * 마지막 보고서 뒤로 새 코칭 기록이 생겼는지 — 없으면 「다시 분석하기」를 막는다 (같은 기록으로 다시 부르면 비슷한 보고서에 1회만 쓰인다).
+ * 분석 개수가 늘었거나, 채팅을 지운 뒤 다시 쌓은 경우처럼 보고서보다 늦게 생긴 분석이 있으면 새 기록으로 본다. 보고서가 없으면 언제나 true
+ */
+export function hasNewSessionsSince(report: { at: number; basedOn: number } | undefined, messages: ChatMessage[]): boolean {
+  if (!report) return true;
+  const analyzed = messages.filter((m) => m.analysis);
+  return analyzed.length > report.basedOn || analyzed.some((m) => m.createdAt > report.at);
+}
+
 /** 채팅방 목록 정렬 (최근 활동순). 셀렉터 안에서 새 배열을 만들면 무한 렌더가 나므로 useMemo 로 감싸 사용 */
 export const sortCrushes = (crushes: Record<string, Crush>): Crush[] =>
   Object.values(crushes).sort((a, b) => (b.lastMessageAt ?? b.updatedAt) - (a.lastMessageAt ?? a.updatedAt));
@@ -503,4 +538,9 @@ export function quickHash(input: string): string {
 
 export function analysisCacheKey(parts: { crushId: string; tone: string; text: string; imageBase64?: string; variation?: boolean; emoji?: string }): string {
   return quickHash([parts.crushId, parts.tone, parts.text.trim(), parts.imageBase64 ?? '', parts.variation ? 'v' : '', parts.emoji ?? ''].join('\u0001'));
+}
+
+/** 속마음 풀이 재사용 키 — AI 에 보내는 것(상황 글·대상 성별·묻는 사람의 성별·나이·MBTI)이 같으면 같은 키 */
+export function mindCacheKey(parts: { situation: string; perspective: string; user?: { gender: string; age?: number; mbti?: string } }): string {
+  return quickHash(['mind', parts.situation.trim(), parts.perspective, parts.user?.gender ?? '', parts.user?.age ?? '', parts.user?.mbti ?? ''].join('\u0001'));
 }

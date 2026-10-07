@@ -25,6 +25,7 @@ import {
   GENDER_KO,
   GenderSchema,
   RELATIONSHIP_KO,
+  REQUEST_LIMITS,
   RelationshipSchema,
   TemperatureSchema,
   UserRequestSchema,
@@ -63,14 +64,14 @@ export const MindRequestSchema = z.object({
   situation: z.string().min(2).max(600),
   /** 속마음을 알고 싶은 사람의 성별 */
   perspective: GenderSchema,
-  user: z.object({ gender: GenderSchema, age: z.number().optional(), mbti: z.string().optional() }).optional(),
+  user: z.object({ gender: GenderSchema, age: z.number().optional(), mbti: z.string().max(REQUEST_LIMITS.mbti).optional() }).optional(),
   crush: z
     .object({
       name: z.string().max(20).optional(),
       age: z.number().optional(),
-      mbti: z.string().optional(),
+      mbti: z.string().max(REQUEST_LIMITS.mbti).optional(),
       relationship: RelationshipSchema.optional(),
-      style: z.array(z.string()).max(8).optional(),
+      style: z.array(z.string().max(REQUEST_LIMITS.tag)).max(8).optional(),
     })
     .optional(),
 });
@@ -83,7 +84,7 @@ export const PracticeRequestSchema = z.object({
     age: z.number(),
     mbti: z.string().max(4),
     job: z.string().max(30),
-    style: z.array(z.string()).max(8),
+    style: z.array(z.string().max(REQUEST_LIMITS.tag)).max(8),
     relationship: RelationshipSchema,
     scenario: z.string().max(300),
     speech: z.enum(['polite', 'casual']),

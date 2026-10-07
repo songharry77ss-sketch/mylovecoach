@@ -41,6 +41,26 @@ API 와 브라우저로 할 수 있는 건 전부 끝났습니다. 🙋 표시�
 
 > Before any AI feature sends data, the app shows a consent sheet explaining what is sent (chat screenshots, typed text, profile details of the user and the other person, recent coaching history), who receives it (Google LLC's Gemini API through our relay server hosted on Vercel, or the provider of the user's own API key), why, and how it is kept. Nothing is sent unless the user taps "동의하고 계속" (Agree and continue). If the user declines, AI features stay off and everything else keeps working. Consent can be withdrawn at any time in My tab → "AI 분석 동의" (AI analysis consent).
 
+## AI 비용
+
+유료 등급에서는 남용이 곧 비용입니다. 서버에 입력 길이·캡처 크기 상한(넘으면 400·413, AI 를 부르지 않음)이 들어갔지만, 실제 지출을 막는 건 Google 쪽 상한입니다.
+
+| 순서 | 할 일 | 누가 |
+|---|---|---|
+| 1 | **유료(결제 연결)로 바꾸기 전에** AI Studio → 서버 키의 프로젝트 → **Spend** 에서 월 지출 상한부터 정함 (반영까지 약 10분). 결제 등급별 상한(Tier 1 약 $250)과 따로 둔다 | 🙋 화면 |
+| 2 | 비용 스위치는 **기본이 지금 동작 그대로**. 바꾸려면 저장소 변수에 넣고 `gh workflow run vercel.yml` — `GEMINI_MODEL` · `GEMINI_MODEL_LIGHT` · `GEMINI_THINKING_COACH`/`_REPORT`/`_MIND`/`_PRACTICE` · `GEMINI_OMIT_TEMPERATURE` (뜻은 `docs/RELEASE_GUIDE.md` 「AI 비용 스위치」) | 코드 |
+| 3 | 스위치를 켜기 전에 **A/B 비교**를 PC 에서 직접 실행 (실제 Gemini 를 불러 기본 조합 60번에 약 $0.4~0.7). 테스트·배포에서는 돌지 않는다 | 🙋 PC |
+| 4 | 바꾼 뒤 Vercel 로그의 `"log":"coach_api"` 줄로 토큰(입력·생각·출력·캐시)·재시도·`MAX_TOKENS` 를 확인 | 코드 |
+
+```bash
+# 예시 입력은 모두 지어낸 것. 보고서(.md)는 임시 폴더에 저장되고 경로가 마지막에 나온다
+GEMINI_API_KEY=AIza... npx tsx scripts/ab-models.ts
+GEMINI_API_KEY=AIza... npx tsx scripts/ab-models.ts --models gemini-3.5-flash,gemini-3.6-flash --thinking low,minimal --modes mind,practice
+GEMINI_API_KEY=AIza... npx tsx scripts/ab-models.ts --image ./가짜캡처.png --out ./ab.md   # 캡처는 남의 대화가 아닌 지어낸 것으로
+```
+
+보고서에는 조합별 평균 토큰·시간·예상 비용(1,000회당)과, 예시마다 조합별 결과가 나란히 들어갑니다. 답장의 호칭·말투·자연스러움을 사람이 읽고 고른 뒤 스위치를 바꿉니다.
+
 ## App Store — 심사 대기 (2026-10-05 21:03 제출)
 
 | 항목 | 상태 |

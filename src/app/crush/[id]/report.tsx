@@ -25,7 +25,7 @@ import { relativeTime } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
 import { relationshipLabel } from '@/lib/labels';
 import type { CrushReport, HeatPoint } from '@/lib/types';
-import { buildReportSessions, useAppStore } from '@/store/app-store';
+import { buildReportSessions, hasNewSessionsSince, useAppStore } from '@/store/app-store';
 
 const REPORT_PHRASES = ['지금까지의 대화를 모으는 중…', '호감 신호를 고르는 중…', '그 사람의 연락 패턴을 보는 중…', '공략법을 정리하는 중…', '궁합 점수를 계산하는 중…', '거의 다 됐어요!'];
 
@@ -57,10 +57,12 @@ export default function CrushReportScreen() {
   const log = crush.heatLog ?? [];
   const peak = log.reduce((m, p) => Math.max(m, p.value), heat);
   const report = crush.report;
-  const stale = report && analyzed > report.basedOn;
+  // 지난 보고서 뒤로 새 코칭 기록이 없으면 다시 분석해도 같은 기록이라 막는다 (첫 보고서는 언제나 만들 수 있다)
+  const stale = Boolean(report) && hasNewSessionsSince(report, messages ?? []);
   const rel = relationshipLabel(crush.relationship);
 
   const generate = async () => {
+    if (report && !stale) return;
     haptic.thud();
     const result = await run(
       'report',
@@ -171,7 +173,12 @@ export default function CrushReportScreen() {
           <AppText variant="caption" color="textTertiary" align="center">
             {relativeTime(report.at)}에 {report.basedOn}번의 코칭 기록으로 만들었어요
           </AppText>
-          <Button title={stale ? '새 대화까지 반영해 다시 분석' : '다시 분석하기'} variant={stale ? 'primary' : 'soft'} onPress={generate} />
+          <Button title={stale ? '새 대화까지 반영해 다시 분석' : '다시 분석하기'} variant={stale ? 'primary' : 'soft'} onPress={generate} disabled={!stale} />
+          {!stale ? (
+            <AppText variant="caption" color="textTertiary" align="center">
+              새 대화를 코칭받으면 다시 분석할 수 있어요
+            </AppText>
+          ) : null}
         </View>
       ) : null}
     </Screen>
