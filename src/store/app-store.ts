@@ -51,6 +51,8 @@ export interface AppState {
   team: TeamState | null;
   /** 가입한 회원이면 그 정보. null 이면 비회원 */
   member: MemberState | null;
+  /** 「내 기기 ID」를 눌러 팀원 등록을 하려는 기기 — 이때부터 팀원 여부를 서버에 묻는다 */
+  teamCheck: boolean;
   /** 채팅 하단의 프리미엄 안내 카드를 닫았는지 */
   upsellDismissed: boolean;
   /** 기기 구분용 무작위 ID (광고 ID 아님, 이용 기록 수집에만 사용) */
@@ -101,6 +103,7 @@ export interface AppState {
   setMember: (member: MemberState | null) => void;
   /** 가입 보너스 지급 (같은 회원에게 한 번). 지급했으면 true */
   grantSignupBonus: (userId: string) => boolean;
+  enableTeamCheck: () => void;
   /** 하루 이용권·횟수권 결제 1건 충전. 이미 충전한 거래면 무시하고 false */
   grantConsumable: (plan: ConsumablePlanKey, transactionId: string) => boolean;
   /** AI 를 한 번 쓴 만큼 차감 (무료 → 횟수권 순, 프리미엄·하루 이용권은 차감 없음) */
@@ -147,6 +150,7 @@ export const useAppStore = create<AppState>()(
       wallet: EMPTY_WALLET,
       team: null,
       member: null,
+      teamCheck: false,
       upsellDismissed: false,
       deviceId: createId('d_'),
       analyticsConsent: null,
@@ -292,6 +296,7 @@ export const useAppStore = create<AppState>()(
         set({ wallet: next });
         return true;
       },
+      enableTeamCheck: () => set({ teamCheck: true }),
       grantConsumable: (plan, transactionId) => {
         const next = grantConsumable(get().wallet, plan, transactionId, Date.now());
         if (!next) return false;
@@ -384,6 +389,7 @@ export const useAppStore = create<AppState>()(
           wallet: s.wallet,
           team: s.team,
           member: s.member,
+          teamCheck: s.teamCheck,
           upsellDismissed: s.upsellDismissed,
           deviceId: s.deviceId,
           analyticsConsent: s.analyticsConsent,

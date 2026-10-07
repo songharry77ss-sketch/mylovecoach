@@ -13,12 +13,12 @@ import { SectionHeader } from '@/components/ui/section-header';
 import { useToast } from '@/components/ui/toast';
 import { Spacing } from '@/constants/theme';
 import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
-import { flushAnalytics, setConsent as setAnalyticsConsentFlag, track } from '@/lib/analytics';
+import { requestServerDeletion, setConsent as setAnalyticsConsentFlag, track } from '@/lib/analytics';
 import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { billingSupported, openSubscriptionManagement, restorePremium } from '@/lib/billing/iap';
 import { quotaLabel } from '@/lib/billing/quota';
 import { refreshTeam } from '@/lib/billing/team';
-import { deleteAccount, providerLabel, signOut } from '@/lib/auth';
+import { deleteAccount, providerLabel, SessionMissing, signOut } from '@/lib/auth';
 import { SIGNUP_BONUS } from '@/lib/billing/plans';
 import { authAvailable } from '@/lib/supabase';
 import { APP_CONFIG } from '@/lib/config';
@@ -141,6 +141,13 @@ export default function MyScreen() {
         haptic.heavy();
         toast.show('탈퇴했어요. 그동안 고마웠어요.');
       } catch (e) {
+        if (e instanceof SessionMissing) {
+          // 로그인이 끝난 기기 — 다시 로그인하면 이 메뉴에서 이어서 탈퇴할 수 있다
+          useAppStore.getState().setMember(null);
+          toast.show('로그인이 끝났어요. 다시 로그인한 뒤 탈퇴해주세요.', 'error');
+          router.push('/signup');
+          return;
+        }
         toast.show(e instanceof Error ? e.message : '탈퇴를 마치지 못했어요. 잠시 후 다시 시도해주세요.', 'error');
       }
     });
@@ -169,6 +176,9 @@ export default function MyScreen() {
     await Clipboard.setStringAsync(deviceId);
     haptic.tap();
     toast.show('기기 ID를 복사했어요. 팀원 등록이 필요하면 관리자에게 보내 주세요.', 'success');
+    // 팀원 등록을 하려는 기기만 팀원 여부를 서버에 묻는다
+    useAppStore.getState().enableTeamCheck();
+    refreshTeam({ force: true }).catch(() => {});
   };
   const walletNote = [wallet.credits > 0 ? `횟수권 ${wallet.credits}회` : null].filter(Boolean).join(' · ');
 
@@ -279,7 +289,7 @@ export default function MyScreen() {
       <ListRow
         icon="bar-chart-outline"
         title="이용 기록 수집 (선택)"
-        subtitle="서비스 개선에만 사용해요. 캡처 이미지는 저장하지 않아요."
+        subtitle="켜면 코칭 질문·답과 화면 이용 기록이 서비스 개선을 위해 서버에 1년 보관돼요. 끄면 서버 기록도 지워요. 캡처 이미지는 저장하지 않아요."
         right={
           <Switch
             value={analyticsConsent === true}
@@ -289,12 +299,14 @@ export default function MyScreen() {
                 setAnalyticsConsentFlag(true);
                 track('analytics_opt_in');
               } else {
-                track('analytics_opt_out');
-                flushAnalytics(true);
+                // 끄면 더 보내지 않고(대기 중인 기록도 버림), 서버에 남은 이 기기의 기록을 지워 달라고 한다.
+                // 이미 보내는 중이던 기록이 먼저 저장되도록 잠시 뒤에 지운다
                 setAnalyticsConsentFlag(false);
                 setAnalyticsConsent(false);
+                const id = useAppStore.getState().deviceId;
+                setTimeout(() => requestServerDeletion(id), 3000);
               }
-              toast.show(v ? '이용 기록 수집을 켰어요.' : '이용 기록 수집을 껐어요.');
+              toast.show(v ? '이용 기록 수집을 켰어요.' : '이용 기록 수집을 껐어요. 서버에 남은 기록도 지울게요.');
             }}
           />
         }
@@ -311,7 +323,7 @@ export default function MyScreen() {
       <ListRow icon="information-circle-outline" title="앱 버전" value={Constants.expoConfig?.version ?? '1.0.0'} />
       <ListRow icon="finger-print-outline" title="내 기기 ID" subtitle="문의·팀원 등록용 · 눌러서 복사" value={deviceId} onPress={copyDeviceId} />
 
-      <SectionHeader title="데이터" subtitle="모든 데이터는 이 기기에만 저장돼요" />
+      <SectionHeader title="데이터" subtitle={analyticsConsent === true ? '채팅방·캡처·프로필은 이 기기에 저장돼요 (이용 기록은 서버에도 보관)' : '채팅방·캡처·프로필은 이 기기에만 저장돼요'} />
       <ListRow icon="trash-outline" title="모든 데이터 삭제" destructive onPress={confirmReset} />
     </Screen>
   );

@@ -12,12 +12,22 @@ import { isDemoMode } from '@/lib/demo';
 const url = (process.env.EXPO_PUBLIC_SUPABASE_URL ?? '').replace(/\/+$/, '');
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
+/** 로그인 세션을 저장하는 키 (supabase-js 기본값과 같은 이름) — 오프라인 로그아웃 때 직접 지우는 데 쓴다 */
+export const authStorageKey = (() => {
+  try {
+    return url ? `sb-${new URL(url).hostname.split('.')[0]}-auth-token` : '';
+  } catch {
+    return '';
+  }
+})();
+
 export const supabase: SupabaseClient | null =
   url && anonKey && !isDemoMode
     ? createClient(url, anonKey, {
         auth: {
           // 웹은 기본 저장소(localStorage), 앱은 AsyncStorage
           ...(Platform.OS === 'web' ? {} : { storage: AsyncStorage, lock: processLock }),
+          ...(authStorageKey ? { storageKey: authStorageKey } : {}),
           autoRefreshToken: true,
           persistSession: true,
           detectSessionInUrl: Platform.OS === 'web',

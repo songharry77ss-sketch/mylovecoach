@@ -1,26 +1,47 @@
 /**
- * POST /api/track — 앱이 보낸 이용 기록을 Supabase 에 저장합니다.
- * 「서비스 개선을 위한 이용 기록 수집」에 동의한 이용자의 앱만 호출합니다.
- * 환경변수 SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 가 없거나 ANALYTICS_ENABLED=1 이 아니면 조용히 204 를 돌려줍니다.
+ * 이용 기록 API
+ *   POST   /api/track — 앱이 보낸 이용 기록을 Supabase 에 저장합니다.
+ *   DELETE /api/track { deviceId } — 이용 기록 수집을 끈 기기의 서버 기록을 지웁니다 (처리방침 「동의 철회 시 지체 없이 파기」).
+ *
+ * 저장 조건: 첫 화면 체크박스를 이용자가 직접 눌러 동의한 앱(consentVersion ≥ 2)만 저장합니다.
+ * 판 표시가 없는 예전 동의(미리 체크된 체크박스)는 받기만 하고 저장하지 않습니다(204).
+ * SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 가 없거나 ANALYTICS_ENABLED=1 이 아니어도 조용히 204 입니다.
+ *
+ * 남용 막기: 앱 토큰은 공개 번들에 들어 있어 사실상 누구나 부를 수 있으므로
+ * 본문 64KB · 이벤트 120개 · props 는 원시값 12개(문자열 200자)까지 · IP 당 5분 60회로 제한하고,
+ * 시각은 최근 7일 안으로, 화면 체류는 30분, 세션은 6시간으로 자릅니다.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
 
-import { analyticsEnabled, insert, patch } from './_supabase';
+import { bodyTooLarge, clientIp, rateLimited } from './_limits';
+import { analyticsEnabled, consentVersionOk, DEVICE_ID, insert, patch, rpc, supabaseReady } from './_supabase';
 
 export const config = { maxDuration: 15 };
+
+const MAX_BODY_BYTES = 64 * 1024;
+const RATE_MAX = 60;
+const RATE_WINDOW_MS = 5 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const MAX_SCREEN_MS = 30 * 60 * 1000;
+const MAX_SESSION_MS = 6 * 60 * 60 * 1000;
+const MAX_PROP_KEYS = 12;
+const MAX_PROP_STRING = 200;
+const SESSION_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 const EventSchema = z.object({
   type: z.enum(['screen', 'event']),
   name: z.string().min(1).max(120),
-  durationMs: z.number().int().nonnegative().max(86_400_000).optional(),
-  props: z.record(z.string(), z.unknown()).optional(),
-  at: z.number().int().optional(),
+  durationMs: z.number().optional(),
+  props: z.unknown().optional(),
+  at: z.number().optional(),
 });
 
 const BodySchema = z.object({
-  deviceId: z.string().min(6).max(64),
-  sessionId: z.string().min(1).max(64),
+  deviceId: z.string().regex(DEVICE_ID),
+  sessionId: z.string().regex(SESSION_ID),
+  /** 동의를 받은 방식의 판 (앱 store 의 analyticsConsentVersion). 없으면 예전 미리 체크 방식 */
+  consentVersion: z.number().int().nullable().optional(),
   platform: z.string().max(16).optional(),
   appVersion: z.string().max(32).optional(),
   user: z
@@ -48,16 +69,47 @@ const BodySchema = z.object({
     .nullable()
     .optional(),
   crushCount: z.number().int().min(0).max(9999).optional(),
-  sessionStartedAt: z.number().int().optional(),
-  sessionDurationMs: z.number().int().nonnegative().optional(),
+  sessionStartedAt: z.number().optional(),
+  sessionDurationMs: z.number().optional(),
   endSession: z.boolean().optional(),
   events: z.array(EventSchema).max(120).default([]),
 });
 
+/** props 는 짧은 원시값만 남긴다 (중첩 객체·긴 문자열로 저장소를 채우지 못하게) */
+export function cleanProps(input: unknown): Record<string, string | number | boolean | null> | null {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return null;
+  const out: Record<string, string | number | boolean | null> = {};
+  for (const [rawKey, value] of Object.entries(input as Record<string, unknown>).slice(0, MAX_PROP_KEYS)) {
+    const key = rawKey.slice(0, 40);
+    if (value === null || typeof value === 'boolean') out[key] = value;
+    else if (typeof value === 'number') {
+      if (Number.isFinite(value)) out[key] = value;
+    } else if (typeof value === 'string') out[key] = value.slice(0, MAX_PROP_STRING);
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+/** 앱이 보낸 시각이 최근 7일 ~ 10분 뒤 안이면 그대로, 아니면 서버 시각 */
+export function clampAt(ms: number | undefined, nowMs: number): number {
+  return typeof ms === 'number' && Number.isFinite(ms) && ms > nowMs - 7 * DAY_MS && ms < nowMs + 10 * 60 * 1000 ? ms : nowMs;
+}
+
+const clampDuration = (ms: number | undefined, max: number): number | null =>
+  typeof ms === 'number' && Number.isFinite(ms) ? Math.round(Math.min(Math.max(ms, 0), max)) : null;
+
+function parseBody(req: VercelRequest): unknown {
+  if (typeof req.body !== 'string') return req.body;
+  try {
+    return JSON.parse(req.body || '{}');
+  } catch {
+    return null;
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('cache-control', 'no-store');
-  if (req.method !== 'POST') {
-    res.status(405).json({ error: 'POST만 지원합니다.' });
+  if (req.method !== 'POST' && req.method !== 'DELETE') {
+    res.status(405).json({ error: 'POST·DELETE만 지원합니다.' });
     return;
   }
   const expectedToken = process.env.COACH_APP_TOKEN;
@@ -65,19 +117,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(401).end();
     return;
   }
+  if (bodyTooLarge(req, MAX_BODY_BYTES)) {
+    res.status(413).json({ error: '요청이 너무 커요.' });
+    return;
+  }
+  if (rateLimited('track', clientIp(req), RATE_MAX, RATE_WINDOW_MS)) {
+    res.status(429).json({ error: '잠시 후 다시 보내 주세요.' });
+    return;
+  }
+
+  if (req.method === 'DELETE') {
+    const deviceId = (parseBody(req) as { deviceId?: unknown } | null)?.deviceId;
+    if (typeof deviceId !== 'string' || !DEVICE_ID.test(deviceId)) {
+      res.status(400).json({ error: '기기 ID 형식이 올바르지 않아요.' });
+      return;
+    }
+    // 수집을 꺼 둔 상태(ANALYTICS_ENABLED 꺼짐)여도 이미 저장된 기록은 지운다
+    if (!supabaseReady()) {
+      res.status(204).end();
+      return;
+    }
+    const done = await rpc('delete_device', { p_device: deviceId });
+    res.status(done === null ? 502 : 204).end();
+    return;
+  }
+
   if (!analyticsEnabled()) {
     res.status(204).end();
     return;
   }
 
-  const parsed = BodySchema.safeParse(req.body);
+  const parsed = BodySchema.safeParse(parseBody(req));
   if (!parsed.success) {
     res.status(400).json({ error: '형식이 올바르지 않아요.' });
     return;
   }
   const b = parsed.data;
-  const now = new Date().toISOString();
-  const iso = (ms?: number) => (ms ? new Date(ms).toISOString() : now);
+  if (!consentVersionOk(b.consentVersion)) {
+    res.status(204).end();
+    return;
+  }
+
+  const nowMs = Date.now();
+  const now = new Date(nowMs).toISOString();
+  const iso = (ms?: number) => new Date(clampAt(ms, nowMs)).toISOString();
   const userFilter = `device_id=eq.${encodeURIComponent(b.deviceId)}`;
   const acq = b.acquisition;
   const source = acq ? acq.source || acq.referrer || acq.channel || null : null;
@@ -127,7 +210,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         platform: b.platform ?? null,
         app_version: b.appVersion ?? null,
         started_at: iso(b.sessionStartedAt),
-        ...(b.endSession ? { ended_at: now, duration_ms: b.sessionDurationMs ?? null } : {}),
+        ...(b.endSession ? { ended_at: now, duration_ms: clampDuration(b.sessionDurationMs, MAX_SESSION_MS) } : {}),
       },
       { upsert: true },
     ),
@@ -140,7 +223,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           device_id: b.deviceId,
           session_id: toUuid(b.sessionId),
           screen: e.name,
-          duration_ms: e.durationMs ?? null,
+          duration_ms: clampDuration(e.durationMs, MAX_SCREEN_MS),
           created_at: iso(e.at),
         })),
     ),
@@ -153,7 +236,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           device_id: b.deviceId,
           session_id: toUuid(b.sessionId),
           name: e.name,
-          props: e.props ?? null,
+          props: cleanProps(e.props),
           created_at: iso(e.at),
         })),
     ),

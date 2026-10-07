@@ -1,27 +1,29 @@
 /**
- * 관리자 API — 비밀번호(ADMIN_TOKEN)로 보호됩니다.
- *   GET  /api/admin?days=7&limit=50                          → 집계 + 최근 코칭 기록 + 팀원 명단
- *   GET  /api/admin?view=users&days=30                       → 이용자 목록 (유입·시작 방식·체류·코칭 수)
- *   GET  /api/admin?view=user&deviceId=…                     → 한 명의 화면별 체류·이동 경로·코칭 대화·버튼 기록
- *   POST /api/admin { action: 'team_add', deviceId, label } → 팀원 무제한 허용 (같은 기기면 이름만 바뀜)
- *   POST /api/admin { action: 'team_remove', deviceId }     → 허용 해제
- * 인증: Authorization: Bearer <ADMIN_TOKEN> 또는 ?token=<ADMIN_TOKEN>
- * 비밀번호가 짧아도 대입하기 어렵게, 시도를 기록해 같은 IP 15분 5번 · 전체 1시간 20번을 넘으면 잠시 막습니다
- * (맞는 비밀번호로 들어오면 그 IP 의 기록은 지움).
- * 환경변수: ADMIN_TOKEN, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ANALYTICS_ENABLED(이용 기록 저장 여부, 표시용)
+ * 관리자 API — 「등록한 브라우저」 + 비밀번호 두 가지로 보호됩니다.
+ *   GET  /api/admin?days=7&limit=50                            → 집계 + 최근 코칭 기록 + 팀원 명단
+ *   GET  /api/admin?view=users&days=30                         → 이용자 목록 (유입·시작 방식·체류·코칭 수)
+ *   GET  /api/admin?view=user&deviceId=…                       → 한 명의 화면별 체류·이동 경로·코칭 대화·버튼 기록
+ *   POST /api/admin { action: 'team_add', deviceId, label }   → 팀원 무제한 허용 (같은 기기면 이름만 바뀜)
+ *   POST /api/admin { action: 'team_remove', deviceId }       → 허용 해제
+ *   POST /api/admin { action: 'device_delete', deviceId }     → 그 기기의 이용 기록 전부 삭제 (삭제 요청 처리)
+ * 인증:
+ *   ① x-admin-device: <ADMIN_DEVICE_SECRET> — 긴 무작위 값. `node tools/admin-enroll.mjs` 로 연 등록 링크가 브라우저에 한 번 저장한다.
+ *      이 값이 없으면 데이터베이스를 건드리지 않고 바로 401 (익명 요청으로 관리자를 잠그거나 비밀번호를 맞춰 볼 수 없음)
+ *   ② Authorization: Bearer <ADMIN_TOKEN> — 사장님이 정한 짧은 비밀번호. 등록된 브라우저에서도 같은 IP 15분 10번 틀리면 잠시 막음
+ *      (맞는 비밀번호로 들어오면 그 IP 의 기록은 지움).
+ * 환경변수: ADMIN_TOKEN, ADMIN_DEVICE_SECRET, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ANALYTICS_ENABLED(표시용)
  */
 import { createHash, timingSafeEqual } from 'node:crypto';
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+import { clientIp } from './_limits';
 import { analyticsEnabled, DEVICE_ID, insert, query, remove, rpc, select, supabaseReady } from './_supabase';
 
 export const config = { maxDuration: 30 };
 
 const IP_WINDOW_MS = 15 * 60 * 1000;
-const IP_MAX_FAILS = 5;
-const ALL_WINDOW_MS = 60 * 60 * 1000;
-const ALL_MAX_FAILS = 20;
+const IP_MAX_FAILS = 10;
 
 interface CoachRow {
   created_at: string;
@@ -43,29 +45,19 @@ interface TeamRow {
   created_at: string;
 }
 
-function clientIp(req: VercelRequest): string {
-  const fwd = req.headers['x-forwarded-for'];
-  const first = (Array.isArray(fwd) ? fwd[0] : (fwd ?? '')).split(',')[0]?.trim();
-  const real = req.headers['x-real-ip'];
-  return (first || (typeof real === 'string' ? real : '') || 'unknown').slice(0, 64);
-}
-
 const digest = (s: string) => createHash('sha256').update(s).digest();
 const sameSecret = (a: string, b: string) => timingSafeEqual(digest(a), digest(b));
 
 /**
- * 이번 시도를 먼저 기록한 뒤 최근 시도 수를 센다 (한꺼번에 여러 요청을 보내도 함께 세어지도록).
- * 맞는 비밀번호로 들어오면 그 IP 의 기록은 지운다. 기록을 못 읽으면 'unavailable' (스키마 미적용 등)
+ * 등록된 브라우저에서 온 요청만 여기까지 온다. 이번 시도를 먼저 기록한 뒤 그 IP 의 최근 시도 수를 센다
+ * (한꺼번에 여러 요청을 보내도 함께 세어지도록). 기록을 못 읽으면 'unavailable' (스키마 미적용 등)
  */
 async function loginGate(ip: string, now: number): Promise<'ok' | 'locked' | 'unavailable'> {
   await insert('admin_auth_fail', { ip });
-  const since = (ms: number) => encodeURIComponent(new Date(now - ms).toISOString());
-  const [byIp, all] = await Promise.all([
-    query<{ id: number }>('admin_auth_fail', `select=id&ip=eq.${encodeURIComponent(ip)}&created_at=gte.${since(IP_WINDOW_MS)}&limit=${IP_MAX_FAILS + 1}`),
-    query<{ id: number }>('admin_auth_fail', `select=id&created_at=gte.${since(ALL_WINDOW_MS)}&limit=${ALL_MAX_FAILS + 1}`),
-  ]);
-  if (!byIp || !all) return 'unavailable';
-  return byIp.length > IP_MAX_FAILS || all.length > ALL_MAX_FAILS ? 'locked' : 'ok';
+  const since = encodeURIComponent(new Date(now - IP_WINDOW_MS).toISOString());
+  const byIp = await query<{ id: number }>('admin_auth_fail', `select=id&ip=eq.${encodeURIComponent(ip)}&created_at=gte.${since}&limit=${IP_MAX_FAILS + 1}`);
+  if (!byIp) return 'unavailable';
+  return byIp.length > IP_MAX_FAILS ? 'locked' : 'ok';
 }
 
 const listTeam = () => select<TeamRow>('team_member', 'select=device_id,label,created_at&order=created_at.desc&limit=200');
@@ -94,6 +86,8 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
     ok = await insert('team_member', { device_id: deviceId, label }, { upsert: true });
   } else if (body.action === 'team_remove') {
     ok = await remove('team_member', `device_id=eq.${encodeURIComponent(deviceId)}`);
+  } else if (body.action === 'device_delete') {
+    ok = (await rpc('delete_device', { p_device: deviceId })) !== null;
   } else {
     res.status(400).json({ error: '알 수 없는 작업이에요.' });
     return;
@@ -109,8 +103,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('cache-control', 'no-store');
 
   const expected = process.env.ADMIN_TOKEN;
-  if (!expected) {
-    res.status(500).json({ error: 'ADMIN_TOKEN 환경변수가 설정되지 않았어요.' });
+  const deviceSecret = process.env.ADMIN_DEVICE_SECRET;
+  if (!expected || !deviceSecret) {
+    res.status(500).json({ error: 'ADMIN_TOKEN · ADMIN_DEVICE_SECRET 환경변수가 설정되지 않았어요.' });
+    return;
+  }
+  // ① 등록된 브라우저인지 먼저 본다 — 데이터베이스를 건드리기 전에 걸러서, 익명 요청이 잠금 기록을 쌓지 못하게 한다
+  const device = req.headers['x-admin-device'];
+  if (typeof device !== 'string' || !sameSecret(device, deviceSecret)) {
+    res.status(401).json({ error: '이 브라우저는 관리자 기기로 등록되지 않았어요. 컴퓨터에서 `node tools/admin-enroll.mjs` 로 등록 링크를 한 번 열어 주세요.', code: 'device' });
     return;
   }
   // 틀린 시도를 세려면 데이터베이스가 있어야 하므로, 연결 전에는 비밀번호 확인 자체를 하지 않는다
@@ -126,12 +127,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
   if (gate === 'locked') {
-    res.status(429).json({ error: '비밀번호를 여러 번 틀려 잠시 잠겼어요. 15분~1시간 뒤에 다시 시도해주세요.' });
+    res.status(429).json({ error: '비밀번호를 여러 번 틀려 잠시 잠겼어요. 15분 뒤에 다시 시도해주세요.' });
     return;
   }
 
+  // ② 비밀번호 — 주소(?token=)로는 받지 않는다 (방문 기록·로그에 남지 않게)
   const header = req.headers.authorization ?? '';
-  const provided = header.startsWith('Bearer ') ? header.slice(7) : String(req.query.token ?? '');
+  const provided = header.startsWith('Bearer ') ? header.slice(7) : '';
   if (!sameSecret(provided, expected)) {
     res.status(401).json({ error: '관리자 비밀번호가 올바르지 않아요.' });
     return;

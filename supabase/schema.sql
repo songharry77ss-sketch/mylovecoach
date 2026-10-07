@@ -116,6 +116,33 @@ create table if not exists member (
 create index if not exists member_device_idx on member (device_id);
 create unique index if not exists member_bonus_device_idx on member (bonus_device) where bonus_device is not null;
 alter table app_user add column if not exists user_id uuid;   -- 가입한 회원이면 그 id
+create index if not exists app_user_user_idx on app_user (user_id) where user_id is not null;
+
+-- 탈퇴한 회원이 가입 보너스를 받은 기기 — 같은 기기로 다시 가입해 보너스를 또 받지 않게, 탈퇴 후 1년만 보관
+create table if not exists bonus_spent (
+  device_id    text primary key,
+  bonus_at     timestamptz,
+  withdrawn_at timestamptz not null default now()
+);
+
+-- 처음 기록되는 기기가 이미 회원과 이어진 기기면(가입 뒤에 이용 기록을 켠 경우) 그 회원으로 표시
+create or replace function app_user_member()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.user_id is null then
+    select user_id into new.user_id from member
+     where device_id = new.device_id and provider is not null
+     order by last_login_at desc limit 1;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists app_user_member on app_user;
+create trigger app_user_member before insert on app_user for each row execute function app_user_member();
 
 -- 로그인할 때마다: 회원을 만들거나 갱신하고, 기기와 잇고, 처음이면 보너스 (회원당·기기당 한 번)
 create or replace function member_link(p_user uuid, p_provider text, p_nickname text, p_email text, p_device text)
@@ -133,12 +160,15 @@ begin
   values (p_user, p_provider, p_nickname, p_email, p_device)
   on conflict (user_id) do update
     set last_login_at = now(),
+        provider      = coalesce(excluded.provider, member.provider),
         device_id     = coalesce(excluded.device_id, member.device_id),
         nickname      = coalesce(member.nickname, excluded.nickname),
         email         = coalesce(excluded.email, member.email)
   returning (xmax = 0) into v_new;
 
-  if p_device is not null and not exists (select 1 from member where bonus_device = p_device) then
+  if p_device is not null
+     and not exists (select 1 from member where bonus_device = p_device)
+     and not exists (select 1 from bonus_spent where device_id = p_device) then
     begin
       update member set bonus_device = p_device, bonus_at = now() where user_id = p_user and bonus_at is null;
       v_bonus := found;
@@ -147,15 +177,18 @@ begin
     end;
   end if;
 
+  -- 이 기기의 이용 기록을 회원과 잇는다. 이미 다른 회원과 이어진 기기는 건드리지 않는다
   if p_device is not null then
-    update app_user set user_id = p_user where device_id = p_device;
+    update app_user set user_id = p_user where device_id = p_device and (user_id is null or user_id = p_user);
   end if;
 
   select * into m from member where user_id = p_user;
   return json_build_object('new', v_new, 'bonus', v_bonus, 'provider', m.provider, 'nickname', m.nickname, 'created_at', m.created_at);
 end $$;
 
--- 회원 탈퇴: 회원 기록과, 그 회원이 쓴 기기들의 이용 기록을 지운다 (로그인 계정은 서버가 Auth API 로 지움)
+-- 회원 탈퇴: 회원 기록과, 이 회원과 이어진 기기들의 이용 기록을 지운다 (로그인 계정은 서버가 Auth API 로 지움).
+-- 앱이 알려 준 기기 ID(member.device_id) 만으로는 지우지 않는다 — 서버에서 이 회원과 이어진 기기만.
+-- 다시 실행해도 안전하다 (지울 것이 없으면 아무 일도 하지 않음)
 create or replace function member_delete(p_user uuid)
 returns void
 language plpgsql
@@ -165,11 +198,7 @@ as $$
 declare
   v_devices text[];
 begin
-  select array_agg(distinct d) into v_devices from (
-    select device_id as d from member where user_id = p_user and device_id is not null
-    union select bonus_device from member where user_id = p_user and bonus_device is not null
-    union select device_id from app_user where user_id = p_user
-  ) x;
+  select array_agg(device_id) into v_devices from app_user where user_id = p_user;
   if v_devices is not null then
     delete from coach_log   where device_id = any (v_devices);
     delete from app_event   where device_id = any (v_devices);
@@ -177,9 +206,11 @@ begin
     delete from app_session where device_id = any (v_devices);
     delete from app_user    where device_id = any (v_devices);
   end if;
-  -- 보너스 기록은 남겨 같은 기기로 다시 가입해도 보너스를 또 받지 않게 한다 (개인정보는 비움)
-  update member set provider = null, nickname = null, email = null, device_id = null where user_id = p_user and bonus_device is not null;
-  delete from member where user_id = p_user and bonus_device is null;
+  -- 같은 기기로 다시 가입해 보너스를 또 받지 않게, 보너스를 준 기기 ID 와 지급 시각만 따로 1년 보관
+  insert into bonus_spent (device_id, bonus_at)
+  select bonus_device, bonus_at from member where user_id = p_user and bonus_device is not null
+  on conflict (device_id) do nothing;
+  delete from member where user_id = p_user;
 end $$;
 
 -- ── 관리자 로그인 시도 (비밀번호 대입 방지, 성공하면 그 IP 기록은 지움) ─
@@ -199,6 +230,7 @@ alter table app_event       enable row level security;
 alter table team_member     enable row level security;
 alter table admin_auth_fail enable row level security;
 alter table member          enable row level security;
+alter table bonus_spent     enable row level security;
 
 -- ── 관리자 대시보드용 집계 ────────────────────────────────────────────
 -- 화면 경로의 채팅방·연습 ID 를 묶는다 (/crush/c_abc123 → /crush/[id])
@@ -214,7 +246,11 @@ language sql
 security definer
 set search_path = public
 as $$
-  with span as (select now() - make_interval(days => greatest(p_days, 1)) as since)
+  -- 「오늘」(1일)은 한국 시간 자정부터, 그 밖은 지금부터 N일 전부터. 날짜별 묶음도 한국 시간 기준
+  with span as (
+    select case when p_days <= 1 then date_trunc('day', now() at time zone 'Asia/Seoul') at time zone 'Asia/Seoul'
+                else now() - make_interval(days => p_days) end as since
+  )
   select json_build_object(
     'days', p_days,
     'users_total',    (select count(*) from app_user),
@@ -231,9 +267,9 @@ as $$
       ) p
     ),
     'members_by_day', (
-      select coalesce(json_agg(row_to_json(d) order by d.day), '[]'::json) from (
-        select to_char(date_trunc('day', created_at), 'MM-DD') as day, count(*) as users
-        from member, span where provider is not null and created_at >= span.since group by 1 order by 1
+      select coalesce(json_agg(json_build_object('day', to_char(d.d, 'MM-DD'), 'users', d.users) order by d.d), '[]'::json) from (
+        select (created_at at time zone 'Asia/Seoul')::date as d, count(*) as users
+        from member, span where provider is not null and created_at >= span.since group by 1
       ) d
     ),
     'sessions',       (select count(*) from app_session, span where started_at >= span.since),
@@ -241,10 +277,10 @@ as $$
     'coach_requests', (select count(*) from coach_log,  span where created_at >= span.since),
     'with_image',     (select count(*) from coach_log,  span where created_at >= span.since and has_image),
     'signups_by_day', (
-      select coalesce(json_agg(row_to_json(d) order by d.day), '[]'::json) from (
-        select to_char(date_trunc('day', first_seen_at), 'MM-DD') as day, count(*) as users
+      select coalesce(json_agg(json_build_object('day', to_char(d.d, 'MM-DD'), 'users', d.users) order by d.d), '[]'::json) from (
+        select (first_seen_at at time zone 'Asia/Seoul')::date as d, count(*) as users
         from app_user, span where first_seen_at >= span.since
-        group by 1 order by 1
+        group by 1
       ) d
     ),
     'signup_sources', (
@@ -256,12 +292,12 @@ as $$
       ) s
     ),
     'by_day', (
-      select coalesce(json_agg(row_to_json(d) order by d.day), '[]'::json) from (
-        select to_char(date_trunc('day', created_at), 'MM-DD') as day,
-               count(*)                       as requests,
-               count(distinct device_id)      as users
+      select coalesce(json_agg(json_build_object('day', to_char(d.d, 'MM-DD'), 'requests', d.requests, 'users', d.users) order by d.d), '[]'::json) from (
+        select (created_at at time zone 'Asia/Seoul')::date as d,
+               count(*)                  as requests,
+               count(distinct device_id) as users
         from coach_log, span where created_at >= span.since
-        group by 1 order by 1
+        group by 1
       ) d
     ),
     'top_screens', (
@@ -374,13 +410,60 @@ $$;
 
 comment on function admin_user is '관리자 페이지 이용자 상세';
 
+-- ── 기기 하나의 이용 기록을 모두 지움 (동의 철회·삭제 요청·관리자 「기록 삭제」) ─
+create or replace function delete_device(p_device text)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  delete from coach_log   where device_id = p_device;
+  delete from app_event   where device_id = p_device;
+  delete from screen_view where device_id = p_device;
+  delete from app_session where device_id = p_device;
+  delete from app_user    where device_id = p_device;
+$$;
+
+comment on function delete_device is '기기 ID 하나의 이용 기록 삭제 (DELETE /api/track, 관리자 기록 삭제)';
+
+-- ── 1년 지난 이용 기록 파기 (처리방침 4번 「수집일로부터 1년이 지나면 파기」) ─
+create or replace function purge_old_records()
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  delete from coach_log       where created_at   < now() - interval '1 year';
+  delete from app_event       where created_at   < now() - interval '1 year';
+  delete from screen_view     where created_at   < now() - interval '1 year';
+  delete from app_session     where started_at   < now() - interval '1 year';
+  delete from app_user        where last_seen_at < now() - interval '1 year';
+  delete from bonus_spent     where withdrawn_at < now() - interval '1 year';
+  delete from admin_auth_fail where created_at   < now() - interval '30 days';
+$$;
+
+comment on function purge_old_records is '1년 지난 이용 기록·탈퇴 1년 지난 보너스 기기·30일 지난 관리자 로그인 시도 파기 (pg_cron 매일 03:30 KST)';
+
+-- 매일 03:30(한국 시간) = 18:30 UTC 에 파기. pg_cron 을 쓸 수 없는 곳(로컬 시험 등)에서는 건너뛴다
+do $$
+begin
+  begin
+    create extension if not exists pg_cron;
+  exception when others then
+    raise notice 'pg_cron 을 켤 수 없어 1년 파기 예약을 건너뜁니다: %', sqlerrm;
+    return;
+  end;
+  perform cron.unschedule(jobid) from cron.job where jobname = 'mylovecoach-purge';
+  perform cron.schedule('mylovecoach-purge', '30 18 * * *', 'select public.purge_old_records()');
+end $$;
+
 -- ── 관리자 함수는 서버(service_role)만 부를 수 있게 ──────────────────
 do $$
 begin
-  revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text),
-    member_link(uuid, text, text, text, text), member_delete(uuid) from public;
+  revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text), delete_device(text), purge_old_records(),
+    member_link(uuid, text, text, text, text), member_delete(uuid), app_user_member() from public;
   if exists (select 1 from pg_roles where rolname = 'anon') then
-    revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text),
-      member_link(uuid, text, text, text, text), member_delete(uuid) from anon, authenticated;
+    revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text), delete_device(text), purge_old_records(),
+      member_link(uuid, text, text, text, text), member_delete(uuid), app_user_member() from anon, authenticated;
   end if;
 end $$;

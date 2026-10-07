@@ -47,9 +47,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method === 'DELETE') {
+    // 데이터베이스 정리가 끝난 뒤에만 로그인 계정을 지운다. 먼저 지우면 실패했을 때 다시 시도할 수 없다
+    // (member_delete 는 여러 번 실행해도 안전)
     const cleared = await rpc('member_delete', { p_user: user.id });
-    const removed = await deleteAuthUser(user.id);
-    if (cleared === null || !removed) {
+    const removed = cleared !== null && (await deleteAuthUser(user.id));
+    if (!removed) {
       res.status(502).json({ error: '탈퇴를 마치지 못했어요. 잠시 후 다시 시도해주세요.' });
       return;
     }

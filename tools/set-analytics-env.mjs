@@ -1,9 +1,12 @@
-// PC 에서 실행: node tools/set-analytics-env.mjs [--deploy] [--admin-password <새 비밀번호>] [--analytics on|off]
+// PC 에서 실행: node tools/set-analytics-env.mjs [--deploy] [--admin-password <새 비밀번호>] [--new-device-secret] [--analytics on|off]
 // wolha-secrets 의 Supabase·관리자 비밀번호를 Vercel 환경변수로 올린다. 값은 출력하지 않는다.
 //   mylovecoach-supabase.txt     : SUPABASE_URL=… / SUPABASE_SERVICE_ROLE_KEY=…
-//   mylovecoach-admin-token.txt  : ADMIN_TOKEN=…   (없으면 새로 만든다. --admin-password 를 주면 그 값으로 바꾼다)
+//   mylovecoach-admin-token.txt  : ADMIN_TOKEN=…        (없으면 새로 만든다. --admin-password 를 주면 그 값으로 바꾼다)
+//                                  ADMIN_DEVICE_SECRET=… (관리자 브라우저 등록 열쇠, 없으면 새로 만든다.
+//                                                         --new-device-secret 이면 새로 만들어 기존 등록 브라우저를 모두 끊는다)
 //   mylovecoach-vercel-token.txt : VERCEL_TOKEN=…
 // --analytics on 이면 ANALYTICS_ENABLED=1 (이용 기록 저장), off 면 0. 안 주면 그대로 둔다.
+// 브라우저 등록은 tools/admin-enroll.mjs.
 import { randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -37,15 +40,19 @@ if (args.includes('--admin-password') && !newPassword) {
   console.error('--admin-password 뒤에 새 비밀번호를 적어 주세요.');
   process.exit(1);
 }
-if (newPassword) {
-  writeFileSync(adminFile, `ADMIN_TOKEN=${newPassword}\n`, { mode: 0o600 });
-  console.log(`관리자 비밀번호 변경: ${adminFile}`);
-} else if (!existsSync(adminFile)) {
-  writeFileSync(adminFile, `ADMIN_TOKEN=${randomBytes(12).toString('base64url')}\n`, { mode: 0o600 });
-  console.log(`관리자 비밀번호 생성: ${adminFile}`);
+// 비밀번호와 기기 열쇠는 같은 파일에 두 줄로 둔다 (한쪽을 바꿔도 다른 쪽은 그대로)
+const adminNow = existsSync(adminFile) ? entries(adminFile) : {};
+const adminToken = newPassword || adminNow.ADMIN_TOKEN || randomBytes(12).toString('base64url');
+const freshDevice = args.includes('--new-device-secret') || !adminNow.ADMIN_DEVICE_SECRET;
+const deviceSecret = freshDevice ? randomBytes(32).toString('base64url') : adminNow.ADMIN_DEVICE_SECRET;
+if (newPassword || freshDevice || !adminNow.ADMIN_TOKEN) {
+  writeFileSync(adminFile, `ADMIN_TOKEN=${adminToken}\nADMIN_DEVICE_SECRET=${deviceSecret}\n`, { mode: 0o600 });
+  if (newPassword) console.log(`관리자 비밀번호 변경: ${adminFile}`);
+  if (!adminNow.ADMIN_TOKEN) console.log(`관리자 비밀번호 생성: ${adminFile}`);
+  if (freshDevice) console.log(`관리자 기기 열쇠 ${adminNow.ADMIN_DEVICE_SECRET ? '교체' : '생성'}: 배포 뒤 node tools/admin-enroll.mjs 로 브라우저를 등록하세요`);
 }
 
-const values = { ADMIN_TOKEN: entries(adminFile).ADMIN_TOKEN };
+const values = { ADMIN_TOKEN: adminToken, ADMIN_DEVICE_SECRET: deviceSecret };
 if (args.includes('--analytics')) {
   const mode = args[args.indexOf('--analytics') + 1];
   if (mode !== 'on' && mode !== 'off') {

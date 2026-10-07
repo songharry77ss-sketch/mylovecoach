@@ -67,6 +67,8 @@ interface Identity {
   premiumPlan?: string | null;
   crushCount?: number;
   acquisition?: Acquisition | null;
+  /** 동의를 받은 방식의 판 — 서버는 직접 체크해 받은 동의(2 이상)만 저장한다 */
+  consentVersion?: number | null;
 }
 
 const FLUSH_AFTER_MS = 8000;
@@ -79,6 +81,8 @@ let sessionStartedAt = 0;
 let queue: TrackedEvent[] = [];
 let timer: ReturnType<typeof setTimeout> | null = null;
 let currentScreen: { name: string; at: number } | null = null;
+/** 백그라운드로 가며 세션을 끝냈는지 — 돌아오면 새 세션을 연다 */
+let sessionEnded = false;
 
 /** 수집 대상 여부 — 동의 + 서버 주소가 있어야 하고, 데모 모드는 제외 */
 function enabled(): boolean {
@@ -134,12 +138,48 @@ export function flushAnalytics(endSession = false): void {
   send(endSession);
 }
 
+/**
+ * 앱이 다시 화면에 나왔을 때 — 백그라운드에 있던 시간을 체류·세션 시간으로 세지 않도록
+ * 지금 화면의 시작 시각을 다시 잡고, 떠날 때 세션을 끝냈으면 새 세션을 연다.
+ */
+export function resumeAnalytics(): void {
+  const now = Date.now();
+  if (currentScreen) currentScreen = { name: currentScreen.name, at: now };
+  if (!sessionEnded) return;
+  sessionId = createId('s_');
+  sessionStartedAt = now;
+  sessionEnded = false;
+  if (enabled()) track('app_open', { platform: Platform.OS, resume: true });
+}
+
 export function currentSessionId(): string {
   return sessionId;
 }
 
 export function analyticsEnabled(): boolean {
   return enabled();
+}
+
+export function currentConsentVersion(): number | null {
+  return identity.consentVersion ?? null;
+}
+
+/**
+ * 이용 기록 수집을 끈 기기의 서버 기록을 지워 달라고 요청한다 (처리방침 「동의 철회 시 지체 없이 파기」).
+ * 실패해도 앱 동작에는 영향이 없다 — 남은 기록은 1년 뒤 자동 파기되고, 메일로도 삭제를 요청할 수 있다.
+ */
+export function requestServerDeletion(deviceId: string): void {
+  if (!deviceId || isDemoMode || !(APP_CONFIG.apiSameOrigin || APP_CONFIG.apiUrl)) return;
+  try {
+    fetch(endpoint(), {
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json', ...(APP_CONFIG.apiToken ? { 'x-app-token': APP_CONFIG.apiToken } : {}) },
+      body: JSON.stringify({ deviceId }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    // 네트워크가 없으면 조용히 넘어간다
+  }
 }
 
 function push(event: TrackedEvent, holdFlush = false): void {
@@ -158,10 +198,12 @@ function send(endSession: boolean): void {
   const events = queue;
   queue = [];
   if (!events.length && !endSession) return;
+  if (endSession) sessionEnded = true;
 
   const body = JSON.stringify({
     deviceId: identity.deviceId,
     sessionId,
+    consentVersion: identity.consentVersion ?? null,
     platform: Platform.OS,
     appVersion: process.env.EXPO_PUBLIC_APP_VERSION ?? '1.0.0',
     user: identity.user

@@ -9,7 +9,7 @@ import {
   type PracticeRequestInput,
   type ReportRequestInput,
 } from '@/lib/ai-tasks';
-import { analyticsEnabled, currentSessionId } from '@/lib/analytics';
+import { analyticsEnabled, currentConsentVersion, currentSessionId } from '@/lib/analytics';
 import { COACH_MODEL, CoachAnalysisReadSchema, CoachRequestSchema, normalizeAnalysis, type CoachRequestInput } from '@/lib/coach-schema';
 import { APP_CONFIG } from '@/lib/config';
 import { demoAnalysis, demoMind, demoPractice, demoReport, isDemoMode } from '@/lib/demo';
@@ -27,12 +27,13 @@ export class CoachError extends Error {
 }
 
 /**
- * 이용 기록 수집에 동의한 경우에만 기기·세션 ID 를 헤더로 보냅니다.
- * 서버는 이 헤더가 있을 때만 코칭 내용을 기록합니다 (동의 = 헤더 전송).
+ * 이용 기록 수집에 동의한 경우에만 기기·세션 ID 와 동의 판을 헤더로 보냅니다.
+ * 서버는 이 헤더가 있고 직접 체크해 받은 동의(판 2 이상)일 때만 코칭 내용을 기록합니다.
  */
 function consentHeaders(deviceId?: string): Record<string, string> {
   if (!analyticsEnabled() || !deviceId) return {};
-  return { 'x-device-id': deviceId, 'x-session-id': currentSessionId() };
+  const version = currentConsentVersion();
+  return { 'x-device-id': deviceId, 'x-session-id': currentSessionId(), ...(version != null ? { 'x-consent-version': String(version) } : {}) };
 }
 
 export interface CoachClientOptions {
