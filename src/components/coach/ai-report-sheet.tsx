@@ -102,7 +102,7 @@ function ReportForm({ target, onClose }: { target: AiReportTarget; onClose: () =
       await sendAiReport({ mode, reason, note, content: target.content });
       haptic.success();
       onClose();
-      toast.show('신고했어요. 확인하고 고칠게요. 알려 주셔서 고마워요.', 'success');
+      toast.show('신고했어요. 알려 주셔서 고마워요.', 'success');
     } catch (e) {
       // 모달 위에서는 토스트가 가려지므로 시트 안에 보여 준다
       haptic.error();
@@ -172,7 +172,7 @@ function ReportForm({ target, onClose }: { target: AiReportTarget; onClose: () =
           <TextField
             value={note}
             onChangeText={setNote}
-            placeholder={general ? '어떤 답변이었고 무엇이 문제였는지 적어 주세요' : '무엇이 문제였는지 적어 주세요 (선택)'}
+            placeholder={general ? '받은 답변과 문제였던 점을 적어 주세요' : '무엇이 문제였는지 적어 주세요 (선택)'}
             multiline
             maxLength={AI_REPORT_NOTE_MAX}
             helper={`${note.length}/${AI_REPORT_NOTE_MAX}`}

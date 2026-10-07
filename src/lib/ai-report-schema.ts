@@ -8,7 +8,7 @@ import { z } from 'zod';
 export const AI_REPORT_MODES = ['coach', 'report', 'practice', 'mind'] as const;
 export type AiReportMode = (typeof AI_REPORT_MODES)[number];
 
-export const AI_REPORT_REASONS = ['offensive', 'sexual', 'hate', 'dangerous', 'false', 'other'] as const;
+export const AI_REPORT_REASONS = ['offensive', 'sexual', 'hate', 'dangerous', 'inaccurate', 'other'] as const;
 export type AiReportReason = (typeof AI_REPORT_REASONS)[number];
 
 export const AI_REPORT_MODE_LABEL: Record<AiReportMode, string> = {
@@ -23,7 +23,7 @@ export const AI_REPORT_REASON_LABEL: Record<AiReportReason, string> = {
   sexual: '성적·부적절',
   hate: '혐오·차별',
   dangerous: '위험·불법 조장',
-  false: '사실과 다름',
+  inaccurate: '사실과 다름',
   other: '기타',
 };
 

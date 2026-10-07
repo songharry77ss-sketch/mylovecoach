@@ -3,7 +3,11 @@
  * 그리고 누가 보냈는지(기기 ID·IP)는 저장하지 않는지가 핵심이다.
  * Supabase 는 fetch 를 가짜로 바꿔 어떤 요청이 나가는지만 본다.
  */
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
 import handler from '../../api/report';
+import { AI_REPORT_MODES, AI_REPORT_REASONS, AiReportSchema } from '../lib/ai-report-schema';
 
 interface FakeRes {
   statusCode: number;
@@ -172,5 +176,20 @@ describe('POST /api/report', () => {
     const res = fakeRes();
     await handler(fakeReq('GET', undefined), res as never);
     expect(res.statusCode).toBe(405);
+  });
+});
+
+describe('앱·서버·관리자 페이지가 같은 값을 쓴다', () => {
+  it('앱 시트에서 고를 수 있는 기능·사유는 모두 서버가 받는다', () => {
+    for (const mode of AI_REPORT_MODES) {
+      for (const reason of AI_REPORT_REASONS) expect(AiReportSchema.safeParse({ mode, reason, content: '답변' }).success).toBe(true);
+    }
+  });
+
+  it('관리자 페이지의 기능·사유 이름표가 모든 값을 덮는다', () => {
+    const html = readFileSync(join(__dirname, '../../site/admin.html'), 'utf8');
+    const keysOf = (name: string) => [...(html.match(new RegExp(`const ${name} = \\{([^\\n]*)\\};`))?.[1] ?? '').matchAll(/(\w+):\s*'/g)].map((m) => m[1]);
+    expect(keysOf('REPORT_MODE').sort()).toEqual([...AI_REPORT_MODES].sort());
+    expect(keysOf('REPORT_REASON').sort()).toEqual([...AI_REPORT_REASONS].sort());
   });
 });
