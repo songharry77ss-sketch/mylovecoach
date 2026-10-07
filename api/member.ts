@@ -2,12 +2,15 @@
  * 회원(카카오·Apple 로그인) API — Authorization: Bearer <Supabase 로그인 토큰>
  *   POST   /api/member { deviceId, nickname? } → 회원을 만들거나 갱신하고 이 기기와 잇는다.
  *                                              처음이면 가입 보너스(회원당·기기당 한 번) → { new, bonus, member }
- *   DELETE /api/member                          → 회원 탈퇴: 회원 기록·이용 기록·로그인 계정을 지운다
- * 환경변수: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, COACH_APP_TOKEN(선택, 앱 토큰 검사)
+ *   DELETE /api/member { appleAuthorizationCode? } → 회원 탈퇴: 회원 기록·이용 기록을 지우고, 카카오·Apple 연결을 끊은 뒤
+ *                                              로그인 계정을 지운다
+ * 환경변수: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, COACH_APP_TOKEN(선택, 앱 토큰 검사),
+ *          KAKAO_ADMIN_KEY · APPLE_TEAM_ID · APPLE_KEY_ID · APPLE_PRIVATE_KEY (선택, 탈퇴 때 연결 끊기 — _unlink.ts)
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 import { authUser, deleteAuthUser, DEVICE_ID, rpc, supabaseReady } from './_supabase';
+import { kakaoUserId, revokeApple, unlinkKakao } from './_unlink';
 
 export const config = { maxDuration: 15 };
 
@@ -50,6 +53,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 데이터베이스 정리가 끝난 뒤에만 로그인 계정을 지운다. 먼저 지우면 실패했을 때 다시 시도할 수 없다
     // (member_delete 는 여러 번 실행해도 안전)
     const cleared = await rpc('member_delete', { p_user: user.id });
+    if (cleared !== null) {
+      // 로그인 제공자와의 연결 끊기 — 실패해도 탈퇴는 계속한다 (결과는 서버 기록에만)
+      const appleCode = clean(parseBody(req).appleAuthorizationCode, 2000);
+      const [kakao, apple] = await Promise.all([unlinkKakao(kakaoUserId(user)), revokeApple(appleCode)]);
+      if (kakao === 'failed' || apple === 'failed') console.warn(`[member] 연결 끊기 kakao=${kakao} apple=${apple}`);
+    }
     const removed = cleared !== null && (await deleteAuthUser(user.id));
     if (!removed) {
       res.status(502).json({ error: '탈퇴를 마치지 못했어요. 잠시 후 다시 시도해주세요.' });

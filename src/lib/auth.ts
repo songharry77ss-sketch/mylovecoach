@@ -186,9 +186,29 @@ export async function signOut(): Promise<void> {
   track('logout');
 }
 
-/** 회원 탈퇴 — 서버의 회원 기록·로그인 계정·이용 기록을 지운다 */
+/**
+ * Apple 회원 탈퇴용 인증 코드. Apple 규정상 탈퇴할 때 앱과 Apple ID 의 연결(토큰)을 취소해야 해서,
+ * 기기의 Apple 확인 창을 한 번 더 띄워 새 코드를 받는다 (서버가 이 코드로 토큰을 취소).
+ */
+async function appleCodeForRevoke(): Promise<string | undefined> {
+  if (Platform.OS !== 'ios') return undefined;
+  try {
+    const credential = await AppleAuthentication.signInAsync({ requestedScopes: [] });
+    return credential.authorizationCode ?? undefined;
+  } catch (e) {
+    if ((e as { code?: string }).code === 'ERR_REQUEST_CANCELED') throw new AuthCancelled('cancelled');
+    throw e;
+  }
+}
+
+/** 회원 탈퇴 — 서버의 회원 기록·로그인 계정·이용 기록을 지우고 카카오·Apple 연결을 끊는다 */
 export async function deleteAccount(): Promise<void> {
-  await memberApi('DELETE');
+  // 로그인이 끝난 기기면 Apple 확인 창을 띄우기 전에 다시 로그인으로 안내한다
+  const { data } = await ensureClient().auth.getSession();
+  if (!data.session) throw new SessionMissing('로그인이 끝났어요. 다시 로그인해주세요.');
+  const member = useAppStore.getState().member;
+  const appleAuthorizationCode = member?.provider === 'apple' ? await appleCodeForRevoke() : undefined;
+  await memberApi('DELETE', appleAuthorizationCode ? { appleAuthorizationCode } : undefined);
   await dropLocalSession();
   useAppStore.getState().setMember(null);
 }

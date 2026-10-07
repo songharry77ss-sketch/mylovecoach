@@ -109,6 +109,8 @@ export interface AuthUser {
   email?: string | null;
   app_metadata?: { provider?: string };
   user_metadata?: Record<string, unknown>;
+  /** 로그인 제공자별 계정 (카카오 연결 끊기에 카카오 회원번호를 쓴다) */
+  identities?: { provider?: string; id?: string; identity_data?: Record<string, unknown> }[];
 }
 
 /** 앱이 보낸 로그인 토큰으로 회원 확인 (Supabase Auth). 유효하지 않으면 null */

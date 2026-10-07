@@ -27,6 +27,7 @@
 | 카카오 **비즈 앱 전환**(사업자 정보 또는 개인 개발자 본인인증) → 이메일 「선택 동의」 | 🙋 사장님 |
 | Supabase Kakao provider 에 REST API 키·클라이언트 시크릿 붙여넣기 + 「Allow users without an email」 | 🙋 사장님 (키 입력) |
 | Apple Developer 앱 ID `app.mylovecoach.ios` 에 Sign In with Apple 켬 (기존 In-App Purchase 유지, 기존 배포 프로파일은 무효 → `ios.yml` 의 `fetch-signing-files --create` 가 새로 받음) | ✅ 10-06 |
+| 탈퇴 때 연결 끊기 키: 카카오 **Admin 키** → Vercel `KAKAO_ADMIN_KEY`, Apple **Sign in with Apple 키(.p8)** → `APPLE_TEAM_ID`·`APPLE_KEY_ID`·`APPLE_PRIVATE_KEY` (아래 5번) | 🙋 1.1 출시 전 |
 | 카카오 연결 해제 웹훅(User Unlinked) → member_delete | 나중에 |
 
 ## 1. Supabase (한 번)
@@ -67,3 +68,15 @@
 - Play 「데이터 보안」: 개인 정보(이름·이메일), 앱 활동 — 수집, 계정 삭제 방법(앱 안 「회원 탈퇴」 + 웹 요청 주소)
 - `docs/STORE_LISTING.md` · 스토어 설명의 무료 안내(「처음 3회」 → 「맛보기 1회, 가입하면 3회 더 + 매일 1회」)
 - `site/privacy.html` 시행일을 출시일로
+
+## 5. 회원 탈퇴 때 카카오·Apple 연결 끊기 (1.1 출시 전 🙋)
+
+탈퇴(DELETE /api/member)는 ① 데이터베이스 정리(member_delete) → ② 카카오·Apple 연결 끊기 → ③ 로그인 계정 삭제 순서입니다.
+①이 실패하면 ③을 하지 않아 다시 시도할 수 있고, ②는 실패해도 탈퇴를 마칩니다(서버 기록에만 남김). 키가 없으면 ②를 건너뜁니다.
+
+- **Apple** (App Store 심사 기준 5.1.1(v): Apple 로 가입한 계정을 지울 때 토큰을 취소해야 함)
+  1. Apple Developer → Keys → + → 「Sign in with Apple」 체크 → Configure 에서 Primary App ID `app.mylovecoach.ios` → 등록 후 `.p8` 내려받기(한 번만 가능)
+  2. Vercel 환경변수(Production): `APPLE_TEAM_ID`(팀 ID 10자리), `APPLE_KEY_ID`(키 ID 10자리), `APPLE_PRIVATE_KEY`(.p8 내용 전체, 줄바꿈 대신 `\n` 을 넣은 한 줄도 됨)
+  3. 앱은 아이폰에서 Apple 회원이 탈퇴할 때 Apple 확인 창을 한 번 더 띄워 받은 코드를 보냅니다. 서버가 그 코드로 토큰을 받아 `/auth/revoke` 를 부릅니다.
+- **카카오**: 카카오 앱 → 앱 키 → **Admin 키** → Vercel `KAKAO_ADMIN_KEY`. 서버가 `POST https://kapi.kakao.com/v1/user/unlink`(target_id_type=user_id, 카카오 회원번호)를 부릅니다.
+- 키는 비밀값이라 채팅에 붙여넣지 말고 Vercel 화면이나 `vercel env add` 로 직접 넣습니다.

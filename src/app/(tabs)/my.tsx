@@ -18,7 +18,7 @@ import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { billingSupported, openSubscriptionManagement, restorePremium } from '@/lib/billing/iap';
 import { quotaLabel } from '@/lib/billing/quota';
 import { refreshTeam } from '@/lib/billing/team';
-import { deleteAccount, providerLabel, SessionMissing, signOut } from '@/lib/auth';
+import { AuthCancelled, deleteAccount, providerLabel, SessionMissing, signOut } from '@/lib/auth';
 import { SIGNUP_BONUS } from '@/lib/billing/plans';
 import { authAvailable } from '@/lib/supabase';
 import { APP_CONFIG } from '@/lib/config';
@@ -134,13 +134,21 @@ export default function MyScreen() {
       toast.show('로그아웃했어요.');
     });
 
+  const withdrawMessage =
+    '회원 정보와 서버에 저장된 이용 기록을 모두 지워요. 이 기기의 채팅방은 남아 있어요. 되돌릴 수 없어요.' +
+    (member?.provider === 'apple' && Platform.OS === 'ios' ? '\n\nApple 과의 연결을 끊기 위해 Apple 확인 창이 한 번 더 떠요.' : '');
+
   const withdraw = () =>
-    confirm('회원 탈퇴', '회원 정보와 서버에 저장된 이용 기록을 모두 지워요. 이 기기의 채팅방은 남아 있어요. 되돌릴 수 없어요.', '탈퇴', async () => {
+    confirm('회원 탈퇴', withdrawMessage, '탈퇴', async () => {
       try {
         await deleteAccount();
         haptic.heavy();
         toast.show('탈퇴했어요. 그동안 고마웠어요.');
       } catch (e) {
+        if (e instanceof AuthCancelled) {
+          toast.show('Apple 확인을 취소해 탈퇴하지 않았어요.');
+          return;
+        }
         if (e instanceof SessionMissing) {
           // 로그인이 끝난 기기 — 다시 로그인하면 이 메뉴에서 이어서 탈퇴할 수 있다
           useAppStore.getState().setMember(null);
