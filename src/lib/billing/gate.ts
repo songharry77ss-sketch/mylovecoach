@@ -1,5 +1,6 @@
 import { FREE_UNLIMITED } from '@/lib/billing/plans';
 import { quotaStatus, type QuotaStatus } from '@/lib/billing/quota';
+import { useTestInstall } from '@/lib/billing/test-install';
 import { APP_CONFIG } from '@/lib/config';
 import { isDemoMode } from '@/lib/demo';
 import { useAppStore } from '@/store/app-store';
@@ -12,7 +13,7 @@ const serverQuota = !isDemoMode && (Boolean(APP_CONFIG.apiUrl) || APP_CONFIG.api
  * 무제한 테스트 빌드(FREE_UNLIMITED — TestFlight 전용 빌드·직접 설치 APK)라도 테스트 경로 설치가 확인된 뒤에만 끈다.
  * iOS 는 TestFlight(샌드박스) 설치일 때만 확인되므로(test-install.ts), 이 빌드가 App Store 에 나가도 이용자에게는 유료 동작이다
  */
-export function isQuotaEnforced(testUnlimited = useAppStore.getState().testUnlimited): boolean {
+export function isQuotaEnforced(testUnlimited = useTestInstall.getState().unlimited): boolean {
   return serverQuota && !(FREE_UNLIMITED && testUnlimited);
 }
 
@@ -30,7 +31,7 @@ export function useQuota(): QuotaStatus & { enforced: boolean } {
   const usage = useAppStore((s) => s.usage);
   const wallet = useAppStore((s) => s.wallet);
   const team = useAppStore((s) => s.team);
-  const testUnlimited = useAppStore((s) => s.testUnlimited);
+  const testUnlimited = useTestInstall((s) => s.unlimited);
   if (!isQuotaEnforced(testUnlimited)) return { ...UNLIMITED, enforced: false };
   return { ...quotaStatus(premium, usage, Date.now(), wallet, team), enforced: true };
 }

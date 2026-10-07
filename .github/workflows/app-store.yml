@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       build:
-        description: '제출할 빌드 번호 (예: 111). 비우면 가장 최근 빌드'
+        description: '버전에 붙일 빌드 번호 (예: 117). 비우면 지금 붙어 있는 빌드를 그대로 둔다 (TestFlight 전용 무제한 빌드는 거부)'
         required: false
         default: ''
         type: string
@@ -31,6 +31,11 @@ on:
 
 permissions:
   contents: read
+
+# 자동 제출(app-store-autosubmit.yml)과 같은 그룹 — 두 실행이 동시에 버전의 빌드를 바꾸거나 제출하지 않게
+concurrency:
+  group: app-store-submit
+  cancel-in-progress: false
 
 jobs:
   release:

@@ -15,7 +15,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { flushAnalytics, initAnalytics, launchAcquisition, pauseAnalytics, resumeAnalytics, setConsent, trackScreen, updateIdentity } from '@/lib/analytics';
 import { endBilling, initBilling } from '@/lib/billing/iap';
 import { refreshTeam } from '@/lib/billing/team';
-import { verifyTestInstall } from '@/lib/billing/test-install';
+import { FREE_UNLIMITED } from '@/lib/billing/plans';
+import { refreshTestInstall } from '@/lib/billing/test-install';
 import { haptic, setHapticsEnabled } from '@/lib/haptics';
 import { isDemoMode } from '@/lib/demo';
 import { cleanupOrphanImages, clearImageCaches } from '@/lib/images';
@@ -80,24 +81,21 @@ export default function RootLayout() {
     setHapticsEnabled(hapticsOn);
   }, [hapticsOn]);
 
-  // 무제한 테스트 빌드면 테스트 경로(iOS 는 TestFlight) 설치인지 확인한 뒤에만 무제한을 켠다 — 확인 전·실패는 유료 동작
+  // 무제한 테스트 빌드면 테스트 경로(iOS 는 TestFlight) 설치인지 확인한 뒤에만 무제한을 켠다 — 확인 전·실패는 유료 동작.
+  // 처음 켤 때 오프라인 등으로 확인을 못 했으면 앱으로 돌아올 때마다 다시 확인한다
   useEffect(() => {
-    let alive = true;
-    verifyTestInstall()
-      .then((ok) => alive && useAppStore.getState().setTestUnlimited(ok))
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
+    if (!FREE_UNLIMITED) return;
+    refreshTestInstall().catch(() => {});
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refreshTestInstall().catch(() => {});
+    });
+    return () => sub.remove();
   }, []);
 
-  // 첫 경로가 늦게 정해져 빠른 코칭으로 열린 걸 나중에 알았으면 인트로를 바로 걷는다
+  // 첫 경로가 늦게 정해져 빠른 코칭으로 열린 걸 나중에 알았으면, 저장소를 다 읽은 뒤 인트로를 바로 걷는다 (스플래시는 아래 hydrated 효과가 내림)
   useEffect(() => {
-    if (!introDone && isQuickLaunch(pathname)) {
-      hideNativeSplash();
-      setIntroDone(true);
-    }
-  }, [introDone, pathname]);
+    if (!introDone && hydrated && isQuickLaunch(pathname)) setIntroDone(true);
+  }, [introDone, hydrated, pathname]);
 
   useEffect(() => {
     if (hydrated) {

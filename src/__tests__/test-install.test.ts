@@ -44,3 +44,35 @@ describe('횟수 제한 — 무제한 빌드라도 확인 전에는 유료 동�
     expect(gate.isQuotaEnforced(false)).toBe(true);
   });
 });
+
+describe('TestFlight 설치 확인 → 무제한 반영 (iOS)', () => {
+  const run = async (environment: string | Error) => {
+    jest.resetModules();
+    process.env.EXPO_PUBLIC_FREE_UNLIMITED = '1';
+    jest.doMock('expo-iap', () => ({
+      getAppTransactionIOS: async () => {
+        if (environment instanceof Error) throw environment;
+        return { environment };
+      },
+    }));
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require('@/lib/billing/test-install') as typeof import('@/lib/billing/test-install');
+    expect(mod.useTestInstall.getState().unlimited).toBe(false); // iOS 는 확인 전에는 유료 동작
+    await mod.refreshTestInstall();
+    return mod.useTestInstall.getState().unlimited;
+  };
+  afterEach(() => {
+    delete process.env.EXPO_PUBLIC_FREE_UNLIMITED;
+    jest.dontMock('expo-iap');
+  });
+
+  it('TestFlight(Sandbox) 설치면 무제한', async () => {
+    expect(await run('Sandbox')).toBe(true);
+  });
+  it('App Store(Production) 설치면 유료 동작 그대로', async () => {
+    expect(await run('Production')).toBe(false);
+  });
+  it('확인에 실패하면(오프라인·iOS 16 미만 등) 유료 동작', async () => {
+    expect(await run(new Error('offline'))).toBe(false);
+  });
+});

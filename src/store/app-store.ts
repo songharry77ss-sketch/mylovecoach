@@ -3,7 +3,6 @@ import { persist } from 'zustand/middleware';
 
 import type { AiProvider } from '@/lib/ai-consent';
 import type { ConsumablePlanKey } from '@/lib/billing/plans';
-import { initialTestUnlimited } from '@/lib/billing/test-install';
 import type { Acquisition } from '@/lib/analytics';
 import { consumeOne, EMPTY_USAGE, EMPTY_WALLET, grantConsumable, type PremiumState, type TeamState, type UsageState, type WalletState } from '@/lib/billing/quota';
 import { createId } from '@/lib/id';
@@ -33,11 +32,6 @@ export interface PendingDeletion {
 
 export interface AppState {
   hydrated: boolean;
-  /**
-   * 무제한 테스트 빌드(FREE_UNLIMITED)를 테스트 경로로 설치했는지 — iOS 는 켤 때마다 TestFlight(샌드박스) 설치인지 확인해 채운다.
-   * 저장하지 않는다 (매번 다시 확인, 확인 전·실패는 false = 유료 동작). src/lib/billing/test-install.ts
-   */
-  testUnlimited: boolean;
   user: UserProfile | null;
   crushes: Record<string, Crush>;
   messages: Record<string, ChatMessage[]>; // crushId -> messages (오래된 순)
@@ -92,7 +86,6 @@ export interface AppState {
   mindHistory: MindAnswer[];
 
   setHydrated: () => void;
-  setTestUnlimited: (value: boolean) => void;
   setUser: (user: UserProfile) => void;
   updateUser: (patch: Partial<UserProfile>) => void;
 
@@ -190,7 +183,6 @@ export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       hydrated: false,
-      testUnlimited: initialTestUnlimited,
       user: null,
       crushes: {},
       messages: {},
@@ -219,7 +211,6 @@ export const useAppStore = create<AppState>()(
       mindHistory: [],
 
       setHydrated: () => set({ hydrated: true }),
-      setTestUnlimited: (value) => set({ testUnlimited: value }),
       setUser: (user) => set({ user }),
       updateUser: (patch) => set((s) => (s.user ? { user: { ...s.user, ...patch } } : {})),
 
@@ -607,6 +598,17 @@ export function buildEarlierNotes(messages: ChatMessage[], recent = HISTORY_TURN
 }
 
 const typedOf = (turns: ChatTurn[]) => turns.map((t) => t.typed?.replace(/\s+/g, ' ')).filter((s): s is string => Boolean(s));
+
+/** 이 캡처(지문)를 이 채팅방에서 이미 분석했는지 — 그 요청 바로 뒤 코치 답이 결과를 냈으면 이미 누적 온도에 반영된 캡처 */
+export function analyzedCaptureBefore(messages: ChatMessage[], imageHash: string): boolean {
+  for (let i = 0; i < messages.length; i++) {
+    const m = messages[i];
+    if (m.role !== 'user' || m.imageHash !== imageHash) continue;
+    const reply = messages.slice(i + 1).find((x) => x.role === 'coach');
+    if (reply?.analysis) return true;
+  }
+  return false;
+}
 
 /** 「다른 답장 더 보기」가 보낸 자동 요청 메시지인지 */
 export const isVariationRequest = (m: ChatMessage) => m.role === 'user' && (Boolean(m.variationOf) || Boolean(m.text?.trim().startsWith('🔄')));

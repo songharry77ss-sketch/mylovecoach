@@ -18,6 +18,7 @@ import { setConsent as setAnalyticsConsentFlag, track } from '@/lib/analytics';
 import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { billingSupported, openSubscriptionManagement, restorePremium } from '@/lib/billing/iap';
 import { FREE_UNLIMITED } from '@/lib/billing/plans';
+import { useTestInstall } from '@/lib/billing/test-install';
 import { quotaLabel } from '@/lib/billing/quota';
 import { refreshTeam } from '@/lib/billing/team';
 import { aiRouteOf } from '@/lib/coach-client';
@@ -56,7 +57,7 @@ export default function MyScreen() {
   const createSecretChat = useAppStore((s) => s.createSecretChat);
   const quota = useQuota();
   // 무제한 테스트 빌드라도 테스트 경로 설치가 확인됐을 때만 (iOS 는 TestFlight) — 아니면 아래 이용권(유료) 그대로
-  const testUnlimited = useAppStore((s) => FREE_UNLIMITED && s.testUnlimited);
+  const testUnlimited = useTestInstall((s) => FREE_UNLIMITED && s.unlimited);
   const isPremium = quota.enforced && quota.kind === 'premium';
   // 「~부터」 가격은 스토어에서 확인된 가장 싼 상품으로만 적는다
   const products = usePlanProducts();

@@ -156,6 +156,8 @@ export interface ChatMessage {
   selectedReplyIndex?: number;
   /** 「다른 답장 더 보기」 요청이면 바꿀 코치 카드(메시지) id — 실패 뒤 다시 시도할 때 같은 카드로 다시 보낸다 */
   variationOf?: string;
+  /** 보낸 캡처의 짧은 지문 — 같은 캡처를 질문·톤만 바꿔 다시 분석해도 누적 온도는 한 번만 움직이게 */
+  imageHash?: string;
   /** 요청 실패 시 */
   error?: string;
   /** 응답 대기 중 */

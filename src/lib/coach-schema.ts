@@ -105,6 +105,9 @@ export const CoachRequestSchema = z.object({
   tone: ToneSchema,
   /** 답장에 이모지 넣기 */
   emoji: EmojiPrefSchema.optional(),
+  /** 이번 톤·이모지를 입력창에서 직접 바꿔 골랐는지(프로필 기본값과 다른지) — 앞 대화의 요청보다 우선할지 정하는 데 쓴다. 예전 앱은 보내지 않는다 */
+  toneChosen: z.boolean().optional(),
+  emojiChosen: z.boolean().optional(),
   /** 사용자가 적은 질문 또는 상황 설명 */
   text: z.string().optional(),
   /** 대화 캡처 (선택) */
@@ -182,8 +185,8 @@ export const COACH_SYSTEM_PROMPT = `당신은 "나만의 연애코치"입니다.
 
 이 채팅방의 이전 대화 (기억하고 이어서 답할 것)
 - [더 앞선 대화에서 사용자가 한 말]과 [최근 코칭 맥락]은 이 채팅방에서 사용자와 지금까지 나눈 대화입니다. 처음 만난 것처럼 답하지 말고 그 흐름에 이어서 답하세요.
-- 사용자가 앞에서 계속 지켜 달라고 한 요청("앞으로", "계속", "항상", "~하지 마"처럼 답장 길이·말투·이모지·분위기에 대한 요청)과 알려 준 정보(상대와 상황)는 사용자가 바꾸기 전까지 이번 답에도 계속 지키세요. "이번엔"처럼 그때 한 번만 한 부탁은 그 턴에만 적용됩니다.
-- 우선순위: 사용자가 이번에 직접 쓴 말 > 앞에서 계속 지켜 달라고 한 요청 > [이번 요청]의 톤·[이모지]·[이번 답장 말투] 같은 앱 설정값. 단 프로필의 "직접 정함" 호칭·말투는 지금처럼 가장 먼저 지킵니다.
+- 사용자가 앞에서 한 요청(답장 길이·말투·이모지·분위기에 대한 요청, "이런 말은 빼 줘" 같은 부탁)과 알려 준 정보(상대와 상황)는 사용자가 바꾸기 전까지 이번 답에도 계속 지키세요. "이번엔", "이번만", "이것만"처럼 그때 한 번만이라고 한 부탁만 그 턴에 한정됩니다.
+- 우선순위: 사용자가 이번에 직접 쓴 말과 "(이번에 직접 고름)"이라고 표시된 톤·이모지 > 앞에서 사용자가 한 요청 > 나머지 [이번 요청]의 톤·[이모지]·[이번 답장 말투] 같은 앱 설정값. 단 프로필의 "직접 정함" 호칭·말투는 지금처럼 가장 먼저 지킵니다.
 - 사용자가 "아까 그 답장", "2번", "버전 2", "그거"처럼 앞 내용을 가리키면 맥락에서 찾아 그 내용을 이어받아 답하세요. 맥락의 「버전1·버전2·버전3」은 앱 화면의 답장 번호와 같고, 번호만 말하면 가장 최근 결과의 그 버전입니다.
 - "다른 답장" 요청이면 요청에 적힌 바꿀 답장(없으면 직전에 제안한 답장)과 겹치지 않는 새 답장을 쓰세요.
 - 맥락에 나온 일은 이미 누적 온도에 반영됐으니 heatDelta에 다시 세지 말고, 이번에 새로 들어온 캡처·글만 근거로 정하세요.
@@ -256,7 +259,7 @@ export function buildHistoryBlock(history: HistoryTurn[]): string {
 export function buildEarlierNotesBlock(notes: readonly string[] | undefined): string {
   const list = (notes ?? []).map((s) => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
   if (!list.length) return '';
-  return ['[더 앞선 대화에서 사용자가 한 말 (오래된 순) — 계속 지켜 달라고 한 요청과 알려 준 정보만 이어서 반영할 것]', ...list.map((s) => `- ${s}`)].join('\n');
+  return ['[더 앞선 대화에서 사용자가 한 말 (오래된 순) — 요청과 알려 준 정보는 바꾸기 전까지 계속 반영, 「이번만」이라고 한 부탁은 제외]', ...list.map((s) => `- ${s}`)].join('\n');
 }
 
 const EMOJI_KO = { auto: '자동 (대화에서 쓰던 만큼)', on: '넣기', off: '빼기' } as const;
@@ -264,8 +267,10 @@ const EMOJI_KO = { auto: '자동 (대화에서 쓰던 만큼)', on: '넣기', of
 export function buildTaskBlock(req: CoachRequest): string {
   const lines: string[] = [];
   lines.push(`[이번 요청]`);
-  lines.push(`- 원하는 답장 톤: ${TONE_GUIDE[req.tone]}`);
-  lines.push(`- [이모지: ${EMOJI_KO[req.emoji ?? 'auto']}]`);
+  // 입력창에서 직접 바꿔 고른 값이면 그렇다고 적는다 — 앞 대화의 요청보다 우선 (예전 앱은 표시 없이 지금처럼)
+  const chosen = (v: boolean | undefined) => (v === true ? ' (이번에 직접 고름)' : '');
+  lines.push(`- 원하는 답장 톤${chosen(req.toneChosen)}: ${TONE_GUIDE[req.tone]}`);
+  lines.push(`- [이모지: ${EMOJI_KO[req.emoji ?? 'auto']}]${chosen(req.emojiChosen)}`);
   // 말투는 버전마다·문장마다 섞이기 쉬워서 이번 요청에서 쓸 말투를 못 박아 둔다.
   // 캡처가 있으면 캡처에서 읽게 두고, 캡처도 저장된 말투도 없으면 관계 단계 기본값으로 통일한다
   if (req.crush.speech) {

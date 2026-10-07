@@ -1,7 +1,7 @@
 import { buildCoachTask } from '@/lib/ai-tasks';
 import { COACH_SYSTEM_PROMPT, CoachRequestSchema, buildContextText, buildTaskBlock } from '@/lib/coach-schema';
 import type { ChatMessage, CoachAnalysis } from '@/lib/types';
-import { HISTORY_TURNS, buildEarlierNotes, buildHistory, lastRequestAt, turnRequestOf, useAppStore, variationTargetOf } from '@/store/app-store';
+import { HISTORY_TURNS, analyzedCaptureBefore, buildEarlierNotes, buildHistory, lastRequestAt, turnRequestOf, useAppStore, variationTargetOf } from '@/store/app-store';
 
 // 테스트 환경에는 기기 저장소 네이티브 모듈이 없어 메모리로 대신한다
 jest.mock('@react-native-async-storage/async-storage', () => {
@@ -121,6 +121,18 @@ describe('대화 기억 — 「다른 버전 더 보기」·다시 시도가 고
   });
 });
 
+describe('대화 기억 — 같은 캡처는 누적 온도에 한 번만', () => {
+  it('같은 캡처(지문)를 이미 분석했으면 질문·톤이 달라도 다시 세지 않는다 (실패했던 분석은 셈하지 않음)', () => {
+    const shot = msg({ role: 'user', imageUri: 'file://a.jpg', imageHash: 'h1', text: '어때?' });
+    const done = msg({ role: 'coach', analysis: analysis('좋아요') });
+    expect(analyzedCaptureBefore([shot, done], 'h1')).toBe(true);
+    expect(analyzedCaptureBefore([shot, done], 'h2')).toBe(false);
+    const failedShot = msg({ role: 'user', imageUri: 'file://b.jpg', imageHash: 'h3' });
+    const failed = msg({ role: 'coach', error: '실패' });
+    expect(analyzedCaptureBefore([failedShot, failed], 'h3')).toBe(false);
+  });
+});
+
 describe('대화 기억 — 저장된 결과 재사용', () => {
   beforeEach(() => useAppStore.getState().resetAll());
 
@@ -151,7 +163,7 @@ describe('대화 기억 — 서버가 만드는 프롬프트', () => {
       history: [{ userNote: '(대화 캡처 업로드)', coachSummary: '관심이 있어 보여요', insights: ['먼저 질문함', '답장이 빠름'], replies: ['첫째', '둘째', '셋째'] }],
     });
     const context = buildContextText(parsed);
-    expect(context).toContain('[더 앞선 대화에서 사용자가 한 말 (오래된 순) — 계속 지켜 달라고 한 요청과 알려 준 정보만 이어서 반영할 것]\n- 앞으로 이모지는 빼 줘');
+    expect(context).toContain('[더 앞선 대화에서 사용자가 한 말 (오래된 순) — 요청과 알려 준 정보는 바꾸기 전까지 계속 반영, 「이번만」이라고 한 부탁은 제외]\n- 앞으로 이모지는 빼 줘');
     expect(context).toContain('코치가 제안한 답장: 버전1 "첫째" 버전2 "둘째" 버전3 "셋째"');
     expect(context).toContain('코치가 읽어낸 포인트: 먼저 질문함; 답장이 빠름');
     // 앞 대화 요청이 최근 맥락보다 앞에 온다 (오래된 순)
@@ -160,15 +172,25 @@ describe('대화 기억 — 서버가 만드는 프롬프트', () => {
     expect(buildCoachTask(parsed).system).toBe(COACH_SYSTEM_PROMPT);
   });
 
-  it('지시문: 계속 지켜 달라고 한 요청이 앱 설정값(이모지·톤·말투 기본값)보다 우선, 한 번만 한 부탁은 그 턴만, 맥락의 일은 온도에 다시 세지 않음', () => {
-    expect(COACH_SYSTEM_PROMPT).toContain('우선순위: 사용자가 이번에 직접 쓴 말 > 앞에서 계속 지켜 달라고 한 요청 > [이번 요청]의 톤·[이모지]·[이번 답장 말투] 같은 앱 설정값');
-    expect(COACH_SYSTEM_PROMPT).toContain('"이번엔"처럼 그때 한 번만 한 부탁은 그 턴에만 적용됩니다');
+  it('지시문: 앞의 요청은 「이번만」이 아니면 계속, 직접 고른 톤·이모지 > 앞의 요청 > 앱 기본값, 맥락의 일은 온도에 다시 세지 않음', () => {
+    expect(COACH_SYSTEM_PROMPT).toContain('우선순위: 사용자가 이번에 직접 쓴 말과 "(이번에 직접 고름)"이라고 표시된 톤·이모지 > 앞에서 사용자가 한 요청 > 나머지 [이번 요청]의 톤·[이모지]·[이번 답장 말투] 같은 앱 설정값');
+    expect(COACH_SYSTEM_PROMPT).toContain('"이번엔", "이번만", "이것만"처럼 그때 한 번만이라고 한 부탁만 그 턴에 한정됩니다');
     expect(COACH_SYSTEM_PROMPT).toContain('heatDelta에 다시 세지 말고');
     // 프로필 「직접 정함」 호칭·말투는 여전히 가장 먼저
     expect(COACH_SYSTEM_PROMPT).toContain('프로필의 "직접 정함" 호칭·말투는 지금처럼 가장 먼저 지킵니다');
     // 캡처도 저장된 말투도 없을 때 기본 말투는 앞 대화에서 정한 말투가 있으면 그것
     const task = buildTaskBlock(CoachRequestSchema.parse({ crush, user, tone: 'natural', text: '안녕' }));
     expect(task).toContain('앞 대화에서 정한 말투가 있으면 그것으로');
+  });
+
+  it('입력창에서 직접 고른 톤·이모지는 「이번에 직접 고름」으로 표시하고, 기본값·예전 앱은 표시하지 않는다', () => {
+    const chosen = buildTaskBlock(CoachRequestSchema.parse({ crush, user, tone: 'flirty', emoji: 'on', toneChosen: true, emojiChosen: true, text: '안녕' }));
+    expect(chosen).toContain('- 원하는 답장 톤 (이번에 직접 고름): ');
+    expect(chosen).toContain('[이모지: 넣기] (이번에 직접 고름)');
+    const defaults = buildTaskBlock(CoachRequestSchema.parse({ crush, user, tone: 'natural', emoji: 'on', toneChosen: false, emojiChosen: false, text: '안녕' }));
+    expect(defaults).not.toContain('이번에 직접 고름');
+    const old = buildTaskBlock(CoachRequestSchema.parse({ crush, user, tone: 'natural', emoji: 'on', text: '안녕' }));
+    expect(old).not.toContain('이번에 직접 고름');
   });
 
   it('지난 기록 칸이 너무 길면 거절하지 않고 잘라서 받고, 이모지 반쪽은 버린다', () => {

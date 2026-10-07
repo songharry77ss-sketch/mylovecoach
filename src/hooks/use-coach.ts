@@ -6,7 +6,7 @@ import { CoachError, requestCoaching, requireAiConsent } from '@/lib/coach-clien
 import { crushToRequest, userToRequest } from '@/lib/coach-schema';
 import { encodeForModel, type PickedImage } from '@/lib/images';
 import type { EmojiPref, KktiSaved, Tone } from '@/lib/types';
-import { analysisCacheKey, buildEarlierNotes, buildHistory, lastRequestAt, useAppStore } from '@/store/app-store';
+import { analysisCacheKey, analyzedCaptureBefore, buildEarlierNotes, buildHistory, lastRequestAt, quickHash, useAppStore } from '@/store/app-store';
 import { loadApiKey } from '@/store/storage';
 
 export interface SendInput {
@@ -80,12 +80,15 @@ export function useCoach() {
       const history = buildHistory(past);
       const earlierNotes = buildEarlierNotes(past);
       const image = input.image ? await encodeForModel(input.image.uri, input.image.width) : undefined;
+      // 캡처 지문을 남겨 둔다 — 같은 캡처를 질문·톤만 바꿔 다시 물어도 누적 온도는 처음 한 번만
+      const imageHash = image ? quickHash(image.base64) : undefined;
+      if (imageHash) useAppStore.getState().updateMessage(crush.id, userMessage.id, { imageHash });
       const noteParts = [input.text.trim()];
       if (input.variationOf) {
         // 누른 카드의 답장을 그대로 적어 보낸다 — 「직전 답장」이 누른 카드가 아닐 수도 있으므로
         const target = past.find((m) => m.id === input.variationOf)?.analysis;
         const before = (target?.replies ?? [])
-          .map((r, i) => (r.text?.trim() ? `버전${i + 1} "${r.text.trim().slice(0, 200)}"` : ''))
+          .map((r, i) => (r.text?.trim() ? `버전${i + 1} "${Array.from(r.text.trim()).slice(0, 200).join('')}"` : ''))
           .filter(Boolean)
           .join(' ');
         noteParts.push(before ? `바꿀 답장(${before})과 겹치지 않는 다른 각도의 새로운 답장 3개를 제안해주세요.` : '이전에 제안한 답장과는 다른 각도의 새로운 답장 3개를 제안해주세요.');
@@ -95,8 +98,8 @@ export function useCoach() {
       // 같은 캡처·질문·톤을 다시 보내면 API 를 다시 부르지 않고 저장된 결과를 씁니다 (비용 절감).
       // 단 그 결과 뒤에 사용자가 새로 요청했으면(예: 「이모지 빼 줘」, 새 캡처) 쓰지 않는다 — 앞의 요청을 기억해서 다시 답해야 하므로
       const cacheKey = analysisCacheKey({ crushId: crush.id, tone: input.tone, text, imageBase64: image?.base64, variation: Boolean(input.variationOf), emoji });
-      // 예전에 같은 캡처·글·톤을 분석한 적이 있으면(재사용은 못 해도) 누적 온도는 다시 움직이지 않는다 — 같은 캡처를 두 번 세지 않게
-      const seenBefore = Boolean(useAppStore.getState().analysisCache[cacheKey]);
+      // 예전에 같은 요청이나 같은 캡처를 분석한 적이 있으면(재사용은 못 해도) 누적 온도는 다시 움직이지 않는다 — 같은 캡처를 두 번 세지 않게
+      const seenBefore = Boolean(useAppStore.getState().analysisCache[cacheKey]) || (imageHash ? analyzedCaptureBefore(past, imageHash) : false);
       const cached = input.variationOf || secret ? null : useAppStore.getState().getCachedAnalysis(cacheKey, lastRequestAt(past));
       const latest = useAppStore.getState().crushes[crush.id] ?? crush;
       const analysis =
@@ -107,6 +110,9 @@ export function useCoach() {
             user: userToRequest(user, kktiLabel(useAppStore.getState().kkti)),
             tone: input.tone,
             emoji,
+            // 입력창에서 프로필 기본값과 다르게 직접 고른 톤·이모지면 표시 — 앞 대화의 요청보다 우선한다
+            toneChosen: input.tone !== (user.defaultTone ?? 'natural'),
+            emojiChosen: emoji !== (user.emoji ?? 'on'),
             text: text || undefined,
             image,
             history,
