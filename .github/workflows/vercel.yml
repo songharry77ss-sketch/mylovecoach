@@ -1,7 +1,9 @@
 name: Vercel Deploy (web + API)
 
 # 수동 실행: gh workflow run vercel.yml
-# 필요한 시크릿: VERCEL_TOKEN (vercel.com/account/tokens), GEMINI_API_KEY (또는 ANTHROPIC_API_KEY)
+# 필요한 시크릿: VERCEL_TOKEN (vercel.com/account/tokens), GEMINI_API_KEY
+# 중계 서버(api/coach.ts)는 Gemini 로만 보낸다 — 앱의 AI 분석 동의 시트·개인정보 처리방침이 받는 곳을 Google 로 안내하기 때문.
+# 그래서 GEMINI_API_KEY 가 없으면 다른 회사로 바꿔 배포하지 않고 실패한다.
 # 첫 실행 시 Vercel 에 'mylovecoach' 프로젝트를 만들고 환경변수를 넣은 뒤 프로덕션 배포한다.
 # 결과 주소는 로그 마지막에 출력되며, 이후 앱 빌드의 EXPO_PUBLIC_API_URL 로 쓴다.
 
@@ -18,7 +20,6 @@ jobs:
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       COACH_APP_TOKEN: ${{ secrets.EXPO_PUBLIC_API_TOKEN }}
       # 웹 회원가입용 공개 값 (저장소 변수)
       EXPO_PUBLIC_SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
@@ -34,7 +35,7 @@ jobs:
       - name: 시크릿 확인
         run: |
           [ -n "$VERCEL_TOKEN" ] || { echo "::error::VERCEL_TOKEN 시크릿이 없습니다 (vercel.com/account/tokens 에서 발급 → wolha-secrets/vercel-token.txt 에 VERCEL_TOKEN=… → node tools/set-ci-secrets.mjs)"; exit 1; }
-          if [ -z "$GEMINI_API_KEY" ] && [ -z "$ANTHROPIC_API_KEY" ]; then echo "::error::GEMINI_API_KEY 또는 ANTHROPIC_API_KEY 시크릿이 필요합니다"; exit 1; fi
+          [ -n "$GEMINI_API_KEY" ] || { echo "::error::GEMINI_API_KEY 시크릿이 없습니다 (중계 서버는 Gemini 로만 보냅니다 — 앱 동의 시트·처리방침이 Google 로 안내)"; exit 1; }
       - name: Vercel CLI
         run: npm i -g vercel@latest
       - name: 프로젝트 연결 (없으면 생성)
@@ -51,8 +52,8 @@ jobs:
             echo "env 등록: $1 (${3:-secret})"
           }
           add_env GEMINI_API_KEY "$GEMINI_API_KEY"
-          add_env ANTHROPIC_API_KEY "$ANTHROPIC_API_KEY"
-          add_env AI_PROVIDER "$([ -n "$GEMINI_API_KEY" ] && echo gemini || echo anthropic)"
+          # 지금 서버는 이 값을 읽지 않고 Gemini 로만 보낸다. 예전 서버 코드를 다시 배포해도 Gemini 를 고르도록 고정해 둔다
+          add_env AI_PROVIDER gemini
           add_env COACH_APP_TOKEN "$COACH_APP_TOKEN"
           # 웹 번들도 같은 토큰을 헤더로 보내야 하므로 빌드 환경변수로도 넣는다.
           # 이 값은 어차피 클라이언트 번들에 박히므로(남용 억제용 키이지 비밀이 아님) config 로 등록한다.
@@ -79,6 +80,7 @@ jobs:
           curl -sS -o /dev/null -w "index: %{http_code}\n" "$url/"
           curl -sS -o /dev/null -w "privacy: %{http_code}\n" "$url/privacy.html"
           code=$(curl -sS -o /tmp/coach.json -w "%{http_code}" -X POST "$url/api/coach" -H 'content-type: application/json' \
+            -H 'x-ai-consent: google' \
             ${COACH_APP_TOKEN:+-H "x-app-token: $COACH_APP_TOKEN"} \
             -d '{"crush":{"name":"민지","gender":"female","relationship":"talking","style":[],"notes":""},"user":{"name":"지훈","gender":"male","style":[]},"tone":"natural","text":"첫 메시지 뭐라고 보낼까?","history":[]}')
           echo "api/coach: $code"; head -c 400 /tmp/coach.json; echo

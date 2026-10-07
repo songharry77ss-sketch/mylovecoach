@@ -36,6 +36,9 @@ import {
 
 export type AiMode = 'coach' | 'report' | 'mind' | 'practice';
 
+/** 연습 프롬프트에 넣는 최근 말풍선 수. 앱도 이만큼만 보내 기존 서버의 40개 상한을 넘지 않는다. */
+export const PRACTICE_PROMPT_TURNS = 30;
+
 export const ReportRequestSchema = z.object({
   mode: z.literal('report'),
   crush: CrushRequestSchema,
@@ -91,7 +94,8 @@ export const PracticeRequestSchema = z.object({
   }),
   user: UserRequestSchema,
   heat: z.number(),
-  turns: z.array(z.object({ role: z.enum(['me', 'them']), text: z.string().max(600) })).min(1).max(40),
+  // 기존 앱이 한 판을 통째로 보내도 받는다 (12마디에 상대 말풍선까지 더하면 40개를 넘을 수 있다).
+  turns: z.array(z.object({ role: z.enum(['me', 'them']), text: z.string().max(600) })).min(1).max(64),
 });
 
 export type ReportRequest = z.infer<typeof ReportRequestSchema>;
@@ -267,7 +271,7 @@ export function buildPracticeTask(req: PracticeRequest): AiTask<z.infer<typeof P
     .split('\n')
     .filter((l, i, all) => i >= all.indexOf('[사용자(나) 프로필]'))
     .join('\n');
-  const convo = ['[지금까지 대화 (오래된 순)]', ...req.turns.slice(-30).map((t) => `${t.role === 'me' ? '나' : p.name}: ${t.text.replace(/\s+/g, ' ').trim()}`)].join('\n');
+  const convo = ['[지금까지 대화 (오래된 순)]', ...req.turns.slice(-PRACTICE_PROMPT_TURNS).map((t) => `${t.role === 'me' ? '나' : p.name}: ${t.text.replace(/\s+/g, ' ').trim()}`)].join('\n');
   return {
     mode: 'practice',
     system: PRACTICE_SYSTEM_PROMPT,

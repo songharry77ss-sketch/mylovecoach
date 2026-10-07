@@ -13,6 +13,7 @@ import { SectionHeader } from '@/components/ui/section-header';
 import { useToast } from '@/components/ui/toast';
 import { Spacing } from '@/constants/theme';
 import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
+import { AI_PROVIDER_LABEL, ensureAiConsent, withdrawAiConsent } from '@/lib/ai-consent';
 import { setConsent as setAnalyticsConsentFlag, track } from '@/lib/analytics';
 import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { billingSupported, openSubscriptionManagement, restorePremium } from '@/lib/billing/iap';
@@ -21,14 +22,19 @@ import { refreshTeam } from '@/lib/billing/team';
 import { AuthCancelled, deleteAccount, providerLabel, SessionMissing, signOut } from '@/lib/auth';
 import { SIGNUP_BONUS } from '@/lib/billing/plans';
 import { authAvailable } from '@/lib/supabase';
+import { aiRouteOf } from '@/lib/coach-client';
 import { APP_CONFIG } from '@/lib/config';
 import { isDemoMode } from '@/lib/demo';
 import * as Floating from '@/lib/floating';
+import { dateLabel } from '@/lib/format';
 import { haptic, setHapticsEnabled } from '@/lib/haptics';
 import { cleanupOrphanImages, clearImageCaches } from '@/lib/images';
 import { genderLabel, toneLabel } from '@/lib/labels';
 import { useAppStore } from '@/store/app-store';
-import { saveApiKey } from '@/store/storage';
+import { loadApiKey, saveApiKey } from '@/store/storage';
+
+const RESET_MESSAGE = '채팅방, 캡처, 프로필, 연습 기록과 서버에 남은 이용 기록을 모두 삭제할까요? AI 분석·이용 기록 동의도 처음 상태로 돌아가요. 되돌릴 수 없어요.';
+const LEGACY_DELETE_MESSAGE = '예전 버전에서 보낸 이 기기의 이용 기록을 서버에서 지울까요? 앱 안의 채팅방·프로필은 그대로 남아요.';
 
 export default function MyScreen() {
   const router = useRouter();
@@ -45,7 +51,11 @@ export default function MyScreen() {
   const member = useAppStore((s) => s.member);
   const setPremium = useAppStore((s) => s.setPremium);
   const analyticsConsent = useAppStore((s) => s.analyticsConsent);
+  const legacyServerRecords = useAppStore((s) => s.legacyServerRecords);
   const setAnalyticsConsent = useAppStore((s) => s.setAnalyticsConsent);
+  const aiConsent = useAppStore((s) => s.aiConsent);
+  const aiConsentProvider = useAppStore((s) => s.aiConsentProvider);
+  const aiConsentAt = useAppStore((s) => s.aiConsentAt);
   const hapticsOn = useAppStore((s) => s.hapticsOn);
   const setHapticsOn = useAppStore((s) => s.setHapticsOn);
   const hidePreviews = useAppStore((s) => s.hidePreviews);
@@ -161,6 +171,27 @@ export default function MyScreen() {
       }
     });
 
+  // AI 분석 동의 — 켜면 처음 쓸 때와 같은 동의 시트를 띄우고, 끄면 바로 철회한다 (다음에 AI 를 쓰면 다시 묻는다)
+  const toggleAiConsent = async (on: boolean) => {
+    if (!on) {
+      withdrawAiConsent();
+      toast.show('AI 분석 동의를 철회했어요. AI 기능을 쓰면 다시 여쭤볼게요.');
+      return;
+    }
+    const route = aiRouteOf(await loadApiKey());
+    if (!route) {
+      toast.show('먼저 AI 코치를 연결해 주세요.', 'error');
+      return;
+    }
+    if (await ensureAiConsent(route)) toast.show('AI 분석에 동의했어요.', 'success');
+  };
+  const aiConsentNote =
+    aiConsent === true && aiConsentProvider
+      ? `${AI_PROVIDER_LABEL[aiConsentProvider].company} AI로 보내는 데 동의했어요${aiConsentAt ? ` · ${dateLabel(aiConsentAt)}` : ''}`
+      : aiConsent === false
+        ? '동의하지 않았어요. AI 기능을 쓰면 다시 여쭤볼게요.'
+        : 'AI 기능을 처음 쓸 때 여쭤볼게요.';
+
   const confirmReset = () => {
     const run = async () => {
       await saveApiKey(null);
@@ -174,12 +205,29 @@ export default function MyScreen() {
       router.replace('/start');
     };
     if (Platform.OS === 'web') {
-      if (globalThis.confirm?.('채팅방, 캡처, 프로필, 연습 기록과 서버에 남은 이용 기록을 모두 삭제할까요? 되돌릴 수 없어요.')) run();
+      if (globalThis.confirm?.(RESET_MESSAGE)) run();
       return;
     }
-    Alert.alert('모든 데이터 삭제', '채팅방, 캡처, 프로필, 연습 기록과 서버에 남은 이용 기록을 모두 삭제할까요? 되돌릴 수 없어요.', [
+    Alert.alert('모든 데이터 삭제', RESET_MESSAGE, [
       { text: '취소', style: 'cancel' },
       { text: '삭제', style: 'destructive', onPress: run },
+    ]);
+  };
+
+  // 예전 첫 화면(미리 체크된 동의)으로 보낸 기록 — 지금은 동의가 꺼져 있어 스위치로는 지울 수 없으므로 따로 지우게 한다
+  const confirmLegacyDelete = () => {
+    const run = () => {
+      useAppStore.getState().requestServerDeletion();
+      haptic.tap();
+      toast.show('서버에 남은 이용 기록을 지울게요.');
+    };
+    if (Platform.OS === 'web') {
+      if (globalThis.confirm?.(LEGACY_DELETE_MESSAGE)) run();
+      return;
+    }
+    Alert.alert('서버 기록 지우기', LEGACY_DELETE_MESSAGE, [
+      { text: '취소', style: 'cancel' },
+      { text: '지우기', style: 'destructive', onPress: run },
     ]);
   };
 
@@ -274,13 +322,14 @@ export default function MyScreen() {
           icon="radio-button-on-outline"
           title="플로팅 버블"
           subtitle="카톡을 보다가 화면 위 버블을 누르면 바로 코칭"
-          right={<Switch value={bubbleOn} onValueChange={toggleBubble} />}
+          right={<Switch accessibilityLabel="플로팅 버블" value={bubbleOn} onValueChange={toggleBubble} />}
         />
       ) : (
         <ListRow icon="flash-outline" title="빠른 코칭" subtitle={Platform.OS === 'ios' ? '아이폰 뒷면 두 번 톡으로 바로 열기 안내' : '캡처·복사한 대화로 바로 코칭'} onPress={() => router.push('/quick')} />
       )}
       <ListRow icon="phone-portrait-outline" title="진동 효과" subtitle="온도가 오를 때 두근두근, 넘길 때 톡톡" right={
         <Switch
+          accessibilityLabel="진동 효과"
           value={hapticsOn}
           onValueChange={(v) => {
             setHapticsOn(v);
@@ -308,14 +357,23 @@ export default function MyScreen() {
         icon="eye-off-outline"
         title="채팅 미리보기 숨기기"
         subtitle="채팅 목록에 대화 내용이 보이지 않아요"
-        right={<Switch value={hidePreviews} onValueChange={setHidePreviews} />}
+        right={<Switch accessibilityLabel="채팅 미리보기 숨기기" value={hidePreviews} onValueChange={setHidePreviews} />}
       />
+      {!isDemoMode ? (
+        <ListRow
+          icon="cloud-upload-outline"
+          title="AI 분석 동의"
+          subtitle={aiConsentNote}
+          right={<Switch accessibilityLabel="AI 분석 동의" value={aiConsent === true} onValueChange={toggleAiConsent} />}
+        />
+      ) : null}
       <ListRow
         icon="bar-chart-outline"
         title="이용 기록 수집 (선택)"
-        subtitle="켜면 코칭 요청 글(붙여 넣은 대화 포함)·답변과 화면 이용 기록이 서비스 개선을 위해 서버에 1년 보관돼요. 끄면 서버 기록도 지워요. 캡처 이미지는 저장하지 않아요."
+        subtitle="켜면 기기 ID·내 프로필(이름·성별·나이·MBTI)·화면 이용 기록과 코칭 요청 글(붙여 넣은 대화·상대 정보 포함)·답변을 서비스 개선을 위해 보관해요. 기록은 1년, 기기 ID·프로필은 마지막 이용 후 1년 보관하고, 미국 회사 Vercel(중계)·Supabase(보관, 서울 리전)가 처리해요(국외 이전). 끄면 서버 기록도 지워요. 캡처 이미지는 저장하지 않아요."
         right={
           <Switch
+            accessibilityLabel="이용 기록 수집 (선택)"
             value={analyticsConsent === true}
             onValueChange={(v) => {
               if (v) {
@@ -334,6 +392,15 @@ export default function MyScreen() {
         }
       />
 
+      {legacyServerRecords && analyticsConsent !== true ? (
+        <ListRow
+          icon="cloud-offline-outline"
+          title="예전에 보낸 이용 기록 지우기"
+          subtitle="예전 버전 첫 화면에 미리 체크돼 있던 동의로 보낸 이용 기록이 서버에 남아 있을 수 있어요. 지금은 보내지 않아요. 누르면 서버에 남은 이 기기의 기록을 지워요."
+          onPress={confirmLegacyDelete}
+        />
+      ) : null}
+
       <SectionHeader title="AI 코치" />
       <ListRow icon="sparkles-outline" title="AI 코치 연결" value={connection} onPress={() => router.push('/settings/api-key')} />
       <ListRow icon="person-outline" title="내 프로필 · 추구미 · 목표" onPress={() => router.push('/settings/profile')} />
@@ -345,7 +412,16 @@ export default function MyScreen() {
       <ListRow icon="information-circle-outline" title="앱 버전" value={Constants.expoConfig?.version ?? '1.0.0'} />
       <ListRow icon="finger-print-outline" title="내 기기 ID" subtitle="문의·팀원 등록용 · 눌러서 복사" value={deviceId} onPress={copyDeviceId} />
 
-      <SectionHeader title="데이터" subtitle={analyticsConsent === true ? '채팅방·캡처·프로필은 이 기기에 저장돼요 (이용 기록은 서버에도 보관)' : '채팅방·캡처·프로필은 이 기기에만 저장돼요'} />
+      <SectionHeader
+        title="데이터"
+        subtitle={
+          analyticsConsent === true
+            ? '채팅방·캡처·프로필은 이 기기에 저장돼요 (이용 기록은 서버에도 보관)'
+            : legacyServerRecords
+              ? '채팅방·캡처·프로필은 이 기기에 저장돼요 (예전에 보낸 이용 기록이 서버에 남아 있을 수 있어요)'
+              : '채팅방·캡처·프로필은 이 기기에만 저장돼요'
+        }
+      />
       <ListRow icon="trash-outline" title="모든 데이터 삭제" destructive onPress={confirmReset} />
     </Screen>
   );

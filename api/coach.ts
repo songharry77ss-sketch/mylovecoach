@@ -1,24 +1,25 @@
 /**
  * Vercel Serverless Function: POST /api/coach
- * 앱에서 받은 대화 캡처 + 프로필을 AI 에 전달하고 구조화된 코칭 결과를 돌려줍니다.
+ * 앱에서 받은 대화 캡처 + 프로필을 Gemini 에 전달하고 구조화된 코칭 결과를 돌려줍니다.
  * 요청 본문의 mode 로 다른 기능도 처리합니다 (없으면 예전 앱의 코칭 요청):
  *   coach(코칭) · report(상대 분석 보고서) · mind(속마음 풀이) · practice(연애 연습 상대역)
+ * 중계 요청은 Google(Gemini)로만 보냅니다. 앱의 AI 분석 동의 시트(src/lib/coach-client.ts 의 RELAY_ROUTE)와
+ * 개인정보 처리방침 2번이 받는 곳을 Google 로 안내하기 때문입니다 — 다른 회사로 바꾸려면 셋을 같이 고칠 것.
  * 환경변수:
- *   ANTHROPIC_API_KEY 또는 GEMINI_API_KEY (둘 중 하나 필수. 둘 다 있으면 AI_PROVIDER 로 선택, 기본 anthropic)
- *   AI_PROVIDER = anthropic | gemini (선택), GEMINI_MODEL (선택, 기본 gemini-3.5-flash)
+ *   GEMINI_API_KEY (필수 — 없으면 500. 다른 회사 키가 있어도 그쪽으로 보내지 않음), GEMINI_MODEL (선택, 기본 gemini-3.5-flash)
  *   COACH_APP_TOKEN (선택, 앱 토큰 검사)
  */
-import Anthropic from '@anthropic-ai/sdk';
-import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 import { buildTask, parseAiRequest, type AiTask } from '../src/lib/ai-tasks';
-import { COACH_MODEL } from '../src/lib/coach-schema';
 import { callGeminiTask } from '../src/lib/gemini';
 import { clientIp, rateLimited, storedKb } from './_limits';
 import { analyticsEnabled, consentVersionOk, DEVICE_ID, insert, rpc } from './_supabase';
 
 export const config = { maxDuration: 120 };
+
+/** 이 서버가 내용을 보내는 AI 회사 — 앱이 x-ai-consent 헤더로 알려 주는 「사용자가 동의한 회사」와 같아야 보낸다 */
+const RELAY_COMPANY = 'google';
 
 /**
  * 무단 대량 호출 억제용 간이 제한 (IP 당 10분에 60회).
@@ -70,15 +71,6 @@ export function coachLogRow(
   };
 }
 
-function resolveProvider(): 'anthropic' | 'gemini' | null {
-  const wanted = (process.env.AI_PROVIDER ?? '').toLowerCase();
-  if (wanted === 'gemini' && process.env.GEMINI_API_KEY) return 'gemini';
-  if (wanted === 'anthropic' && process.env.ANTHROPIC_API_KEY) return 'anthropic';
-  if (process.env.ANTHROPIC_API_KEY) return 'anthropic';
-  if (process.env.GEMINI_API_KEY) return 'gemini';
-  return null;
-}
-
 /**
  * 코칭 기록 저장 — 이용 기록 수집에 동의한 앱만 x-device-id·x-consent-version 헤더를 보냅니다.
  * 기기 ID 가 없거나 동의 판이 2 미만(미리 체크된 예전 동의)이면 아무것도 기록하지 않습니다. 캡처 이미지는 저장하지 않습니다.
@@ -119,14 +111,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(405).json({ error: 'POST만 지원합니다.' });
     return;
   }
-  const provider = resolveProvider();
-  if (!provider) {
-    res.status(500).json({ error: '서버에 ANTHROPIC_API_KEY 또는 GEMINI_API_KEY가 설정되지 않았어요.' });
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    res.status(500).json({ error: '서버에 GEMINI_API_KEY가 설정되지 않았어요.' });
     return;
   }
+  const provider = 'gemini';
   const expectedToken = process.env.COACH_APP_TOKEN;
   if (expectedToken && req.headers['x-app-token'] !== expectedToken) {
     res.status(401).json({ error: '앱 인증에 실패했어요.' });
+    return;
+  }
+  // 앱은 사용자가 보내도 된다고 동의한 AI 회사를 알려 준다. 이 서버가 보낼 회사와 다르면 동의받지 않은 곳으로 가게 되므로 AI 를 부르지 않는다.
+  // 헤더가 없는 예전 앱(AI 분석 동의 전 빌드)은 동의를 묻지 않고 보낸다 — 새 빌드가 퍼진 뒤 AI_CONSENT_REQUIRED=1 을 켜면 업데이트를 안내하고 막는다
+  const consented = req.headers['x-ai-consent'];
+  if (consented === undefined && process.env.AI_CONSENT_REQUIRED === '1') {
+    res.status(426).json({ error: '앱을 최신 버전으로 업데이트해 주세요. AI 분석 동의를 받는 새 버전에서 AI 코칭을 쓸 수 있어요.' });
+    return;
+  }
+  if (consented !== undefined && consented !== RELAY_COMPANY) {
+    res.status(503).json({ error: '지금은 AI 연결을 점검 중이에요. 잠시 후 다시 시도해주세요.' });
     return;
   }
 
@@ -147,67 +151,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const reply = (output: unknown, usage: unknown) =>
     res.status(200).json(parsed.mode === 'coach' ? { analysis: output, usage, provider } : { mode: parsed.mode, result: output, usage, provider });
 
-  if (provider === 'gemini') {
-    try {
-      const result = await callGeminiTask(task, process.env.GEMINI_API_KEY!, { model: process.env.GEMINI_MODEL });
-      if (!result.ok) {
-        await log({ provider, error: result.code });
-        res.status(result.code === 'auth' ? 500 : result.code === 'rate_limit' ? 429 : result.code === 'refused' ? 422 : 502).json({ error: result.message });
-        return;
-      }
-      const json = task.schema.safeParse(JSON.parse(result.text));
-      if (!json.success) {
-        await log({ provider, error: 'parse' });
-        res.status(502).json({ error: '응답 형식이 올바르지 않아요. 다시 시도해주세요.' });
-        return;
-      }
-      const output = task.normalize(json.data);
-      await log({ analysis: output as Record<string, unknown>, provider });
-      reply(output, result.usage);
-    } catch {
-      res.status(502).json({ error: 'AI 서버와 통신하지 못했어요.' });
-    }
-    return;
-  }
-
   try {
-    const client = new Anthropic();
-    const content: Anthropic.Beta.Messages.BetaContentBlockParam[] = [{ type: 'text', text: task.context }];
-    if (task.image) content.push({ type: 'image', source: { type: 'base64', media_type: task.image.mediaType, data: task.image.base64 } });
-    content.push({ type: 'text', text: task.task });
-    const response = await client.beta.messages.parse({
-      model: COACH_MODEL,
-      max_tokens: 16000,
-      // 안전 분류기가 거절하면 서버가 권장 대체 모델로 다시 돌린다
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
-      system: [{ type: 'text', text: task.system, cache_control: { type: 'ephemeral' } }],
-      messages: [{ role: 'user', content }],
-      output_config: { effort: 'medium', format: betaZodOutputFormat(task.schema) },
-    });
-
-    if (response.stop_reason === 'refusal') {
-      res.status(422).json({ error: '이 대화는 코칭해드리기 어려워요. 다른 내용으로 시도해주세요.' });
+    const result = await callGeminiTask(task, apiKey, { model: process.env.GEMINI_MODEL });
+    if (!result.ok) {
+      await log({ provider, error: result.code });
+      res.status(result.code === 'auth' ? 500 : result.code === 'rate_limit' ? 429 : result.code === 'refused' ? 422 : 502).json({ error: result.message });
       return;
     }
-    if (!response.parsed_output) {
-      res.status(502).json({ error: '응답을 이해하지 못했어요. 다시 시도해주세요.' });
+    const json = task.schema.safeParse(JSON.parse(result.text));
+    if (!json.success) {
+      await log({ provider, error: 'parse' });
+      res.status(502).json({ error: '응답 형식이 올바르지 않아요. 다시 시도해주세요.' });
       return;
     }
-    const output = task.normalize(response.parsed_output);
+    const output = task.normalize(json.data);
     await log({ analysis: output as Record<string, unknown>, provider });
-    reply(output, { input: response.usage.input_tokens, output: response.usage.output_tokens });
-  } catch (error) {
-    if (error instanceof Anthropic.AuthenticationError) {
-      res.status(500).json({ error: '서버 API 키가 올바르지 않아요.' });
-    } else if (error instanceof Anthropic.RateLimitError) {
-      res.status(429).json({ error: '요청이 많아요. 잠시 후 다시 시도해주세요.' });
-    } else if (error instanceof Anthropic.BadRequestError) {
-      res.status(400).json({ error: `요청을 처리하지 못했어요: ${error.message}` });
-    } else if (error instanceof Anthropic.APIError) {
-      res.status(502).json({ error: `AI 서버 오류 (${error.status ?? 'unknown'})` });
-    } else {
-      res.status(500).json({ error: '알 수 없는 오류가 발생했어요.' });
-    }
+    reply(output, result.usage);
+  } catch {
+    res.status(502).json({ error: 'AI 서버와 통신하지 못했어요.' });
   }
 }

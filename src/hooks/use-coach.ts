@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 
 import { track } from '@/lib/analytics';
 import { currentQuota } from '@/lib/billing/gate';
-import { CoachError, requestCoaching } from '@/lib/coach-client';
+import { CoachError, requestCoaching, requireAiConsent } from '@/lib/coach-client';
 import { crushToRequest, userToRequest } from '@/lib/coach-schema';
 import { encodeForModel, type PickedImage } from '@/lib/images';
 import type { EmojiPref, KktiSaved, Tone } from '@/lib/types';
@@ -26,7 +26,7 @@ export type SendResult = 'sent' | 'blocked' | 'skipped';
 export const kktiLabel = (k: KktiSaved | null | undefined) => (k ? `${k.code} ${k.name}`.slice(0, 40) : undefined);
 
 /**
- * 코칭 요청 전체 플로우 (메시지 추가 → 이미지 인코딩 → API → 결과 반영).
+ * 코칭 요청 전체 플로우 (메시지 추가 → AI 분석 동의 → 이미지 인코딩 → API → 결과 반영).
  * 무료 횟수를 다 쓴 상태면 아무것도 보내지 않고 'blocked' 를 돌려줍니다 (화면에서 프리미엄 안내를 띄움).
  */
 export function useCoach() {
@@ -51,6 +51,17 @@ export function useCoach() {
       text: input.variationOf ? '🔄 다른 답장 더 보기' : input.text || undefined,
       tone: input.tone,
     });
+    // 「분석 중」 말풍선은 AI 분석 동의를 받은 뒤에 띄운다 — 동의 시트가 떠 있는 동안 분석이 시작된 것처럼 보이지 않게.
+    // 동의 안 함이면 아무것도 보내지 않고 안내만 남긴다 (횟수도 그대로)
+    const directApiKey = await loadApiKey();
+    try {
+      await requireAiConsent('coach', directApiKey);
+    } catch (e) {
+      const code = e instanceof CoachError ? e.code : 'server';
+      state.addMessage({ crushId: crush.id, role: 'coach', pending: false, error: e instanceof Error ? e.message : '알 수 없는 오류가 발생했어요.', text: code });
+      track('coach_error', { code });
+      return 'sent';
+    }
     const coachMessage = state.addMessage({ crushId: crush.id, role: 'coach', pending: true });
 
     setSending(true);
@@ -58,6 +69,8 @@ export function useCoach() {
     const controller = new AbortController();
     abortRef.current = controller;
     const emoji = input.emoji ?? user.emoji ?? 'on';
+    // 기다리는 사이 「모든 데이터 삭제」를 하면 늦게 온 결과를 다시 저장하지 않는다
+    const epoch = useAppStore.getState().resetEpoch;
     // 비밀 상담은 결과를 캐시에 남기지 않고, 이용 기록용 기기 ID 도 보내지 않는다
     const secret = Boolean(crush.secret);
 
@@ -84,8 +97,9 @@ export function useCoach() {
             image,
             history,
           },
-          { directApiKey: await loadApiKey(), deviceId: secret ? undefined : useAppStore.getState().deviceId, signal: controller.signal },
+          { directApiKey, deviceId: secret ? undefined : useAppStore.getState().deviceId, signal: controller.signal },
         ));
+      if (useAppStore.getState().resetEpoch !== epoch) return 'sent';
       if (!cached && !input.variationOf && !secret) useAppStore.getState().putCachedAnalysis(cacheKey, analysis);
       // 실제로 AI 를 호출해 결과를 받은 경우에만 횟수를 차감한다 (오류·저장된 결과 재사용·무제한은 차감 없음)
       if (!cached && quota.kind !== 'premium') useAppStore.getState().consumeQuota();

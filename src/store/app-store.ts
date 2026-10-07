@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+import type { AiProvider } from '@/lib/ai-consent';
 import { freeRules, type ConsumablePlanKey } from '@/lib/billing/plans';
 import type { Acquisition } from '@/lib/analytics';
 import { consumeOne, EMPTY_USAGE, EMPTY_WALLET, grantConsumable, grantSignupBonus, type PremiumState, type TeamState, type UsageState, type WalletState } from '@/lib/billing/quota';
@@ -67,12 +68,29 @@ export interface AppState {
    * 서버가 지웠다고 답할 때까지 남아 있다가 앱을 켤 때·돌아올 때 다시 보낸다. sent 는 성공한 횟수(철회 직후 1번 + 2분 30초 뒤 1번)
    */
   pendingDeletion: PendingDeletion | null;
+  /** 예전 판 정리(동의를 꺼 둔 기기·만 14세 미만 기기의 서버 기록 삭제 요청)를 한 번 했는지 — 저장값을 읽을 때(merge) 쓴다 */
+  legacyDeletionChecked: boolean;
+  /**
+   * 예전 첫 화면(미리 체크된 체크박스)의 「동의」로 이용 기록을 보냈던 기기 — 그 동의는 「아직 묻지 않음」으로 읽지만
+   * 서버에 기록이 남아 있을 수 있어, 마이 탭에서 지울 수 있게 표시한다. 서버 기록 삭제를 요청하면(requestServerDeletion·동의 철회) 내린다
+   */
+  legacyServerRecords: boolean;
+  /** 「모든 데이터 삭제」 횟수 (저장하지 않음) — 삭제 전에 보낸 AI 요청의 늦은 결과를 다시 저장하지 않으려고 쓴다 */
+  resetEpoch: number;
   /** 채팅 하단의 프리미엄 안내 카드를 닫았는지 */
   upsellDismissed: boolean;
   /** 기기 구분용 무작위 ID (광고 ID 아님, 이용 기록 수집에만 사용) */
   deviceId: string;
   /** 서비스 개선을 위한 이용 기록 수집 동의 (선택) — null 이면 아직 묻지 않음 */
   analyticsConsent: boolean | null;
+  /** 이용 기록 동의를 받은 방식의 판 (ANALYTICS_CONSENT_VERSION). 이 표시 없이 저장된 예전 「동의」는 다시 묻는다 */
+  analyticsConsentVersion: number | null;
+  /** AI 분석 동의 (대화 캡처·글·프로필을 외부 AI 로 보내기) — null 이면 아직 묻지 않음, false 면 동의 안 함·철회 */
+  aiConsent: boolean | null;
+  /** 동의할 때 안내한 AI 회사. 개인 키로 다른 회사에 보내게 되면 다시 묻는다 */
+  aiConsentProvider: AiProvider | null;
+  /** AI 분석 동의에 마지막으로 답한(동의·동의 안 함·철회) 시각 */
+  aiConsentAt: number | null;
   /** 처음 앱을 연 곳 (동의한 경우에만 이용 기록과 함께 전송) */
   acquisition: Acquisition | null;
   /** 진동 효과 */
@@ -111,6 +129,8 @@ export interface AppState {
   getCachedAnalysis: (key: string) => CoachAnalysis | null;
   putCachedAnalysis: (key: string, analysis: CoachAnalysis) => void;
   setAnalyticsConsent: (consent: boolean) => void;
+  /** AI 분석 동의 기록 — 동의한 AI 회사, 동의 안 함·철회면 null */
+  setAiConsent: (provider: AiProvider | null) => void;
   setAcquisition: (acquisition: Acquisition) => void;
   setPremium: (premium: PremiumState | null) => void;
   setTeam: (team: TeamState | null) => void;
@@ -155,6 +175,31 @@ export const clampHeat = (v: number) => Math.max(HEAT_MIN, Math.min(HEAT_MAX, Ma
 /** 예전 서버(온도 변화 폭을 주지 않음) 응답이면 분위기로 대신 정한다 */
 const FALLBACK_DELTA: Record<Temperature, number> = { hot: 10, warm: 5, neutral: 0, cold: -6, unknown: 0 };
 
+/**
+ * 이용 기록 동의를 받는 방식의 판. 2 = 첫 화면 체크박스를 직접 눌러야 켜지는 방식.
+ * 예전 첫 화면은 체크박스가 미리 체크돼 있어서, 그때 저장된 동의(판 표시 없음)는 유효한 선택 동의로 보지 않는다
+ */
+const ANALYTICS_CONSENT_VERSION = 2;
+
+/** 「분석 중」인 채로 저장돼 있던 코치 말풍선을 앱을 다시 켤 때 바꿔 읽는 안내 (「다시 시도」 버튼이 뜬다) */
+const STALLED_ERROR = '분석이 중간에 멈췄어요. 다시 시도해주세요.';
+
+/** 저장된 이용 기록 동의 — 판 표시 없이 저장된 「동의」는 미리 체크된 체크박스로 받은 것이라 「아직 묻지 않음」으로 읽는다 */
+function savedAnalyticsConsent(saved: Partial<AppState>): boolean | null {
+  if (saved.analyticsConsent === false) return false;
+  return saved.analyticsConsent === true && saved.analyticsConsentVersion === ANALYTICS_CONSENT_VERSION ? true : null;
+}
+
+/** 「분석 중」인 채로 저장된 코치 말풍선을 「다시 시도」할 수 있는 실패로 바꾼다 */
+function settlePending(messages: Record<string, ChatMessage[]>): Record<string, ChatMessage[]> {
+  return Object.fromEntries(
+    Object.entries(messages).map(([crushId, list]) => [
+      crushId,
+      Array.isArray(list) ? list.map((m) => (m.pending ? { ...m, pending: false, error: STALLED_ERROR, text: 'network' } : m)) : list,
+    ]),
+  );
+}
+
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -172,9 +217,16 @@ export const useAppStore = create<AppState>()(
       teamCheck: false,
       teamCheckAt: 0,
       pendingDeletion: null,
+      legacyDeletionChecked: false,
+      legacyServerRecords: false,
+      resetEpoch: 0,
       upsellDismissed: false,
       deviceId: createId('d_'),
       analyticsConsent: null,
+      analyticsConsentVersion: null,
+      aiConsent: null,
+      aiConsentProvider: null,
+      aiConsentAt: null,
       acquisition: null,
       hapticsOn: true,
       hidePreviews: false,
@@ -306,13 +358,14 @@ export const useAppStore = create<AppState>()(
             .slice(0, CACHE_MAX - 1);
           return { analysisCache: { ...Object.fromEntries(entries), [key]: { analysis, at: Date.now() } } };
         }),
-      // 동의를 껐으면(켜져 있다가 꺼짐) 어느 화면에서 껐든 서버 기록 삭제를 요청한다
+      // 동의를 껐으면(켜져 있다가 꺼짐) 어느 화면에서 껐든 서버 기록 삭제를 요청한다. 판 표시는 이용자가 직접 고른 답이라는 뜻
       setAnalyticsConsent: (analyticsConsent) =>
         set((s) =>
           s.analyticsConsent === true && analyticsConsent === false
-            ? { analyticsConsent, pendingDeletion: { deviceId: s.deviceId, at: Date.now(), sent: 0 } }
-            : { analyticsConsent },
+            ? { analyticsConsent, analyticsConsentVersion: ANALYTICS_CONSENT_VERSION, pendingDeletion: { deviceId: s.deviceId, at: Date.now(), sent: 0 }, legacyServerRecords: false }
+            : { analyticsConsent, analyticsConsentVersion: ANALYTICS_CONSENT_VERSION },
         ),
+      setAiConsent: (provider) => set({ aiConsent: provider !== null, aiConsentProvider: provider, aiConsentAt: Date.now() }),
       setAcquisition: (acquisition) => set({ acquisition }),
       setPremium: (premium) => set({ premium }),
       setTeam: (team) => set({ team }),
@@ -325,7 +378,8 @@ export const useAppStore = create<AppState>()(
       },
       enableTeamCheck: () => set({ teamCheck: true, teamCheckAt: Date.now() }),
       disableTeamCheck: () => set({ teamCheck: false, teamCheckAt: 0 }),
-      requestServerDeletion: () => set((s) => ({ pendingDeletion: { deviceId: s.deviceId, at: Date.now(), sent: 0 } })),
+      // 기기의 서버 기록을 모두 지우므로 예전 기록 표시도 내린다
+      requestServerDeletion: () => set((s) => ({ pendingDeletion: { deviceId: s.deviceId, at: Date.now(), sent: 0 }, legacyServerRecords: false })),
       markDeletionSent: () => set((s) => (s.pendingDeletion ? { pendingDeletion: { ...s.pendingDeletion, sent: s.pendingDeletion.sent + 1 } } : {})),
       clearPendingDeletion: () => set({ pendingDeletion: null }),
       grantConsumable: (plan, transactionId) => {
@@ -396,9 +450,14 @@ export const useAppStore = create<AppState>()(
         }),
       addMindAnswer: (answer) => set((s) => ({ mindHistory: [answer, ...s.mindHistory].slice(0, 10) })),
       // 구매 상태·이용권·무료 사용량·팀원·회원 여부는 「모든 데이터 삭제」로 지우지 않는다 (회원은 마이 → 로그아웃·탈퇴로)
-      // (구매는 스토어 계정에 묶여 있고, 삭제로 무료 횟수가 초기화되면 안 됨). 서버에 남은 이 기기의 이용 기록도 지워 달라고 요청한다
+      // (구매는 스토어 계정에 묶여 있고, 삭제로 무료 횟수가 초기화되면 안 됨). 서버에 남은 이 기기의 이용 기록도 지워 달라고 요청하고,
+      // AI 분석·이용 기록 동의는 처음 상태로 돌려 다시 묻는다 (첫 화면 체크박스는 꺼진 채로 보이므로, 저장된 동의도 지워야 화면과 실제가 맞는다)
       resetAll: () =>
         set((s) => ({
+          analyticsConsent: null,
+          analyticsConsentVersion: null,
+          legacyServerRecords: false,
+          resetEpoch: s.resetEpoch + 1,
           user: null,
           crushes: {},
           messages: {},
@@ -407,6 +466,9 @@ export const useAppStore = create<AppState>()(
           kkti: null,
           practice: {},
           mindHistory: [],
+          aiConsent: null,
+          aiConsentProvider: null,
+          aiConsentAt: null,
           teamCheck: false,
           teamCheckAt: 0,
           pendingDeletion: { deviceId: s.deviceId, at: Date.now(), sent: 0 },
@@ -415,17 +477,9 @@ export const useAppStore = create<AppState>()(
     {
       name: 'mylovecoach.store.v1',
       storage: appStorage,
-      version: 2,
-      // 판 2: 서버 기록 삭제 요청(pendingDeletion)이 생기기 전에 동의를 껐거나(예전 판은 끌 때 삭제를 한 번만, 또는 아예 보내지 않음)
-      // 만 14세 미만 나이로 저장된 기기는 이 판을 처음 열 때 한 번 삭제를 요청한다
-      migrate: (persisted, version) => {
-        const s = (persisted ?? {}) as Partial<AppState>;
-        if (version < 2 && !s.pendingDeletion && s.deviceId) {
-          const underAge = s.user?.age != null && s.user.age < 14;
-          if (s.analyticsConsent !== true || underAge) s.pendingDeletion = { deviceId: s.deviceId, at: Date.now(), sent: 0 };
-        }
-        return s as AppState;
-      },
+      // 판은 올리지 않는다 (아래 merge 설명). 10-07 의 웹 배포 하나가 판 2 로 저장했으므로, 판이 달라도 저장값을 그대로 받아 merge 에 넘긴다
+      version: 1,
+      migrate: (persisted) => persisted as AppState,
       // 비밀 상담 채팅방과 그 메시지는 기기에 저장하지 않는다
       partialize: (s) => {
         const secretIds = Object.values(s.crushes)
@@ -447,15 +501,67 @@ export const useAppStore = create<AppState>()(
           teamCheck: s.teamCheck,
           teamCheckAt: s.teamCheckAt,
           pendingDeletion: s.pendingDeletion,
+          legacyDeletionChecked: s.legacyDeletionChecked,
+          legacyServerRecords: s.legacyServerRecords,
           upsellDismissed: s.upsellDismissed,
           deviceId: s.deviceId,
           analyticsConsent: s.analyticsConsent,
+          analyticsConsentVersion: s.analyticsConsentVersion,
+          aiConsent: s.aiConsent,
+          aiConsentProvider: s.aiConsentProvider,
+          aiConsentAt: s.aiConsentAt,
           acquisition: s.acquisition,
           hapticsOn: s.hapticsOn,
           hidePreviews: s.hidePreviews,
           kkti: s.kkti,
           practice: s.practice,
           mindHistory: s.mindHistory,
+        };
+      },
+      // 저장값은 읽을 때 바로잡는다. version 을 올리면 이전 버전 앱(되돌린 웹 배포 등)이 저장값을 통째로 버리므로 올리지 않는다
+      // - 예전 버전에서 올라온 기기에는 AI 분석 동의 기록이 없다 → 「아직 묻지 않음」(null)으로 읽어 처음 AI 를 쓸 때 묻는다
+      // - 저장소를 늦게 다 읽었으면(루트 레이아웃의 2.5초 안전장치로 먼저 시작) 그사이 시트에서 고른 답이 더 새롭다 → 그 답을 남긴다
+      // - 미리 체크된 첫 화면에서 받은 이용 기록 동의(판 표시 없음)는 「아직 묻지 않음」으로 읽는다. 동의 안 함은 그대로
+      // - 「분석 중」인 채로 저장된 코치 말풍선은 답을 받기 전에 앱이 닫힌 것 → 「다시 시도」할 수 있는 실패로 읽는다 (막 켠 앱에는 진행 중인 요청이 없다)
+      // - 예전 판 정리(한 번, legacyDeletionChecked): 서버 기록 삭제 요청(pendingDeletion)이 생기기 전에 동의를 직접 꺼 뒀거나
+      //   만 14세 미만 나이로 저장된 기기는 서버 기록 삭제를 한 번 요청한다. 미리 체크된 예전 「동의」는 「아직 묻지 않음」으로 읽을 뿐
+      //   그 기록은 지우지 않는다 (사용자 결정 10-07 「새 동의만 저장, 예전 기록은 둔다」)
+      merge: (persisted, current) => {
+        const saved = (persisted ?? {}) as Partial<AppState>;
+        const provider = saved.aiConsentProvider === 'google' || saved.aiConsentProvider === 'anthropic' ? saved.aiConsentProvider : null;
+        const savedAiAt = typeof saved.aiConsentAt === 'number' ? saved.aiConsentAt : null;
+        // 저장소를 늦게 다 읽었고(2.5초 안전장치로 먼저 시작) 그사이 이번 실행에서 동의를 새로 골랐으면 그 답이 더 새롭다 —
+        // 기기 시계와 상관없이 지금 고른 답을 남긴다 (저장소를 다시 읽는 곳은 없으므로 current 의 답은 이번 실행의 것)
+        const answeredMeanwhile = current.aiConsentAt != null;
+        const analyticsMeanwhile = current.analyticsConsentVersion != null;
+        const underAge = saved.user?.age != null && saved.user.age < 14;
+        const legacyDeletion =
+          !saved.legacyDeletionChecked && !saved.pendingDeletion && saved.deviceId && (saved.analyticsConsent === false || (saved.analyticsConsent === true && underAge))
+            ? { pendingDeletion: { deviceId: saved.deviceId, at: Date.now(), sent: 0 } }
+            : {};
+        // 저장돼 있던 동의를 그사이 「동의 안 함」으로 바꾼 셈이면 서버 기록도 지운다
+        const withdrawnMeanwhile =
+          analyticsMeanwhile && current.analyticsConsent !== true && saved.analyticsConsent === true && !saved.pendingDeletion && saved.deviceId
+            ? { pendingDeletion: { deviceId: saved.deviceId, at: Date.now(), sent: 0 } }
+            : {};
+        // 판 표시 없는 「동의」(미리 체크된 예전 첫 화면) → 서버에 기록이 남아 있을 수 있다는 표시 (지우지는 않음, 마이 탭에서 지울 수 있게)
+        const prechecked = saved.analyticsConsent === true && saved.analyticsConsentVersion == null && !underAge && !('pendingDeletion' in withdrawnMeanwhile);
+        return {
+          ...current,
+          ...saved,
+          ...(answeredMeanwhile
+            ? { aiConsent: current.aiConsent, aiConsentProvider: current.aiConsentProvider, aiConsentAt: current.aiConsentAt }
+            : { aiConsent: saved.aiConsent === false ? false : saved.aiConsent === true && provider ? true : null, aiConsentProvider: provider, aiConsentAt: savedAiAt }),
+          ...(analyticsMeanwhile
+            ? { analyticsConsent: current.analyticsConsent, analyticsConsentVersion: current.analyticsConsentVersion }
+            : 'analyticsConsent' in saved
+              ? { analyticsConsent: savedAnalyticsConsent(saved), analyticsConsentVersion: typeof saved.analyticsConsentVersion === 'number' ? saved.analyticsConsentVersion : null }
+              : {}),
+          ...(saved.messages ? { messages: settlePending(saved.messages) } : {}),
+          ...legacyDeletion,
+          ...withdrawnMeanwhile,
+          ...(prechecked ? { legacyServerRecords: true } : {}),
+          legacyDeletionChecked: true,
         };
       },
       onRehydrateStorage: () => (state) => state?.setHydrated(),
