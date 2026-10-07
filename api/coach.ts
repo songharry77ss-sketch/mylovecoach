@@ -13,7 +13,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 import { buildTask, parseAiRequest, type AiTask } from '../src/lib/ai-tasks';
 import { callGeminiTask } from '../src/lib/gemini';
-import { analyticsEnabled, consentVersionOk, DEVICE_ID, insert } from './_supabase';
+import { clientIp, rateLimited } from './_limits';
+import { analyticsEnabled, consentVersionOk, DEVICE_ID, insert, rpc } from './_supabase';
 
 export const config = { maxDuration: 120 };
 
@@ -27,23 +28,57 @@ const RELAY_COMPANY = 'google';
  */
 const RATE_WINDOW_MS = 10 * 60 * 1000;
 const RATE_MAX = 60;
-const hits = new Map<string, number[]>();
+/** 하루 전체 코칭 기록 저장 상한 (무료 DB 가 차지 않게) */
+const dailyLogs = () => Number(process.env.COACH_DAILY_ROWS) || 5_000;
+const MIN_AGE = 14;
 
-function rateLimited(ip: string, now = Date.now()): boolean {
-  const recent = (hits.get(ip) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
-  recent.push(now);
-  hits.set(ip, recent);
-  if (hits.size > 5000) for (const [k, v] of hits) if (!v.some((t) => now - t < RATE_WINDOW_MS)) hits.delete(k);
-  return recent.length > RATE_MAX;
+const cut = (value: unknown, max: number): string | null => (typeof value === 'string' && value ? value.slice(0, max) : null);
+
+/**
+ * 저장할 코칭 기록 한 줄 — 글은 길이를 잘라 저장한다 (한 요청이 저장소를 채우지 못하게).
+ * 붙여 넣은 대화는 앱에서 700자까지 보내므로 질문은 1,000자까지 남긴다.
+ */
+export function coachLogRow(
+  deviceId: string,
+  sessionId: string | undefined,
+  coachReq: { crush: Record<string, unknown>; tone?: string; text?: string; image?: unknown },
+  result: { analysis?: Record<string, unknown>; provider?: string; error?: string },
+  latencyMs: number,
+): Record<string, unknown> {
+  const a = result.analysis;
+  const age = coachReq.crush?.age;
+  return {
+    device_id: deviceId.slice(0, 64),
+    session_id: sessionId ? toUuid(sessionId) : null,
+    crush_alias: cut(coachReq.crush?.name, 40),
+    crush_gender: cut(coachReq.crush?.gender, 16),
+    crush_age: typeof age === 'number' && Number.isFinite(age) ? Math.round(age) : null,
+    crush_mbti: cut(coachReq.crush?.mbti, 8),
+    relationship: cut(coachReq.crush?.relationship, 24),
+    tone: cut(coachReq.tone, 24),
+    question: cut(coachReq.text, 1000),
+    has_image: Boolean(coachReq.image),
+    temperature: cut(a?.temperature, 16),
+    interest_score: typeof a?.interestScore === 'number' ? Math.round(a.interestScore) : null,
+    summary: cut(a?.summary, 500),
+    reply_texts: Array.isArray(a?.replies)
+      ? (a.replies as { text?: unknown }[]).slice(0, 5).map((r) => cut(r?.text, 300) ?? '')
+      : null,
+    next_step: cut(a?.nextStep, 300),
+    provider: cut(result.provider, 16),
+    latency_ms: Math.max(0, Math.round(latencyMs)),
+    error: cut(result.error, 200),
+  };
 }
 
 /**
  * 코칭 기록 저장 — 이용 기록 수집에 동의한 앱만 x-device-id·x-consent-version 헤더를 보냅니다.
  * 기기 ID 가 없거나 동의 판이 2 미만(미리 체크된 예전 동의)이면 아무것도 기록하지 않습니다. 캡처 이미지는 저장하지 않습니다.
+ * 만 14세 미만으로 입력한 이용자의 요청과, 하루 저장 상한을 넘은 요청도 기록하지 않습니다.
  */
 async function logCoach(
   req: VercelRequest,
-  coachReq: { crush: Record<string, unknown>; tone?: string; text?: string; image?: unknown },
+  coachReq: { crush: Record<string, unknown>; user?: Record<string, unknown>; tone?: string; text?: string; image?: unknown },
   result: { analysis?: Record<string, unknown>; provider?: string; error?: string },
   startedAt: number,
 ): Promise<void> {
@@ -51,28 +86,11 @@ async function logCoach(
   if (typeof deviceId !== 'string' || !DEVICE_ID.test(deviceId) || !analyticsEnabled()) return;
   // 직접 체크해 받은 동의(판 2 이상)만 저장한다 — 판 표시가 없으면 예전 미리 체크된 동의
   if (!consentVersionOk(req.headers['x-consent-version'])) return;
+  const age = coachReq.user?.age;
+  if (typeof age === 'number' && age < MIN_AGE) return;
+  if ((await rpc<boolean>('take_quota', { p_kind: 'coach', p_rows: 1, p_limit: dailyLogs() })) === false) return;
   const sessionId = typeof req.headers['x-session-id'] === 'string' ? req.headers['x-session-id'] : undefined;
-  const a = result.analysis;
-  await insert('coach_log', {
-    device_id: deviceId.slice(0, 64),
-    session_id: sessionId ? toUuid(sessionId) : null,
-    crush_alias: (coachReq.crush?.name as string) ?? null,
-    crush_gender: (coachReq.crush?.gender as string) ?? null,
-    crush_age: (coachReq.crush?.age as number) ?? null,
-    crush_mbti: (coachReq.crush?.mbti as string) ?? null,
-    relationship: (coachReq.crush?.relationship as string) ?? null,
-    tone: coachReq.tone ?? null,
-    question: coachReq.text ?? null,
-    has_image: Boolean(coachReq.image),
-    temperature: (a?.temperature as string) ?? null,
-    interest_score: (a?.interestScore as number) ?? null,
-    summary: (a?.summary as string) ?? null,
-    reply_texts: Array.isArray(a?.replies) ? (a.replies as { text: string }[]).map((r) => r.text) : null,
-    next_step: (a?.nextStep as string) ?? null,
-    provider: result.provider ?? null,
-    latency_ms: Date.now() - startedAt,
-    error: result.error ?? null,
-  });
+  await insert('coach_log', coachLogRow(deviceId, sessionId, coachReq, result, Date.now() - startedAt));
 }
 
 function toUuid(id: string): string {
@@ -110,9 +128,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const forwarded = req.headers['x-forwarded-for'];
-  const ip = (Array.isArray(forwarded) ? forwarded[0] : forwarded)?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
-  if (rateLimited(ip)) {
+  if (rateLimited('coach', clientIp(req), RATE_MAX, RATE_WINDOW_MS)) {
     res.status(429).json({ error: '요청이 많아요. 잠시 후 다시 시도해주세요.' });
     return;
   }

@@ -5,6 +5,8 @@
  * - 대화 캡처 이미지는 절대 보내지 않습니다. 첨부 여부만 서버가 기록합니다.
  * - 코칭 내용은 서버(api/coach)가 직접 기록하므로 앱은 화면·이벤트만 보냅니다.
  * - 실패해도 앱 동작에 영향을 주지 않도록 모든 오류를 삼킵니다.
+ * - 만 14세 미만으로 입력한 이용자는 동의했어도 보내지 않습니다 (법정대리인 동의를 받지 않음).
+ * - 세션: 백그라운드에서 30분 안에 돌아오면 같은 세션을 이어 쓰고, 앞에 나와 있던 시간만 센다.
  */
 import { Platform } from 'react-native';
 
@@ -73,20 +75,59 @@ interface Identity {
 
 const FLUSH_AFTER_MS = 8000;
 const FLUSH_AT_COUNT = 12;
-const MAX_QUEUE = 100;
+const MAX_QUEUE = 40;
+/** 이보다 오래 떠나 있다가 돌아오면 새 세션 (사진 선택·결제 창처럼 잠깐 다녀오는 건 같은 세션) */
+export const SESSION_GAP_MS = 30 * 60 * 1000;
+/** 만 14세 미만은 이용 기록을 보내지 않는다 */
+const MIN_AGE = 14;
 
 let identity: Identity = { deviceId: '', consent: false };
 let sessionId = '';
 let sessionStartedAt = 0;
+/** 이번 세션에서 앞에 나와 있던 시간 (지금 구간 제외) */
+let foregroundMs = 0;
+/** 지금 앞에 나와 있으면 그 구간의 시작 시각, 뒤에 있으면 0 */
+let foregroundSince = 0;
+/** 마지막으로 뒤로 간 시각 (앞에 있으면 0) */
+let backgroundAt = 0;
 let queue: TrackedEvent[] = [];
 let timer: ReturnType<typeof setTimeout> | null = null;
 let currentScreen: { name: string; at: number } | null = null;
-/** 백그라운드로 가며 세션을 끝냈는지 — 돌아오면 새 세션을 연다 */
-let sessionEnded = false;
+/** 지금 보고 있는 화면 (동의 전에도 기억해 두었다가, 동의하면 그 화면부터 센다) */
+let lastScreenName = '';
 
-/** 수집 대상 여부 — 동의 + 서버 주소가 있어야 하고, 데모 모드는 제외 */
+const underAge = () => identity.user?.age != null && identity.user.age < MIN_AGE;
+
+/** 수집 대상 여부 — 동의 + 만 14세 이상 + 서버 주소가 있어야 하고, 데모 모드는 제외 */
 function enabled(): boolean {
-  return identity.consent && Boolean(identity.deviceId) && !isDemoMode && (APP_CONFIG.apiSameOrigin || Boolean(APP_CONFIG.apiUrl));
+  return identity.consent && !underAge() && Boolean(identity.deviceId) && !isDemoMode && (APP_CONFIG.apiSameOrigin || Boolean(APP_CONFIG.apiUrl));
+}
+
+function startSession(now: number): void {
+  sessionId = createId('s_');
+  sessionStartedAt = now;
+  foregroundMs = 0;
+  foregroundSince = now;
+  backgroundAt = 0;
+}
+
+/** 이번 세션에서 앞에 나와 있던 시간 */
+const sessionDuration = (now: number) => foregroundMs + (foregroundSince ? now - foregroundSince : 0);
+
+/** 수집이 (다시) 켜졌을 때 — 그 전 시간이 세션·체류 시간에 들어가지 않게 새 세션으로 센다 */
+function restartForCollection(now: number): void {
+  startSession(now);
+  currentScreen = lastScreenName ? { name: lastScreenName, at: now } : null;
+}
+
+/** 수집이 멈췄을 때 — 대기 중인 기록과 지금 화면 기록을 버린다 */
+function dropPending(): void {
+  queue = [];
+  currentScreen = null;
+  if (timer) {
+    clearTimeout(timer);
+    timer = null;
+  }
 }
 
 function endpoint(): string {
@@ -95,21 +136,28 @@ function endpoint(): string {
 
 export function initAnalytics(next: Identity): void {
   identity = next;
-  if (!sessionId) {
-    sessionId = createId('s_');
-    sessionStartedAt = Date.now();
-  }
+  if (!sessionId) startSession(Date.now());
   if (enabled()) track('app_open', { platform: Platform.OS });
 }
 
-/** 프로필·구매 상태가 바뀌면 호출 (다음 전송에 함께 담김) */
-export function updateIdentity(patch: Partial<Identity>): void {
+/** 프로필·구매 상태가 바뀌면 호출 (다음 전송에 함께 담김). 동의 여부는 setConsent 로 바꾼다 */
+export function updateIdentity(patch: Partial<Omit<Identity, 'consent'>>): void {
+  const was = enabled();
   identity = { ...identity, ...patch };
+  const now = enabled();
+  // 나이를 만 14세 미만으로 바꾸면 수집이 멈추고, 다시 14세 이상으로 바꾸면 새 세션부터 센다
+  if (was && !now) dropPending();
+  else if (!was && now) restartForCollection(Date.now());
 }
 
+/** 동의를 켜면 그때부터 새 세션으로 세고, 끄면 대기 중인 기록을 버린다 (같은 값이면 아무것도 안 함) */
 export function setConsent(consent: boolean): void {
+  if (identity.consent === consent) return;
+  const was = enabled();
   identity = { ...identity, consent };
-  if (!consent) queue = [];
+  const now = enabled();
+  if (was && !now) dropPending();
+  else if (!was && now) restartForCollection(Date.now());
 }
 
 export function track(name: string, props?: Record<string, unknown>): void {
@@ -119,6 +167,7 @@ export function track(name: string, props?: Record<string, unknown>): void {
 
 /** 화면 전환 — 이전 화면의 체류 시간을 기록하고 새 화면을 시작한다 */
 export function trackScreen(name: string): void {
+  lastScreenName = name;
   if (!enabled()) return;
   const now = Date.now();
   if (currentScreen && currentScreen.name !== name) {
@@ -139,17 +188,34 @@ export function flushAnalytics(endSession = false): void {
 }
 
 /**
- * 앱이 다시 화면에 나왔을 때 — 백그라운드에 있던 시간을 체류·세션 시간으로 세지 않도록
- * 지금 화면의 시작 시각을 다시 잡고, 떠날 때 세션을 끝냈으면 새 세션을 연다.
+ * 앱이 화면에서 내려갈 때. 'background' 면 앞에 있던 시간을 세션 시간에 더하고, 남은 기록과 함께 세션 끝을 보낸다
+ * (곧 돌아오면 같은 세션을 이어 쓰고, 서버는 같은 세션의 끝 시각·길이를 다시 적는다).
+ * iOS 의 'inactive'(알림 센터·권한 창·결제 시트로 잠깐 가려짐)는 떠난 것으로 보지 않고 기록만 보낸다.
  */
-export function resumeAnalytics(): void {
-  const now = Date.now();
+export function pauseAnalytics(state: string, now = Date.now()): void {
+  if (state !== 'background') return flushAnalytics(false);
+  if (foregroundSince) {
+    foregroundMs += now - foregroundSince;
+    foregroundSince = 0;
+  }
+  backgroundAt = now;
+  flushAnalytics(true);
+}
+
+/**
+ * 앱이 다시 화면에 나왔을 때 — 30분 안에 돌아왔으면 같은 세션을 이어 쓰고(떠나 있던 시간은 세지 않음),
+ * 오래 떠나 있었으면 새 세션을 연다.
+ */
+export function resumeAnalytics(now = Date.now()): void {
+  if (backgroundAt && now - backgroundAt >= SESSION_GAP_MS) {
+    startSession(now);
+    if (currentScreen) currentScreen = { name: currentScreen.name, at: now };
+    if (enabled()) track('app_open', { platform: Platform.OS, resume: true });
+    return;
+  }
+  backgroundAt = 0;
+  if (!foregroundSince) foregroundSince = now;
   if (currentScreen) currentScreen = { name: currentScreen.name, at: now };
-  if (!sessionEnded) return;
-  sessionId = createId('s_');
-  sessionStartedAt = now;
-  sessionEnded = false;
-  if (enabled()) track('app_open', { platform: Platform.OS, resume: true });
 }
 
 export function currentSessionId(): string {
@@ -164,22 +230,9 @@ export function currentConsentVersion(): number | null {
   return identity.consentVersion ?? null;
 }
 
-/**
- * 이용 기록 수집을 끈 기기의 서버 기록을 지워 달라고 요청한다 (처리방침 「동의 철회 시 지체 없이 파기」).
- * 실패해도 앱 동작에는 영향이 없다 — 남은 기록은 1년 뒤 자동 파기되고, 메일로도 삭제를 요청할 수 있다.
- */
-export function requestServerDeletion(deviceId: string): void {
-  if (!deviceId || isDemoMode || !(APP_CONFIG.apiSameOrigin || APP_CONFIG.apiUrl)) return;
-  try {
-    fetch(endpoint(), {
-      method: 'DELETE',
-      headers: { 'content-type': 'application/json', ...(APP_CONFIG.apiToken ? { 'x-app-token': APP_CONFIG.apiToken } : {}) },
-      body: JSON.stringify({ deviceId }),
-      keepalive: true,
-    }).catch(() => {});
-  } catch {
-    // 네트워크가 없으면 조용히 넘어간다
-  }
+/** 시험용: 세션 상태 */
+export function sessionStateForTest() {
+  return { sessionId, sessionStartedAt, foregroundMs, foregroundSince, backgroundAt, queued: queue.length, currentScreen, consent: identity.consent };
 }
 
 function push(event: TrackedEvent, holdFlush = false): void {
@@ -198,7 +251,6 @@ function send(endSession: boolean): void {
   const events = queue;
   queue = [];
   if (!events.length && !endSession) return;
-  if (endSession) sessionEnded = true;
 
   const body = JSON.stringify({
     deviceId: identity.deviceId,
@@ -219,7 +271,7 @@ function send(endSession: boolean): void {
     crushCount: identity.crushCount ?? 0,
     acquisition: identity.acquisition ?? null,
     sessionStartedAt,
-    sessionDurationMs: endSession ? Date.now() - sessionStartedAt : undefined,
+    sessionDurationMs: endSession ? sessionDuration(Date.now()) : undefined,
     endSession,
     events,
   });

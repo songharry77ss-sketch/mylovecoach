@@ -50,9 +50,12 @@ node tools/set-analytics-env.mjs --deploy
 - 주소: **https://mylovecoach.vercel.app/admin.html**
 - 비밀번호: `%USERPROFILE%\wolha-secrets\mylovecoach-admin-token.txt` 의 `ADMIN_TOKEN` 값.
   바꾸려면 `node tools/set-analytics-env.mjs --admin-password <새 비밀번호> --deploy`
-- 검색엔진에 노출되지 않도록 `noindex` 처리돼 있고, 비밀번호 없이는 아무 데이터도 내려가지 않습니다.
-- 짧은 비밀번호를 대입하지 못하게, 같은 IP 에서 15분에 5번 · 전체 1시간에 20번을 넘게 시도하면 잠시 잠깁니다
-  (`admin_auth_fail` 표, 맞게 들어오면 그 IP 기록은 지움). 잠기면 기다리거나 SQL Editor 에서 `delete from admin_auth_fail;`.
+- **등록한 브라우저에서만** 열립니다: 서버의 `ADMIN_DEVICE_SECRET`(관리자 기기 열쇠)을 가진 브라우저만 비밀번호를 물어요.
+  컴퓨터에서 `node tools/admin-enroll.mjs` 를 실행하면 등록 링크가 기본 브라우저로 열리고, 그 브라우저가 열쇠를 저장합니다
+  (다른 기기는 `--print` 로 링크를 보고 그 기기에서 열기). 열쇠를 바꾸면(`set-analytics-env.mjs --new-device-secret --deploy`) 등록한 브라우저가 모두 끊깁니다.
+- 검색엔진에 노출되지 않도록 `noindex` 처리돼 있고, 등록 열쇠와 비밀번호 없이는 아무 데이터도 내려가지 않습니다(열쇠가 없으면 데이터베이스도 건드리지 않음).
+- 짧은 비밀번호를 대입하지 못하게, 등록한 브라우저에서도 같은 IP 가 15분에 10번을 넘게 틀리면 잠시 잠깁니다(전체 잠금은 없음).
+  `admin_auth_fail` 표에 남고, 맞게 들어오면 그 IP 기록은 지우며 30일 지난 기록은 매일 파기됩니다. 잠기면 기다리거나 SQL Editor 에서 `delete from admin_auth_fail;`.
 
 ## 3-1. 팀원 무제한
 
@@ -95,6 +98,9 @@ node tools/set-analytics-env.mjs --deploy
 **Q. Supabase 를 연결하지 않으면 어떻게 되나요?**
 `api/track` 은 조용히 204 를 돌려주고, `api/admin` 은 "아직 연결되지 않았어요" 를 표시합니다. 팀원 무제한도 쓸 수 없습니다(명단을 저장할 곳이 없음). 앱과 코칭 기능은 정상 동작합니다.
 
-**Q. 이용자가 동의를 철회하면?**
-앱 「마이 → 이용 기록 수집」 스위치를 끄면 즉시 전송이 멈춥니다. 이미 쌓인 기록을 지우려면 Supabase SQL Editor 에서
-`delete from app_user where device_id = '…';` 처럼 해당 기기 ID 의 행을 지우면 됩니다.
+**Q. 이용자가 동의를 철회하거나 삭제를 요청하면?**
+앱 「마이 → 이용 기록 수집」 스위치를 끄면(또는 「모든 데이터 삭제」) 전송이 멈추고, 앱이 서버에 그 기기 기록 삭제를 요청합니다
+(연결이 안 되면 다음 실행 때 다시 요청, 철회 직전에 보낸 코칭이 늦게 저장된 것까지 2분 30초 뒤 한 번 더 지움).
+메일로 삭제 요청을 받으면 관리자 페이지 「이용자」 칸의 **기기 ID로 열기** → **기록 삭제**(두 번 누름)로 지웁니다 — 목록(90일·300명) 밖의 기기도 열립니다.
+SQL Editor 에서는 `select delete_device('기기 ID');` — 코칭·이벤트·화면·세션·이용자 다섯 표를 모두 지웁니다
+(`delete from app_user …` 만 하면 코칭 기록 등이 남으니 쓰지 마세요). 만 14세 미만으로 입력한 이용자의 기록은 서버가 저장하지 않고 지웁니다.

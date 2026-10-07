@@ -51,7 +51,7 @@ export default function ApiKeySettings() {
           <View style={styles.statusTexts}>
             <AppText variant="bodyStrong">코치 서버에 연결돼 있어요</AppText>
             <AppText variant="small" color="textSecondary">
-              별도 설정 없이 바로 사용할 수 있어요. 코치 서버에 연결돼 있으면 아래 개인 키는 쓰이지 않아요.
+              별도 설정 없이 바로 사용할 수 있어요. 코치 서버에 연결된 앱에서는 아래 개인 키를 등록해도 쓰이지 않아요.
             </AppText>
           </View>
         </Card>

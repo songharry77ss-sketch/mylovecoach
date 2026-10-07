@@ -113,7 +113,9 @@ export async function rpc<T = unknown>(fn: string, args: Record<string, unknown>
       console.warn(`[supabase] rpc ${fn} ${res.status}: ${(await res.text()).slice(0, 200)}`);
       return null;
     }
-    return (await res.json()) as T;
+    // 돌려주는 값이 없는 함수(void)는 본문 없는 204 → 성공 표시로 true
+    const text = await res.text();
+    return (text ? JSON.parse(text) : true) as T;
   } catch {
     return null;
   }
