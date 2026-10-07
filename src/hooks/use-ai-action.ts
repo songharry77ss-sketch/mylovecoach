@@ -3,7 +3,7 @@ import { useCallback, useRef, useState } from 'react';
 
 import { track } from '@/lib/analytics';
 import { currentQuota } from '@/lib/billing/gate';
-import { CoachError } from '@/lib/coach-client';
+import { CoachError, requireAiConsent, type AiFeature } from '@/lib/coach-client';
 import { useAppStore } from '@/store/app-store';
 import { loadApiKey } from '@/store/storage';
 
@@ -12,6 +12,7 @@ export type PaywallReason = 'quota' | 'regenerate' | 'my' | 'banner' | 'report' 
 /**
  * 보고서·속마음·연습처럼 AI 를 한 번 부르는 기능의 공통 흐름.
  * - 남은 횟수가 없으면 결제 화면을 띄우고 부르지 않는다
+ * - AI 분석 동의를 먼저 받고, 동의한 뒤에만 「분석 중」(busy)을 켜고 call 을 부른다. 동의 안 함이면 안내(error)만 남긴다
  * - 성공했을 때만 1회 차감한다 (chargeable=false 면 차감 없음 — 연습 대화의 두 번째 턴부터 등)
  */
 export function useAiAction() {
@@ -37,7 +38,7 @@ export function useAiAction() {
 
   const run = useCallback(
     async <T>(
-      name: string,
+      name: Exclude<AiFeature, 'coach'>,
       call: (options: { directApiKey: string | null; signal: AbortSignal }) => Promise<T>,
       options: { chargeable?: boolean; reason: PaywallReason },
     ): Promise<T | null> => {
@@ -47,13 +48,21 @@ export function useAiAction() {
         setBlocked(true);
         return null;
       }
+      setError(null);
+      const directApiKey = await loadApiKey();
+      try {
+        await requireAiConsent(name, directApiKey);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : '알 수 없는 오류가 발생했어요.');
+        track(`${name}_error`, { code: e instanceof CoachError ? e.code : 'server' });
+        return null;
+      }
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
       setBusy(true);
-      setError(null);
       try {
-        const result = await call({ directApiKey: await loadApiKey(), signal: controller.signal });
+        const result = await call({ directApiKey, signal: controller.signal });
         // 무제한(프리미엄·제한 없음)이면 차감하지 않는다. 하루 이용권은 consumeQuota 가 알아서 건너뛴다
         if (chargeable && currentQuota().kind !== 'premium') useAppStore.getState().consumeQuota();
         track(`${name}_success`);

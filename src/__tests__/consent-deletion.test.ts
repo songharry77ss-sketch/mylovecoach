@@ -4,7 +4,7 @@
  */
 import { refreshTeam } from '@/lib/billing/team';
 import { processPendingDeletion, resetDeletionStateForTest, SETTLE_MS } from '@/lib/server-deletion';
-import { useAppStore } from '@/store/app-store';
+import { useAppStore, type AppState } from '@/store/app-store';
 
 jest.mock('@/lib/config', () => ({
   APP_CONFIG: { apiUrl: 'https://api.example', apiSameOrigin: false, apiToken: 'tok', supportEmail: '', privacyUrl: '', termsUrl: '' },
@@ -124,20 +124,33 @@ describe('삭제 요청 보내기 (lib/server-deletion)', () => {
   });
 });
 
-describe('예전 판 저장 데이터 정리 (persist 판 2)', () => {
-  const migrate = (state: object, version: number) => useAppStore.persist.getOptions().migrate!(state, version) as { pendingDeletion?: unknown };
+describe('예전 판 저장 데이터 정리 (저장값을 읽을 때 한 번)', () => {
+  const options = () => useAppStore.persist.getOptions();
+  const merge = (saved: object) => options().merge!(saved, useAppStore.getState()) as AppState;
 
-  it('예전 판에서 동의를 꺼 둔 기기는 이 판을 처음 열 때 한 번 삭제를 요청한다', () => {
-    expect(migrate({ deviceId: 'd_old_off', analyticsConsent: false }, 1).pendingDeletion).toMatchObject({ deviceId: 'd_old_off', sent: 0 });
+  it('예전 판에서 동의를 직접 꺼 둔 기기는 처음 열 때 한 번 삭제를 요청한다', () => {
+    const s = merge({ deviceId: 'd_old_off', analyticsConsent: false });
+    expect(s.pendingDeletion).toMatchObject({ deviceId: 'd_old_off', sent: 0 });
+    expect(s.legacyDeletionChecked).toBe(true);
   });
 
   it('동의한 채 만 14세 미만 나이로 저장된 기기도 삭제를 요청한다', () => {
-    expect(migrate({ deviceId: 'd_old_kid', analyticsConsent: true, user: { age: 13 } }, 1).pendingDeletion).toMatchObject({ deviceId: 'd_old_kid' });
+    expect(merge({ deviceId: 'd_old_kid', analyticsConsent: true, analyticsConsentVersion: 2, user: { age: 13 } }).pendingDeletion).toMatchObject({ deviceId: 'd_old_kid' });
   });
 
-  it('동의한 성인 기기와 이미 판 2 인 저장 데이터는 그대로', () => {
-    expect(migrate({ deviceId: 'd_adult', analyticsConsent: true, user: { age: 25 } }, 1).pendingDeletion).toBeUndefined();
-    expect(migrate({ deviceId: 'd_v2', analyticsConsent: false }, 2).pendingDeletion).toBeUndefined();
+  it('미리 체크된 예전 동의(판 표시 없음)는 「아직 묻지 않음」으로 읽고, 그 기록은 지우지 않는다 (사용자 결정)', () => {
+    const s = merge({ deviceId: 'd_prechecked', analyticsConsent: true, user: { age: 25 } });
+    expect(s.analyticsConsent).toBeNull();
+    expect(s.pendingDeletion).toBeNull();
+  });
+
+  it('한 번 정리한 기기는 다시 요청하지 않는다', () => {
+    expect(merge({ deviceId: 'd_done', analyticsConsent: false, legacyDeletionChecked: true }).pendingDeletion).toBeNull();
+  });
+
+  it('판 2 로 저장된 웹 데이터(10-07 배포 하나)도 버리지 않고 그대로 읽는다', () => {
+    expect(options().version).toBe(1);
+    expect(options().migrate!({ deviceId: 'd_v2', analyticsConsent: false }, 2)).toMatchObject({ deviceId: 'd_v2', analyticsConsent: false });
   });
 });
 

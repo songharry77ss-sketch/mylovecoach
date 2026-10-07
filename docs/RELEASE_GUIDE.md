@@ -21,9 +21,8 @@
 npm i -g vercel
 vercel login
 vercel link                       # 새 프로젝트로 연결 (root = 저장소 루트)
-vercel env add ANTHROPIC_API_KEY production   # sk-ant-... 입력 (Claude 사용 시)
-# 또는 Gemini 를 쓰려면:
-vercel env add GEMINI_API_KEY production      # AIza... 입력
+# 중계 서버는 Gemini 로만 보낸다 (앱의 AI 분석 동의 시트·개인정보 처리방침이 Google 로 안내)
+vercel env add GEMINI_API_KEY production      # AIza... 입력 (필수)
 vercel env add AI_PROVIDER production         # gemini
 vercel env add COACH_APP_TOKEN production     # 임의의 긴 문자열 (선택)
 vercel --prod
