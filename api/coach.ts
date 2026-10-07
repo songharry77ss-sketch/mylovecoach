@@ -123,8 +123,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
   // 앱은 사용자가 보내도 된다고 동의한 AI 회사를 알려 준다. 이 서버가 보낼 회사와 다르면 동의받지 않은 곳으로 가게 되므로 AI 를 부르지 않는다.
-  // 헤더가 없는 예전 앱(심사 중인 1.0 등)은 그대로 받는다
+  // 헤더가 없는 예전 앱(AI 분석 동의 전 빌드)은 동의를 묻지 않고 보낸다 — 새 빌드가 퍼진 뒤 AI_CONSENT_REQUIRED=1 을 켜면 업데이트를 안내하고 막는다
   const consented = req.headers['x-ai-consent'];
+  if (consented === undefined && process.env.AI_CONSENT_REQUIRED === '1') {
+    res.status(426).json({ error: '앱을 최신 버전으로 업데이트해 주세요. AI 분석 동의를 받는 새 버전에서 AI 코칭을 쓸 수 있어요.' });
+    return;
+  }
   if (consented !== undefined && consented !== RELAY_COMPANY) {
     res.status(503).json({ error: '지금은 AI 연결을 점검 중이에요. 잠시 후 다시 시도해주세요.' });
     return;

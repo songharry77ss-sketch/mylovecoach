@@ -142,12 +142,12 @@ export default function Start() {
               {consent ? <Ionicons name="checkmark" size={12} color={theme.primaryText} /> : null}
             </View>
             <AppText variant="caption" color="textSecondary" style={styles.consentText}>
-              (선택) 서비스 개선을 위해 이용 기록(기기 ID·프로필·화면 이용·코칭 질문과 답)을 1년 동안 보관하는 데 동의해요. 동의하지 않아도 모든 기능을 쓸 수 있어요. 캡처 이미지는 저장하지 않고, 마이 탭에서 언제든 끌 수 있어요.
+              (선택) 서비스 개선을 위해 이용 기록(기기 ID·내 프로필·화면 이용·코칭 질문과 답)을 보관하는 데 동의해요. 기록은 1년, 기기 ID·프로필은 마지막 이용 후 1년 보관하고, 미국 회사 Vercel(중계)·Supabase(보관, 서울 리전)가 처리해요(국외 이전). 동의하지 않아도 모든 기능을 쓸 수 있어요. 캡처 이미지는 저장하지 않고, 마이 탭에서 언제든 끌 수 있어요.
             </AppText>
           </Pressable>
           {/* 체크박스 줄 밖에 둔다 — 안에 두면 링크를 눌러도 체크가 바뀌고, 화면 읽기에서 링크에 닿지 못한다 */}
           <AppText variant="caption" color="primary" accessibilityRole="link" onPress={() => Linking.openURL(`${APP_CONFIG.privacyUrl}#analytics`)} style={styles.consentMore}>
-            수집 항목·보관 기간 자세히 보기 ›
+            수집 항목·보관 기간·국외 이전 자세히 보기 ›
           </AppText>
 
           <AppText variant="caption" color="textTertiary" align="center">

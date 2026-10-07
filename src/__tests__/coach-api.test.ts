@@ -44,6 +44,7 @@ beforeEach(() => {
   delete process.env.COACH_APP_TOKEN;
   delete process.env.ANTHROPIC_API_KEY;
   delete process.env.AI_PROVIDER;
+  delete process.env.AI_CONSENT_REQUIRED;
 });
 afterAll(() => {
   process.env = ENV;
@@ -65,6 +66,21 @@ describe('중계 서버는 사용자가 동의한 회사(Google)로만 보낸다
 
   it('헤더가 없는 예전 앱의 요청은 그대로 받는다', async () => {
     await post();
+    expect(gemini).toHaveBeenCalledTimes(1);
+  });
+
+  it('AI_CONSENT_REQUIRED=1 이면 헤더 없는 예전 앱은 AI 를 부르지 않고 업데이트를 안내한다', async () => {
+    process.env.AI_CONSENT_REQUIRED = '1';
+    const res = await post();
+    expect(res.statusCode).toBe(426);
+    expect((res.body as { error: string }).error).toContain('최신 버전으로 업데이트');
+    expect(gemini).not.toHaveBeenCalled();
+  });
+
+  it('AI_CONSENT_REQUIRED=1 이어도 Google 에 동의한 새 앱은 그대로 보낸다', async () => {
+    process.env.AI_CONSENT_REQUIRED = '1';
+    const res = await post({ 'x-ai-consent': 'google' });
+    expect(res.statusCode).not.toBe(426);
     expect(gemini).toHaveBeenCalledTimes(1);
   });
 

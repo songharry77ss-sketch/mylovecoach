@@ -85,9 +85,12 @@ export default function RootLayout() {
     // 처음 실행이면 어디서 들어왔는지 기기에 적어 둔다 (동의한 경우에만 이용 기록과 함께 전송)
     if (!useAppStore.getState().acquisition) useAppStore.getState().setAcquisition(launchAcquisition());
     const s = useAppStore.getState();
+    // 저장소를 실제로 다 읽기 전(2.5초 안전장치로 먼저 시작)에는 기기 ID·동의가 임시 값이라 보내지 않는다 —
+    // 임시 ID 로 쌓인 기록은 철회·삭제로 지울 수 없기 때문. 다 읽으면 아래 onFinishHydration 이 이어서 켠다
+    const loaded = () => useAppStore.persist.hasHydrated();
     initAnalytics({
       deviceId: s.deviceId,
-      consent: s.analyticsConsent === true,
+      consent: s.analyticsConsent === true && loaded(),
       user: s.user,
       premiumPlan: s.premium?.plan ?? null,
       crushCount: Object.keys(s.crushes).length,
@@ -98,8 +101,9 @@ export default function RootLayout() {
     // 서버에 남은 기록 삭제 요청이 있으면(지난번에 못 보냈거나 방금 생김) 보낸다
     processPendingDeletion().catch(() => {});
     const unsubscribe = useAppStore.subscribe((next, prev) => {
-      setConsent(next.analyticsConsent === true);
+      setConsent(next.analyticsConsent === true && loaded());
       updateIdentity({
+        deviceId: next.deviceId,
         user: next.user,
         premiumPlan: next.premium?.plan ?? null,
         crushCount: Object.keys(next.crushes).length,
@@ -107,10 +111,17 @@ export default function RootLayout() {
         consentVersion: consentVersionOf(next),
         deletionPending: next.pendingDeletion != null,
       });
-      // 동의한 채로 나이를 만 14세 미만으로 바꾸면 서버에 쌓인 기록도 지운다 (법정대리인 동의를 받지 않으므로)
+      // 나이를 만 14세 미만으로 바꾸면 동의 상태와 상관없이 서버에 남은 기록도 지운다 (법정대리인 동의를 받지 않으므로).
+      // 저장소를 읽어 들이는 순간(빈 상태 → 저장된 프로필)은 바꾼 것이 아니므로 건너뛴다
       const under = (u: typeof next.user) => u?.age != null && u.age < 14;
-      if (next.analyticsConsent === true && under(next.user) && !under(prev.user)) next.requestServerDeletion();
+      if (loaded() && under(next.user) && !under(prev.user)) next.requestServerDeletion();
       if (next.pendingDeletion && next.pendingDeletion !== prev.pendingDeletion) processPendingDeletion().catch(() => {});
+    });
+    // 저장소를 늦게 다 읽었으면 그때 실제 기기 ID·동의로 이어서 켠다
+    const unsubLoaded = useAppStore.persist.onFinishHydration((st) => {
+      updateIdentity({ deviceId: st.deviceId, user: st.user, acquisition: st.acquisition, consentVersion: consentVersionOf(st), deletionPending: st.pendingDeletion != null });
+      setConsent(st.analyticsConsent === true);
+      processPendingDeletion().catch(() => {});
     });
     // 떠날 때 남은 기록과 세션 끝을 보낸다. 30분 안에 돌아오면 같은 세션을 이어 쓰고, 떠나 있던 시간은 세지 않는다
     const sub = AppState.addEventListener('change', (state) => {
@@ -122,6 +133,7 @@ export default function RootLayout() {
     return () => {
       flushAnalytics(true);
       unsubscribe();
+      unsubLoaded();
       sub.remove();
     };
   }, [hydrated]);

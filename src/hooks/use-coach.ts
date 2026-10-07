@@ -69,6 +69,8 @@ export function useCoach() {
     const controller = new AbortController();
     abortRef.current = controller;
     const emoji = input.emoji ?? user.emoji ?? 'on';
+    // 기다리는 사이 「모든 데이터 삭제」를 하면 늦게 온 결과를 다시 저장하지 않는다
+    const epoch = useAppStore.getState().resetEpoch;
     // 비밀 상담은 결과를 캐시에 남기지 않고, 이용 기록용 기기 ID 도 보내지 않는다
     const secret = Boolean(crush.secret);
 
@@ -97,6 +99,7 @@ export function useCoach() {
           },
           { directApiKey, deviceId: secret ? undefined : useAppStore.getState().deviceId, signal: controller.signal },
         ));
+      if (useAppStore.getState().resetEpoch !== epoch) return 'sent';
       if (!cached && !input.variationOf && !secret) useAppStore.getState().putCachedAnalysis(cacheKey, analysis);
       // 실제로 AI 를 호출해 결과를 받은 경우에만 횟수를 차감한다 (오류·저장된 결과 재사용·무제한은 차감 없음)
       if (!cached && quota.kind !== 'premium') useAppStore.getState().consumeQuota();
