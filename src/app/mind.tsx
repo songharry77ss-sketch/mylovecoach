@@ -46,6 +46,8 @@ export default function MindScreen() {
   useEffect(() => {
     if (started.current || reading || !situation) return;
     started.current = true;
+    // 기다리는 사이 「모든 데이터 삭제」를 하면 늦게 온 결과를 기록에 다시 남기지 않는다
+    const epoch = useAppStore.getState().resetEpoch;
     run(
       'mind',
       (o) => requestAi('mind', { situation, perspective, user: user ? { gender: user.gender, age: user.age, mbti: user.mbti } : undefined }, o),
@@ -56,7 +58,7 @@ export default function MindScreen() {
         return;
       }
       setReading(r);
-      useAppStore.getState().addMindAnswer({ situation, perspective, reading: r, at: Date.now() });
+      if (useAppStore.getState().resetEpoch === epoch) useAppStore.getState().addMindAnswer({ situation, perspective, reading: r, at: Date.now() });
       haptic.heartbeat();
     });
   }, [reading, situation, perspective, run, user, attempt]);

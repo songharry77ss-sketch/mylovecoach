@@ -31,6 +31,9 @@ import { genderLabel, toneLabel } from '@/lib/labels';
 import { useAppStore } from '@/store/app-store';
 import { loadApiKey, saveApiKey } from '@/store/storage';
 
+const RESET_MESSAGE = '채팅방, 캡처, 프로필, 연습 기록과 서버에 남은 이용 기록을 모두 삭제할까요? AI 분석·이용 기록 동의도 처음 상태로 돌아가요. 되돌릴 수 없어요.';
+const LEGACY_DELETE_MESSAGE = '예전 버전에서 보낸 이 기기의 이용 기록을 서버에서 지울까요? 앱 안의 채팅방·프로필은 그대로 남아요.';
+
 export default function MyScreen() {
   const router = useRouter();
   const toast = useToast();
@@ -45,6 +48,7 @@ export default function MyScreen() {
   const deviceId = useAppStore((s) => s.deviceId);
   const setPremium = useAppStore((s) => s.setPremium);
   const analyticsConsent = useAppStore((s) => s.analyticsConsent);
+  const legacyServerRecords = useAppStore((s) => s.legacyServerRecords);
   const setAnalyticsConsent = useAppStore((s) => s.setAnalyticsConsent);
   const aiConsent = useAppStore((s) => s.aiConsent);
   const aiConsentProvider = useAppStore((s) => s.aiConsentProvider);
@@ -156,12 +160,29 @@ export default function MyScreen() {
       router.replace('/start');
     };
     if (Platform.OS === 'web') {
-      if (globalThis.confirm?.('채팅방, 캡처, 프로필, 연습 기록과 서버에 남은 이용 기록을 모두 삭제할까요? 되돌릴 수 없어요.')) run();
+      if (globalThis.confirm?.(RESET_MESSAGE)) run();
       return;
     }
-    Alert.alert('모든 데이터 삭제', '채팅방, 캡처, 프로필, 연습 기록과 서버에 남은 이용 기록을 모두 삭제할까요? 되돌릴 수 없어요.', [
+    Alert.alert('모든 데이터 삭제', RESET_MESSAGE, [
       { text: '취소', style: 'cancel' },
       { text: '삭제', style: 'destructive', onPress: run },
+    ]);
+  };
+
+  // 예전 첫 화면(미리 체크된 동의)으로 보낸 기록 — 지금은 동의가 꺼져 있어 스위치로는 지울 수 없으므로 따로 지우게 한다
+  const confirmLegacyDelete = () => {
+    const run = () => {
+      useAppStore.getState().requestServerDeletion();
+      haptic.tap();
+      toast.show('서버에 남은 이용 기록을 지울게요.');
+    };
+    if (Platform.OS === 'web') {
+      if (globalThis.confirm?.(LEGACY_DELETE_MESSAGE)) run();
+      return;
+    }
+    Alert.alert('서버 기록 지우기', LEGACY_DELETE_MESSAGE, [
+      { text: '취소', style: 'cancel' },
+      { text: '지우기', style: 'destructive', onPress: run },
     ]);
   };
 
@@ -285,7 +306,7 @@ export default function MyScreen() {
       <ListRow
         icon="bar-chart-outline"
         title="이용 기록 수집 (선택)"
-        subtitle="켜면 코칭 요청 글(붙여 넣은 대화 포함)·답변과 화면 이용 기록이 서비스 개선을 위해 서버에 1년 보관돼요. 끄면 서버 기록도 지워요. 캡처 이미지는 저장하지 않아요."
+        subtitle="켜면 기기 ID·내 프로필(이름·성별·나이·MBTI)·화면 이용 기록과 코칭 요청 글(붙여 넣은 대화·상대 정보 포함)·답변을 서비스 개선을 위해 보관해요. 기록은 1년, 기기 ID·프로필은 마지막 이용 후 1년 보관하고, 미국 회사 Vercel(중계)·Supabase(보관, 서울 리전)가 처리해요(국외 이전). 끄면 서버 기록도 지워요. 캡처 이미지는 저장하지 않아요."
         right={
           <Switch
             accessibilityLabel="이용 기록 수집 (선택)"
@@ -307,6 +328,15 @@ export default function MyScreen() {
         }
       />
 
+      {legacyServerRecords && analyticsConsent !== true ? (
+        <ListRow
+          icon="cloud-offline-outline"
+          title="예전에 보낸 이용 기록 지우기"
+          subtitle="예전 버전 첫 화면에 미리 체크돼 있던 동의로 보낸 이용 기록이 서버에 남아 있을 수 있어요. 지금은 보내지 않아요. 누르면 서버에 남은 이 기기의 기록을 지워요."
+          onPress={confirmLegacyDelete}
+        />
+      ) : null}
+
       <SectionHeader title="AI 코치" />
       <ListRow icon="sparkles-outline" title="AI 코치 연결" value={connection} onPress={() => router.push('/settings/api-key')} />
       <ListRow icon="person-outline" title="내 프로필 · 추구미 · 목표" onPress={() => router.push('/settings/profile')} />
@@ -321,7 +351,16 @@ export default function MyScreen() {
       <ListRow icon="information-circle-outline" title="앱 버전" value={Constants.expoConfig?.version ?? '1.0.0'} />
       <ListRow icon="finger-print-outline" title="내 기기 ID" subtitle="문의·팀원 등록용 · 눌러서 복사" value={deviceId} onPress={copyDeviceId} />
 
-      <SectionHeader title="데이터" subtitle={analyticsConsent === true ? '채팅방·캡처·프로필은 이 기기에 저장돼요 (이용 기록은 서버에도 보관)' : '채팅방·캡처·프로필은 이 기기에만 저장돼요'} />
+      <SectionHeader
+        title="데이터"
+        subtitle={
+          analyticsConsent === true
+            ? '채팅방·캡처·프로필은 이 기기에 저장돼요 (이용 기록은 서버에도 보관)'
+            : legacyServerRecords
+              ? '채팅방·캡처·프로필은 이 기기에 저장돼요 (예전에 보낸 이용 기록이 서버에 남아 있을 수 있어요)'
+              : '채팅방·캡처·프로필은 이 기기에만 저장돼요'
+        }
+      />
       <ListRow icon="trash-outline" title="모든 데이터 삭제" destructive onPress={confirmReset} />
       {aiReport.sheet}
     </Screen>

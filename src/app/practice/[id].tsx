@@ -21,6 +21,7 @@ import { useKeyboardVisible } from '@/hooks/use-keyboard';
 import { useTheme } from '@/hooks/use-theme';
 import { practiceFeedbackReportContent, practiceReportContent } from '@/lib/ai-report';
 import { isUnlimited, useQuota } from '@/lib/billing/gate';
+import { PRACTICE_PROMPT_TURNS } from '@/lib/ai-tasks';
 import { requestAi } from '@/lib/coach-client';
 import { userToRequest } from '@/lib/coach-schema';
 import { haptic } from '@/lib/haptics';
@@ -98,7 +99,8 @@ export default function PracticeSessionScreen() {
     setError(null);
     const mine = store.addPracticeTurn(session.id, { role: 'me', text: message });
     if (!mine) return;
-    const turns = [...session.turns, mine].map((t) => ({ role: t.role, text: t.text }));
+    // 프롬프트에 쓰는 최근 말풍선만 보낸다 (예전 서버는 40개를 넘으면 거절했다)
+    const turns = [...session.turns, mine].slice(-PRACTICE_PROMPT_TURNS).map((t) => ({ role: t.role, text: t.text }));
     const result = await run(
       'practice',
       (o) => {
