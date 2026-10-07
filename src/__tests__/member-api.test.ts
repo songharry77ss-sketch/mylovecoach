@@ -5,7 +5,7 @@
 import { generateKeyPairSync, verify } from 'node:crypto';
 
 import handler from '../../api/member';
-import { appleClientSecret, kakaoUserId } from '../../api/_unlink';
+import { appleClientSecret, appleUserId, kakaoUserId } from '../../api/_unlink';
 
 interface FakeRes {
   statusCode: number;
@@ -37,14 +37,30 @@ const kakaoUser = {
   app_metadata: { provider: 'kakao' },
   identities: [{ provider: 'kakao', id: '4200001', identity_data: { sub: '4200001', provider_id: '4200001' } }],
 };
-const appleUser = { id: USER_ID, app_metadata: { provider: 'apple' }, identities: [{ provider: 'apple', id: '001234.abc', identity_data: {} }] };
+const APPLE_SUB = '001234.abc';
+const appleUser = { id: USER_ID, app_metadata: { provider: 'apple' }, identities: [{ provider: 'apple', id: APPLE_SUB, identity_data: {} }] };
 
 const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' });
 const PRIVATE_PEM = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
 
+/** Apple /auth/token 응답의 id_token — 서버는 서명을 보지 않고 sub 만 꺼낸다 */
+const appleIdToken = (sub: string) =>
+  [{ alg: 'RS256', kid: 'apple' }, { iss: 'https://appleid.apple.com', aud: 'app.mylovecoach.ios', sub }]
+    .map((part) => Buffer.from(JSON.stringify(part)).toString('base64url'))
+    .concat('signature')
+    .join('.');
+
+const setAppleKeys = () => {
+  process.env.APPLE_TEAM_ID = 'TEAM123456';
+  process.env.APPLE_KEY_ID = 'KEY1234567';
+  process.env.APPLE_PRIVATE_KEY = PRIVATE_PEM.replace(/\n/g, '\\n'); // 한 줄로 넣은 환경변수
+};
+
 const calls: { url: string; method: string; body?: string; headers?: Record<string, string> }[] = [];
 let user: object = kakaoUser;
 let memberDeleteOk = true;
+/** Apple 이 코드를 바꿔 준 토큰의 주인 (null 이면 id_token 없이 응답) */
+let appleTokenSub: string | null = APPLE_SUB;
 
 function deleteReq(body?: unknown) {
   return { method: 'DELETE', body, query: {}, headers: { authorization: 'Bearer user-token' } } as never;
@@ -54,6 +70,7 @@ beforeEach(() => {
   calls.length = 0;
   user = kakaoUser;
   memberDeleteOk = true;
+  appleTokenSub = APPLE_SUB;
   process.env.SUPABASE_URL = 'https://db.example';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
   delete process.env.COACH_APP_TOKEN;
@@ -74,7 +91,9 @@ beforeEach(() => {
     });
     if (u.endsWith('/auth/v1/user')) return reply(true, user);
     if (u.endsWith('/rest/v1/rpc/member_delete')) return memberDeleteOk ? reply(true, undefined, 204) : reply(false, { message: 'boom' });
-    if (u.startsWith('https://appleid.apple.com/auth/token')) return reply(true, { refresh_token: 'apple-refresh' });
+    if (u.startsWith('https://appleid.apple.com/auth/token')) {
+      return reply(true, { refresh_token: 'apple-refresh', ...(appleTokenSub ? { id_token: appleIdToken(appleTokenSub) } : {}) });
+    }
     return reply(true, undefined);
   }) as unknown as typeof fetch;
 });
@@ -113,11 +132,9 @@ describe('DELETE /api/member (회원 탈퇴)', () => {
     expect(Object.fromEntries(new URLSearchParams(unlink.body))).toEqual({ target_id_type: 'user_id', target_id: '4200001' });
   });
 
-  it('Apple 회원: 탈퇴 직전 코드를 토큰으로 바꿔 취소한 뒤 로그인 계정을 지운다', async () => {
+  it('Apple 회원: 탈퇴 직전 코드를 토큰으로 바꾸고, 토큰의 sub 가 이 회원의 Apple ID 와 같으면 취소한 뒤 로그인 계정을 지운다', async () => {
     user = appleUser;
-    process.env.APPLE_TEAM_ID = 'TEAM123456';
-    process.env.APPLE_KEY_ID = 'KEY1234567';
-    process.env.APPLE_PRIVATE_KEY = PRIVATE_PEM.replace(/\n/g, '\\n'); // 한 줄로 넣은 환경변수
+    setAppleKeys();
     const res = fakeRes();
     await handler(deleteReq({ appleAuthorizationCode: 'apple-code' }), res as never);
     expect(res.statusCode).toBe(200);
@@ -134,6 +151,33 @@ describe('DELETE /api/member (회원 탈퇴)', () => {
       token_type_hint: 'refresh_token',
     });
     expect(calls.indexOf(revoke!)).toBeLessThan(calls.findIndex((c) => c.method === 'DELETE' && c.url.includes('/auth/v1/admin/users/')));
+    expect(deletedAuthUser()).toBe(true);
+  });
+
+  it.each([
+    ['다른 Apple ID 의 코드(토큰의 sub 가 다름)', '009999.other'],
+    ['토큰 응답에 id_token 이 없어 확인할 수 없음', null],
+  ])('Apple 회원: %s → 그 토큰은 취소하지 않고 탈퇴만 마친다', async (_label, sub) => {
+    user = appleUser;
+    setAppleKeys();
+    appleTokenSub = sub;
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const res = fakeRes();
+    await handler(deleteReq({ appleAuthorizationCode: 'apple-code' }), res as never);
+    expect(res.statusCode).toBe(200);
+    expect(calls.some((c) => c.url === 'https://appleid.apple.com/auth/token')).toBe(true);
+    expect(calls.some((c) => c.url === 'https://appleid.apple.com/auth/revoke')).toBe(false);
+    expect(deletedAuthUser()).toBe(true);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('토큰 취소를 건너뜀'));
+    warn.mockRestore();
+  });
+
+  it('Apple 로그인이 없는 계정이면 코드가 와도 Apple 에 요청하지 않는다', async () => {
+    setAppleKeys();
+    const res = fakeRes();
+    await handler(deleteReq({ appleAuthorizationCode: 'apple-code' }), res as never);
+    expect(res.statusCode).toBe(200);
+    expect(calls.some((c) => c.url.includes('appleid.apple.com'))).toBe(false);
     expect(deletedAuthUser()).toBe(true);
   });
 
@@ -157,6 +201,14 @@ describe('연결 끊기 도우미', () => {
     expect(kakaoUserId(kakaoUser)).toBe('4200001');
     expect(kakaoUserId({ id: 'x', identities: [{ provider: 'kakao', id: '77' }] })).toBe('77');
     expect(kakaoUserId(appleUser)).toBeNull();
+  });
+
+  it('Apple 회원 ID 는 identity_data.sub → provider_id → id 순으로 찾는다', () => {
+    const apple = (identity: object) => ({ id: 'x', identities: [{ provider: 'apple', ...identity }] });
+    expect(appleUserId(apple({ id: '3', identity_data: { sub: '1', provider_id: '2' } }))).toBe('1');
+    expect(appleUserId(apple({ id: '3', identity_data: { provider_id: '2' } }))).toBe('2');
+    expect(appleUserId(appleUser)).toBe(APPLE_SUB);
+    expect(appleUserId(kakaoUser)).toBeNull();
   });
 
   it('Apple client_secret 은 ES256 으로 서명되고 팀·키·앱 ID 를 담는다', () => {

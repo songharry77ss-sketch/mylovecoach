@@ -10,7 +10,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 import { authUser, deleteAuthUser, DEVICE_ID, rpc, supabaseReady } from './_supabase';
-import { kakaoUserId, revokeApple, unlinkKakao } from './_unlink';
+import { appleUserId, kakaoUserId, revokeApple, unlinkKakao } from './_unlink';
 
 export const config = { maxDuration: 15 };
 
@@ -54,9 +54,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // (member_delete 는 여러 번 실행해도 안전)
     const cleared = await rpc('member_delete', { p_user: user.id });
     if (cleared !== null) {
-      // 로그인 제공자와의 연결 끊기 — 실패해도 탈퇴는 계속한다 (결과는 서버 기록에만)
+      // 로그인 제공자와의 연결 끊기 — 실패해도 탈퇴는 계속한다 (결과는 서버 기록에만).
+      // Apple 은 받은 코드가 이 계정의 Apple ID 것일 때만 취소한다
       const appleCode = clean(parseBody(req).appleAuthorizationCode, 2000);
-      const [kakao, apple] = await Promise.all([unlinkKakao(kakaoUserId(user)), revokeApple(appleCode)]);
+      const [kakao, apple] = await Promise.all([unlinkKakao(kakaoUserId(user)), revokeApple(appleCode, appleUserId(user))]);
       if (kakao === 'failed' || apple === 'failed') console.warn(`[member] 연결 끊기 kakao=${kakao} apple=${apple}`);
     }
     const removed = cleared !== null && (await deleteAuthUser(user.id));

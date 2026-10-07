@@ -56,6 +56,19 @@ const ensureClient = () => {
   return supabase;
 };
 
+const CONNECTION_ERROR = '서버에 연결하지 못했어요. 잠시 후 다시 시도해주세요.';
+
+/**
+ * 이 기기의 로그인 세션. 만료된 세션을 갱신하다 네트워크 오류 등으로 실패하면(error) 연결 오류로 알리고
+ * 로그인 상태는 그대로 둔다 — 세션이 정말 없을 때(error 없이 null)만 SessionMissing.
+ */
+async function currentSession() {
+  const { data, error } = await ensureClient().auth.getSession();
+  if (error) throw new Error(CONNECTION_ERROR);
+  if (!data.session) throw new SessionMissing('로그인이 끝났어요. 다시 로그인해주세요.');
+  return data.session;
+}
+
 /**
  * 카카오 로그인. 웹은 카카오 화면으로 넘어갔다가 /auth/callback 에서 마무리하므로 null 을 돌려준다.
  */
@@ -108,10 +121,7 @@ export async function signInWithApple(): Promise<LinkResult> {
 }
 
 async function memberApi(method: 'POST' | 'DELETE', body?: Record<string, unknown>) {
-  const client = ensureClient();
-  const { data } = await client.auth.getSession();
-  const session = data.session;
-  if (!session) throw new SessionMissing('로그인이 끝났어요. 다시 로그인해주세요.');
+  const session = await currentSession();
   const res = await fetch(`${APP_CONFIG.apiUrl}/api/member`, {
     method,
     headers: {
@@ -122,7 +132,7 @@ async function memberApi(method: 'POST' | 'DELETE', body?: Record<string, unknow
     body: body ? JSON.stringify(body) : undefined,
   });
   const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-  if (!res.ok) throw new Error(typeof json.error === 'string' ? json.error : '서버에 연결하지 못했어요. 잠시 후 다시 시도해주세요.');
+  if (!res.ok) throw new Error(typeof json.error === 'string' ? json.error : CONNECTION_ERROR);
   return { session, json };
 }
 
@@ -189,6 +199,8 @@ export async function signOut(): Promise<void> {
 /**
  * Apple 회원 탈퇴용 인증 코드. Apple 규정상 탈퇴할 때 앱과 Apple ID 의 연결(토큰)을 취소해야 해서,
  * 기기의 Apple 확인 창을 한 번 더 띄워 새 코드를 받는다 (서버가 이 코드로 토큰을 취소).
+ * 취소하면 탈퇴를 멈추고, 그 밖의 오류(기기에서 Apple ID 로그아웃, Apple 서버 오류 등)로 코드를 못 받으면
+ * 코드 없이 탈퇴를 이어 간다 — 서버는 토큰 취소만 건너뛴다.
  */
 async function appleCodeForRevoke(): Promise<string | undefined> {
   if (Platform.OS !== 'ios') return undefined;
@@ -197,15 +209,14 @@ async function appleCodeForRevoke(): Promise<string | undefined> {
     return credential.authorizationCode ?? undefined;
   } catch (e) {
     if ((e as { code?: string }).code === 'ERR_REQUEST_CANCELED') throw new AuthCancelled('cancelled');
-    throw e;
+    return undefined;
   }
 }
 
 /** 회원 탈퇴 — 서버의 회원 기록·로그인 계정·이용 기록을 지우고 카카오·Apple 연결을 끊는다 */
 export async function deleteAccount(): Promise<void> {
-  // 로그인이 끝난 기기면 Apple 확인 창을 띄우기 전에 다시 로그인으로 안내한다
-  const { data } = await ensureClient().auth.getSession();
-  if (!data.session) throw new SessionMissing('로그인이 끝났어요. 다시 로그인해주세요.');
+  // 로그인이 끝났거나(다시 로그인 안내) 서버에 연결하지 못하면 Apple 확인 창을 띄우기 전에 멈춘다
+  await currentSession();
   const member = useAppStore.getState().member;
   const appleAuthorizationCode = member?.provider === 'apple' ? await appleCodeForRevoke() : undefined;
   await memberApi('DELETE', appleAuthorizationCode ? { appleAuthorizationCode } : undefined);

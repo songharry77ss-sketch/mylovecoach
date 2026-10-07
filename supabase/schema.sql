@@ -125,7 +125,30 @@ create table if not exists bonus_spent (
   withdrawn_at timestamptz not null default now()
 );
 
--- 처음 기록되는 기기가 이미 회원과 이어진 기기면(가입 뒤에 이용 기록을 켠 경우) 그 회원으로 표시
+-- 회원이 로그인한 기기 이력 — 마지막 기기(member.device_id)만 보면, 다른 기기로 로그인한 뒤 예전 기기에서
+-- 처음 쌓인 이용 기록이 회원과 이어지지 않고 탈퇴해도 남는다. 회원 정보라 탈퇴할 때 member_delete 가 지운다 (외래 키 없음)
+create table if not exists member_device (
+  user_id   uuid not null,
+  device_id text not null,
+  first_at  timestamptz not null default now(),   -- 이 기기로 처음 로그인한 시각
+  last_at   timestamptz not null default now(),   -- 이 기기로 마지막으로 로그인한 시각
+  primary key (user_id, device_id)
+);
+create index if not exists member_device_device_idx on member_device (device_id, last_at desc);
+
+-- 이 표가 생기기 전에 가입한 회원의 기기(마지막 기기·보너스 기기·이미 이어진 이용 기록의 기기)를 채운다. 이미 있으면 그대로
+insert into member_device (user_id, device_id, first_at, last_at)
+select user_id, device_id, min(at), max(at) from (
+  select user_id, device_id, last_login_at as at from member where device_id is not null
+  union all
+  select user_id, bonus_device, coalesce(bonus_at, created_at) from member where bonus_device is not null
+  union all
+  select a.user_id, a.device_id, m.created_at from app_user a join member m on m.user_id = a.user_id
+) d
+group by user_id, device_id
+on conflict (user_id, device_id) do nothing;
+
+-- 처음 기록되는 기기에 회원이 로그인한 적 있으면(가입 뒤에 이용 기록을 켠 경우) 그 기기로 가장 최근에 로그인한 회원으로 표시
 create or replace function app_user_member()
 returns trigger
 language plpgsql
@@ -134,9 +157,10 @@ set search_path = public
 as $$
 begin
   if new.user_id is null then
-    select user_id into new.user_id from member
-     where device_id = new.device_id and provider is not null
-     order by last_login_at desc limit 1;
+    select d.user_id into new.user_id
+      from member_device d join member m on m.user_id = d.user_id
+     where d.device_id = new.device_id and m.provider is not null
+     order by d.last_at desc limit 1;
   end if;
   return new;
 end $$;
@@ -177,8 +201,11 @@ begin
     end;
   end if;
 
+  -- 이 기기로 로그인한 이력을 남기고(나중에 이 기기에서 처음 쌓이는 이용 기록은 트리거가 잇는다),
   -- 이 기기의 이용 기록을 회원과 잇는다. 이미 다른 회원과 이어진 기기는 건드리지 않는다
   if p_device is not null then
+    insert into member_device (user_id, device_id) values (p_user, p_device)
+    on conflict (user_id, device_id) do update set last_at = now();
     update app_user set user_id = p_user where device_id = p_device and (user_id is null or user_id = p_user);
   end if;
 
@@ -186,8 +213,8 @@ begin
   return json_build_object('new', v_new, 'bonus', v_bonus, 'provider', m.provider, 'nickname', m.nickname, 'created_at', m.created_at);
 end $$;
 
--- 회원 탈퇴: 회원 기록과, 이 회원과 이어진 기기들의 이용 기록을 지운다 (로그인 계정은 서버가 Auth API 로 지움).
--- 앱이 알려 준 기기 ID(member.device_id) 만으로는 지우지 않는다 — 서버에서 이 회원과 이어진 기기만.
+-- 회원 탈퇴: 회원 기록·로그인한 기기 이력과, 이 회원과 이어진 기기들의 이용 기록을 지운다 (로그인 계정은 서버가 Auth API 로 지움).
+-- 앱이 알려 준 기기 ID(member.device_id·member_device) 만으로는 지우지 않는다 — 서버에서 이 회원과 이어진(app_user.user_id) 기기만.
 -- 다시 실행해도 안전하다 (지울 것이 없으면 아무 일도 하지 않음)
 create or replace function member_delete(p_user uuid)
 returns void
@@ -210,6 +237,7 @@ begin
   insert into bonus_spent (device_id, bonus_at)
   select bonus_device, bonus_at from member where user_id = p_user and bonus_device is not null
   on conflict (device_id) do nothing;
+  delete from member_device where user_id = p_user;
   delete from member where user_id = p_user;
 end $$;
 
@@ -230,6 +258,7 @@ alter table app_event       enable row level security;
 alter table team_member     enable row level security;
 alter table admin_auth_fail enable row level security;
 alter table member          enable row level security;
+alter table member_device   enable row level security;
 alter table bonus_spent     enable row level security;
 
 -- ── 관리자 대시보드용 집계 ────────────────────────────────────────────
@@ -439,10 +468,12 @@ as $$
   delete from app_session     where started_at   < now() - interval '1 year';
   delete from app_user        where last_seen_at < now() - interval '1 year';
   delete from bonus_spent     where withdrawn_at < now() - interval '1 year';
+  -- 로그인한 기기 이력은 회원 정보라 1년 파기 대상이 아니다(탈퇴할 때 member_delete 가 지움). 회원 행이 따로 지워져 남은 것만 정리
+  delete from member_device   where not exists (select 1 from member m where m.user_id = member_device.user_id);
   delete from admin_auth_fail where created_at   < now() - interval '30 days';
 $$;
 
-comment on function purge_old_records is '1년 지난 이용 기록·탈퇴 1년 지난 보너스 기기·30일 지난 관리자 로그인 시도 파기 (pg_cron 매일 03:30 KST)';
+comment on function purge_old_records is '1년 지난 이용 기록·탈퇴 1년 지난 보너스 기기·회원이 없는 기기 이력·30일 지난 관리자 로그인 시도 파기 (pg_cron 매일 03:30 KST)';
 
 -- 매일 03:30(한국 시간) = 18:30 UTC 에 파기. pg_cron 을 쓸 수 없는 곳(로컬 시험 등)에서는 건너뛴다
 do $$

@@ -14,7 +14,8 @@
 ```
 
 - `EXPO_PUBLIC_SUPABASE_URL` · `EXPO_PUBLIC_SUPABASE_ANON_KEY` 가 없는 빌드는 가입 화면을 숨기고 예전 규칙(체험 3회 + 매일 1회)을 씁니다.
-- 대화 캡처·채팅방은 가입해도 기기에만 저장됩니다. 서버에는 회원 정보(제공자·닉네임·이메일·기기 ID)만 남습니다.
+- 대화 캡처·채팅방은 가입해도 기기에만 저장됩니다. 서버에는 회원 정보(제공자·닉네임·이메일)와 로그인한 기기 ID(`member_device`)가 남고,
+  이용 기록 수집에 동의한 기기라면 그 이용 기록(코칭 질문·답 포함)이 회원과 연결됩니다. 탈퇴하면 이어진 기기의 이용 기록과 함께 지웁니다.
 - 애플 규정: 아이폰에서 카카오 로그인을 보여 주면 Apple 로그인도 함께 보여 줘야 해서(4.8), Apple 버튼을 위에 둡니다. 계정을 만들 수 있으면 앱 안에서 탈퇴도 돼야 해서(5.1.1(v)) 마이 탭에 「회원 탈퇴」가 있습니다.
 
 ## 현황 (2026-10-06)
@@ -79,7 +80,10 @@
 - **Apple** (App Store 심사 기준 5.1.1(v): Apple 로 가입한 계정을 지울 때 토큰을 취소해야 함)
   1. Apple Developer → Keys → + → 이름(예: `mylovecoach Sign in with Apple`) → 「Sign in with Apple」 체크 → Configure 에서 Primary App ID `app.mylovecoach.ios` → Save → Continue → Register → `.p8` 내려받기(한 번만 가능).
      기존 「Wolha」 키(AJ962XQS37)는 월하 앱 ID 에 묶여 있어 쓸 수 없다.
-  2. `node tools/set-signup-keys.mjs --p8 "%USERPROFILE%\Downloads\AuthKey_<키ID>.p8"` → `APPLE_TEAM_ID`(apns-key.txt 의 TEAM_ID)·`APPLE_KEY_ID`·`APPLE_PRIVATE_KEY` 를 Vercel 에 올리고 .p8 을 wolha-secrets 에 보관.
+  2. `node tools/set-signup-keys.mjs --p8 "$env:USERPROFILE\Downloads\AuthKey_<키ID>.p8"` (PowerShell — 윈도우 터미널·VS Code 기본) → `APPLE_TEAM_ID`(apns-key.txt 의 TEAM_ID)·`APPLE_KEY_ID`·`APPLE_PRIVATE_KEY` 를 Vercel 에 올리고 .p8 을 wolha-secrets 에 보관.
+     - cmd: `node tools/set-signup-keys.mjs --p8 "%USERPROFILE%\Downloads\AuthKey_<키ID>.p8"`
+     - Git Bash: `node tools/set-signup-keys.mjs --p8 "$USERPROFILE/Downloads/AuthKey_<키ID>.p8"`
+
      Apple 은 진짜 인증 코드 없이는 키가 맞는지 알려 주지 않으므로, 1.1 테스트 빌드에서 Apple 계정으로 가입 → 탈퇴해 서버 기록에 `apple=failed` 가 없는지 본다.
   3. 앱은 아이폰에서 Apple 회원이 탈퇴할 때 Apple 확인 창을 한 번 더 띄워 받은 코드를 보냅니다. 서버가 그 코드로 토큰을 받아 `/auth/revoke` 를 부릅니다.
 - **카카오**: 카카오 디벨로퍼스 → 앱 → 앱 키 → **Admin 키**를 `wolha-secrets/mylovecoach-kakao.txt` 에 `KAKAO_ADMIN_KEY=…` 한 줄로 저장 →
