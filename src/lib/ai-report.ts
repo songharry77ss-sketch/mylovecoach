@@ -2,7 +2,7 @@
  * AI 답변 신고 — 불쾌하거나 부적절한 AI 답변을 앱을 떠나지 않고 운영자에게 알린다 (구글 플레이 생성형 AI 정책).
  *
  * - 이용자가 신고 시트에서 「신고하기」를 누를 때만 보낸다. 이용 기록 수집 동의와는 상관없다
- * - 보내는 것: 신고한 답변(화면에 보이는 그대로), 사유·메모, 기능 종류, 답변이 나온 곳, 기기 종류·앱 버전
+ * - 보내는 것: 신고한 답변(화면에 보이는 그대로 — 속마음 풀이는 물어본 상황 글도), 사유·메모, 기능 종류, 답변이 나온 곳, 기기 종류·앱 버전
  * - 기기 ID·IP 는 보내지도 저장하지도 않는다. 서버(api/report.ts)는 1년 뒤 지운다 — 처리방침 2번 「AI 답변 신고」
  */
 import Constants from 'expo-constants';
@@ -12,7 +12,7 @@ import { AI_REPORT_CONTENT_MAX, AI_REPORT_NOTE_MAX, type AiReportMode, type AiRe
 import { aiRouteOf } from '@/lib/coach-client';
 import { APP_CONFIG } from '@/lib/config';
 import { isDemoMode } from '@/lib/demo';
-import type { CoachAnalysis, CrushReport, MindReading } from '@/lib/types';
+import type { CoachAnalysis, CrushReport, MindReading, PracticeTurn } from '@/lib/types';
 
 /** 신고를 받을 서버가 있는지 — 데모이거나 서버 없이 개인 키로만 쓰는 빌드면 신고 버튼을 숨긴다 */
 export const aiReportAvailable = !isDemoMode && (APP_CONFIG.apiSameOrigin || Boolean(APP_CONFIG.apiUrl));
@@ -63,12 +63,21 @@ export async function sendAiReport(input: AiReportRequest): Promise<void> {
 const clip = (text: string) => text.trim().slice(0, AI_REPORT_CONTENT_MAX);
 const lines = (list: (string | null | false | undefined)[]) => clip(list.filter(Boolean).join('\n'));
 
-/** 코칭 결과 — 요약과 지금 보고 있는 답장 (답장이 없으면 다음 스텝) */
+/**
+ * 코칭 결과 — 카드에 보이는 AI 글: 요약, 지금 보고 있는 답장과 그 예상 반응·고른 이유, 읽어낸 포인트·다음 스텝·주의할 점
+ * (접어 둔 설명도 펼치면 보이므로 넣는다). 답장이 없는 카드는 요약과 다음 스텝만 보인다
+ */
 export function coachReportContent(analysis: CoachAnalysis, replyIndex: number): string {
   const reply = analysis.replies[replyIndex];
+  if (!reply) return lines([analysis.summary && `요약: ${analysis.summary}`, analysis.nextStep && `다음 스텝: ${analysis.nextStep}`]);
   return lines([
     analysis.summary && `요약: ${analysis.summary}`,
-    reply ? `답장${analysis.replies.length > 1 ? ` ${replyIndex + 1}` : ''}: ${reply.text}` : analysis.nextStep && `다음 스텝: ${analysis.nextStep}`,
+    `답장${analysis.replies.length > 1 ? ` ${replyIndex + 1}` : ''}: ${reply.text}`,
+    reply.expectedReaction && `예상 반응: ${reply.expectedReaction}`,
+    reply.why && `고른 이유: ${reply.why}`,
+    ...analysis.insights.map((s) => `읽어낸 포인트: ${s}`),
+    analysis.nextStep && `다음 스텝: ${analysis.nextStep}`,
+    ...analysis.warnings.map((s) => `주의할 점: ${s}`),
   ]);
 }
 
@@ -101,7 +110,12 @@ export function mindReportContent(situation: string, m: MindReading): string {
   ]);
 }
 
-/** 연애 연습 — 상대역의 말풍선 하나 */
+/** 연애 연습 — 상대역의 말풍선 하나 (또는 한 번에 보낸 말풍선 묶음) */
 export function practiceReportContent(partnerName: string, text: string): string {
   return lines([`연습 상대 「${partnerName}」: ${text}`]);
+}
+
+/** 연애 연습 — 내 메시지에 붙은 코치 피드백과 「이렇게 보내면 더 좋아요」 (내가 보낸 메시지는 넣지 않음) */
+export function practiceFeedbackReportContent(turn: Pick<PracticeTurn, 'feedback' | 'better'>): string {
+  return lines([turn.feedback && `코치 피드백: ${turn.feedback}`, turn.better && `더 좋은 메시지: ${turn.better}`]);
 }

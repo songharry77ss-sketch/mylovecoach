@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Linking, Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -70,17 +70,35 @@ export function AiReportLink(props: AiReportLinkProps) {
   );
 }
 
-/** 신고 시트 — 사유를 고르고(메모는 선택) 「신고하기」. 보내지 못하면 시트를 그대로 두고 이유를 보여 준다 */
+/**
+ * 신고 시트 — 사유를 고르고(메모는 선택) 「신고하기」. 보내지 못하면 시트를 그대로 두고 이유를 보여 준다.
+ * 보내는 동안에는 닫지 않는다 — 닫고 다른 답변 신고를 연 뒤 앞 요청이 끝나면 새 시트가 닫히거나, 앞 요청의 실패가 묻히지 않게
+ */
 export function AiReportSheet({ target, onClose }: { target: AiReportTarget | null; onClose: () => void }) {
+  const sending = useRef(false);
   return (
-    // 안드로이드 뒤로 가기·웹 Esc 는 닫기
-    <Modal visible={target != null} transparent animationType="slide" onRequestClose={onClose}>
-      {target ? <ReportForm target={target} onClose={onClose} /> : null}
+    // 안드로이드 뒤로 가기·웹 Esc 는 닫기 (보내는 중이면 무시)
+    <Modal
+      visible={target != null}
+      transparent
+      animationType="slide"
+      onRequestClose={() => {
+        if (!sending.current) onClose();
+      }}>
+      {target ? (
+        <ReportForm
+          target={target}
+          onClose={onClose}
+          onSendingChange={(value) => {
+            sending.current = value;
+          }}
+        />
+      ) : null}
     </Modal>
   );
 }
 
-function ReportForm({ target, onClose }: { target: AiReportTarget; onClose: () => void }) {
+function ReportForm({ target, onClose, onSendingChange }: { target: AiReportTarget; onClose: () => void; onSendingChange: (sending: boolean) => void }) {
   const theme = useTheme();
   const toast = useToast();
   const insets = useSafeAreaInsets();
@@ -97,26 +115,33 @@ function ReportForm({ target, onClose }: { target: AiReportTarget; onClose: () =
   const submit = async () => {
     if (!reason || !canSend || sending) return;
     setSending(true);
+    onSendingChange(true);
     setError(null);
     try {
       await sendAiReport({ mode, reason, note, content: target.content });
+      onSendingChange(false);
       haptic.success();
       onClose();
       toast.show('신고했어요. 알려 주셔서 고마워요.', 'success');
     } catch (e) {
       // 모달 위에서는 토스트가 가려지므로 시트 안에 보여 준다
+      onSendingChange(false);
       haptic.error();
       setError(e instanceof Error ? e.message : '신고를 보내지 못했어요. 잠시 후 다시 시도해주세요.');
       setSending(false);
     }
   };
+  // 바깥 누르기·접근성 닫기 동작 — 보내는 중에는 결과가 나올 때까지 그대로 둔다
+  const dismiss = () => {
+    if (!sending) onClose();
+  };
 
   return (
     <KeyboardAvoidingView behavior="padding" style={styles.root}>
-      <Pressable style={[StyleSheet.absoluteFill, styles.backdrop]} onPress={onClose} accessibilityLabel="닫기" />
+      <Pressable style={[StyleSheet.absoluteFill, styles.backdrop]} onPress={dismiss} accessibilityLabel="닫기" />
       <View
         accessibilityViewIsModal
-        onAccessibilityEscape={onClose}
+        onAccessibilityEscape={dismiss}
         style={[styles.sheet, { backgroundColor: theme.background, paddingBottom: insets.bottom + Spacing.lg, maxHeight: height - insets.top - Spacing.lg }]}>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           <View style={styles.head}>
@@ -156,9 +181,10 @@ function ReportForm({ target, onClose }: { target: AiReportTarget; onClose: () =
               <AppText variant="caption" color="textTertiary">
                 신고할 답변
               </AppText>
-              <AppText variant="small" numberOfLines={6}>
-                {target.content}
-              </AppText>
+              {/* 보내는 내용을 끝까지 볼 수 있게 — 길면 이 상자 안에서 스크롤 */}
+              <ScrollView style={styles.preview} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                <AppText variant="small">{target.content}</AppText>
+              </ScrollView>
             </View>
           )}
 
@@ -182,7 +208,9 @@ function ReportForm({ target, onClose }: { target: AiReportTarget; onClose: () =
           <AppText variant="caption" color="textTertiary">
             {general
               ? '신고하면 적은 내용과 고른 사유가 운영자에게 전송돼 검토·필터 개선에 쓰이고 1년 뒤 지워져요'
-              : '신고하면 이 AI 답변 내용과 고른 사유가 운영자에게 전송돼 검토·필터 개선에 쓰이고 1년 뒤 지워져요'}
+              : target.mode === 'mind'
+                ? '신고하면 이 풀이와 물어본 상황 글, 고른 사유가 운영자에게 전송돼 검토·필터 개선에 쓰이고 1년 뒤 지워져요'
+                : '신고하면 이 AI 답변 내용과 고른 사유가 운영자에게 전송돼 검토·필터 개선에 쓰이고 1년 뒤 지워져요'}
           </AppText>
           <AppText variant="caption" color="primary" accessibilityRole="link" onPress={() => Linking.openURL(`${APP_CONFIG.privacyUrl}#report`)} style={styles.policy}>
             개인정보 처리방침 자세히 보기 ›
@@ -195,7 +223,7 @@ function ReportForm({ target, onClose }: { target: AiReportTarget; onClose: () =
         </ScrollView>
         <View style={styles.actions}>
           <Button title="신고하기" onPress={submit} loading={sending} disabled={!canSend} />
-          <Button title="취소" variant="ghost" size="md" onPress={onClose} />
+          <Button title="취소" variant="ghost" size="md" onPress={onClose} disabled={sending} />
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -219,6 +247,7 @@ const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   badge: { width: 36, height: 36, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
   box: { borderRadius: Radius.md, padding: Spacing.md, gap: 4 },
+  preview: { maxHeight: 180, flexGrow: 0 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
   policy: { alignSelf: 'flex-start' },
   actions: { gap: Spacing.xs, paddingTop: Spacing.sm },

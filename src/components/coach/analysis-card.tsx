@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { Platform, Pressable, Share, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 
-import { useAiReport } from '@/components/coach/ai-report-sheet';
 import { HeatGauge } from '@/components/coach/heat-gauge';
 import { ReplyCarousel } from '@/components/coach/reply-carousel';
 import { TemperatureGauge } from '@/components/coach/temperature-gauge';
@@ -31,8 +30,11 @@ interface AnalysisCardProps {
   onSelectReply: (index: number) => void;
   onRegenerate?: (tone?: Tone) => void;
   regenerating?: boolean;
-  /** 비밀 상담의 결과 — 신고하면 이 답변은 저장된다고 먼저 알린다 */
-  secret?: boolean;
+  /**
+   * 이 답변 신고 (신고할 내용을 넘긴다). 없으면 신고 버튼을 숨긴다.
+   * 시트는 화면이 하나만 둔다 — 카드마다 두면 목록이 카드를 내렸다 다시 그릴 때 열린 시트·적던 메모가 사라질 수 있다
+   */
+  onReport?: (content: string) => void;
 }
 
 const SPEECH_CHIP = { polite: '🙇 존댓말 유지', casual: '👋 반말 유지', mixed: '🔀 말투 섞임', unknown: null } as const;
@@ -41,11 +43,10 @@ const SPEECH_CHIP = { polite: '🙇 존댓말 유지', casual: '👋 반말 유�
  * 결과 카드 — 누적 호감 온도가 차오르고, 답장 여러 버전을 스와이프로 넘겨 본다.
  * 카드를 누르거나 아래 버튼으로 복사하면 하트가 터진다. 이유·다음 스텝은 접어 둔다.
  */
-export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedReplyIndex, onSelectReply, onRegenerate, regenerating, secret }: AnalysisCardProps) {
+export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedReplyIndex, onSelectReply, onRegenerate, regenerating, onReport }: AnalysisCardProps) {
   const theme = useTheme();
   const toast = useToast();
   const celebrate = useCelebrate();
-  const report = useAiReport();
   // 예전에 골라 둔 답장이 있으면 그것부터 보여 준다
   const [shown, setShown] = useState(selectedReplyIndex ?? 0);
   const [open, setOpen] = useState(false);
@@ -82,8 +83,8 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
     await Share.share({ message: reply.text }).catch(() => {});
   };
 
-  // 불쾌하거나 부적절한 답변 신고 — 요약과 지금 보고 있는 답장을 보낸다 (구글 플레이 생성형 AI 정책)
-  const reportAnswer = () => report.open({ mode: 'coach', content: coachReportContent(analysis, current), secret });
+  // 불쾌하거나 부적절한 답변 신고 — 카드에 보이는 AI 글(요약, 지금 보고 있는 답장과 예상 반응·이유, 포인트·다음 스텝·주의할 점)을 보낸다 (구글 플레이 생성형 AI 정책)
+  const reportAnswer = () => onReport?.(coachReportContent(analysis, current));
 
   if (!reply) {
     return (
@@ -96,7 +97,7 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
               👉 {analysis.nextStep}
             </AppText>
           ) : null}
-          {report.available ? (
+          {onReport ? (
             <Pressable accessibilityRole="button" onPress={reportAnswer} hitSlop={6} style={styles.reportRow}>
               <Ionicons name="flag-outline" size={13} color={theme.textTertiary} />
               <AppText variant="caption" color="textTertiary">
@@ -105,7 +106,6 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
             </Pressable>
           ) : null}
         </View>
-        {report.sheet}
       </View>
     );
   }
@@ -172,7 +172,7 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
           <PressableScale accessibilityLabel="답장 공유하기" feedback={false} onPress={shareReply} style={[styles.shareBtn, { backgroundColor: theme.surface }]}>
             <Ionicons name="share-outline" size={19} color={theme.textSecondary} />
           </PressableScale>
-          {report.available ? (
+          {onReport ? (
             <PressableScale accessibilityLabel="이 답변 신고하기" feedback={false} onPress={reportAnswer} style={[styles.shareBtn, { backgroundColor: theme.surface }]}>
               <Ionicons name="flag-outline" size={18} color={theme.textTertiary} />
             </PressableScale>
@@ -220,7 +220,6 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
           </AppText>
         </PressableScale>
       ) : null}
-      {report.sheet}
     </View>
   );
 }

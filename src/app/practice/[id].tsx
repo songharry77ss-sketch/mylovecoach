@@ -19,13 +19,13 @@ import { kktiLabel } from '@/hooks/use-coach';
 import { useAiAction } from '@/hooks/use-ai-action';
 import { useKeyboardVisible } from '@/hooks/use-keyboard';
 import { useTheme } from '@/hooks/use-theme';
-import { practiceReportContent } from '@/lib/ai-report';
+import { practiceFeedbackReportContent, practiceReportContent } from '@/lib/ai-report';
 import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { requestAi } from '@/lib/coach-client';
 import { userToRequest } from '@/lib/coach-schema';
 import { haptic } from '@/lib/haptics';
 import { relationshipLabel } from '@/lib/labels';
-import { PRACTICE_MAX_TURNS, bestLine, myTurnCount, practiceVerdict } from '@/lib/practice';
+import { PRACTICE_MAX_TURNS, bestLine, latestPartnerText, myTurnCount, practiceVerdict } from '@/lib/practice';
 import type { PracticeTurn } from '@/lib/types';
 import { useAppStore } from '@/store/app-store';
 
@@ -160,6 +160,12 @@ export default function PracticeSessionScreen() {
     router.replace({ pathname: '/practice/[id]', params: { id: nextId } });
   };
 
+  // 화면 위 깃발 — 상대역이 가장 최근에 한 말을 신고 (다른 말은 말풍선을 길게 누름). 아직 없으면 기능을 고르는 일반 신고
+  const reportLatest = () => {
+    const latest = latestPartnerText(session.turns);
+    report.open(latest ? { mode: 'practice', content: practiceReportContent(p.name, latest) } : { mode: 'practice' });
+  };
+
   const verdict = practiceVerdict(session.heat);
   const best = bestLine(session);
   const rel = relationshipLabel(p.relationship);
@@ -170,7 +176,7 @@ export default function PracticeSessionScreen() {
         <View style={[styles.avatar, { backgroundColor: p.color }]}>
           <AppText style={styles.avatarEmoji}>{p.emoji}</AppText>
         </View>
-        {/* AI 상대역의 말 — 길게 누르면 신고 (헤더의 깃발은 「연습 끝내기」라 여기선 길게 누르기로) */}
+        {/* AI 상대역의 말 — 길게 누르면 이 말을 신고 (화면 위 깃발은 가장 최근 말) */}
         <Pressable
           onLongPress={report.available ? () => report.open({ mode: 'practice', content: practiceReportContent(p.name, item.text) }) : undefined}
           accessibilityHint={report.available ? '길게 누르면 이 말을 신고할 수 있어요' : undefined}
@@ -184,14 +190,29 @@ export default function PracticeSessionScreen() {
           <AppText variant="body">{item.text}</AppText>
         </View>
         {item.feedback ? (
-          <Animated.View entering={FadeInDown.delay(150)} style={[styles.feedback, { backgroundColor: (item.delta ?? 0) >= 0 ? theme.accentSoft : theme.primarySoft }]}>
-            <AppText variant="caption" weight="800" color={(item.delta ?? 0) >= 0 ? 'accent' : 'primary'}>
-              {(item.delta ?? 0) >= 0 ? `👍 +${item.delta ?? 0}°` : `💡 ${item.delta}°`}
-            </AppText>
-            <AppText variant="caption" color="textSecondary" style={styles.flex}>
-              {item.feedback}
-              {item.better ? `\n✏️ 이렇게 보내면 더 좋아요: ${item.better}` : ''}
-            </AppText>
+          <Animated.View entering={FadeInDown.delay(150)} style={styles.feedbackWrap}>
+            {/* 코치 피드백도 AI 가 만든 글 — 깃발이나 길게 누르기로 바로 신고 */}
+            <Pressable
+              onLongPress={report.available ? () => report.open({ mode: 'practice', content: practiceFeedbackReportContent(item) }) : undefined}
+              accessibilityHint={report.available ? '길게 누르면 이 피드백을 신고할 수 있어요' : undefined}
+              style={[styles.feedback, { backgroundColor: (item.delta ?? 0) >= 0 ? theme.accentSoft : theme.primarySoft }]}>
+              <AppText variant="caption" weight="800" color={(item.delta ?? 0) >= 0 ? 'accent' : 'primary'}>
+                {(item.delta ?? 0) >= 0 ? `👍 +${item.delta ?? 0}°` : `💡 ${item.delta}°`}
+              </AppText>
+              <AppText variant="caption" color="textSecondary" style={styles.flex}>
+                {item.feedback}
+                {item.better ? `\n✏️ 이렇게 보내면 더 좋아요: ${item.better}` : ''}
+              </AppText>
+              {report.available ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="이 피드백 신고하기"
+                  hitSlop={10}
+                  onPress={() => report.open({ mode: 'practice', content: practiceFeedbackReportContent(item) })}>
+                  <Ionicons name="flag-outline" size={13} color={theme.textTertiary} />
+                </Pressable>
+              ) : null}
+            </Pressable>
           </Animated.View>
         ) : null}
       </Animated.View>
@@ -214,7 +235,19 @@ export default function PracticeSessionScreen() {
               </View>
             </View>
           ),
-          headerRight: () => (finished ? null : <IconButton name="flag-outline" accessibilityLabel="연습 끝내기" onPress={end} />),
+          // 깃발은 다른 화면과 같이 「신고」. 연습 끝내기는 헷갈리지 않게 글자 버튼으로
+          headerRight: () => (
+            <View style={styles.headerActions}>
+              {report.available ? <IconButton name="flag-outline" accessibilityLabel="AI 답변 신고" onPress={reportLatest} /> : null}
+              {finished ? null : (
+                <Pressable accessibilityRole="button" accessibilityLabel="연습 끝내기" onPress={end} hitSlop={8} style={({ pressed }) => [styles.endBtn, { opacity: pressed ? 0.6 : 1 }]}>
+                  <AppText variant="smallStrong" color="textSecondary">
+                    끝내기
+                  </AppText>
+                </Pressable>
+              )}
+            </View>
+          ),
         }}
       />
 
@@ -241,7 +274,7 @@ export default function PracticeSessionScreen() {
               </AppText>
               {report.available ? (
                 <AppText variant="caption" color="textTertiary">
-                  🤖 AI가 연기하는 상대예요. 불쾌한 말은 말풍선을 길게 눌러 신고할 수 있어요
+                  🤖 AI가 연기하는 상대예요. 불쾌한 말은 위 깃발(가장 최근 말)이나 말풍선 길게 누르기로, 코치 피드백은 옆 깃발로 신고할 수 있어요
                 </AppText>
               ) : null}
             </View>
@@ -334,6 +367,8 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   flex: { flex: 1 },
   headerTitle: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  headerActions: { flexDirection: 'row', alignItems: 'center' },
+  endBtn: { height: 40, paddingHorizontal: Spacing.sm, justifyContent: 'center' },
   gauge: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   list: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.lg, gap: Spacing.md, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   scenario: { borderRadius: Radius.lg, padding: Spacing.md, gap: 4, marginBottom: Spacing.sm },
@@ -343,7 +378,8 @@ const styles = StyleSheet.create({
   themBubble: { borderRadius: Radius.lg, borderBottomLeftRadius: 4, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2, flexShrink: 1 },
   meWrap: { alignItems: 'flex-end', gap: Spacing.xs },
   meBubble: { borderRadius: Radius.lg, borderBottomRightRadius: 4, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2, maxWidth: '85%' },
-  feedback: { flexDirection: 'row', gap: Spacing.sm, borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, maxWidth: '92%' },
+  feedbackWrap: { maxWidth: '92%' },
+  feedback: { flexDirection: 'row', gap: Spacing.sm, borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
   result: { borderRadius: Radius.xl, borderWidth: 1, padding: Spacing.xl, gap: Spacing.sm, alignItems: 'stretch', marginTop: Spacing.lg },
   resultEmoji: { fontSize: 48, lineHeight: 58, textAlign: 'center' },
   best: { borderRadius: Radius.md, padding: Spacing.md, gap: 4 },
