@@ -200,8 +200,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `select=created_at,crush_alias,crush_mbti,relationship,tone,question,has_image,temperature,interest_score,summary,device_id&order=created_at.desc&limit=${limit}`,
     ),
     listTeam(),
-    // 신고는 기간과 상관없이 최근 것부터 (ai_report 표가 아직 없으면 빈 목록)
-    select<ReportRow>('ai_report', `select=id,created_at,mode,reason,note,content,model,platform,app_version,status&order=created_at.desc&limit=${REPORT_LIMIT}`),
+    // 신고는 기간과 상관없이 최근 것부터. 못 읽으면 null — ai_report 표가 아직 없으면 앱 신고가 모두 실패하므로 화면에 알린다
+    query<ReportRow>('ai_report', `select=id,created_at,mode,reason,note,content,model,platform,app_version,status&order=created_at.desc&limit=${REPORT_LIMIT}`),
   ]);
 
   if (!stats) {
@@ -209,5 +209,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  res.status(200).json({ stats, logs, team, reports, analytics: analyticsEnabled(), generatedAt: new Date().toISOString() });
+  res.status(200).json({
+    stats,
+    logs,
+    team,
+    reports: reports ?? [],
+    reportsReady: reports !== null,
+    analytics: analyticsEnabled(),
+    generatedAt: new Date().toISOString(),
+  });
 }

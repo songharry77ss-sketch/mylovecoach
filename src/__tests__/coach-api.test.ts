@@ -63,7 +63,7 @@ describe('중계 서버는 사용자가 동의한 회사(Google)로만 보낸다
     expect(gemini).not.toHaveBeenCalled();
   });
 
-  it('헤더가 없는 예전 앱의 요청은 그대로 받는다', async () => {
+  it('헤더가 없는 예전 앱은 그 판 처리방침대로 Google 에 동의한 것으로 보고 받는다', async () => {
     await post();
     expect(gemini).toHaveBeenCalledTimes(1);
   });

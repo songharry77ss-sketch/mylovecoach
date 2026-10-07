@@ -102,12 +102,13 @@ describe('/api/admin', () => {
     await handler(fakeReq({ 'x-admin-device': DEVICE, authorization: 'Bearer 0729' }), res as never);
     expect(res.statusCode).toBe(200);
     expect(res.body?.reports).toEqual(REPORTS);
+    expect(res.body?.reportsReady).toBe(true);
     const call = calls.find((c) => c.url.includes('/rest/v1/ai_report'));
     expect(call?.url).toContain('order=created_at.desc');
     expect(call?.url).toContain('limit=50');
   });
 
-  it('ai_report 표가 아직 없어도 나머지 화면은 그대로 열린다 (신고는 빈 목록)', async () => {
+  it('ai_report 표가 아직 없어도 나머지 화면은 그대로 열리고, 신고 표가 없다는 표시를 준다', async () => {
     reportTableMissing = true;
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const res = fakeRes();
@@ -115,6 +116,8 @@ describe('/api/admin', () => {
     warn.mockRestore();
     expect(res.statusCode).toBe(200);
     expect(res.body?.reports).toEqual([]);
+    // 관리자 페이지는 「아직 신고가 없어요」 대신 ai_report.sql 을 실행하라고 알린다
+    expect(res.body?.reportsReady).toBe(false);
   });
 
   it('「기록 삭제」는 void 함수의 본문 없는 204 응답에도 성공한다 (예전에는 지우고도 502)', async () => {

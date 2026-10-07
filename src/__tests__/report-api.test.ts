@@ -40,7 +40,8 @@ function fakeReq(method: string, body: unknown, headers: Record<string, string> 
 }
 
 const calls: { url: string; method: string; body?: string }[] = [];
-let insertOk = true;
+/** Supabase 가 저장 요청에 돌려줄 상태 코드 (201 = 저장됨) */
+let insertStatus = 201;
 const goodBody = (extra: Record<string, unknown> = {}) => ({
   mode: 'practice',
   reason: 'sexual',
@@ -54,14 +55,14 @@ const goodBody = (extra: Record<string, unknown> = {}) => ({
 
 beforeEach(() => {
   calls.length = 0;
-  insertOk = true;
+  insertStatus = 201;
   process.env.SUPABASE_URL = 'https://db.example';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
   delete process.env.ANALYTICS_ENABLED;
   delete process.env.COACH_APP_TOKEN;
   global.fetch = jest.fn(async (url: string, init: { method?: string; body?: string } = {}) => {
     calls.push({ url: String(url), method: init.method ?? 'GET', body: init.body });
-    return { ok: insertOk, status: insertOk ? 201 : 500, text: async () => '', json: async () => ({}) };
+    return { ok: insertStatus < 300, status: insertStatus, text: async () => '', json: async () => ({}) };
   }) as unknown as typeof fetch;
 });
 
@@ -130,7 +131,7 @@ describe('POST /api/report', () => {
   });
 
   it('저장에 실패하면 502 — 앱은 시트를 닫지 않고 다시 보내게 한다', async () => {
-    insertOk = false;
+    insertStatus = 500;
     // 저장 실패 로그(console.warn)는 여기서 일부러 내는 것이라 가린다
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const res = fakeRes();
@@ -138,6 +139,37 @@ describe('POST /api/report', () => {
     expect(res.statusCode).toBe(502);
     expect(res.body?.error).toBeTruthy();
     warn.mockRestore();
+  });
+
+  it('DB 의 하루 저장 상한(트리거가 PT429 로 거절)에 걸리면 429 와 내일 다시 보내 달라는 안내', async () => {
+    insertStatus = 429;
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const res = fakeRes();
+    await handler(fakeReq('POST', goodBody()), res as never);
+    warn.mockRestore();
+    expect(res.statusCode).toBe(429);
+    expect(res.body?.error).toContain('내일 다시 보내 주세요');
+  });
+
+  it('ai_report 표가 아직 없으면(404) 503 — 운영자가 알아보게 ai_report.sql 을 실행하라고 로그를 남긴다', async () => {
+    insertStatus = 404;
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const res = fakeRes();
+    await handler(fakeReq('POST', goodBody()), res as never);
+    expect(res.statusCode).toBe(503);
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('supabase/ai_report.sql'));
+    warn.mockRestore();
+    error.mockRestore();
+  });
+
+  it('DB 용량 보호(트리거가 PT503 으로 거절)도 503', async () => {
+    insertStatus = 503;
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const res = fakeRes();
+    await handler(fakeReq('POST', goodBody()), res as never);
+    warn.mockRestore();
+    expect(res.statusCode).toBe(503);
   });
 
   it('본문이 16KB 를 넘으면 413', async () => {
@@ -191,5 +223,20 @@ describe('앱·서버·관리자 페이지가 같은 값을 쓴다', () => {
     const keysOf = (name: string) => [...(html.match(new RegExp(`const ${name} = \\{([^\\n]*)\\};`))?.[1] ?? '').matchAll(/(\w+):\s*'/g)].map((m) => m[1]);
     expect(keysOf('REPORT_MODE').sort()).toEqual([...AI_REPORT_MODES].sort());
     expect(keysOf('REPORT_REASON').sort()).toEqual([...AI_REPORT_REASONS].sort());
+  });
+
+  it('신고의 하루 상한·1년 파기는 schema.sql 과 운영용 조각(ai_report.sql)이 같고, purge_old_records 에 기대지 않는다', () => {
+    const read = (file: string) => readFileSync(join(__dirname, '../../supabase', file), 'utf8').replace(/\r/g, '');
+    const schema = read('schema.sql');
+    const fragment = read('ai_report.sql');
+    const fn = (sql: string, name: string) => sql.match(new RegExp(`create or replace function ${name}\\(\\)[\\s\\S]*?\\$\\$;`))?.[0];
+    for (const name of ['ai_report_quota', 'purge_ai_report']) {
+      expect(fn(fragment, name)).toBeTruthy();
+      expect(fn(schema, name)).toBe(fn(fragment, name));
+    }
+    for (const sql of [schema, fragment]) expect(sql).toContain("cron.schedule('mylovecoach-purge-report', '35 18 * * *', 'select public.purge_ai_report()')");
+    // 브랜치마다 통째로 다시 만드는 purge_old_records 에 신고 파기를 두면, 다른 판 schema.sql 을 실행할 때 조용히 사라진다
+    expect(fn(schema, 'purge_old_records')).not.toContain('ai_report');
+    expect(fragment).not.toContain('function purge_old_records');
   });
 });

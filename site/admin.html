@@ -299,7 +299,9 @@
       : '<p class="muted">아직 코칭 기록이 없어요.</p>';
 
     const reports = data.reports || [];
-    $('reports').innerHTML = reports.length
+    $('reports').innerHTML = data.reportsReady === false
+      ? '<p class="notice">신고 목록을 읽지 못했어요. 신고 표(ai_report)가 아직 없다면 앱에서 보낸 신고도 모두 실패하고 있어요 — Supabase SQL Editor 에 <b>supabase/ai_report.sql</b> 을 실행해 주세요.</p>'
+      : reports.length
       ? `<table>
           <thead><tr><th>시각</th><th>기능 · 사유</th><th>신고한 답변</th><th>메모</th><th>기기</th></tr></thead>
           <tbody>${reports.map((r) => `<tr>

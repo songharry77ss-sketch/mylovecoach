@@ -152,6 +152,29 @@ create table if not exists ai_report (
 );
 create index if not exists ai_report_created_idx on ai_report (created_at desc);
 
+-- 하루 저장 상한 — 앱 토큰은 공개 번들에 있어 누구나 /api/report 를 부를 수 있고 서버의 IP 빈도 제한은 인스턴스마다 따로 센다.
+-- 한국 날짜로 하루 300건, 또는 데이터베이스 전체가 400MB(무료 플랜 500MB)를 넘으면 저장을 거절한다 (supabase/ai_report.sql 과 같음)
+create or replace function ai_report_quota()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if pg_database_size(current_database()) > 400::bigint * 1024 * 1024 then
+    raise exception using errcode = 'PT503', message = 'ai_report: 데이터베이스가 400MB 를 넘어 신고를 저장하지 않음';
+  end if;
+  if (select count(*) from ai_report
+       where created_at >= date_trunc('day', now() at time zone 'Asia/Seoul') at time zone 'Asia/Seoul') >= 300 then
+    raise exception using errcode = 'PT429', message = 'ai_report: 오늘 신고 저장 상한(300건)을 넘음';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists ai_report_quota on ai_report;
+create trigger ai_report_quota before insert on ai_report
+  for each row execute function ai_report_quota();
+
 -- ── 잠금: 공개 키(anon)로는 아무것도 못 읽고 못 씁니다 ────────────────
 alter table app_user        enable row level security;
 alter table app_session     enable row level security;
@@ -346,7 +369,8 @@ $$;
 
 comment on function delete_device is '기기 ID 하나의 이용 기록 삭제 (DELETE /api/track, 관리자 기록 삭제, 만 14세 미만)';
 
--- ── 1년 지난 이용 기록·AI 답변 신고 파기 (처리방침 4번·2번 「AI 답변 신고」 「1년이 지나면 파기」) ─
+-- ── 1년 지난 이용 기록 파기 (처리방침 4번 「1년이 지나면 파기」) ─
+-- AI 답변 신고는 아래 purge_ai_report() 가 따로 지운다 — 이 함수는 브랜치마다 본문이 달라 다시 만들 때 줄이 사라질 수 있어서
 create or replace function purge_old_records()
 returns void
 language sql
@@ -357,7 +381,6 @@ as $$
   delete from app_event       where created_at   < now() - interval '1 year';
   delete from screen_view     where created_at   < now() - interval '1 year';
   delete from app_session     where started_at   < now() - interval '1 year';
-  delete from ai_report       where created_at   < now() - interval '1 year';
   delete from app_user        where last_seen_at < now() - interval '1 year';
   -- 처음 들어온 경로는 계속 쓰는 이용자라도 수집 1년이 지나면 지운다
   update app_user set source = null, source_detail = null
@@ -366,7 +389,7 @@ as $$
   delete from usage_quota     where day < (now() at time zone 'Asia/Seoul')::date - 7;
 $$;
 
-comment on function purge_old_records is '1년 지난 이용 기록·유입 경로·AI 답변 신고, 30일 지난 관리자 로그인 시도, 7일 지난 저장량 기록 파기 (pg_cron 매일 03:30 KST)';
+comment on function purge_old_records is '1년 지난 이용 기록·유입 경로, 30일 지난 관리자 로그인 시도, 7일 지난 저장량 기록 파기 (pg_cron 매일 03:30 KST)';
 
 -- 매일 03:30(한국 시간) = 18:30 UTC 에 파기. pg_cron 을 쓸 수 없는 곳(로컬 시험 등)에서는 건너뛴다
 do $$
@@ -379,6 +402,39 @@ begin
   end;
   perform cron.unschedule(jobid) from cron.job where jobname = 'mylovecoach-purge';
   perform cron.schedule('mylovecoach-purge', '30 18 * * *', 'select public.purge_old_records()');
+end $$;
+
+-- ── AI 답변 신고 1년 파기 (처리방침 2번 「AI 답변 신고」) — purge_old_records 와 따로, 매일 03:35 KST ─
+-- purge_old_records 는 가입·1.0 판 schema.sql 이 각자 통째로 다시 만들므로 거기에 두면 신고 줄이 조용히 사라질 수 있다
+create or replace function purge_ai_report()
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  delete from ai_report where created_at < now() - interval '1 year';
+$$;
+
+comment on function purge_ai_report is 'AI 답변 신고 1년 파기 (pg_cron mylovecoach-purge-report 매일 03:35 KST — purge_old_records 와 따로 둔다)';
+
+do $$
+begin
+  revoke execute on function purge_ai_report() from public;
+  if exists (select 1 from pg_roles where rolname = 'anon') then
+    revoke execute on function purge_ai_report() from anon, authenticated;
+  end if;
+end $$;
+
+do $$
+begin
+  begin
+    create extension if not exists pg_cron;
+  exception when others then
+    raise notice 'pg_cron 을 켤 수 없어 신고 1년 파기 예약을 건너뜁니다: %', sqlerrm;
+    return;
+  end;
+  perform cron.unschedule(jobid) from cron.job where jobname = 'mylovecoach-purge-report';
+  perform cron.schedule('mylovecoach-purge-report', '35 18 * * *', 'select public.purge_ai_report()');
 end $$;
 
 -- ── 관리자 함수는 서버(service_role)만 부를 수 있게 ──────────────────

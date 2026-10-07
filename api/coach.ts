@@ -20,6 +20,8 @@ export const config = { maxDuration: 120 };
 
 /** 이 서버가 내용을 보내는 AI 회사 — 앱이 x-ai-consent 헤더로 알려 주는 「사용자가 동의한 회사」와 같아야 보낸다 */
 const RELAY_COMPANY = 'google';
+/** x-ai-consent 헤더가 없는 예전 앱(동의 시트 이전 판)이 처리방침으로 안내받은 회사 */
+const LEGACY_APP_COMPANY = 'google';
 
 /**
  * 무단 대량 호출 억제용 간이 제한 (IP 당 10분에 60회).
@@ -121,9 +123,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
   // 앱은 사용자가 보내도 된다고 동의한 AI 회사를 알려 준다. 이 서버가 보낼 회사와 다르면 동의받지 않은 곳으로 가게 되므로 AI 를 부르지 않는다.
-  // 헤더가 없는 예전 앱(심사 중인 1.0 등)은 그대로 받는다
-  const consented = req.headers['x-ai-consent'];
-  if (consented !== undefined && consented !== RELAY_COMPANY) {
+  // 헤더가 없는 예전 앱(심사 중인 1.0 등)은 그 판 처리방침이 안내한 Google 로 본다 — 지금은 그대로 받고,
+  // 나중에 보낼 회사(RELAY_COMPANY)를 바꾸면 예전 앱도 새 회사로 조용히 보내지 않고 같이 거절된다
+  const consented = req.headers['x-ai-consent'] ?? LEGACY_APP_COMPANY;
+  if (consented !== RELAY_COMPANY) {
     res.status(503).json({ error: '지금은 AI 연결을 점검 중이에요. 잠시 후 다시 시도해주세요.' });
     return;
   }
