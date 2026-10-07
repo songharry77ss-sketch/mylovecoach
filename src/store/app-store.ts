@@ -107,7 +107,8 @@ export interface AppState {
   selectReply: (crushId: string, messageId: string, index: number) => void;
 
   setHasApiKey: (v: boolean) => void;
-  getCachedAnalysis: (key: string) => CoachAnalysis | null;
+  /** since 를 주면 그 시각보다 먼저 만든 결과는 쓰지 않는다 (그 뒤 사용자가 새 요청을 했으면 다시 답해야 하므로) */
+  getCachedAnalysis: (key: string, since?: number | null) => CoachAnalysis | null;
   putCachedAnalysis: (key: string, analysis: CoachAnalysis) => void;
   setAnalyticsConsent: (consent: boolean) => void;
   /** AI 분석 동의 기록 — 동의한 AI 회사, 동의 안 함·철회면 null */
@@ -319,10 +320,11 @@ export const useAppStore = create<AppState>()(
       selectReply: (crushId, messageId, index) => get().updateMessage(crushId, messageId, { selectedReplyIndex: index }),
 
       setHasApiKey: (hasApiKey) => set({ hasApiKey }),
-      getCachedAnalysis: (key) => {
+      getCachedAnalysis: (key, since) => {
         const hit = get().analysisCache[key];
         if (!hit) return null;
         if (Date.now() - hit.at > CACHE_TTL_MS) return null;
+        if (since != null && hit.at < since) return null;
         return hit.analysis;
       },
       putCachedAnalysis: (key, analysis) =>
@@ -516,24 +518,95 @@ export const useAppStore = create<AppState>()(
 );
 
 /** 최근 코칭 맥락을 모델에 넘길 형태로 압축 */
-export function buildHistory(messages: ChatMessage[], limit = 6): HistoryTurn[] {
-  const turns: HistoryTurn[] = [];
+/** 코칭 요청에 그대로 싣는 최근 턴 수 (서버 상한 8) */
+export const HISTORY_TURNS = 8;
+/** 그중 코치가 제안한 답장·읽어낸 포인트까지 싣는 최근 턴 수 (토큰을 아끼려고 최근 것만) */
+const DETAILED_TURNS = 3;
+/** 최근 턴보다 앞선 대화에서 사용자가 직접 쓴 말을 몇 개까지 싣는지 (서버 상한 12) */
+const EARLIER_NOTES = 10;
+
+interface ChatTurn {
+  /** 요청에 실을 사용자 메모 (캡처 표시 포함) */
+  note?: string;
+  /** 사용자가 직접 쓴 글만 (「다른 답장 더 보기」 같은 자동 문구 제외) */
+  typed?: string;
+  analysis?: CoachAnalysis;
+  selectedReplyIndex?: number;
+}
+
+/** 채팅방 메시지를 「사용자 → 코치」 턴으로 묶는다 (실패·대기 중 메시지는 뺀다) */
+function chatTurns(messages: ChatMessage[]): ChatTurn[] {
+  const turns: ChatTurn[] = [];
   for (const m of messages) {
     if (m.pending || m.error) continue;
     if (m.role === 'user') {
-      turns.push({ userNote: m.text?.trim() || (m.imageUri ? '(대화 캡처 업로드)' : undefined) });
+      const text = m.text?.trim() || undefined;
+      const auto = Boolean(text?.startsWith('🔄'));
+      // 캡처와 글을 같이 보냈으면 둘 다 남긴다 — 캡처는 다시 보내지 않으므로 「캡처를 올렸었다」는 사실이 맥락이다
+      const note = m.imageUri ? (text ? `(대화 캡처 업로드) ${text}` : '(대화 캡처 업로드)') : text;
+      turns.push({ note, typed: auto ? undefined : text });
     } else if (m.analysis) {
       const last = turns[turns.length - 1];
-      const chosen = m.selectedReplyIndex != null ? m.analysis.replies[m.selectedReplyIndex]?.text : undefined;
-      if (last && last.coachSummary == null) {
-        last.coachSummary = m.analysis.summary;
-        last.chosenReply = chosen;
+      if (last && !last.analysis) {
+        last.analysis = m.analysis;
+        last.selectedReplyIndex = m.selectedReplyIndex;
       } else {
-        turns.push({ coachSummary: m.analysis.summary, chosenReply: chosen });
+        turns.push({ analysis: m.analysis, selectedReplyIndex: m.selectedReplyIndex });
       }
     }
   }
-  return turns.slice(-limit);
+  return turns;
+}
+
+const clip = (s: string, max: number) => (s.length > max ? `${s.slice(0, max)}…` : s);
+
+/**
+ * 코칭 요청에 싣는 최근 대화 맥락 (오래된 순).
+ * 최근 DETAILED_TURNS 턴은 코치가 제안한 답장과 읽어낸 포인트까지 싣는다 —
+ * 사용자가 「2번 답장 더 짧게」처럼 앞 내용을 가리키거나 「다른 답장 더 보기」를 누를 때 AI 가 앞 답장을 알아야 한다
+ */
+export function buildHistory(messages: ChatMessage[], limit = HISTORY_TURNS): HistoryTurn[] {
+  const turns = chatTurns(messages).slice(-limit);
+  return turns.map((t, i) => {
+    const turn: HistoryTurn = { userNote: t.note };
+    if (!t.analysis) return turn;
+    turn.coachSummary = t.analysis.summary;
+    turn.chosenReply = t.selectedReplyIndex != null ? t.analysis.replies?.[t.selectedReplyIndex]?.text : undefined;
+    if (i >= turns.length - DETAILED_TURNS) {
+      const replies = (t.analysis.replies ?? []).map((r) => r.text?.trim()).filter((s): s is string => Boolean(s)).slice(0, 3);
+      if (replies.length) turn.replies = replies.map((s) => clip(s, 200));
+      const insights = (t.analysis.insights ?? []).map((s) => s?.trim()).filter((s): s is string => Boolean(s)).slice(0, 3);
+      if (insights.length) turn.insights = insights.map((s) => clip(s, 160));
+    }
+    return turn;
+  });
+}
+
+/**
+ * 최근 맥락(buildHistory) 밖으로 밀려난 더 앞선 턴에서 사용자가 직접 쓴 말 (오래된 순).
+ * 「이모지 빼 줘」「상대는 회사 선배야」처럼 앞에서 한 요청·정보를 대화가 길어져도 계속 지키게 한다
+ */
+export function buildEarlierNotes(messages: ChatMessage[], recent = HISTORY_TURNS, limit = EARLIER_NOTES): string[] {
+  const turns = chatTurns(messages);
+  return typedOf(turns.slice(0, Math.max(0, turns.length - recent)))
+    .slice(-limit)
+    .map((s) => clip(s, 160));
+}
+
+const typedOf = (turns: ChatTurn[]) => turns.map((t) => t.typed?.replace(/\s+/g, ' ')).filter((s): s is string => Boolean(s));
+
+/**
+ * 이 채팅방에서 사용자가 마지막으로 직접 글을 쓴 시각 (없으면 null).
+ * 저장된 코칭 결과는 이보다 나중에 만든 것만 다시 쓴다 — 그 사이 「이모지 빼 줘」 같은 새 요청이 있었다면 앞의 요청을 기억해서 다시 답해야 하므로
+ */
+export function lastTypedAt(messages: ChatMessage[]): number | null {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m.role !== 'user' || m.pending || m.error) continue;
+    const text = m.text?.trim();
+    if (text && !text.startsWith('🔄')) return m.createdAt;
+  }
+  return null;
 }
 
 /** 상대 분석 보고서용 코칭 기록 (최근 15개, 오래된 순) */

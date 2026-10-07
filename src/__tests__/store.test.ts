@@ -30,7 +30,8 @@ describe('buildHistory', () => {
     ];
     const history = buildHistory(list);
     expect(history).toEqual([
-      { userNote: '(대화 캡처 업로드)', coachSummary: '요약1', chosenReply: '답장B' },
+      // 최근 턴은 코치가 제안한 답장까지 싣는다 (「2번 답장」·「다른 답장 더 보기」의 기준)
+      { userNote: '(대화 캡처 업로드)', coachSummary: '요약1', chosenReply: '답장B', replies: ['답장A', '답장B'] },
       { userNote: '질문2' },
       { userNote: '질문3' },
     ]);

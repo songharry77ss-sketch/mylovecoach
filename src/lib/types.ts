@@ -167,6 +167,10 @@ export interface HistoryTurn {
   coachSummary?: string;
   /** 사용자가 실제로 선택한 답장 */
   chosenReply?: string;
+  /** 코치가 제안한 답장 (최근 몇 턴만) — 「2번 답장 더 짧게」·「다른 답장 더 보기」가 앞 답장을 알 수 있게 */
+  replies?: string[];
+  /** 코치가 대화에서 읽어낸 포인트 (최근 몇 턴만) — 캡처는 다시 보내지 않으므로 이어지는 질문의 근거가 된다 */
+  insights?: string[];
 }
 
 /** 연애 연습 상대역 */

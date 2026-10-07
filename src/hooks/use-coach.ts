@@ -6,7 +6,7 @@ import { CoachError, requestCoaching, requireAiConsent } from '@/lib/coach-clien
 import { crushToRequest, userToRequest } from '@/lib/coach-schema';
 import { encodeForModel, type PickedImage } from '@/lib/images';
 import type { EmojiPref, KktiSaved, Tone } from '@/lib/types';
-import { analysisCacheKey, buildHistory, useAppStore } from '@/store/app-store';
+import { analysisCacheKey, buildEarlierNotes, buildHistory, lastTypedAt, useAppStore } from '@/store/app-store';
 import { loadApiKey } from '@/store/storage';
 
 export interface SendInput {
@@ -73,15 +73,19 @@ export function useCoach() {
     const secret = Boolean(crush.secret);
 
     try {
-      const history = buildHistory((useAppStore.getState().messages[crush.id] ?? []).filter((m) => m.id !== userMessage.id && m.id !== coachMessage.id));
+      // 이 채팅방의 지난 대화 — 최근 턴은 그대로, 더 앞선 턴은 사용자가 직접 쓴 말만 (앞에서 한 요청을 계속 기억하게)
+      const past = (useAppStore.getState().messages[crush.id] ?? []).filter((m) => m.id !== userMessage.id && m.id !== coachMessage.id);
+      const history = buildHistory(past);
+      const earlierNotes = buildEarlierNotes(past);
       const image = input.image ? await encodeForModel(input.image.uri, input.image.width) : undefined;
       const noteParts = [input.text.trim()];
       if (input.variationOf) noteParts.push('이전에 제안한 답장과는 다른 각도의 새로운 답장 3개를 제안해주세요.');
       const text = noteParts.filter(Boolean).join(' ');
 
-      // 같은 캡처·질문·톤을 다시 보내면 API 를 다시 부르지 않고 저장된 결과를 씁니다 (비용 절감)
+      // 같은 캡처·질문·톤을 다시 보내면 API 를 다시 부르지 않고 저장된 결과를 씁니다 (비용 절감).
+      // 단 그 결과 뒤에 사용자가 새로 글을 썼으면(예: 「이모지 빼 줘」) 쓰지 않는다 — 앞의 요청을 기억해서 다시 답해야 하므로
       const cacheKey = analysisCacheKey({ crushId: crush.id, tone: input.tone, text, imageBase64: image?.base64, variation: Boolean(input.variationOf), emoji });
-      const cached = input.variationOf || secret ? null : useAppStore.getState().getCachedAnalysis(cacheKey);
+      const cached = input.variationOf || secret ? null : useAppStore.getState().getCachedAnalysis(cacheKey, lastTypedAt(past));
       const latest = useAppStore.getState().crushes[crush.id] ?? crush;
       const analysis =
         cached ??
@@ -94,6 +98,7 @@ export function useCoach() {
             text: text || undefined,
             image,
             history,
+            ...(earlierNotes.length ? { earlierNotes } : {}),
           },
           { directApiKey, deviceId: secret ? undefined : useAppStore.getState().deviceId, signal: controller.signal },
         ));

@@ -93,6 +93,9 @@ export const UserRequestSchema = z.object({
   kkti: z.string().max(40).optional(),
 });
 
+/** 넘으면 잘라서 받는다 — 앱이 저장해 둔 지난 기록을 그대로 보내는 칸이라, 거절하면 그 채팅방의 다음 요청이 계속 막힌다 */
+const clipped = (max: number) => z.string().transform((s) => (s.length > max ? s.slice(0, max) : s));
+
 export const CoachRequestSchema = z.object({
   crush: CrushRequestSchema,
   user: UserRequestSchema,
@@ -110,10 +113,16 @@ export const CoachRequestSchema = z.object({
         userNote: z.string().optional(),
         coachSummary: z.string().optional(),
         chosenReply: z.string().optional(),
+        /** 코치가 제안했던 답장 (최근 턴만) — 「2번 답장」·「다른 답장 더 보기」의 기준 */
+        replies: z.array(clipped(300)).max(3).optional(),
+        /** 코치가 읽어낸 포인트 (최근 턴만) */
+        insights: z.array(clipped(200)).max(5).optional(),
       }),
     )
     .max(8)
     .default([]),
+  /** 최근 맥락보다 앞선 대화에서 사용자가 직접 쓴 말 (오래된 순) — 앞에서 한 요청을 대화가 길어져도 계속 지키게. 예전 앱은 보내지 않는다 */
+  earlierNotes: z.array(clipped(200)).max(12).optional(),
 });
 
 export type CoachRequest = z.infer<typeof CoachRequestSchema>;
@@ -167,6 +176,13 @@ export const COACH_SYSTEM_PROMPT = `당신은 "나만의 연애코치"입니다.
 - 상대의 MBTI와 성향 태그를 참고하되 단정하지 마세요. (예: I 성향이면 부담스럽지 않은 질문, P 성향이면 유연한 제안)
 - 유행어를 억지로 쓰거나 느끼한 멘트, 오글거리는 비유는 피하세요. 요즘 한국 20~30대가 실제로 쓰는 자연스러운 문장으로.
 - expectedReaction에는 그 답장을 보냈을 때 상대가 보낼 법한 짧은 반응을 상대의 말투로 적고, successRate에는 대화가 좋게 이어질 가능성을 현실적으로 적으세요 (보통 40~90, 과장 금지).
+
+이 채팅방의 이전 대화 (기억하고 이어서 답할 것)
+- [더 앞선 대화에서 사용자가 한 말]과 [최근 코칭 맥락]은 이 채팅방에서 사용자와 지금까지 나눈 대화입니다. 처음 만난 것처럼 답하지 말고 그 흐름에 이어서 답하세요.
+- 사용자가 앞에서 요청하거나 알려 준 것(답장 길이·말투·이모지·분위기에 대한 요청, "이런 말은 빼 줘" 같은 부탁, 상대와 상황에 대한 정보)은 사용자가 바꾸기 전까지 이번 답에도 계속 지키세요. 이번 요청과 부딪히면 이번 요청이 우선입니다.
+- 사용자가 "아까 그 답장", "2번", "그거"처럼 앞 내용을 가리키면 맥락에서 찾아 그 내용을 이어받아 답하세요. 코치가 제안한 답장은 맥락에 적힌 번호(1번·2번·3번)를 그대로 따릅니다.
+- "다른 답장 더 보기" 요청이면 직전에 제안한 답장과 겹치지 않는 새 답장을 쓰세요.
+- 맥락에 없는 일을 앞에서 들은 것처럼 지어내지 마세요.
 
 호감 온도 판단
 - hot: 먼저 연락, 빠른 답장, 질문·약속 제안, 이모티콘/애정표현이 뚜렷함
@@ -223,10 +239,19 @@ export function buildHistoryBlock(history: HistoryTurn[]): string {
     const parts: string[] = [];
     if (h.userNote) parts.push(`사용자: ${h.userNote}`);
     if (h.coachSummary) parts.push(`코치: ${h.coachSummary}`);
+    if (h.insights?.length) parts.push(`코치가 읽어낸 포인트: ${h.insights.join('; ')}`);
+    if (h.replies?.length) parts.push(`코치가 제안한 답장: ${h.replies.map((r, k) => `${k + 1}번 "${r}"`).join(' ')}`);
     if (h.chosenReply) parts.push(`사용자가 보낸 답장: "${h.chosenReply}"`);
     if (parts.length) lines.push(`${i + 1}. ${parts.join(' / ')}`);
   });
   return lines.join('\n');
+}
+
+/** 최근 맥락보다 앞선 대화에서 사용자가 직접 쓴 말 — 대화가 길어져 앞 턴이 맥락에서 빠져도 그때 한 요청을 잊지 않게 */
+export function buildEarlierNotesBlock(notes: readonly string[] | undefined): string {
+  const list = (notes ?? []).map((s) => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  if (!list.length) return '';
+  return ['[더 앞선 대화에서 사용자가 한 말 (오래된 순) — 요청이었다면 계속 지킬 것]', ...list.map((s) => `- ${s}`)].join('\n');
 }
 
 const EMOJI_KO = { auto: '자동 (대화에서 쓰던 만큼)', on: '넣기', off: '빼기' } as const;
@@ -264,7 +289,12 @@ export function buildContextText(req: CoachRequest): string {
     crush: { mbti: req.crush.mbti, age: req.crush.age, relationship: req.crush.relationship, gender: req.crush.gender },
     user: { mbti: req.user.mbti, age: req.user.age },
   });
-  const blocks = [buildProfileBlock(req), knowledge ? `[코치 참고 자료 — 경향일 뿐 단정하지 말 것]\n${knowledge}` : '', buildHistoryBlock(req.history)].filter(Boolean);
+  const blocks = [
+    buildProfileBlock(req),
+    knowledge ? `[코치 참고 자료 — 경향일 뿐 단정하지 말 것]\n${knowledge}` : '',
+    buildEarlierNotesBlock(req.earlierNotes),
+    buildHistoryBlock(req.history),
+  ].filter(Boolean);
   return blocks.join('\n\n');
 }
 
