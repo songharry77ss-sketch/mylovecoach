@@ -15,7 +15,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { buildTask, parseAiRequest, type AiTask } from '../src/lib/ai-tasks';
 import { COACH_MODEL } from '../src/lib/coach-schema';
 import { callGeminiTask } from '../src/lib/gemini';
-import { clientIp, rateLimited } from './_limits';
+import { clientIp, rateLimited, storedKb } from './_limits';
 import { analyticsEnabled, consentVersionOk, DEVICE_ID, insert, rpc } from './_supabase';
 
 export const config = { maxDuration: 120 };
@@ -27,8 +27,8 @@ export const config = { maxDuration: 120 };
  */
 const RATE_WINDOW_MS = 10 * 60 * 1000;
 const RATE_MAX = 60;
-/** 하루 전체 코칭 기록 저장 상한 (무료 DB 가 차지 않게) */
-const dailyLogs = () => Number(process.env.COACH_DAILY_ROWS) || 5_000;
+/** 하루 전체 코칭 기록 저장량 상한 (저장할 내용의 크기 KB, 무료 DB 가 차지 않게) */
+const dailyKb = () => Number(process.env.COACH_DAILY_KB) || 5_000;
 const MIN_AGE = 14;
 
 const cut = (value: unknown, max: number): string | null => (typeof value === 'string' && value ? value.slice(0, max) : null);
@@ -96,9 +96,11 @@ async function logCoach(
   if (!consentVersionOk(req.headers['x-consent-version'])) return;
   const age = coachReq.user?.age;
   if (typeof age === 'number' && age < MIN_AGE) return;
-  if ((await rpc<boolean>('take_quota', { p_kind: 'coach', p_rows: 1, p_limit: dailyLogs() })) === false) return;
   const sessionId = typeof req.headers['x-session-id'] === 'string' ? req.headers['x-session-id'] : undefined;
-  await insert('coach_log', coachLogRow(deviceId, sessionId, coachReq, result, Date.now() - startedAt));
+  const row = coachLogRow(deviceId, sessionId, coachReq, result, Date.now() - startedAt);
+  // 하루 저장량(크기)·DB 전체 크기 상한을 넘으면 기록하지 않는다 (상한 함수를 못 부르면 그대로 저장)
+  if ((await rpc<boolean>('take_quota', { p_kind: 'coach', p_units: storedKb(row), p_limit: dailyKb() })) === false) return;
+  await insert('coach_log', row);
 }
 
 function toUuid(id: string): string {

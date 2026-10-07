@@ -50,11 +50,11 @@ const at = (ms: number) => jest.setSystemTime(T0 + ms);
 const lastSent = () => sent[sent.length - 1];
 
 describe('세션', () => {
-  it('iOS inactive(알림 센터·권한 창)는 떠난 것으로 보지 않는다 — 기록만 보내고 세션은 그대로', () => {
+  it('iOS inactive(앱 전환기·알림 센터)는 떠난 것으로 보지 않지만 세션 끝은 보내 둔다 — 전환기에서 바로 꺼도 남게', () => {
     const { sessionId } = sessionStateForTest();
     at(1 * MIN);
     pauseAnalytics('inactive');
-    expect(lastSent().endSession).toBe(false);
+    expect(lastSent()).toMatchObject({ sessionId, endSession: true, sessionDurationMs: 1 * MIN });
     expect(sessionStateForTest()).toMatchObject({ sessionId, backgroundAt: 0, foregroundSince: T0 });
   });
 
@@ -89,7 +89,24 @@ describe('세션', () => {
   });
 });
 
-describe('동의·나이', () => {
+describe('동의·나이·삭제 대기', () => {
+  it('서버 기록 삭제 요청이 끝날 때까지는 보내지 않고, 끝나면 새 세션부터 보낸다', () => {
+    track('before_pending');
+    updateIdentity({ deletionPending: true });
+    expect(sessionStateForTest().queued).toBe(0);
+    const count = sent.length;
+    track('while_pending');
+    flushAnalytics(true);
+    expect(sent.length).toBe(count);
+
+    const { sessionId } = sessionStateForTest();
+    updateIdentity({ deletionPending: false });
+    expect(sessionStateForTest().sessionId).not.toBe(sessionId);
+    track('after_deleted');
+    flushAnalytics(false);
+    expect(lastSent().events.filter((e) => e.type === 'event').map((e) => e.name)).toEqual(['after_deleted']);
+  });
+
   it('동의를 끄면 대기 중인 기록을 버리고, 다시 켜면 그때부터 새 세션으로 센다', () => {
     track('before_off');
     setConsent(false);

@@ -73,7 +73,9 @@ describe('삭제 요청 보내기 (lib/server-deletion)', () => {
     await processPendingDeletion();
     expect(calls).toHaveLength(1);
     expect(calls[0]).toMatchObject({ url: 'https://api.example/api/track', method: 'DELETE' });
-    expect(JSON.parse(calls[0].body!)).toEqual({ deviceId: 'd_consent_test', before: at });
+    // 기기 시계와 상관없이 그 기기 기록을 모두 지운다 (삭제가 끝날 때까지 새 기록을 보내지 않으므로)
+    expect(JSON.parse(calls[0].body!)).toEqual({ deviceId: 'd_consent_test' });
+    expect(at).toBe(Date.now());
     expect(useAppStore.getState().pendingDeletion).toMatchObject({ sent: 1 });
 
     await jest.advanceTimersByTimeAsync(SETTLE_MS + 2000);
@@ -95,6 +97,21 @@ describe('삭제 요청 보내기 (lib/server-deletion)', () => {
     expect(useAppStore.getState().pendingDeletion).toBeNull();
   });
 
+  it('응답 없이 멈추면 15초 뒤 실패로 보고, 앱이 켜져 있는 동안 1분 뒤 다시 보낸다', async () => {
+    useAppStore.getState().requestServerDeletion();
+    jest.setSystemTime(Date.now() + SETTLE_MS + 1000);
+    (global.fetch as jest.Mock).mockImplementationOnce(
+      (_url: string, init: { signal?: AbortSignal }) =>
+        new Promise((_resolve, reject) => init.signal?.addEventListener('abort', () => reject(new Error('aborted')))),
+    );
+    const first = processPendingDeletion();
+    await jest.advanceTimersByTimeAsync(15_000);
+    await first;
+    expect(useAppStore.getState().pendingDeletion).not.toBeNull();
+    await jest.advanceTimersByTimeAsync(60_000);
+    expect(useAppStore.getState().pendingDeletion).toBeNull();
+  });
+
   it('서버가 거부해도(5xx) 남겨 두고, 형식 오류(400)는 다시 보내도 같으니 끝낸다', async () => {
     useAppStore.getState().requestServerDeletion();
     jest.setSystemTime(Date.now() + SETTLE_MS + 1000);
@@ -104,6 +121,23 @@ describe('삭제 요청 보내기 (lib/server-deletion)', () => {
     (global.fetch as jest.Mock).mockImplementationOnce(async () => ({ ok: false, status: 400 }));
     await processPendingDeletion();
     expect(useAppStore.getState().pendingDeletion).toBeNull();
+  });
+});
+
+describe('예전 판 저장 데이터 정리 (persist 판 2)', () => {
+  const migrate = (state: object, version: number) => useAppStore.persist.getOptions().migrate!(state, version) as { pendingDeletion?: unknown };
+
+  it('예전 판에서 동의를 꺼 둔 기기는 이 판을 처음 열 때 한 번 삭제를 요청한다', () => {
+    expect(migrate({ deviceId: 'd_old_off', analyticsConsent: false }, 1).pendingDeletion).toMatchObject({ deviceId: 'd_old_off', sent: 0 });
+  });
+
+  it('동의한 채 만 14세 미만 나이로 저장된 기기도 삭제를 요청한다', () => {
+    expect(migrate({ deviceId: 'd_old_kid', analyticsConsent: true, user: { age: 13 } }, 1).pendingDeletion).toMatchObject({ deviceId: 'd_old_kid' });
+  });
+
+  it('동의한 성인 기기와 이미 판 2 인 저장 데이터는 그대로', () => {
+    expect(migrate({ deviceId: 'd_adult', analyticsConsent: true, user: { age: 25 } }, 1).pendingDeletion).toBeUndefined();
+    expect(migrate({ deviceId: 'd_v2', analyticsConsent: false }, 2).pendingDeletion).toBeUndefined();
   });
 });
 

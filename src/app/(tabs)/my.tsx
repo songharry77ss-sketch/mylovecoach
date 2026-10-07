@@ -25,7 +25,7 @@ import { APP_CONFIG } from '@/lib/config';
 import { isDemoMode } from '@/lib/demo';
 import * as Floating from '@/lib/floating';
 import { haptic, setHapticsEnabled } from '@/lib/haptics';
-import { cleanupOrphanImages } from '@/lib/images';
+import { cleanupOrphanImages, clearImageCaches } from '@/lib/images';
 import { genderLabel, toneLabel } from '@/lib/labels';
 import { useAppStore } from '@/store/app-store';
 import { saveApiKey } from '@/store/storage';
@@ -168,6 +168,7 @@ export default function MyScreen() {
       resetAll();
       // 캡처·상대 사진 파일을 바로 지운다 (평소 정리는 다음 실행 때 10분 지난 파일만)
       cleanupOrphanImages(new Set(), Date.now(), 0);
+      clearImageCaches();
       haptic.heavy();
       toast.show('모든 데이터를 삭제했어요.');
       router.replace('/start');
@@ -187,10 +188,21 @@ export default function MyScreen() {
   const copyDeviceId = async () => {
     await Clipboard.setStringAsync(deviceId);
     haptic.tap();
-    toast.show('기기 ID를 복사했어요. 팀원 등록이 필요하면 관리자에게 보내 주세요.', 'success');
-    // 팀원 등록을 하려는 기기만 팀원 여부를 서버에 묻는다
-    useAppStore.getState().enableTeamCheck();
-    refreshTeam({ force: true }).catch(() => {});
+    toast.show('기기 ID를 복사했어요. 문의·삭제 요청이나 팀원 등록에 쓰세요.', 'success');
+    // 팀원 등록을 요청하는 경우에만 팀원 여부를 서버에 묻는다 (문의·삭제 요청 때문에 누른 기기는 기기 ID 를 보내지 않음)
+    const requestTeam = () => {
+      useAppStore.getState().enableTeamCheck();
+      refreshTeam({ force: true }).catch(() => {});
+      toast.show('관리자가 팀원으로 등록하면 이 기기에 반영돼요 (14일 동안 확인).', 'success');
+    };
+    if (Platform.OS === 'web') {
+      if (globalThis.confirm?.('팀원 등록을 요청하나요? 문의·삭제 요청용이면 「취소」를 누르세요.')) requestTeam();
+      return;
+    }
+    Alert.alert('팀원 등록용인가요?', '팀원 등록을 요청하면 14일 동안 이 기기가 팀원으로 등록됐는지 서버에 물어요. 문의·삭제 요청용이면 「아니요」를 누르세요.', [
+      { text: '아니요', style: 'cancel' },
+      { text: '팀원 등록 요청', onPress: requestTeam },
+    ]);
   };
   const walletNote = [wallet.credits > 0 ? `횟수권 ${wallet.credits}회` : null].filter(Boolean).join(' · ');
 

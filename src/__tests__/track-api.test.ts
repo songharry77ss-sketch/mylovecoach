@@ -2,7 +2,7 @@
  * api/track.ts — 동의 판 확인, 남용 막기(크기·빈도·props), 시각 보정, 동의 철회 삭제.
  * Supabase 는 fetch 를 가짜로 바꿔 어떤 요청이 나가는지만 본다.
  */
-import handler, { clampAt, cleanProps, deleteCutoff } from '../../api/track';
+import handler, { clampAt, cleanProps } from '../../api/track';
 
 interface FakeRes {
   statusCode: number;
@@ -68,6 +68,14 @@ describe('POST /api/track', () => {
     expect(calls).toHaveLength(0);
   });
 
+  it('유입 경로 보충은 수집 1년 안의 이용자에게만 (1년 지나 파기한 경로를 다시 채우지 않게)', async () => {
+    const res = fakeRes();
+    await handler(fakeReq('POST', goodBody({ acquisition: { channel: 'web', source: 'tiktok', at: NOW - 1000 } })), res as never);
+    expect(res.statusCode).toBe(204);
+    const refill = calls.find((c) => c.method === 'PATCH' && c.url.includes('source=is.null'));
+    expect(refill?.url).toMatch(/first_seen_at=gte\./);
+  });
+
   it('직접 체크한 동의(판 2)는 저장하고, props·체류 시간을 정리한다', async () => {
     const res = fakeRes();
     await handler(fakeReq('POST', goodBody()), res as never);
@@ -109,6 +117,14 @@ describe('POST /api/track', () => {
     expect(res.statusCode).toBe(400);
   });
 
+  it('만 14세 미만이면 동의 판이 없는 예전 앱이 보낸 것이라도 저장하지 않고 그 기기 기록을 지운다', async () => {
+    const res = fakeRes();
+    await handler(fakeReq('POST', goodBody({ consentVersion: undefined, user: { name: '민수', age: 12 } })), res as never);
+    expect(res.statusCode).toBe(204);
+    const del = calls.find((c) => c.url.endsWith('/rest/v1/rpc/delete_device'));
+    expect(del && JSON.parse(del.body!)).toEqual({ p_device: 'd_testdevice01' });
+  });
+
   it('만 14세 미만으로 입력했으면 저장하지 않고 그 기기 기록을 지운다', async () => {
     const res = fakeRes();
     await handler(fakeReq('POST', goodBody({ user: { name: '민수', age: 13 } })), res as never);
@@ -127,8 +143,10 @@ describe('POST /api/track', () => {
     const res = fakeRes();
     await handler(fakeReq('POST', goodBody()), res as never);
     expect(res.statusCode).toBe(204);
-    const quota = calls.find((c) => c.url.endsWith('/rpc/take_quota'));
-    expect(quota && JSON.parse(quota.body!)).toMatchObject({ p_kind: 'track', p_rows: 4 });
+    const quota = JSON.parse(calls.find((c) => c.url.endsWith('/rpc/take_quota'))!.body!);
+    // 저장할 내용의 크기(KB)로 센다 (행 수가 아니라)
+    expect(quota).toMatchObject({ p_kind: 'track', p_limit: 10_000 });
+    expect(quota.p_units).toBeGreaterThanOrEqual(2);
     expect(calls.some((c) => c.url.endsWith('/rest/v1/app_event'))).toBe(false);
   });
 
@@ -167,13 +185,12 @@ describe('DELETE /api/track (동의 철회)', () => {
     expect(res.statusCode).toBe(204);
   });
 
-  it('철회 시각(before)을 주면 그 뒤 3분까지 생긴 기록만 지운다', async () => {
-    const before = Date.now() - 10 * 60 * 1000;
+  it('기기 시계와 상관없이 그 기기 기록을 모두 지운다 (예전 앱이 보낸 before 는 무시)', async () => {
     const res = fakeRes();
-    await handler(fakeReq('DELETE', { deviceId: 'd_testdevice01', before }), res as never);
+    await handler(fakeReq('DELETE', { deviceId: 'd_testdevice01', before: Date.now() - 10 * 60 * 1000 }), res as never);
     expect(res.statusCode).toBe(204);
     const call = calls.find((c) => c.url.endsWith('/rest/v1/rpc/delete_device'));
-    expect(JSON.parse(call!.body!)).toEqual({ p_device: 'd_testdevice01', p_before: new Date(before + 3 * 60 * 1000).toISOString() });
+    expect(JSON.parse(call!.body!)).toEqual({ p_device: 'd_testdevice01' });
   });
 
   it('이용 기록이 빈도 제한에 걸린 IP 에서도 삭제 요청은 따로 센다', async () => {
@@ -212,15 +229,6 @@ describe('도우미', () => {
     expect(Object.keys(cleanProps(many) ?? {})).toHaveLength(8);
     expect(cleanProps({ a: [1, 2], b: undefined, c: NaN })).toBeNull();
     expect(cleanProps('text')).toBeNull();
-  });
-
-  it('deleteCutoff 는 철회 3분 뒤(지금보다 늦으면 지금)까지, 30일 넘었거나 이상한 값이면 null(모두 삭제)', () => {
-    const now = 1_800_000_000_000;
-    expect(deleteCutoff(now - 60 * 60 * 1000, now)).toBe(new Date(now - 57 * 60 * 1000).toISOString());
-    expect(deleteCutoff(now - 60 * 1000, now)).toBe(new Date(now).toISOString());
-    expect(deleteCutoff(now - 31 * 24 * 60 * 60 * 1000, now)).toBeNull();
-    expect(deleteCutoff('yesterday', now)).toBeNull();
-    expect(deleteCutoff(undefined, now)).toBeNull();
   });
 
   it('clampAt 은 최근 7일 ~ 10분 뒤 밖의 시각을 서버 시각으로 바꾼다', () => {

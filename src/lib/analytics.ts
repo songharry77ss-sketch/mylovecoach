@@ -7,6 +7,7 @@
  * - 실패해도 앱 동작에 영향을 주지 않도록 모든 오류를 삼킵니다.
  * - 만 14세 미만으로 입력한 이용자는 동의했어도 보내지 않습니다 (법정대리인 동의를 받지 않음).
  * - 세션: 백그라운드에서 30분 안에 돌아오면 같은 세션을 이어 쓰고, 앞에 나와 있던 시간만 센다.
+ * - 서버 기록 삭제 요청(동의 철회·모든 데이터 삭제)이 끝날 때까지는 다시 동의했어도 보내지 않는다.
  */
 import { Platform } from 'react-native';
 
@@ -71,6 +72,8 @@ interface Identity {
   acquisition?: Acquisition | null;
   /** 동의를 받은 방식의 판 — 서버는 직접 체크해 받은 동의(2 이상)만 저장한다 */
   consentVersion?: number | null;
+  /** 서버 기록 삭제 요청이 아직 끝나지 않았으면 true — 그동안은 새 기록을 보내지 않는다 (삭제가 새 기록까지 지우지 않게) */
+  deletionPending?: boolean;
 }
 
 const FLUSH_AFTER_MS = 8000;
@@ -98,9 +101,16 @@ let lastScreenName = '';
 
 const underAge = () => identity.user?.age != null && identity.user.age < MIN_AGE;
 
-/** 수집 대상 여부 — 동의 + 만 14세 이상 + 서버 주소가 있어야 하고, 데모 모드는 제외 */
+/** 수집 대상 여부 — 동의 + 만 14세 이상 + 삭제 요청 없음 + 서버 주소가 있어야 하고, 데모 모드는 제외 */
 function enabled(): boolean {
-  return identity.consent && !underAge() && Boolean(identity.deviceId) && !isDemoMode && (APP_CONFIG.apiSameOrigin || Boolean(APP_CONFIG.apiUrl));
+  return (
+    identity.consent &&
+    !underAge() &&
+    !identity.deletionPending &&
+    Boolean(identity.deviceId) &&
+    !isDemoMode &&
+    (APP_CONFIG.apiSameOrigin || Boolean(APP_CONFIG.apiUrl))
+  );
 }
 
 function startSession(now: number): void {
@@ -188,17 +198,20 @@ export function flushAnalytics(endSession = false): void {
 }
 
 /**
- * 앱이 화면에서 내려갈 때. 'background' 면 앞에 있던 시간을 세션 시간에 더하고, 남은 기록과 함께 세션 끝을 보낸다
- * (곧 돌아오면 같은 세션을 이어 쓰고, 서버는 같은 세션의 끝 시각·길이를 다시 적는다).
- * iOS 의 'inactive'(알림 센터·권한 창·결제 시트로 잠깐 가려짐)는 떠난 것으로 보지 않고 기록만 보낸다.
+ * 앱이 화면에서 내려갈 때 — 남은 기록과 함께 지금까지의 세션 끝(시각·길이)을 보낸다.
+ * 'background' 면 앞에 있던 시간을 세션 시간에 더하고 떠난 시각을 적는다 (30분 안에 돌아오면 같은 세션을 이어 쓰고,
+ * 서버는 같은 세션의 끝 시각·길이를 다시 적는다).
+ * iOS 의 'inactive'(앱 전환기·알림 센터·권한 창·결제 시트)는 떠난 것으로 보지 않지만 세션 끝은 보내 둔다 —
+ * 앱 전환기에서 바로 밀어 끄면 'background' 없이 끝나기 때문.
  */
 export function pauseAnalytics(state: string, now = Date.now()): void {
-  if (state !== 'background') return flushAnalytics(false);
-  if (foregroundSince) {
-    foregroundMs += now - foregroundSince;
-    foregroundSince = 0;
+  if (state === 'background') {
+    if (foregroundSince) {
+      foregroundMs += now - foregroundSince;
+      foregroundSince = 0;
+    }
+    backgroundAt = now;
   }
-  backgroundAt = now;
   flushAnalytics(true);
 }
 
