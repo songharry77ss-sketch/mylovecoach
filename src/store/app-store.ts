@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 
 import type { AiProvider } from '@/lib/ai-consent';
 import type { ConsumablePlanKey } from '@/lib/billing/plans';
+import { initialTestUnlimited } from '@/lib/billing/test-install';
 import type { Acquisition } from '@/lib/analytics';
 import { consumeOne, EMPTY_USAGE, EMPTY_WALLET, grantConsumable, type PremiumState, type TeamState, type UsageState, type WalletState } from '@/lib/billing/quota';
 import { createId } from '@/lib/id';
@@ -32,6 +33,11 @@ export interface PendingDeletion {
 
 export interface AppState {
   hydrated: boolean;
+  /**
+   * 무제한 테스트 빌드(FREE_UNLIMITED)를 테스트 경로로 설치했는지 — iOS 는 켤 때마다 TestFlight(샌드박스) 설치인지 확인해 채운다.
+   * 저장하지 않는다 (매번 다시 확인, 확인 전·실패는 false = 유료 동작). src/lib/billing/test-install.ts
+   */
+  testUnlimited: boolean;
   user: UserProfile | null;
   crushes: Record<string, Crush>;
   messages: Record<string, ChatMessage[]>; // crushId -> messages (오래된 순)
@@ -86,6 +92,7 @@ export interface AppState {
   mindHistory: MindAnswer[];
 
   setHydrated: () => void;
+  setTestUnlimited: (value: boolean) => void;
   setUser: (user: UserProfile) => void;
   updateUser: (patch: Partial<UserProfile>) => void;
 
@@ -183,6 +190,7 @@ export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       hydrated: false,
+      testUnlimited: initialTestUnlimited,
       user: null,
       crushes: {},
       messages: {},
@@ -211,6 +219,7 @@ export const useAppStore = create<AppState>()(
       mindHistory: [],
 
       setHydrated: () => set({ hydrated: true }),
+      setTestUnlimited: (value) => set({ testUnlimited: value }),
       setUser: (user) => set({ user }),
       updateUser: (patch) => set((s) => (s.user ? { user: { ...s.user, ...patch } } : {})),
 
@@ -558,7 +567,11 @@ function chatTurns(messages: ChatMessage[]): ChatTurn[] {
   return turns;
 }
 
-const clip = (s: string, max: number) => (s.length > max ? `${s.slice(0, max)}…` : s);
+/** 글자(코드포인트) 단위로 자른다 — 이모지를 반으로 잘라 깨진 글자를 보내지 않게 */
+const clip = (s: string, max: number) => {
+  const chars = Array.from(s);
+  return chars.length > max ? `${chars.slice(0, max).join('')}…` : s;
+};
 
 /**
  * 코칭 요청에 싣는 최근 대화 맥락 (오래된 순).
@@ -595,16 +608,40 @@ export function buildEarlierNotes(messages: ChatMessage[], recent = HISTORY_TURN
 
 const typedOf = (turns: ChatTurn[]) => turns.map((t) => t.typed?.replace(/\s+/g, ' ')).filter((s): s is string => Boolean(s));
 
+/** 「다른 답장 더 보기」가 보낸 자동 요청 메시지인지 */
+export const isVariationRequest = (m: ChatMessage) => m.role === 'user' && (Boolean(m.variationOf) || Boolean(m.text?.trim().startsWith('🔄')));
+
 /**
- * 이 채팅방에서 사용자가 마지막으로 직접 글을 쓴 시각 (없으면 null).
- * 저장된 코칭 결과는 이보다 나중에 만든 것만 다시 쓴다 — 그 사이 「이모지 빼 줘」 같은 새 요청이 있었다면 앞의 요청을 기억해서 다시 답해야 하므로
+ * 코치 카드를 만든 요청 — 같은 턴의 사용자 메시지(「다른 답장」 자동 요청은 건너뛰고 그 앞의 실제 요청).
+ * 「다른 버전 더 보기」가 이 요청의 캡처·글로 다시 묻는다
  */
-export function lastTypedAt(messages: ChatMessage[]): number | null {
+export function turnRequestOf(messages: ChatMessage[], coachMessageId: string): ChatMessage | undefined {
+  const idx = messages.findIndex((m) => m.id === coachMessageId);
+  for (let i = idx - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m.role !== 'user' || isVariationRequest(m)) continue;
+    if (m.imageUri || m.text?.trim()) return m;
+  }
+  return undefined;
+}
+
+/** 실패한 「다른 답장」 요청이 바꾸려던 코치 카드 (예전 메시지처럼 id 가 없으면 그 앞의 마지막 결과 카드) */
+export function variationTargetOf(messages: ChatMessage[], request: ChatMessage): ChatMessage | undefined {
+  if (request.variationOf) return messages.find((m) => m.id === request.variationOf && m.analysis);
+  const idx = messages.findIndex((m) => m.id === request.id);
+  for (let i = idx - 1; i >= 0; i--) if (messages[i].role === 'coach' && messages[i].analysis) return messages[i];
+  return undefined;
+}
+
+/**
+ * 이 채팅방에서 사용자가 마지막으로 직접 요청한 시각 — 글이든 캡처든 (「다른 답장 더 보기」 자동 요청은 빼고, 없으면 null).
+ * 저장된 코칭 결과는 이보다 나중에 만든 것만 다시 쓴다 — 그 사이 「이모지 빼 줘」 같은 새 요청이나 새 캡처가 있었다면 그걸 기억해서 다시 답해야 하므로
+ */
+export function lastRequestAt(messages: ChatMessage[]): number | null {
   for (let i = messages.length - 1; i >= 0; i--) {
     const m = messages[i];
-    if (m.role !== 'user' || m.pending || m.error) continue;
-    const text = m.text?.trim();
-    if (text && !text.startsWith('🔄')) return m.createdAt;
+    if (m.role !== 'user' || m.pending || m.error || isVariationRequest(m)) continue;
+    if (m.text?.trim() || m.imageUri) return m.createdAt;
   }
   return null;
 }

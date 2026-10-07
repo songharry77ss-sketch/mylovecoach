@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
-import Animated, { Easing, Extrapolation, interpolate, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
+import { Image, Platform, Pressable, StyleSheet, View } from 'react-native';
+import Animated, { Easing, Extrapolation, interpolate, ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
 
 import { palette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -59,6 +59,11 @@ const TAGLINE = '캡처 한 장으로 완성하는 답장';
 const TITLE_ACCENT = ['#4F8FF6', '#6487F5', '#7D82F6', '#9A7CF8'];
 
 const logoImage = require('../../../assets/images/splash-icon.png');
+
+/** 빛 번짐은 boxShadow 로 그린다 — 안드로이드 9(API 28) 미만은 바깥 그림자를 못 그려 딱딱한 원만 남으므로 그리지 않는다 */
+const GLOW_SUPPORTED = Platform.OS !== 'android' || Number(Platform.Version) >= 28;
+/** 동작 줄이기는 위에서 직접 다룬다(움직임 없이 불투명도만) — Reanimated 가 시스템 설정을 보고 애니메이션을 건너뛰지 않게 */
+const TIMING = { easing: Easing.linear, reduceMotion: ReduceMotion.Never };
 
 // ── 시간·완급 (UI 스레드에서 도는 함수) ─────────────────────
 
@@ -174,7 +179,7 @@ export function IntroSplash({ ready, onShown, onBeat, onDone }: IntroSplashProps
     s.leaving = true;
     setLeaving(true);
     // 완급은 사라지는 순서(로고·이름 먼저 → 배경)마다 따로 준다
-    exit.value = withTiming(1, { duration: reduced ? 260 : INTRO_EXIT_MS, easing: Easing.linear });
+    exit.value = withTiming(1, { ...TIMING, duration: reduced ? 260 : INTRO_EXIT_MS });
     later(() => cb.current.onDone(), (reduced ? 260 : INTRO_EXIT_MS) + 40);
   };
   const maybeLeave = () => {
@@ -186,9 +191,10 @@ export function IntroSplash({ ready, onShown, onBeat, onDone }: IntroSplashProps
     const s = state.current;
     if (s.started) return;
     s.started = true;
-    // 로고가 실제로 그려진 다음 프레임에 네이티브 스플래시를 내린다 (같은 그림이라 바뀌는 순간이 보이지 않음)
-    later(() => cb.current.onShown?.(), 32);
-    clock.value = withTiming(T.end, { duration: T.end, easing: Easing.linear });
+    // 로고가 그려졌으니 네이티브 스플래시를 내리고(같은 그림이라 바뀌는 순간이 보이지 않음), 바로 그 시점부터 시계를 돌린다 —
+    // 처음 T.hold(0.12초)는 정지 화면이라 스플래시가 내려가는 동안 움직임이 겹치지 않는다
+    cb.current.onShown?.();
+    clock.value = withTiming(T.end, { ...TIMING, duration: T.end });
     if (!reduced) later(() => cb.current.onBeat?.(), T.ripples[0]);
     later(() => {
       state.current.minPassed = true;
@@ -240,15 +246,21 @@ export function IntroSplash({ ready, onShown, onBeat, onDone }: IntroSplashProps
   });
 
   return (
-    <Animated.View pointerEvents={leaving ? 'none' : 'auto'} style={[StyleSheet.absoluteFill, styles.root, { backgroundColor: bg }, overlayStyle]}>
-      <Pressable style={StyleSheet.absoluteFill} onPress={skip} accessibilityRole="button" accessibilityLabel={`${TITLE} — 누르면 바로 시작해요`} />
-      <View pointerEvents="none" style={styles.center}>
+    // 화면 낭독기: 인트로가 떠 있는 동안은 이 덮개만 읽게 하고(iOS accessibilityViewIsModal, 안드로이드는 _layout 이 아래 화면을 숨김),
+    // 그림·글자 층은 숨겨 앱 이름을 한 글자씩 따로 읽지 않게 한다 — 건너뛰기 버튼 이름이 앱 이름을 대신 읽는다
+    <Animated.View accessibilityViewIsModal pointerEvents={leaving ? 'none' : 'auto'} style={[StyleSheet.absoluteFill, styles.root, { backgroundColor: bg }, overlayStyle]}>
+      <Pressable style={StyleSheet.absoluteFill} onPress={skip} accessibilityRole="button" accessibilityLabel={`${TITLE}, ${TAGLINE}. 누르면 바로 시작해요`} />
+      <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.center}>
         <Animated.View style={[styles.stage, stageStyle]}>
           {reduced ? null : (
             <>
-              <Glow clock={clock} exit={exit} color={dark ? 'rgba(84,140,255,0.55)' : 'rgba(120,170,255,0.45)'} size={92} dx={0} dy={0} from={200} drift={[0, -6]} />
-              <Glow clock={clock} exit={exit} color={dark ? 'rgba(160,130,255,0.5)' : 'rgba(170,150,252,0.38)'} size={70} dx={34} dy={26} from={300} drift={[10, 6]} />
-              <Glow clock={clock} exit={exit} color={dark ? 'rgba(255,120,170,0.35)' : 'rgba(255,150,185,0.3)'} size={56} dx={-38} dy={-22} from={380} drift={[-8, -6]} />
+              {GLOW_SUPPORTED ? (
+                <>
+                  <Glow clock={clock} exit={exit} color={dark ? 'rgba(84,140,255,0.55)' : 'rgba(120,170,255,0.45)'} size={92} dx={0} dy={0} from={200} drift={[0, -6]} />
+                  <Glow clock={clock} exit={exit} color={dark ? 'rgba(160,130,255,0.5)' : 'rgba(170,150,252,0.38)'} size={70} dx={34} dy={26} from={300} drift={[10, 6]} />
+                  <Glow clock={clock} exit={exit} color={dark ? 'rgba(255,120,170,0.35)' : 'rgba(255,150,185,0.3)'} size={56} dx={-38} dy={-22} from={380} drift={[-8, -6]} />
+                </>
+              ) : null}
               {T.ripples.map((startAt, i) => (
                 <Ripple key={startAt} clock={clock} startAt={startAt} color={[palette.sky400, palette.lavender400, palette.pink400][i]} />
               ))}
@@ -281,7 +293,7 @@ export function IntroSplash({ ready, onShown, onBeat, onDone }: IntroSplashProps
   );
 }
 
-/** 로고 뒤로 번지는 빛 — 작은 원의 큰 그림자(boxShadow)로 부드러운 빛을 만든다 (그림자를 못 그리는 환경이면 로고 뒤에 가려 안 보임) */
+/** 로고 뒤로 번지는 빛 — 작은 원의 큰 그림자(boxShadow)로 부드러운 빛을 만든다 (그림자를 못 그리는 안드로이드 9 미만에서는 그리지 않음 — GLOW_SUPPORTED) */
 function Glow({ clock, exit, color, size, dx, dy, from, drift }: { clock: SharedValue<number>; exit: SharedValue<number>; color: string; size: number; dx: number; dy: number; from: number; drift: [number, number] }) {
   const style = useAnimatedStyle(() => {
     const p = seg(clock.value, from, from + 700);
@@ -382,7 +394,12 @@ function Letter({ ch, index, clock, reduced, color }: { ch: string; index: numbe
     };
   });
   if (ch === ' ') return <View style={styles.space} />;
-  return <Animated.Text style={[styles.letter, { color }, style]}>{ch}</Animated.Text>;
+  // 스플래시를 이어 받는 화면이라 시스템 큰 글자를 따르지 않는다 (한 줄로 이어 붙인 글자라 커지면 화면 밖으로 잘림)
+  return (
+    <Animated.Text allowFontScaling={false} style={[styles.letter, { color }, style]}>
+      {ch}
+    </Animated.Text>
+  );
 }
 
 function Tagline({ clock, reduced, color }: { clock: SharedValue<number>; reduced: boolean; color: string }) {
@@ -390,7 +407,11 @@ function Tagline({ clock, reduced, color }: { clock: SharedValue<number>; reduce
     const p = reduced ? seg(clock.value, 250, 550) : easeOutCubic(seg(clock.value, T.tagline[0], T.tagline[1]));
     return { opacity: p, transform: [{ translateY: reduced ? 0 : 10 * (1 - p) }] };
   });
-  return <Animated.Text style={[styles.tagline, { color }, style]}>{TAGLINE}</Animated.Text>;
+  return (
+    <Animated.Text maxFontSizeMultiplier={1.3} style={[styles.tagline, { color }, style]}>
+      {TAGLINE}
+    </Animated.Text>
+  );
 }
 
 /** 하트 — 45° 돌린 사각형 + 원 두 개 */

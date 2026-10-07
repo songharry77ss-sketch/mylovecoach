@@ -170,6 +170,7 @@ gh workflow run android.yml --repo songharry77ss-sketch/mylovecoach --ref claude
 ```
 
 - iOS: 20~30분 뒤 TestFlight 에 빌드가 나타납니다. App Store Connect 에서 버전 정보·스크린샷을 채우고 심사 제출.
+- iOS **TestFlight 전용 무제한 테스트 빌드**(횟수 제한·결제 화면 없음): `gh workflow run ios.yml --ref <브랜치> -f free_unlimited=true`. 업로드 뒤 같은 실행이 처리 완료를 기다려(최대 45분) 「테스트할 내용」 끝에 `[TESTFLIGHT-ONLY]` 태그를 달고(확인 못 하면 실패로 멈춤) 「테스터」·내부 그룹 연결과 베타 심사 제출까지 합니다(`tools/asc-test-build.mjs`, 시간이 넘으면 PC 에서 `node tools/asc-test-build.mjs --build <번호>` 로 이어서). 태그가 있는 빌드는 `asc-listing.mjs`(버전에 빌드 연결)·`asc-submit.mjs`(심사 제출)가 거부합니다. 앱도 iOS 에서는 TestFlight 설치일 때만 무제한을 켜므로, 이 빌드가 실수로 App Store 에 나가도 이용자에게는 유료 동작입니다 — 그래도 App Store 에 낼 빌드는 `free_unlimited` 없이 따로 만드세요.
 - Android: Actions 산출물(`mylovecoach-android-<versionCode>.aab`) 을 내려받아 Play Console **내부 테스트**에 첫 업로드(새 앱은 첫 AAB 를 콘솔에서 올려야 API 업로드가 열립니다). 이후부터는 `-f track=internal` 로 자동 업로드.
   Play 서비스 계정에 이 앱 권한을 주려면 Play Console → 사용자 및 권한 → 서비스 계정 → 앱 추가.
 

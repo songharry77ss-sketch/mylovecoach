@@ -112,7 +112,8 @@ async function main() {
     if (!version && vs.data.length === 0)
       version = (await api('POST', '/v1/appStoreVersions', { data: { type: 'appStoreVersions', attributes: { platform: 'IOS', versionString: VERSION }, relationships: { app: { data: { type: 'apps', id: app.id } } } } })).data;
     if (!version) throw new Error(`편집 가능한 버전이 없습니다 (현재 상태: ${vs.data.map((v) => v.attributes.appStoreState).join(', ')})`);
-    await api('PATCH', `/v1/appStoreVersions/${version.id}`, { data: { type: 'appStoreVersions', id: version.id, attributes: { copyright: `${new Date().getFullYear()} mylovecoach`, releaseType: 'AFTER_APPROVAL' } } });
+    // 출시 방식(releaseType)은 건드리지 않는다 — 사람이 정한 「수동 출시」를 이 도구가 「승인 즉시 출시」로 되돌리지 않게 (2026-10-07 1.0 은 MANUAL)
+    await api('PATCH', `/v1/appStoreVersions/${version.id}`, { data: { type: 'appStoreVersions', id: version.id, attributes: { copyright: `${new Date().getFullYear()} mylovecoach` } } });
     return `${version.attributes.versionString} (${version.attributes.appStoreState ?? ''})`;
   });
   if (!version) return;
@@ -235,10 +236,21 @@ async function main() {
     allBuilds.sort((x, y) => Number(y.attributes.version) - Number(x.attributes.version));
     if (wanted) target = allBuilds.find((b) => b.attributes.version === wanted);
     else {
-      // 최신 빌드부터 보되 TestFlight 전용 무제한 테스트 빌드는 건너뛴다 (표시를 못 읽으면 그 빌드도 건너뜀)
+      // 최신 빌드부터 보되 TestFlight 전용 무제한 테스트 빌드(태그 확인됨)는 건너뛴다.
+      // 태그를 못 읽으면 건너뛰지 않고 멈춘다 — 그 빌드를 건너뛰고 더 오래된 빌드를 조용히 붙이지 않게
       target = undefined;
       for (const b of allBuilds) {
-        if (b.attributes.processingState === 'VALID' && (await isTestOnlyBuild(getAll, b.id).catch(() => true))) continue;
+        if (b.attributes.processingState !== 'VALID') {
+          target = b;
+          break;
+        }
+        const testOnly = await isTestOnlyBuild(getAll, b.id).catch(() => null);
+        if (testOnly === null) {
+          console.log(`빌드 ${b.attributes.version} 의 TestFlight 안내를 읽지 못해 멈춥니다 — 잠시 뒤 다시 실행하거나 --build 로 번호를 주세요`);
+          process.exitCode = 1;
+          return;
+        }
+        if (testOnly) continue;
         target = b;
         break;
       }
@@ -262,12 +274,24 @@ async function main() {
     build = null;
     process.exitCode = 1;
   }
-  if (build)
-    await step(`버전에 빌드 ${build.attributes.version} 연결`, () =>
-      api('PATCH', `/v1/appStoreVersions/${version.id}/relationships/build`, { data: { type: 'builds', id: build.id } }).then(() => ''),
-    );
+  const attached = build
+    ? await step(`버전에 빌드 ${build.attributes.version} 연결`, () =>
+        api('PATCH', `/v1/appStoreVersions/${version.id}/relationships/build`, { data: { type: 'builds', id: build.id } }).then(() => ''),
+      )
+    : false;
   if (args.includes('--submit')) {
     if (!build) return console.log('제출 보류: 처리 완료된 빌드가 없습니다');
+    if (!attached) {
+      process.exitCode = 1;
+      return console.log('제출 보류: 버전에 빌드를 연결하지 못했습니다 — 예전에 붙어 있던 빌드가 그대로 심사에 나가지 않게 멈춥니다');
+    }
+    // 제출 직전에 버전에 실제로 붙은 빌드를 다시 읽어, 방금 붙인 빌드이고 TestFlight 전용 태그가 없는지 확인한다 (못 읽으면 멈춤)
+    const onVersion = await api('GET', `/v1/appStoreVersions/${version.id}/build`).catch(() => null);
+    const onVersionTestOnly = onVersion?.data ? await isTestOnlyBuild(getAll, onVersion.data.id).catch(() => null) : null;
+    if (onVersion?.data?.id !== build.id || onVersionTestOnly !== false) {
+      process.exitCode = 1;
+      return console.log(`제출 보류: 버전에 붙은 빌드(${onVersion?.data?.attributes?.version ?? '확인 실패'})가 방금 고른 빌드가 아니거나 TestFlight 전용 무제한 빌드(또는 확인 실패)입니다`);
+    }
     // --retry <분> : 화면에서만 할 수 있는 항목(개인정보 설문 등)이 아직이면 2분마다 다시 시도한다.
     // 사용자가 설문을 게시하는 순간 바로 제출되게 하려는 것.
     const retryMin = Number(argOf('--retry') ?? '0') || 0;

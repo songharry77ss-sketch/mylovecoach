@@ -154,6 +154,8 @@ export interface ChatMessage {
   heat?: { before: number; after: number; delta: number };
   /** 사용자가 복사(선택)한 답장 인덱스 */
   selectedReplyIndex?: number;
+  /** 「다른 답장 더 보기」 요청이면 바꿀 코치 카드(메시지) id — 실패 뒤 다시 시도할 때 같은 카드로 다시 보낸다 */
+  variationOf?: string;
   /** 요청 실패 시 */
   error?: string;
   /** 응답 대기 중 */

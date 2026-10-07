@@ -1,4 +1,4 @@
-import { quotaEnforced } from '@/lib/billing/gate';
+import { isQuotaEnforced } from '@/lib/billing/gate';
 import type { TeamState } from '@/lib/billing/quota';
 import { APP_CONFIG } from '@/lib/config';
 import { useAppStore } from '@/store/app-store';
@@ -43,7 +43,7 @@ let lastCheckedAt = 0;
  * (이용 기록에 동의하지 않은 일반 이용자의 기기 ID 는 보내지 않는다).
  */
 export async function refreshTeam(options: { force?: boolean } = {}): Promise<void> {
-  if (!quotaEnforced) return;
+  if (!isQuotaEnforced()) return;
   const { deviceId, setTeam, team, teamCheck, teamCheckAt } = useAppStore.getState();
   const now = Date.now();
   let checking = teamCheck;

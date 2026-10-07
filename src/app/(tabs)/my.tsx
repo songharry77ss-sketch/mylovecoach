@@ -55,6 +55,8 @@ export default function MyScreen() {
   const setHidePreviews = useAppStore((s) => s.setHidePreviews);
   const createSecretChat = useAppStore((s) => s.createSecretChat);
   const quota = useQuota();
+  // 무제한 테스트 빌드라도 테스트 경로 설치가 확인됐을 때만 (iOS 는 TestFlight) — 아니면 아래 이용권(유료) 그대로
+  const testUnlimited = useAppStore((s) => FREE_UNLIMITED && s.testUnlimited);
   const isPremium = quota.enforced && quota.kind === 'premium';
   // 「~부터」 가격은 스토어에서 확인된 가장 싼 상품으로만 적는다
   const products = usePlanProducts();
@@ -211,7 +213,7 @@ export default function MyScreen() {
         </View>
       </Card>
 
-      {FREE_UNLIMITED ? (
+      {testUnlimited ? (
         // TestFlight 무제한 테스트 빌드·직접 설치 APK — 결제 화면이 없으니 왜 무제한인지만 알려 준다
         <>
           <SectionHeader title="이용권" />

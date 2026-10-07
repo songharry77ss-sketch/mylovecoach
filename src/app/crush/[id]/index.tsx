@@ -30,7 +30,7 @@ import { clearImageCaches, deleteImageQuietly, pickImage, type PickedImage } fro
 import { relationshipLabel } from '@/lib/labels';
 import { drawChatQuestions } from '@/lib/mind-cards';
 import type { ChatMessage, EmojiPref, Tone } from '@/lib/types';
-import { useAppStore } from '@/store/app-store';
+import { isVariationRequest, turnRequestOf, useAppStore, variationTargetOf } from '@/store/app-store';
 
 export default function CrushChat() {
   const { id, pendingImage, pendingWidth, pendingText } = useLocalSearchParams<{ id: string; pendingImage?: string; pendingWidth?: string; pendingText?: string }>();
@@ -181,6 +181,14 @@ export default function CrushChat() {
     const prev = idx > 0 ? messages[idx - 1] : undefined;
     if (!prev || prev.role !== 'user') return;
     if (quota.remaining <= 0) return openPaywall('quota');
+    // 실패한 게 「다른 답장 더 보기」였으면 같은 카드의 다른 답장을 다시 요청한다 (빈 요청으로 첫 메시지 추천을 받지 않게)
+    if (isVariationRequest(prev)) {
+      const target = variationTargetOf(messages, prev);
+      removeMessage(crush.id, failed.id);
+      removeMessage(crush.id, prev.id);
+      if (target) regenerate(target);
+      return;
+    }
     removeMessage(crush.id, failed.id);
     removeMessage(crush.id, prev.id);
     guardedSend({
@@ -193,14 +201,9 @@ export default function CrushChat() {
   };
 
   const regenerate = (coachMessage: ChatMessage) => {
-    const idx = messages.findIndex((m) => m.id === coachMessage.id);
-    let prev: ChatMessage | undefined;
-    for (let i = idx - 1; i >= 0; i--) {
-      if (messages[i].role === 'user' && (messages[i].imageUri || messages[i].text)) {
-        prev = messages[i];
-        if (messages[i].imageUri) break;
-      }
-    }
+    // 이 카드를 만든 요청(같은 턴의 사용자 메시지) — 예전에는 캡처가 나올 때까지 계속 거슬러 올라가,
+    // 글만 주고받은 채팅방에서는 맨 처음 질문을 기준으로 삼았다
+    const prev = turnRequestOf(messages, coachMessage.id);
     guardedSend(
       {
         crushId: crush.id,

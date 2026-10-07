@@ -77,7 +77,10 @@ jobs:
           [ -n "$WAIT" ] && [ "$WAIT" != "0" ] && args+=(--wait "$WAIT")
           [ -n "$RETRY" ] && [ "$RETRY" != "0" ] && args+=(--retry "$RETRY")
           [ "$SUBMIT" = "true" ] && args+=(--submit)
-          node tools/asc-listing.mjs "${args[@]}" 2>&1 | tee asc.log
+          # tee 를 거쳐도 asc-listing 의 실패(예: TestFlight 전용 무제한 빌드라 연결 거부)가 실행 실패로 보이게 종료 코드를 받아 둔다
+          set -o pipefail
+          status=0
+          node tools/asc-listing.mjs "${args[@]}" 2>&1 | tee asc.log || status=$?
           {
             echo "## App Store"
             echo '```'
@@ -88,6 +91,7 @@ jobs:
             echo "::error::심사 제출이 되지 않았습니다. 위 로그의 ✗ 줄을 확인하세요"
             exit 1
           fi
+          [ "$status" = "0" ] || { echo "::error::asc-listing 이 실패로 끝났습니다 (종료 코드 $status) — 위 로그를 확인하세요"; exit "$status"; }
 
       - name: 키 정리
         if: always()

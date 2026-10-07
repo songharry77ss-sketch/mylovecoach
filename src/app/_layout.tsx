@@ -2,7 +2,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname } from 'expo
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { AppState, Platform } from 'react-native';
+import { AppState, Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -15,6 +15,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { flushAnalytics, initAnalytics, launchAcquisition, pauseAnalytics, resumeAnalytics, setConsent, trackScreen, updateIdentity } from '@/lib/analytics';
 import { endBilling, initBilling } from '@/lib/billing/iap';
 import { refreshTeam } from '@/lib/billing/team';
+import { verifyTestInstall } from '@/lib/billing/test-install';
 import { haptic, setHapticsEnabled } from '@/lib/haptics';
 import { isDemoMode } from '@/lib/demo';
 import { cleanupOrphanImages, clearImageCaches } from '@/lib/images';
@@ -22,9 +23,14 @@ import { processPendingDeletion } from '@/lib/server-deletion';
 import { useAppStore } from '@/store/app-store';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+// 인트로 첫 화면이 네이티브 스플래시와 같은 그림이라 서서히 사라질 필요가 없다 —
+// 안드로이드 기본값(0.4초 페이드)이면 스플래시가 사라지는 동안 인트로 로고가 움직여 두 겹으로 보인다
+SplashScreen.setOptions({ duration: 0, fade: false });
 
 /** 켤 때 로고 인트로 — 홈페이지에 넣은 데모(자동 재생)에서는 바로 시작한다 */
 const SHOW_INTRO = !isDemoMode;
+/** 빠른 코칭(플로팅 버블·아이폰 뒷면 두 번 톡 → mylovecoach://quick)으로 열면 인트로 없이 바로 */
+const isQuickLaunch = (path: string | null | undefined) => Boolean(path?.startsWith('/quick'));
 /** 인트로가 끝나지 않는 일이 생겨도 이 시간이 지나면 화면을 연다 */
 const INTRO_SAFETY_MS = 7000;
 
@@ -67,23 +73,42 @@ export default function RootLayout() {
   const setHydrated = useAppStore((s) => s.setHydrated);
   const hapticsOn = useAppStore((s) => s.hapticsOn);
   const pathname = usePathname();
-  const [introDone, setIntroDone] = useState(!SHOW_INTRO);
+  const [introDone, setIntroDone] = useState(() => !SHOW_INTRO || isQuickLaunch(pathname));
 
   // 마이 탭의 「진동 효과」 설정을 진동 모듈에 반영
   useEffect(() => {
     setHapticsEnabled(hapticsOn);
   }, [hapticsOn]);
 
+  // 무제한 테스트 빌드면 테스트 경로(iOS 는 TestFlight) 설치인지 확인한 뒤에만 무제한을 켠다 — 확인 전·실패는 유료 동작
+  useEffect(() => {
+    let alive = true;
+    verifyTestInstall()
+      .then((ok) => alive && useAppStore.getState().setTestUnlimited(ok))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // 첫 경로가 늦게 정해져 빠른 코칭으로 열린 걸 나중에 알았으면 인트로를 바로 걷는다
+  useEffect(() => {
+    if (!introDone && isQuickLaunch(pathname)) {
+      hideNativeSplash();
+      setIntroDone(true);
+    }
+  }, [introDone, pathname]);
+
   useEffect(() => {
     if (hydrated) {
-      // 인트로는 첫 화면(네이티브 스플래시와 같은 로고)을 그리자마자 스스로 내린다 — 여기서는 혹시 안 내려졌을 때만 (이미 내렸으면 아무 일도 없음)
-      const t = setTimeout(hideNativeSplash, SHOW_INTRO ? 1500 : 0);
+      // 인트로는 첫 화면(네이티브 스플래시와 같은 로고)을 그리자마자 스스로 내린다 — 여기서는 인트로가 없거나 혹시 안 내려졌을 때만 (이미 내렸으면 아무 일도 없음)
+      const t = setTimeout(hideNativeSplash, introDone ? 0 : 1500);
       return () => clearTimeout(t);
     }
     // 저장소 접근이 막힌 환경(사생활 보호 모드 등)에서도 앱이 멈추지 않도록 안전장치
     const t = setTimeout(() => setHydrated(), 2500);
     return () => clearTimeout(t);
-  }, [hydrated, setHydrated]);
+  }, [hydrated, setHydrated, introDone]);
 
   // 인트로가 어떤 이유로 끝나지 않아도 화면이 막히지 않게
   useEffect(() => {
@@ -208,6 +233,8 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ThemeProvider value={navTheme}>
           <ToastProvider>
+            {/* 인트로가 덮여 있는 동안 화면 낭독기가 가려진 화면을 읽지 않게 (iOS 는 인트로의 accessibilityViewIsModal 이 맡는다) */}
+            <View style={styles.fill} importantForAccessibility={introDone ? 'auto' : 'no-hide-descendants'} accessibilityElementsHidden={!introDone}>
             <CelebrationProvider>
             <Stack
               screenOptions={{
@@ -236,6 +263,7 @@ export default function RootLayout() {
               <Stack.Screen name="+not-found" options={{ title: '페이지를 찾을 수 없어요' }} />
             </Stack>
             </CelebrationProvider>
+            </View>
             {/* AI 로 대화를 보내기 전 동의 시트 — 어느 화면(모달 포함)에서 AI 를 부르든 여기서 하나만 뜬다 */}
             <AiConsentHost />
             <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
@@ -247,3 +275,7 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  fill: { flex: 1 },
+});

@@ -93,8 +93,11 @@ export const UserRequestSchema = z.object({
   kkti: z.string().max(40).optional(),
 });
 
-/** 넘으면 잘라서 받는다 — 앱이 저장해 둔 지난 기록을 그대로 보내는 칸이라, 거절하면 그 채팅방의 다음 요청이 계속 막힌다 */
-const clipped = (max: number) => z.string().transform((s) => (s.length > max ? s.slice(0, max) : s));
+/**
+ * 넘으면 잘라서 받는다 — 앱이 저장해 둔 지난 기록을 그대로 보내는 칸이라, 거절하면 그 채팅방의 다음 요청이 계속 막힌다.
+ * 이모지처럼 두 칸짜리 글자가 반으로 잘리면 끝의 반쪽은 버린다
+ */
+const clipped = (max: number) => z.string().transform((s) => (s.length > max ? s.slice(0, max).replace(/[\uD800-\uDBFF]$/, '') : s));
 
 export const CoachRequestSchema = z.object({
   crush: CrushRequestSchema,
@@ -179,9 +182,11 @@ export const COACH_SYSTEM_PROMPT = `당신은 "나만의 연애코치"입니다.
 
 이 채팅방의 이전 대화 (기억하고 이어서 답할 것)
 - [더 앞선 대화에서 사용자가 한 말]과 [최근 코칭 맥락]은 이 채팅방에서 사용자와 지금까지 나눈 대화입니다. 처음 만난 것처럼 답하지 말고 그 흐름에 이어서 답하세요.
-- 사용자가 앞에서 요청하거나 알려 준 것(답장 길이·말투·이모지·분위기에 대한 요청, "이런 말은 빼 줘" 같은 부탁, 상대와 상황에 대한 정보)은 사용자가 바꾸기 전까지 이번 답에도 계속 지키세요. 이번 요청과 부딪히면 이번 요청이 우선입니다.
-- 사용자가 "아까 그 답장", "2번", "그거"처럼 앞 내용을 가리키면 맥락에서 찾아 그 내용을 이어받아 답하세요. 코치가 제안한 답장은 맥락에 적힌 번호(1번·2번·3번)를 그대로 따릅니다.
-- "다른 답장 더 보기" 요청이면 직전에 제안한 답장과 겹치지 않는 새 답장을 쓰세요.
+- 사용자가 앞에서 계속 지켜 달라고 한 요청("앞으로", "계속", "항상", "~하지 마"처럼 답장 길이·말투·이모지·분위기에 대한 요청)과 알려 준 정보(상대와 상황)는 사용자가 바꾸기 전까지 이번 답에도 계속 지키세요. "이번엔"처럼 그때 한 번만 한 부탁은 그 턴에만 적용됩니다.
+- 우선순위: 사용자가 이번에 직접 쓴 말 > 앞에서 계속 지켜 달라고 한 요청 > [이번 요청]의 톤·[이모지]·[이번 답장 말투] 같은 앱 설정값. 단 프로필의 "직접 정함" 호칭·말투는 지금처럼 가장 먼저 지킵니다.
+- 사용자가 "아까 그 답장", "2번", "버전 2", "그거"처럼 앞 내용을 가리키면 맥락에서 찾아 그 내용을 이어받아 답하세요. 맥락의 「버전1·버전2·버전3」은 앱 화면의 답장 번호와 같고, 번호만 말하면 가장 최근 결과의 그 버전입니다.
+- "다른 답장" 요청이면 요청에 적힌 바꿀 답장(없으면 직전에 제안한 답장)과 겹치지 않는 새 답장을 쓰세요.
+- 맥락에 나온 일은 이미 누적 온도에 반영됐으니 heatDelta에 다시 세지 말고, 이번에 새로 들어온 캡처·글만 근거로 정하세요.
 - 맥락에 없는 일을 앞에서 들은 것처럼 지어내지 마세요.
 
 호감 온도 판단
@@ -240,7 +245,7 @@ export function buildHistoryBlock(history: HistoryTurn[]): string {
     if (h.userNote) parts.push(`사용자: ${h.userNote}`);
     if (h.coachSummary) parts.push(`코치: ${h.coachSummary}`);
     if (h.insights?.length) parts.push(`코치가 읽어낸 포인트: ${h.insights.join('; ')}`);
-    if (h.replies?.length) parts.push(`코치가 제안한 답장: ${h.replies.map((r, k) => `${k + 1}번 "${r}"`).join(' ')}`);
+    if (h.replies?.length) parts.push(`코치가 제안한 답장: ${h.replies.map((r, k) => `버전${k + 1} "${r}"`).join(' ')}`);
     if (h.chosenReply) parts.push(`사용자가 보낸 답장: "${h.chosenReply}"`);
     if (parts.length) lines.push(`${i + 1}. ${parts.join(' / ')}`);
   });
@@ -251,7 +256,7 @@ export function buildHistoryBlock(history: HistoryTurn[]): string {
 export function buildEarlierNotesBlock(notes: readonly string[] | undefined): string {
   const list = (notes ?? []).map((s) => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
   if (!list.length) return '';
-  return ['[더 앞선 대화에서 사용자가 한 말 (오래된 순) — 요청이었다면 계속 지킬 것]', ...list.map((s) => `- ${s}`)].join('\n');
+  return ['[더 앞선 대화에서 사용자가 한 말 (오래된 순) — 계속 지켜 달라고 한 요청과 알려 준 정보만 이어서 반영할 것]', ...list.map((s) => `- ${s}`)].join('\n');
 }
 
 const EMOJI_KO = { auto: '자동 (대화에서 쓰던 만큼)', on: '넣기', off: '빼기' } as const;
@@ -266,7 +271,9 @@ export function buildTaskBlock(req: CoachRequest): string {
   if (req.crush.speech) {
     lines.push(`- [이번 답장 말투] 모든 답장을 ${SPEECH_KO[req.crush.speech]}로 (한 답장 안에서도 섞지 말 것)`);
   } else if (!req.image) {
-    lines.push(`- [이번 답장 말투] 대화 근거가 없으니 모든 답장을 ${req.crush.relationship === 'blind_date' ? '존댓말' : '반말'}로 통일 (한 답장 안에서도 섞지 말 것)`);
+    lines.push(
+      `- [이번 답장 말투] 캡처도 저장된 말투도 없으니, 앞 대화에서 정한 말투가 있으면 그것으로, 없으면 모든 답장을 ${req.crush.relationship === 'blind_date' ? '존댓말' : '반말'}로 통일 (한 답장 안에서도 섞지 말 것)`,
+    );
   } else {
     lines.push(`- [이번 답장 말투] 캡처에서 사용자가 쓰는 말투로 모든 답장을 통일 (한 답장 안에서도 섞지 말 것)`);
   }
