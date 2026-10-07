@@ -90,6 +90,35 @@ describe('/api/admin', () => {
     expect(last.statusCode).toBe(429);
   });
 
+  it('「기록 삭제」는 void 함수의 본문 없는 204 응답에도 성공한다 (예전에는 지우고도 502)', async () => {
+    const base = global.fetch as jest.Mock;
+    const original = base.getMockImplementation()!;
+    base.mockImplementation(async (url: string, init: { method?: string } = {}) => {
+      if (String(url).includes('/rpc/delete_device')) {
+        calls.push({ url: String(url), method: init.method ?? 'GET' });
+        return {
+          ok: true,
+          status: 204,
+          text: async () => '',
+          json: async () => {
+            throw new SyntaxError('Unexpected end of JSON input');
+          },
+        };
+      }
+      return original(url, init);
+    });
+    const res = fakeRes();
+    const req = {
+      method: 'POST',
+      body: { action: 'device_delete', deviceId: 'd_testdevice01' },
+      query: {},
+      headers: { 'x-forwarded-for': '10.2.3.4', 'x-admin-device': DEVICE, authorization: 'Bearer 0729' },
+    } as never;
+    await handler(req, res as never);
+    expect(res.statusCode).toBe(200);
+    expect(calls.some((c) => c.url.includes('/rpc/delete_device'))).toBe(true);
+  });
+
   it('기기 열쇠가 서버에 설정되지 않았으면 500 (열쇠 없이 열리지 않음)', async () => {
     delete process.env.ADMIN_DEVICE_SECRET;
     const res = fakeRes();

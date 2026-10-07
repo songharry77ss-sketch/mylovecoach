@@ -22,6 +22,13 @@ import type {
 } from '@/lib/types';
 import { appStorage } from '@/store/storage';
 
+/** 서버 이용 기록 삭제 요청 — 어느 기기의 기록을, 언제(철회 시각) 기준으로 지울지 */
+export interface PendingDeletion {
+  deviceId: string;
+  at: number;
+  sent: number;
+}
+
 export interface AppState {
   hydrated: boolean;
   user: UserProfile | null;
@@ -39,8 +46,15 @@ export interface AppState {
   wallet: WalletState;
   /** 관리자가 무제한을 허용한 팀원 기기면 그 정보 (서버 확인 결과의 캐시) */
   team: TeamState | null;
-  /** 「내 기기 ID」를 눌러 팀원 등록을 하려는 기기 — 이때부터 팀원 여부를 서버에 묻는다 */
+  /** 「내 기기 ID」를 눌러 팀원 등록을 하려는 기기 — 이때부터 팀원 여부를 서버에 묻는다 (teamCheckAt 부터 14일 동안) */
   teamCheck: boolean;
+  /** 팀원 확인을 켠 시각 (0 이면 예전 판에서 켠 것 — 처음 확인할 때 지금으로 채운다) */
+  teamCheckAt: number;
+  /**
+   * 서버에 남은 이 기기의 이용 기록 삭제 요청 (동의 철회·모든 데이터 삭제·만 14세 미만).
+   * 서버가 지웠다고 답할 때까지 남아 있다가 앱을 켤 때·돌아올 때 다시 보낸다. sent 는 성공한 횟수(철회 직후 1번 + 2분 30초 뒤 1번)
+   */
+  pendingDeletion: PendingDeletion | null;
   /** 채팅 하단의 프리미엄 안내 카드를 닫았는지 */
   upsellDismissed: boolean;
   /** 기기 구분용 무작위 ID (광고 ID 아님, 이용 기록 수집에만 사용) */
@@ -89,6 +103,11 @@ export interface AppState {
   setPremium: (premium: PremiumState | null) => void;
   setTeam: (team: TeamState | null) => void;
   enableTeamCheck: () => void;
+  disableTeamCheck: () => void;
+  /** 서버에 남은 이 기기의 이용 기록을 지워 달라고 요청해 둔다 (실제 전송은 lib/server-deletion) */
+  requestServerDeletion: () => void;
+  markDeletionSent: () => void;
+  clearPendingDeletion: () => void;
   /** 하루 이용권·횟수권 결제 1건 충전. 이미 충전한 거래면 무시하고 false */
   grantConsumable: (plan: ConsumablePlanKey, transactionId: string) => boolean;
   /** AI 를 한 번 쓴 만큼 차감 (무료 → 횟수권 순, 프리미엄·하루 이용권은 차감 없음) */
@@ -135,6 +154,8 @@ export const useAppStore = create<AppState>()(
       wallet: EMPTY_WALLET,
       team: null,
       teamCheck: false,
+      teamCheckAt: 0,
+      pendingDeletion: null,
       upsellDismissed: false,
       deviceId: createId('d_'),
       analyticsConsent: null,
@@ -269,11 +290,21 @@ export const useAppStore = create<AppState>()(
             .slice(0, CACHE_MAX - 1);
           return { analysisCache: { ...Object.fromEntries(entries), [key]: { analysis, at: Date.now() } } };
         }),
-      setAnalyticsConsent: (analyticsConsent) => set({ analyticsConsent }),
+      // 동의를 껐으면(켜져 있다가 꺼짐) 어느 화면에서 껐든 서버 기록 삭제를 요청한다
+      setAnalyticsConsent: (analyticsConsent) =>
+        set((s) =>
+          s.analyticsConsent === true && analyticsConsent === false
+            ? { analyticsConsent, pendingDeletion: { deviceId: s.deviceId, at: Date.now(), sent: 0 } }
+            : { analyticsConsent },
+        ),
       setAcquisition: (acquisition) => set({ acquisition }),
       setPremium: (premium) => set({ premium }),
       setTeam: (team) => set({ team }),
-      enableTeamCheck: () => set({ teamCheck: true }),
+      enableTeamCheck: () => set({ teamCheck: true, teamCheckAt: Date.now() }),
+      disableTeamCheck: () => set({ teamCheck: false, teamCheckAt: 0 }),
+      requestServerDeletion: () => set((s) => ({ pendingDeletion: { deviceId: s.deviceId, at: Date.now(), sent: 0 } })),
+      markDeletionSent: () => set((s) => (s.pendingDeletion ? { pendingDeletion: { ...s.pendingDeletion, sent: s.pendingDeletion.sent + 1 } } : {})),
+      clearPendingDeletion: () => set({ pendingDeletion: null }),
       grantConsumable: (plan, transactionId) => {
         const next = grantConsumable(get().wallet, plan, transactionId, Date.now());
         if (!next) return false;
@@ -342,7 +373,21 @@ export const useAppStore = create<AppState>()(
         }),
       addMindAnswer: (answer) => set((s) => ({ mindHistory: [answer, ...s.mindHistory].slice(0, 10) })),
       // 구매 상태·이용권·무료 사용량·팀원 여부는 「모든 데이터 삭제」로 지우지 않는다 (구매는 스토어 계정에 묶여 있고, 삭제로 무료 횟수가 초기화되면 안 됨)
-      resetAll: () => set({ user: null, crushes: {}, messages: {}, hasApiKey: false, analysisCache: {}, kkti: null, practice: {}, mindHistory: [] }),
+      // 서버에 남은 이 기기의 이용 기록도 지워 달라고 요청한다
+      resetAll: () =>
+        set((s) => ({
+          user: null,
+          crushes: {},
+          messages: {},
+          hasApiKey: false,
+          analysisCache: {},
+          kkti: null,
+          practice: {},
+          mindHistory: [],
+          teamCheck: false,
+          teamCheckAt: 0,
+          pendingDeletion: { deviceId: s.deviceId, at: Date.now(), sent: 0 },
+        })),
     }),
     {
       name: 'mylovecoach.store.v1',
@@ -366,6 +411,8 @@ export const useAppStore = create<AppState>()(
           wallet: s.wallet,
           team: s.team,
           teamCheck: s.teamCheck,
+          teamCheckAt: s.teamCheckAt,
+          pendingDeletion: s.pendingDeletion,
           upsellDismissed: s.upsellDismissed,
           deviceId: s.deviceId,
           analyticsConsent: s.analyticsConsent,
