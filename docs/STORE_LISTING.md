@@ -61,9 +61,11 @@
 - 앱은 회원가입/로그인이 없어 테스트 계정이 필요 없습니다.
 - 앱을 열면 바로 첫 화면이 나옵니다. 「대화 캡처 올리기」를 누르고 갤러리에서 아무 채팅 스크린샷이나 고르면, 별도 입력 없이 곧바로 AI 코칭 결과(상황 요약 · 호감 온도 · 추천 답장 3개)가 표시됩니다. 캡처가 없으면 「캡처 없이 상황만 적을래요」로 글만 적어도 됩니다.
 - 상대의 이름·MBTI·관계 단계는 첫 결과를 본 뒤에 선택적으로 입력하는 항목이며, 입력하지 않아도 모든 기능을 쓸 수 있습니다.
-- AI 처리는 자사 중계 서버를 거쳐 Google Gemini API 를 사용하며, 업로드한 이미지는 분석에만 사용되고 자사 서버에 저장되지 않습니다.
+- AI 처리는 자사 중계 서버(Vercel)를 거쳐 Google Gemini API 를 사용하며, 업로드한 이미지는 분석에만 사용되고 자사 서버에 저장되지 않습니다.
+- AI 로 보내기 전에 동의 시트에서 받는 곳(Google)·보내는 내용·목적을 안내하고, 「동의하고 계속」을 눌러야만 보냅니다. 동의하지 않으면 AI 기능만 꺼지고 나머지는 그대로 쓸 수 있으며, 마이 탭 「AI 분석 동의」에서 언제든 철회할 수 있습니다.
+- Before any AI feature sends data, the app shows a consent sheet explaining what is sent (chat screenshots, typed text, profile details of the user and the other person, recent coaching history), who receives it (Google LLC's Gemini API through our relay server hosted on Vercel, or the provider of the user's own API key), why, and how it is kept. Nothing is sent unless the user taps "동의하고 계속" (Agree and continue). If the user declines, AI features stay off and everything else keeps working. Consent can be withdrawn at any time in My tab → "AI 분석 동의" (AI analysis consent).
 - 이 앱은 사용자가 직접 선택한 이미지만 접근하며 백그라운드 접근이 없습니다.
-- (선택) 첫 화면의 체크박스로 동의한 경우에만 이용 기록(화면 체류 시간, 입력한 상황 글, 코치 답변 요약)을 서비스 개선용으로 저장합니다. 업로드한 이미지 자체는 저장하지 않으며, 마이 탭에서 언제든 끌 수 있습니다.
+- (선택) 첫 화면의 체크박스(기본은 꺼져 있음)를 직접 체크한 경우에만 이용 기록(화면 체류 시간, 입력한 상황 글, 코치 답변 요약)을 서비스 개선용으로 저장합니다. 업로드한 이미지 자체는 저장하지 않으며, 마이 탭에서 언제든 끌 수 있고 끄면 서버 기록도 지웁니다.
 - 인앱결제: 무료 코칭(처음 3회 + 이후 하루 1회)을 다 쓰면 결제 안내 화면이 나타납니다. 마이 탭 → 「이용권 보기」에서도 언제든 열 수 있습니다. 상품은 주간 자동 갱신 구독(mylovecoach.premium.weekly)과 비소모성 평생권(mylovecoach.premium.lifetime) 두 가지이며, 같은 화면에 가격, 자동 갱신 안내, 구매 복원, 이용약관, 개인정보 처리방침 링크가 있습니다. 샌드박스 계정으로 바로 구매·복원을 확인할 수 있습니다.
 
 ## 상품 추가 후 설명에 넣을 문구 (지금은 넣지 말 것)
