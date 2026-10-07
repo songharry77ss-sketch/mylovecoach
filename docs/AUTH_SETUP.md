@@ -27,7 +27,7 @@
 | 카카오 **비즈 앱 전환**(사업자 정보 또는 개인 개발자 본인인증) → 이메일 「선택 동의」 | 🙋 사장님 |
 | Supabase Kakao provider 에 REST API 키·클라이언트 시크릿 붙여넣기 + 「Allow users without an email」 | 🙋 사장님 (키 입력) |
 | Apple Developer 앱 ID `app.mylovecoach.ios` 에 Sign In with Apple 켬 (기존 In-App Purchase 유지, 기존 배포 프로파일은 무효 → `ios.yml` 의 `fetch-signing-files --create` 가 새로 받음) | ✅ 10-06 |
-| 탈퇴 때 연결 끊기 키: 카카오 **Admin 키** → Vercel `KAKAO_ADMIN_KEY`, Apple **Sign in with Apple 키(.p8)** → `APPLE_TEAM_ID`·`APPLE_KEY_ID`·`APPLE_PRIVATE_KEY` (아래 5번) | 🙋 1.1 출시 전 |
+| 탈퇴 때 연결 끊기 키: Apple **Sign in with Apple 키(.p8)** 만들기 + 카카오 **Admin 키** 파일 → `node tools/set-signup-keys.mjs --p8 … --kakao` (아래 5번) | 🙋 1.1 출시 전 |
 | 카카오 연결 해제 웹훅(User Unlinked) → member_delete | 나중에 |
 
 ## 1. Supabase (한 번)
@@ -77,8 +77,12 @@
 ①이 실패하면 ③을 하지 않아 다시 시도할 수 있고, ②는 실패해도 탈퇴를 마칩니다(서버 기록에만 남김). 키가 없으면 ②를 건너뜁니다.
 
 - **Apple** (App Store 심사 기준 5.1.1(v): Apple 로 가입한 계정을 지울 때 토큰을 취소해야 함)
-  1. Apple Developer → Keys → + → 「Sign in with Apple」 체크 → Configure 에서 Primary App ID `app.mylovecoach.ios` → 등록 후 `.p8` 내려받기(한 번만 가능)
-  2. Vercel 환경변수(Production): `APPLE_TEAM_ID`(팀 ID 10자리), `APPLE_KEY_ID`(키 ID 10자리), `APPLE_PRIVATE_KEY`(.p8 내용 전체, 줄바꿈 대신 `\n` 을 넣은 한 줄도 됨)
+  1. Apple Developer → Keys → + → 이름(예: `mylovecoach Sign in with Apple`) → 「Sign in with Apple」 체크 → Configure 에서 Primary App ID `app.mylovecoach.ios` → Save → Continue → Register → `.p8` 내려받기(한 번만 가능).
+     기존 「Wolha」 키(AJ962XQS37)는 월하 앱 ID 에 묶여 있어 쓸 수 없다.
+  2. `node tools/set-signup-keys.mjs --p8 "%USERPROFILE%\Downloads\AuthKey_<키ID>.p8"` → `APPLE_TEAM_ID`(apns-key.txt 의 TEAM_ID)·`APPLE_KEY_ID`·`APPLE_PRIVATE_KEY` 를 Vercel 에 올리고 .p8 을 wolha-secrets 에 보관.
+     Apple 은 진짜 인증 코드 없이는 키가 맞는지 알려 주지 않으므로, 1.1 테스트 빌드에서 Apple 계정으로 가입 → 탈퇴해 서버 기록에 `apple=failed` 가 없는지 본다.
   3. 앱은 아이폰에서 Apple 회원이 탈퇴할 때 Apple 확인 창을 한 번 더 띄워 받은 코드를 보냅니다. 서버가 그 코드로 토큰을 받아 `/auth/revoke` 를 부릅니다.
-- **카카오**: 카카오 앱 → 앱 키 → **Admin 키** → Vercel `KAKAO_ADMIN_KEY`. 서버가 `POST https://kapi.kakao.com/v1/user/unlink`(target_id_type=user_id, 카카오 회원번호)를 부릅니다.
-- 키는 비밀값이라 채팅에 붙여넣지 말고 Vercel 화면이나 `vercel env add` 로 직접 넣습니다.
+- **카카오**: 카카오 디벨로퍼스 → 앱 → 앱 키 → **Admin 키**를 `wolha-secrets/mylovecoach-kakao.txt` 에 `KAKAO_ADMIN_KEY=…` 한 줄로 저장 →
+  `node tools/set-signup-keys.mjs --kakao` (읽기 전용 사용자 목록 API 로 키를 확인한 뒤 올림). 서버는 탈퇴 때 `POST https://kapi.kakao.com/v1/user/unlink`(target_id_type=user_id, 카카오 회원번호)를 부릅니다.
+- 둘 다 한 번에: `node tools/set-signup-keys.mjs --p8 <경로> --kakao`. 확인만 하려면 `--dry-run`. 환경변수는 다음 배포부터 반영된다.
+- 키는 비밀값이라 채팅에 붙여넣지 않는다. 자동 모드는 키 생성·입력(비밀 저장소 쓰기)을 막으므로 위 1번과 키 파일 저장, 도구 실행은 사용자가 직접 한다.
