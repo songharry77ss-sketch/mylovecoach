@@ -17,6 +17,7 @@ import { AI_PROVIDER_LABEL, ensureAiConsent, withdrawAiConsent } from '@/lib/ai-
 import { setConsent as setAnalyticsConsentFlag, track } from '@/lib/analytics';
 import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { billingSupported, openSubscriptionManagement, restorePremium } from '@/lib/billing/iap';
+import { FREE_UNLIMITED } from '@/lib/billing/plans';
 import { quotaLabel } from '@/lib/billing/quota';
 import { refreshTeam } from '@/lib/billing/team';
 import { aiRouteOf } from '@/lib/coach-client';
@@ -210,7 +211,13 @@ export default function MyScreen() {
         </View>
       </Card>
 
-      {quota.enforced ? (
+      {FREE_UNLIMITED ? (
+        // TestFlight 무제한 테스트 빌드·직접 설치 APK — 결제 화면이 없으니 왜 무제한인지만 알려 준다
+        <>
+          <SectionHeader title="이용권" />
+          <ListRow icon="flask-outline" title="테스트 버전 · 무제한" subtitle="테스트 기간에는 횟수 제한 없이 모든 기능을 써요" />
+        </>
+      ) : quota.enforced ? (
         <>
           <SectionHeader title="이용권" />
           {isUnlimited(quota) ? (

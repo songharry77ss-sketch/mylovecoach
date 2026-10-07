@@ -15,6 +15,7 @@
 import { appendFileSync } from 'node:fs';
 
 import { createAscClient, secretsRoot } from './lib/asc-api.mjs';
+import { isTestOnlyBuild } from './lib/test-builds.mjs';
 
 const args = process.argv.slice(2);
 const { api, getAll, findApp } = createAscClient(secretsRoot(args));
@@ -88,6 +89,17 @@ async function main() {
   const build = await api('GET', `/v1/appStoreVersions/${editable.id}/build`).catch(() => null);
   if (!build?.data) return finish('waiting_build', `버전 ${editable.attributes.versionString} 에 빌드가 연결돼 있지 않습니다 — app-store.yml 로 빌드를 연결하세요.`);
   console.log(`제출할 버전: ${editable.attributes.versionString} · 빌드 ${build.data.attributes.version}`);
+
+  // TestFlight 전용 무제한 테스트 빌드(ios.yml free_unlimited)는 App Store 에 내지 않는다 — 출시되면 모든 이용자가 결제 없이 무제한이 된다.
+  // 표시를 확인하지 못하면(네트워크 오류 등) 안전하게 멈춘다
+  const testOnly = await isTestOnlyBuild(getAll, build.data.id).catch(() => null);
+  if (testOnly !== false)
+    return finish(
+      'blocked',
+      testOnly
+        ? `빌드 ${build.data.attributes.version} 은 TestFlight 전용 무제한 테스트 빌드라 App Store 에 낼 수 없습니다 — 일반 빌드(ios.yml, free_unlimited 끔)를 버전에 연결하세요.`
+        : `빌드 ${build.data.attributes.version} 의 TestFlight 안내를 읽지 못해 멈춥니다 (무제한 테스트 빌드인지 확인 필요) — 잠시 뒤 다시 실행하세요.`,
+    );
 
   // 여기서부터는 App Store 에 실제로 변화를 만든다 — 명시적으로 --submit 을 준 경우에만
   if (!args.includes('--submit'))

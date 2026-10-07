@@ -9,6 +9,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { BUNDLE_ID, createAscClient, secretsRoot, step } from './lib/asc-api.mjs';
+import { isTestOnlyBuild } from './lib/test-builds.mjs';
 
 const LOCALE = 'ko';
 const VERSION = '1.0.0';
@@ -232,7 +233,16 @@ async function main() {
     allBuilds = [];
     for (const v of versions) allBuilds.push(...(await getAll(`/v1/preReleaseVersions/${v.id}/builds?limit=20`)));
     allBuilds.sort((x, y) => Number(y.attributes.version) - Number(x.attributes.version));
-    target = wanted ? allBuilds.find((b) => b.attributes.version === wanted) : allBuilds[0];
+    if (wanted) target = allBuilds.find((b) => b.attributes.version === wanted);
+    else {
+      // 최신 빌드부터 보되 TestFlight 전용 무제한 테스트 빌드는 건너뛴다 (표시를 못 읽으면 그 빌드도 건너뜀)
+      target = undefined;
+      for (const b of allBuilds) {
+        if (b.attributes.processingState === 'VALID' && (await isTestOnlyBuild(getAll, b.id).catch(() => true))) continue;
+        target = b;
+        break;
+      }
+    }
     build = target && target.attributes.processingState === 'VALID' && !target.attributes.expired ? target : null;
     if (build || Date.now() >= deadline) break;
     console.log(`  · 빌드 ${wanted ?? '최신'} 대기 중 (${target ? target.attributes.processingState : '아직 업로드 안 됨'}) …`);
@@ -245,6 +255,12 @@ async function main() {
         ? `빌드 ${wanted} 이 ${target ? `아직 ${target.attributes.processingState} 상태` : '목록에 없음'} — 처리 완료 후 다시 실행하세요`
         : `가장 최근 빌드 ${target?.attributes.version ?? ''} 이 아직 처리 중이라 연결하지 않았습니다`,
     );
+  }
+  // 붙이기 직전에 한 번 더: TestFlight 전용 무제한 테스트 빌드는 App Store 버전에 붙이지 않는다 (--build 로 직접 골라도)
+  if (build && (await isTestOnlyBuild(getAll, build.id).catch(() => true))) {
+    console.log(`빌드 ${build.attributes.version} 은 TestFlight 전용 무제한 테스트 빌드(또는 표시 확인 실패)라 App Store 버전에 붙이지 않습니다 — 일반 빌드 번호를 --build 로 주세요`);
+    build = null;
+    process.exitCode = 1;
   }
   if (build)
     await step(`버전에 빌드 ${build.attributes.version} 연결`, () =>
