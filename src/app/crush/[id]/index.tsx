@@ -286,6 +286,7 @@ export default function CrushChat() {
                   onSelectReply={(i) => selectReply(crush.id, item.id, i)}
                   onRegenerate={item.analysis.replies.length ? () => regenerate(item) : undefined}
                   regenerating={sending}
+                  secret={secret}
                 />
               ) : null}
             </View>

@@ -4,6 +4,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, AppState, Linking, Platform, StyleSheet, Switch, View } from 'react-native';
 
+import { useAiReport } from '@/components/coach/ai-report-sheet';
 import { AppText } from '@/components/ui/app-text';
 import { Avatar } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
@@ -53,6 +54,7 @@ export default function MyScreen() {
   const setHidePreviews = useAppStore((s) => s.setHidePreviews);
   const createSecretChat = useAppStore((s) => s.createSecretChat);
   const quota = useQuota();
+  const aiReport = useAiReport();
   const isPremium = quota.enforced && quota.kind === 'premium';
   // 「~부터」 가격은 스토어에서 확인된 가장 싼 상품으로만 적는다
   const products = usePlanProducts();
@@ -294,6 +296,9 @@ export default function MyScreen() {
       <SectionHeader title="AI 코치" />
       <ListRow icon="sparkles-outline" title="AI 코치 연결" value={connection} onPress={() => router.push('/settings/api-key')} />
       <ListRow icon="person-outline" title="내 프로필 · 추구미 · 목표" onPress={() => router.push('/settings/profile')} />
+      {aiReport.available ? (
+        <ListRow icon="flag-outline" title="AI 답변 신고하기" subtitle="불쾌하거나 부적절한 AI 답변을 운영자에게 알려요" onPress={() => aiReport.open()} />
+      ) : null}
 
       <SectionHeader title="정보" />
       <ListRow icon="shield-checkmark-outline" title="개인정보 처리방침" onPress={() => Linking.openURL(APP_CONFIG.privacyUrl)} />
@@ -304,6 +309,7 @@ export default function MyScreen() {
 
       <SectionHeader title="데이터" subtitle={analyticsConsent === true ? '채팅방·캡처·프로필은 이 기기에 저장돼요 (이용 기록은 서버에도 보관)' : '채팅방·캡처·프로필은 이 기기에만 저장돼요'} />
       <ListRow icon="trash-outline" title="모든 데이터 삭제" destructive onPress={confirmReset} />
+      {aiReport.sheet}
     </Screen>
   );
 }

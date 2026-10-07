@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, ZoomIn, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 
+import { AiReportLink } from '@/components/coach/ai-report-sheet';
 import { PendingBubble } from '@/components/coach/pending-bubble';
 import { useCelebrate } from '@/components/fx/celebration';
 import { AnimatedNumber } from '@/components/ui/animated-number';
@@ -155,6 +156,7 @@ export default function MindScreen() {
               </PressableScale>
             </Animated.View>
           ) : null}
+          <AiReportLink mode="mind" situation={situation} reading={reading} label="이 풀이 신고" />
 
           <Button title="다른 상황도 물어보기" variant="soft" onPress={() => router.back()} />
         </>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Platform, Pressable, Share, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 
+import { useAiReport } from '@/components/coach/ai-report-sheet';
 import { HeatGauge } from '@/components/coach/heat-gauge';
 import { ReplyCarousel } from '@/components/coach/reply-carousel';
 import { TemperatureGauge } from '@/components/coach/temperature-gauge';
@@ -13,6 +14,7 @@ import { PressableScale } from '@/components/ui/pressable-scale';
 import { useToast } from '@/components/ui/toast';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { coachReportContent } from '@/lib/ai-report';
 import { haptic } from '@/lib/haptics';
 import { TEMPERATURES } from '@/lib/labels';
 import type { ChatMessage, CoachAnalysis, Tone } from '@/lib/types';
@@ -29,6 +31,8 @@ interface AnalysisCardProps {
   onSelectReply: (index: number) => void;
   onRegenerate?: (tone?: Tone) => void;
   regenerating?: boolean;
+  /** 비밀 상담의 결과 — 신고하면 이 답변은 저장된다고 먼저 알린다 */
+  secret?: boolean;
 }
 
 const SPEECH_CHIP = { polite: '🙇 존댓말 유지', casual: '👋 반말 유지', mixed: '🔀 말투 섞임', unknown: null } as const;
@@ -37,10 +41,11 @@ const SPEECH_CHIP = { polite: '🙇 존댓말 유지', casual: '👋 반말 유�
  * 결과 카드 — 누적 호감 온도가 차오르고, 답장 여러 버전을 스와이프로 넘겨 본다.
  * 카드를 누르거나 아래 버튼으로 복사하면 하트가 터진다. 이유·다음 스텝은 접어 둔다.
  */
-export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedReplyIndex, onSelectReply, onRegenerate, regenerating }: AnalysisCardProps) {
+export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedReplyIndex, onSelectReply, onRegenerate, regenerating, secret }: AnalysisCardProps) {
   const theme = useTheme();
   const toast = useToast();
   const celebrate = useCelebrate();
+  const report = useAiReport();
   // 예전에 골라 둔 답장이 있으면 그것부터 보여 준다
   const [shown, setShown] = useState(selectedReplyIndex ?? 0);
   const [open, setOpen] = useState(false);
@@ -77,6 +82,9 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
     await Share.share({ message: reply.text }).catch(() => {});
   };
 
+  // 불쾌하거나 부적절한 답변 신고 — 요약과 지금 보고 있는 답장을 보낸다 (구글 플레이 생성형 AI 정책)
+  const reportAnswer = () => report.open({ mode: 'coach', content: coachReportContent(analysis, current), secret });
+
   if (!reply) {
     return (
       <View style={styles.wrap}>
@@ -88,7 +96,16 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
               👉 {analysis.nextStep}
             </AppText>
           ) : null}
+          {report.available ? (
+            <Pressable accessibilityRole="button" onPress={reportAnswer} hitSlop={6} style={styles.reportRow}>
+              <Ionicons name="flag-outline" size={13} color={theme.textTertiary} />
+              <AppText variant="caption" color="textTertiary">
+                이 답변 신고하기
+              </AppText>
+            </Pressable>
+          ) : null}
         </View>
+        {report.sheet}
       </View>
     );
   }
@@ -155,6 +172,11 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
           <PressableScale accessibilityLabel="답장 공유하기" feedback={false} onPress={shareReply} style={[styles.shareBtn, { backgroundColor: theme.surface }]}>
             <Ionicons name="share-outline" size={19} color={theme.textSecondary} />
           </PressableScale>
+          {report.available ? (
+            <PressableScale accessibilityLabel="이 답변 신고하기" feedback={false} onPress={reportAnswer} style={[styles.shareBtn, { backgroundColor: theme.surface }]}>
+              <Ionicons name="flag-outline" size={18} color={theme.textTertiary} />
+            </PressableScale>
+          ) : null}
         </View>
       </View>
 
@@ -198,6 +220,7 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
           </AppText>
         </PressableScale>
       ) : null}
+      {report.sheet}
     </View>
   );
 }
@@ -237,4 +260,5 @@ const styles = StyleSheet.create({
   detail: { gap: 2 },
   detailTitle: { fontWeight: '700' },
   again: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, alignSelf: 'flex-start', paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radius.pill },
+  reportRow: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start' },
 });

@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeInUp, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useAiReport } from '@/components/coach/ai-report-sheet';
 import { HeatGauge } from '@/components/coach/heat-gauge';
 import { useCelebrate } from '@/components/fx/celebration';
 import { AnimatedNumber } from '@/components/ui/animated-number';
@@ -18,6 +19,7 @@ import { kktiLabel } from '@/hooks/use-coach';
 import { useAiAction } from '@/hooks/use-ai-action';
 import { useKeyboardVisible } from '@/hooks/use-keyboard';
 import { useTheme } from '@/hooks/use-theme';
+import { practiceReportContent } from '@/lib/ai-report';
 import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { requestAi } from '@/lib/coach-client';
 import { userToRequest } from '@/lib/coach-schema';
@@ -41,6 +43,7 @@ export default function PracticeSessionScreen() {
   const kkti = useAppStore((s) => s.kkti);
   const quota = useQuota();
   const { run, busy, error, setError } = useAiAction();
+  const report = useAiReport();
   const [text, setText] = useState('');
   const [typing, setTyping] = useState(false);
   const [heatFrom, setHeatFrom] = useState<{ from: number; key: string } | null>(null);
@@ -167,9 +170,13 @@ export default function PracticeSessionScreen() {
         <View style={[styles.avatar, { backgroundColor: p.color }]}>
           <AppText style={styles.avatarEmoji}>{p.emoji}</AppText>
         </View>
-        <View style={[styles.themBubble, { backgroundColor: theme.surface }]}>
+        {/* AI 상대역의 말 — 길게 누르면 신고 (헤더의 깃발은 「연습 끝내기」라 여기선 길게 누르기로) */}
+        <Pressable
+          onLongPress={report.available ? () => report.open({ mode: 'practice', content: practiceReportContent(p.name, item.text) }) : undefined}
+          accessibilityHint={report.available ? '길게 누르면 이 말을 신고할 수 있어요' : undefined}
+          style={[styles.themBubble, { backgroundColor: theme.surface }]}>
           <AppText variant="body">{item.text}</AppText>
-        </View>
+        </Pressable>
       </Animated.View>
     ) : (
       <Animated.View entering={FadeInUp.duration(200)} style={styles.meWrap}>
@@ -232,6 +239,11 @@ export default function PracticeSessionScreen() {
               <AppText variant="caption" color="primary">
                 💡 {p.hint}
               </AppText>
+              {report.available ? (
+                <AppText variant="caption" color="textTertiary">
+                  🤖 AI가 연기하는 상대예요. 불쾌한 말은 말풍선을 길게 눌러 신고할 수 있어요
+                </AppText>
+              ) : null}
             </View>
           }
           ListFooterComponent={
@@ -313,6 +325,7 @@ export default function PracticeSessionScreen() {
           </View>
         ) : null}
       </KeyboardAvoidingView>
+      {report.sheet}
     </View>
   );
 }

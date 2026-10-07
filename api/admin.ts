@@ -1,6 +1,6 @@
 /**
  * 관리자 API — 「등록한 브라우저」 + 비밀번호 두 가지로 보호됩니다.
- *   GET  /api/admin?days=7&limit=50                            → 집계 + 최근 코칭 기록 + 팀원 명단
+ *   GET  /api/admin?days=7&limit=50                            → 집계 + 최근 코칭 기록 + 팀원 명단 + 최근 AI 답변 신고 50건
  *   GET  /api/admin?view=users&days=30                         → 이용자 목록 (유입·시작 방식·체류·코칭 수)
  *   GET  /api/admin?view=user&deviceId=…                       → 한 명의 화면별 체류·이동 경로·코칭 대화·버튼 기록
  *   POST /api/admin { action: 'team_add', deviceId, label }   → 팀원 무제한 허용 (같은 기기면 이름만 바뀜)
@@ -44,6 +44,22 @@ interface TeamRow {
   label: string | null;
   created_at: string;
 }
+
+/** 앱 안에서 들어온 AI 답변 신고 (api/report.ts) — 누가 보냈는지는 저장하지 않는다 */
+interface ReportRow {
+  id: number;
+  created_at: string;
+  mode: string;
+  reason: string;
+  note: string | null;
+  content: string | null;
+  model: string | null;
+  platform: string | null;
+  app_version: string | null;
+  status: string;
+}
+
+const REPORT_LIMIT = 50;
 
 const digest = (s: string) => createHash('sha256').update(s).digest();
 const sameSecret = (a: string, b: string) => timingSafeEqual(digest(a), digest(b));
@@ -177,13 +193,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const [stats, logs, team] = await Promise.all([
+  const [stats, logs, team, reports] = await Promise.all([
     rpc<Record<string, unknown>>('admin_stats', { p_days: days }),
     select<CoachRow>(
       'coach_log',
       `select=created_at,crush_alias,crush_mbti,relationship,tone,question,has_image,temperature,interest_score,summary,device_id&order=created_at.desc&limit=${limit}`,
     ),
     listTeam(),
+    // 신고는 기간과 상관없이 최근 것부터 (ai_report 표가 아직 없으면 빈 목록)
+    select<ReportRow>('ai_report', `select=id,created_at,mode,reason,note,content,model,platform,app_version,status&order=created_at.desc&limit=${REPORT_LIMIT}`),
   ]);
 
   if (!stats) {
@@ -191,5 +209,5 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  res.status(200).json({ stats, logs, team, analytics: analyticsEnabled(), generatedAt: new Date().toISOString() });
+  res.status(200).json({ stats, logs, team, reports, analytics: analyticsEnabled(), generatedAt: new Date().toISOString() });
 }
