@@ -6,6 +6,7 @@ import { AppState, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { AiConsentHost } from '@/components/coach/ai-consent-sheet';
 import { CelebrationProvider } from '@/components/fx/celebration';
 import { ToastProvider } from '@/components/ui/toast';
 import { Colors } from '@/constants/theme';
@@ -193,6 +194,8 @@ export default function RootLayout() {
               <Stack.Screen name="+not-found" options={{ title: '페이지를 찾을 수 없어요' }} />
             </Stack>
             </CelebrationProvider>
+            {/* AI 로 대화를 보내기 전 동의 시트 — 어느 화면(모달 포함)에서 AI 를 부르든 여기서 하나만 뜬다 */}
+            <AiConsentHost />
             <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
           </ToastProvider>
         </ThemeProvider>

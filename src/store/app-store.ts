@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+import type { AiProvider } from '@/lib/ai-consent';
 import type { ConsumablePlanKey } from '@/lib/billing/plans';
 import type { Acquisition } from '@/lib/analytics';
 import { consumeOne, EMPTY_USAGE, EMPTY_WALLET, grantConsumable, type PremiumState, type TeamState, type UsageState, type WalletState } from '@/lib/billing/quota';
@@ -47,6 +48,14 @@ export interface AppState {
   deviceId: string;
   /** 서비스 개선을 위한 이용 기록 수집 동의 (선택) — null 이면 아직 묻지 않음 */
   analyticsConsent: boolean | null;
+  /** 이용 기록 동의를 받은 방식의 판 (ANALYTICS_CONSENT_VERSION). 이 표시 없이 저장된 예전 「동의」는 다시 묻는다 */
+  analyticsConsentVersion: number | null;
+  /** AI 분석 동의 (대화 캡처·글·프로필을 외부 AI 로 보내기) — null 이면 아직 묻지 않음, false 면 동의 안 함·철회 */
+  aiConsent: boolean | null;
+  /** 동의할 때 안내한 AI 회사. 개인 키로 다른 회사에 보내게 되면 다시 묻는다 */
+  aiConsentProvider: AiProvider | null;
+  /** AI 분석 동의에 마지막으로 답한(동의·동의 안 함·철회) 시각 */
+  aiConsentAt: number | null;
   /** 처음 앱을 연 곳 (동의한 경우에만 이용 기록과 함께 전송) */
   acquisition: Acquisition | null;
   /** 진동 효과 */
@@ -85,6 +94,8 @@ export interface AppState {
   getCachedAnalysis: (key: string) => CoachAnalysis | null;
   putCachedAnalysis: (key: string, analysis: CoachAnalysis) => void;
   setAnalyticsConsent: (consent: boolean) => void;
+  /** AI 분석 동의 기록 — 동의한 AI 회사, 동의 안 함·철회면 null */
+  setAiConsent: (provider: AiProvider | null) => void;
   setAcquisition: (acquisition: Acquisition) => void;
   setPremium: (premium: PremiumState | null) => void;
   setTeam: (team: TeamState | null) => void;
@@ -121,6 +132,31 @@ export const clampHeat = (v: number) => Math.max(HEAT_MIN, Math.min(HEAT_MAX, Ma
 /** 예전 서버(온도 변화 폭을 주지 않음) 응답이면 분위기로 대신 정한다 */
 const FALLBACK_DELTA: Record<Temperature, number> = { hot: 10, warm: 5, neutral: 0, cold: -6, unknown: 0 };
 
+/**
+ * 이용 기록 동의를 받는 방식의 판. 2 = 첫 화면 체크박스를 직접 눌러야 켜지는 방식.
+ * 예전 첫 화면은 체크박스가 미리 체크돼 있어서, 그때 저장된 동의(판 표시 없음)는 유효한 선택 동의로 보지 않는다
+ */
+const ANALYTICS_CONSENT_VERSION = 2;
+
+/** 「분석 중」인 채로 저장돼 있던 코치 말풍선을 앱을 다시 켤 때 바꿔 읽는 안내 (「다시 시도」 버튼이 뜬다) */
+const STALLED_ERROR = '분석이 중간에 멈췄어요. 다시 시도해주세요.';
+
+/** 저장된 이용 기록 동의 — 판 표시 없이 저장된 「동의」는 미리 체크된 체크박스로 받은 것이라 「아직 묻지 않음」으로 읽는다 */
+function savedAnalyticsConsent(saved: Partial<AppState>): boolean | null {
+  if (saved.analyticsConsent === false) return false;
+  return saved.analyticsConsent === true && saved.analyticsConsentVersion === ANALYTICS_CONSENT_VERSION ? true : null;
+}
+
+/** 「분석 중」인 채로 저장된 코치 말풍선을 「다시 시도」할 수 있는 실패로 바꾼다 */
+function settlePending(messages: Record<string, ChatMessage[]>): Record<string, ChatMessage[]> {
+  return Object.fromEntries(
+    Object.entries(messages).map(([crushId, list]) => [
+      crushId,
+      Array.isArray(list) ? list.map((m) => (m.pending ? { ...m, pending: false, error: STALLED_ERROR, text: 'network' } : m)) : list,
+    ]),
+  );
+}
+
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -138,6 +174,10 @@ export const useAppStore = create<AppState>()(
       upsellDismissed: false,
       deviceId: createId('d_'),
       analyticsConsent: null,
+      analyticsConsentVersion: null,
+      aiConsent: null,
+      aiConsentProvider: null,
+      aiConsentAt: null,
       acquisition: null,
       hapticsOn: true,
       hidePreviews: false,
@@ -269,7 +309,8 @@ export const useAppStore = create<AppState>()(
             .slice(0, CACHE_MAX - 1);
           return { analysisCache: { ...Object.fromEntries(entries), [key]: { analysis, at: Date.now() } } };
         }),
-      setAnalyticsConsent: (analyticsConsent) => set({ analyticsConsent }),
+      setAnalyticsConsent: (analyticsConsent) => set({ analyticsConsent, analyticsConsentVersion: ANALYTICS_CONSENT_VERSION }),
+      setAiConsent: (provider) => set({ aiConsent: provider !== null, aiConsentProvider: provider, aiConsentAt: Date.now() }),
       setAcquisition: (acquisition) => set({ acquisition }),
       setPremium: (premium) => set({ premium }),
       setTeam: (team) => set({ team }),
@@ -342,7 +383,9 @@ export const useAppStore = create<AppState>()(
         }),
       addMindAnswer: (answer) => set((s) => ({ mindHistory: [answer, ...s.mindHistory].slice(0, 10) })),
       // 구매 상태·이용권·무료 사용량·팀원 여부는 「모든 데이터 삭제」로 지우지 않는다 (구매는 스토어 계정에 묶여 있고, 삭제로 무료 횟수가 초기화되면 안 됨)
-      resetAll: () => set({ user: null, crushes: {}, messages: {}, hasApiKey: false, analysisCache: {}, kkti: null, practice: {}, mindHistory: [] }),
+      // AI 분석 동의는 처음 상태로 돌려, 다시 AI 를 쓸 때 묻는다
+      resetAll: () =>
+        set({ user: null, crushes: {}, messages: {}, hasApiKey: false, analysisCache: {}, kkti: null, practice: {}, mindHistory: [], aiConsent: null, aiConsentProvider: null, aiConsentAt: null }),
     }),
     {
       name: 'mylovecoach.store.v1',
@@ -369,12 +412,38 @@ export const useAppStore = create<AppState>()(
           upsellDismissed: s.upsellDismissed,
           deviceId: s.deviceId,
           analyticsConsent: s.analyticsConsent,
+          analyticsConsentVersion: s.analyticsConsentVersion,
+          aiConsent: s.aiConsent,
+          aiConsentProvider: s.aiConsentProvider,
+          aiConsentAt: s.aiConsentAt,
           acquisition: s.acquisition,
           hapticsOn: s.hapticsOn,
           hidePreviews: s.hidePreviews,
           kkti: s.kkti,
           practice: s.practice,
           mindHistory: s.mindHistory,
+        };
+      },
+      // 저장값은 읽을 때 바로잡는다. version 을 올리면 이전 버전 앱(되돌린 웹 배포 등)이 저장값을 통째로 버리므로 올리지 않는다
+      // - 예전 버전에서 올라온 기기에는 AI 분석 동의 기록이 없다 → 「아직 묻지 않음」(null)으로 읽어 처음 AI 를 쓸 때 묻는다
+      // - 저장소를 늦게 다 읽었으면(루트 레이아웃의 2.5초 안전장치로 먼저 시작) 그사이 시트에서 고른 답이 더 새롭다 → 그 답을 남긴다
+      // - 미리 체크된 첫 화면에서 받은 이용 기록 동의(판 표시 없음)는 「아직 묻지 않음」으로 읽는다. 동의 안 함은 그대로
+      // - 「분석 중」인 채로 저장된 코치 말풍선은 답을 받기 전에 앱이 닫힌 것 → 「다시 시도」할 수 있는 실패로 읽는다 (막 켠 앱에는 진행 중인 요청이 없다)
+      merge: (persisted, current) => {
+        const saved = (persisted ?? {}) as Partial<AppState>;
+        const provider = saved.aiConsentProvider === 'google' || saved.aiConsentProvider === 'anthropic' ? saved.aiConsentProvider : null;
+        const savedAiAt = typeof saved.aiConsentAt === 'number' ? saved.aiConsentAt : null;
+        const answeredMeanwhile = current.aiConsentAt != null && (savedAiAt == null || current.aiConsentAt > savedAiAt);
+        return {
+          ...current,
+          ...saved,
+          ...(answeredMeanwhile
+            ? { aiConsent: current.aiConsent, aiConsentProvider: current.aiConsentProvider, aiConsentAt: current.aiConsentAt }
+            : { aiConsent: saved.aiConsent === false ? false : saved.aiConsent === true && provider ? true : null, aiConsentProvider: provider, aiConsentAt: savedAiAt }),
+          ...('analyticsConsent' in saved
+            ? { analyticsConsent: savedAnalyticsConsent(saved), analyticsConsentVersion: typeof saved.analyticsConsentVersion === 'number' ? saved.analyticsConsentVersion : null }
+            : {}),
+          ...(saved.messages ? { messages: settlePending(saved.messages) } : {}),
         };
       },
       onRehydrateStorage: () => (state) => state?.setHydrated(),

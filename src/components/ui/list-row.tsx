@@ -21,6 +21,8 @@ export function ListRow({ icon, iconColor, title, subtitle, value, onPress, dest
   const theme = useTheme();
   return (
     <Pressable
+      // 누를 수 없는 줄에 스위치 같은 컨트롤이 있으면 줄을 하나로 묶지 않는다 (묶으면 VoiceOver 가 안의 스위치에 닿지 못한다)
+      accessible={Boolean(onPress) || !right}
       accessibilityRole={onPress ? 'button' : undefined}
       onPress={
         onPress

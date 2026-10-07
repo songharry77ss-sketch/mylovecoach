@@ -24,6 +24,23 @@
 API 와 브라우저로 할 수 있는 건 전부 끝났습니다. 🙋 표시는 본인만 할 수 있는 단계입니다.
 현재 상태는 언제든 `gh workflow run status.yml` 로 확인할 수 있습니다.
 
+## AI 분석 동의 (`fix/ai-consent`) — 출시 전에 꼭
+
+심사 중인 iOS 1.0(빌드 116), Play 빌드 113, APK 105, 지금 배포된 웹에는 **AI 분석 동의 시트가 없습니다**. 묻지 않고 대화 캡처·프로필을 Google 로 보내서 애플 지침 5.1.2(i)에 어긋납니다. 이 브랜치를 머지한 빌드로 바꿔야 합니다.
+
+| 순서 | 할 일 | 누가 |
+|---|---|---|
+| 1 | **맨 먼저** 1.0 의 「버전 출시」를 **수동 출시**로 — 116 이 먼저 승인돼도 출시되지 않게. 심사 대기 중이라 바뀌지 않으면 심사에서 뺀 뒤 바꿈 | 🙋 화면 (또는 API `releaseType=MANUAL`) |
+| 2 | 서버 Gemini 키의 Google Cloud 프로젝트에 **결제(Cloud Billing)가 연결된 유료 등급**인지 확인. 무료 등급은 Google 이 입력·출력을 서비스 개선에 쓰고 사람이 검토할 수 있고, 약관상 개인정보를 보내면 안 됨 → 유료로 바꾸거나, 처리방침 2번 표·6번과 동의 시트 「보관」 줄에 그 사실을 적음. 유료면 Google 문서의 보관 기간 근거를 처리방침에 적음 | 🙋 화면 |
+| 3 | `fix/ai-consent` 머지 → `vercel.yml` 배포 (웹 + 처리방침 개정판 + 서버). 서버는 이제 Gemini 로만 보내고, `GEMINI_API_KEY` 시크릿이 없으면 배포가 실패함 | 코드 |
+| 4 | 새 iOS 빌드 → 1.0 제출에서 116 을 빼고 새 빌드로 바꿔 다시 제출. 아래 심사 메모를 붙임 | 코드·🙋 |
+| 5 | Play 검토에 보낼 AAB·APK 도 이 커밋이 든 빌드로 (113·105 에는 동의 시트가 없음) | 코드 |
+| 6 | 예전 첫 화면은 이용 기록 체크박스가 **미리 체크**돼 있었음 → 새 빌드는 그 동의를 「아직 묻지 않음」으로 읽어, 다시 켜야 수집. 10-06 저장을 켠 뒤 쌓인 기록은 미리 체크된 동의로 받은 것이라 **파기할지 결정** | 🙋 팀 |
+
+심사 메모 (1.0 → 앱 심사 정보 → 메모에 추가):
+
+> Before any AI feature sends data, the app shows a consent sheet explaining what is sent (chat screenshots, typed text, profile details of the user and the other person, recent coaching history), who receives it (Google LLC's Gemini API through our relay server hosted on Vercel, or the provider of the user's own API key), why, and how it is kept. Nothing is sent unless the user taps "동의하고 계속" (Agree and continue). If the user declines, AI features stay off and everything else keeps working. Consent can be withdrawn at any time in My tab → "AI 분석 동의" (AI analysis consent).
+
 ## App Store — 심사 대기 (2026-10-05 21:03 제출)
 
 | 항목 | 상태 |
@@ -36,9 +53,9 @@ API 와 브라우저로 할 수 있는 건 전부 끝났습니다. 🙋 표시�
 | 「앱이 수집하는 개인정보」 설문 | ✅ 게시 (구입 내역 포함 8개 항목, 추적 없음) |
 | 유료 앱 계약 | ✅ 활성화됨 |
 | 심사 제출 | ✅ **심사 대기** (보통 1~2일) |
-| 승인 즉시 자동 출시 | ✅ 설정됨 |
+| 승인 즉시 자동 출시 | ⚠️ 설정됨 — **수동 출시로 바꿀 것** (116 에는 AI 분석 동의가 없음 → 위 「AI 분석 동의」 절) |
 
-할 일 없음. 승인되면 그대로 앱스토어에 올라갑니다. 거절되면 사유를 보고 고쳐서 다시 냅니다(자동 재제출 없음).
+116 은 그대로 출시하면 안 됩니다. 위 「AI 분석 동의」 절대로 새 빌드로 바꿔 냅니다. 거절되면 사유를 보고 고쳐서 다시 냅니다(자동 재제출 없음).
 `app-store-autosubmit.yml` 은 꺼져 있다(disabled_manually) — 다음 버전이 저절로 제출되지 않도록 그대로 둔다.
 
 ## Google Play — 길이 두 가지

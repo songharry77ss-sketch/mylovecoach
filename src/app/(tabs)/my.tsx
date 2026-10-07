@@ -13,18 +13,21 @@ import { SectionHeader } from '@/components/ui/section-header';
 import { useToast } from '@/components/ui/toast';
 import { Spacing } from '@/constants/theme';
 import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
+import { AI_PROVIDER_LABEL, ensureAiConsent, withdrawAiConsent } from '@/lib/ai-consent';
 import { requestServerDeletion, setConsent as setAnalyticsConsentFlag, track } from '@/lib/analytics';
 import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { billingSupported, openSubscriptionManagement, restorePremium } from '@/lib/billing/iap';
 import { quotaLabel } from '@/lib/billing/quota';
 import { refreshTeam } from '@/lib/billing/team';
+import { aiRouteOf } from '@/lib/coach-client';
 import { APP_CONFIG } from '@/lib/config';
 import { isDemoMode } from '@/lib/demo';
 import * as Floating from '@/lib/floating';
+import { dateLabel } from '@/lib/format';
 import { haptic, setHapticsEnabled } from '@/lib/haptics';
 import { genderLabel, toneLabel } from '@/lib/labels';
 import { useAppStore } from '@/store/app-store';
-import { saveApiKey } from '@/store/storage';
+import { loadApiKey, saveApiKey } from '@/store/storage';
 
 export default function MyScreen() {
   const router = useRouter();
@@ -41,6 +44,9 @@ export default function MyScreen() {
   const setPremium = useAppStore((s) => s.setPremium);
   const analyticsConsent = useAppStore((s) => s.analyticsConsent);
   const setAnalyticsConsent = useAppStore((s) => s.setAnalyticsConsent);
+  const aiConsent = useAppStore((s) => s.aiConsent);
+  const aiConsentProvider = useAppStore((s) => s.aiConsentProvider);
+  const aiConsentAt = useAppStore((s) => s.aiConsentAt);
   const hapticsOn = useAppStore((s) => s.hapticsOn);
   const setHapticsOn = useAppStore((s) => s.setHapticsOn);
   const hidePreviews = useAppStore((s) => s.hidePreviews);
@@ -112,6 +118,27 @@ export default function MyScreen() {
   };
 
   const connection = isDemoMode ? '데모 모드 · 샘플 결과' : APP_CONFIG.apiUrl || APP_CONFIG.apiSameOrigin ? '연결됨 · 코치 서버' : hasApiKey ? '연결됨 · 내 API 키' : '연결 필요';
+
+  // AI 분석 동의 — 켜면 처음 쓸 때와 같은 동의 시트를 띄우고, 끄면 바로 철회한다 (다음에 AI 를 쓰면 다시 묻는다)
+  const toggleAiConsent = async (on: boolean) => {
+    if (!on) {
+      withdrawAiConsent();
+      toast.show('AI 분석 동의를 철회했어요. AI 기능을 쓰면 다시 여쭤볼게요.');
+      return;
+    }
+    const route = aiRouteOf(await loadApiKey());
+    if (!route) {
+      toast.show('먼저 AI 코치를 연결해 주세요.', 'error');
+      return;
+    }
+    if (await ensureAiConsent(route)) toast.show('AI 분석에 동의했어요.', 'success');
+  };
+  const aiConsentNote =
+    aiConsent === true && aiConsentProvider
+      ? `${AI_PROVIDER_LABEL[aiConsentProvider].company} AI로 보내는 데 동의했어요${aiConsentAt ? ` · ${dateLabel(aiConsentAt)}` : ''}`
+      : aiConsent === false
+        ? '동의하지 않았어요. AI 기능을 쓰면 다시 여쭤볼게요.'
+        : 'AI 기능을 처음 쓸 때 여쭤볼게요.';
 
   const confirmReset = () => {
     const run = async () => {
@@ -192,13 +219,14 @@ export default function MyScreen() {
           icon="radio-button-on-outline"
           title="플로팅 버블"
           subtitle="카톡을 보다가 화면 위 버블을 누르면 바로 코칭"
-          right={<Switch value={bubbleOn} onValueChange={toggleBubble} />}
+          right={<Switch accessibilityLabel="플로팅 버블" value={bubbleOn} onValueChange={toggleBubble} />}
         />
       ) : (
         <ListRow icon="flash-outline" title="빠른 코칭" subtitle={Platform.OS === 'ios' ? '아이폰 뒷면 두 번 톡으로 바로 열기 안내' : '캡처·복사한 대화로 바로 코칭'} onPress={() => router.push('/quick')} />
       )}
       <ListRow icon="phone-portrait-outline" title="진동 효과" subtitle="온도가 오를 때 두근두근, 넘길 때 톡톡" right={
         <Switch
+          accessibilityLabel="진동 효과"
           value={hapticsOn}
           onValueChange={(v) => {
             setHapticsOn(v);
@@ -226,14 +254,23 @@ export default function MyScreen() {
         icon="eye-off-outline"
         title="채팅 미리보기 숨기기"
         subtitle="채팅 목록에 대화 내용이 보이지 않아요"
-        right={<Switch value={hidePreviews} onValueChange={setHidePreviews} />}
+        right={<Switch accessibilityLabel="채팅 미리보기 숨기기" value={hidePreviews} onValueChange={setHidePreviews} />}
       />
+      {!isDemoMode ? (
+        <ListRow
+          icon="cloud-upload-outline"
+          title="AI 분석 동의"
+          subtitle={aiConsentNote}
+          right={<Switch accessibilityLabel="AI 분석 동의" value={aiConsent === true} onValueChange={toggleAiConsent} />}
+        />
+      ) : null}
       <ListRow
         icon="bar-chart-outline"
         title="이용 기록 수집 (선택)"
         subtitle="켜면 코칭 질문·답과 화면 이용 기록이 서비스 개선을 위해 서버에 1년 보관돼요. 끄면 서버 기록도 지워요. 캡처 이미지는 저장하지 않아요."
         right={
           <Switch
+            accessibilityLabel="이용 기록 수집 (선택)"
             value={analyticsConsent === true}
             onValueChange={(v) => {
               if (v) {
