@@ -392,7 +392,17 @@ export const useAppStore = create<AppState>()(
     {
       name: 'mylovecoach.store.v1',
       storage: appStorage,
-      version: 1,
+      version: 2,
+      // 판 2: 서버 기록 삭제 요청(pendingDeletion)이 생기기 전에 동의를 껐거나(예전 판은 끌 때 삭제를 한 번만, 또는 아예 보내지 않음)
+      // 만 14세 미만 나이로 저장된 기기는 이 판을 처음 열 때 한 번 삭제를 요청한다
+      migrate: (persisted, version) => {
+        const s = (persisted ?? {}) as Partial<AppState>;
+        if (version < 2 && !s.pendingDeletion && s.deviceId) {
+          const underAge = s.user?.age != null && s.user.age < 14;
+          if (s.analyticsConsent !== true || underAge) s.pendingDeletion = { deviceId: s.deviceId, at: Date.now(), sent: 0 };
+        }
+        return s as AppState;
+      },
       // 비밀 상담 채팅방과 그 메시지는 기기에 저장하지 않는다
       partialize: (s) => {
         const secretIds = Object.values(s.crushes)

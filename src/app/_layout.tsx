@@ -14,7 +14,7 @@ import { flushAnalytics, initAnalytics, launchAcquisition, pauseAnalytics, resum
 import { endBilling, initBilling } from '@/lib/billing/iap';
 import { refreshTeam } from '@/lib/billing/team';
 import { haptic, setHapticsEnabled } from '@/lib/haptics';
-import { cleanupOrphanImages } from '@/lib/images';
+import { cleanupOrphanImages, clearImageCaches } from '@/lib/images';
 import { processPendingDeletion } from '@/lib/server-deletion';
 import { useAppStore } from '@/store/app-store';
 
@@ -73,6 +73,7 @@ export default function RootLayout() {
       Object.values(s.messages).forEach((list) => list.forEach((m) => m.imageUri && keep.add(m.imageUri)));
       Object.values(s.crushes).forEach((c) => c.photoUri && keep.add(c.photoUri));
       cleanupOrphanImages(keep);
+      clearImageCaches();
     }, 3000);
     return () => clearTimeout(t);
   }, [hydrated]);
@@ -91,6 +92,7 @@ export default function RootLayout() {
       crushCount: Object.keys(s.crushes).length,
       acquisition: s.acquisition,
       consentVersion: consentVersionOf(s),
+      deletionPending: s.pendingDeletion != null,
     });
     // 서버에 남은 기록 삭제 요청이 있으면(지난번에 못 보냈거나 방금 생김) 보낸다
     processPendingDeletion().catch(() => {});
@@ -102,6 +104,7 @@ export default function RootLayout() {
         crushCount: Object.keys(next.crushes).length,
         acquisition: next.acquisition,
         consentVersion: consentVersionOf(next),
+        deletionPending: next.pendingDeletion != null,
       });
       // 동의한 채로 나이를 만 14세 미만으로 바꾸면 서버에 쌓인 기록도 지운다 (법정대리인 동의를 받지 않으므로)
       const under = (u: typeof next.user) => u?.age != null && u.age < 14;

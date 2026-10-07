@@ -2,7 +2,7 @@
  * api/_limits.ts(빈도 제한의 IP 보관)와 api/coach.ts 의 코칭 기록 한 줄(길이 자르기).
  */
 import { coachLogRow } from '../../api/coach';
-import { rateLimitEntries, rateLimited, sweepRateLimits } from '../../api/_limits';
+import { rateLimitEntries, rateLimited, storedKb, sweepRateLimits, utf8Bytes } from '../../api/_limits';
 
 describe('빈도 제한', () => {
   it('창이 지난 IP 항목은 1분마다 지워진다 (처리방침 「IP 를 메모리에 잠시 두었다가 지움」)', () => {
@@ -24,6 +24,19 @@ describe('빈도 제한', () => {
     for (let i = 0; i < 3; i += 1) expect(rateLimited('b', '10.1.1.1', 3, 60_000, t0 + i)).toBe(false);
     expect(rateLimited('b', '10.1.1.1', 3, 60_000, t0 + 10)).toBe(true);
     expect(rateLimited('b', '10.1.1.2', 3, 60_000, t0 + 10)).toBe(false);
+  });
+});
+
+describe('저장량 계산', () => {
+  it('한글은 3바이트, 이모지는 4바이트로 센다', () => {
+    expect(utf8Bytes('abc')).toBe(3);
+    expect(utf8Bytes('가나')).toBe(6);
+    expect(utf8Bytes('😀')).toBe(4);
+  });
+
+  it('저장할 내용의 크기를 KB 로 올림 (최소 1)', () => {
+    expect(storedKb({})).toBe(1);
+    expect(storedKb({ text: '가'.repeat(1000) })).toBe(3);
   });
 });
 

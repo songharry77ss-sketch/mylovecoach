@@ -102,16 +102,17 @@ create table if not exists team_member (
 );
 
 -- ── 관리자 로그인 시도 (비밀번호 대입 방지, 성공하면 그 IP 기록은 지움) ─
--- ── 하루 저장량 상한 (공개 API 로 무료 DB 를 채우지 못하게, 날짜·종류별 저장 행 수) ─
+-- ── 하루 저장량 상한 (공개 API 로 무료 DB 를 채우지 못하게, 날짜·종류별 저장한 내용의 크기 KB) ─
 create table if not exists usage_quota (
   day   date   not null,                   -- 한국 날짜
   kind  text   not null,                   -- track(이용 기록) · coach(코칭 기록)
-  rows  bigint not null default 0,
+  units bigint not null default 0,         -- 저장한 내용의 크기 (KB)
   primary key (day, kind)
 );
 
--- 오늘 저장할 행 수를 더하고, 상한 안이면 true (넘으면 false — 서버는 저장하지 않음)
-create or replace function take_quota(p_kind text, p_rows int, p_limit bigint)
+-- 오늘 저장할 크기(KB)를 더하고, 상한 안이면 true (넘으면 false — 서버는 저장하지 않음).
+-- 데이터베이스 전체가 400MB(무료 플랜 500MB)를 넘으면 더 저장하지 않는다 — 삭제·팀원 등록·파기는 계속 동작하도록
+create or replace function take_quota(p_kind text, p_units int, p_limit bigint)
 returns boolean
 language plpgsql
 security definer
@@ -120,10 +121,13 @@ as $$
 declare
   v_total bigint;
 begin
-  insert into usage_quota (day, kind, rows)
-  values ((now() at time zone 'Asia/Seoul')::date, p_kind, greatest(p_rows, 0))
-  on conflict (day, kind) do update set rows = usage_quota.rows + excluded.rows
-  returning rows into v_total;
+  if pg_database_size(current_database()) > 400::bigint * 1024 * 1024 then
+    return false;
+  end if;
+  insert into usage_quota (day, kind, units)
+  values ((now() at time zone 'Asia/Seoul')::date, p_kind, greatest(p_units, 0))
+  on conflict (day, kind) do update set units = usage_quota.units + excluded.units
+  returning units into v_total;
   return v_total <= p_limit;
 end $$;
 
@@ -309,20 +313,19 @@ $$;
 comment on function admin_user is '관리자 페이지 이용자 상세';
 
 -- ── 기기 하나의 이용 기록을 모두 지움 (동의 철회·삭제 요청·관리자 「기록 삭제」) ─
--- p_before 를 주면 그 시각 전에 생긴 기록만 지운다 (동의를 철회한 뒤 다시 동의해 생긴 새 기록은 남김). 없으면 모두.
--- 예전 판(인자 하나)은 지운다 — 같은 이름이 두 개면 PostgREST 가 어느 쪽인지 고르지 못한다
-drop function if exists delete_device(text);
-create or replace function delete_device(p_device text, p_before timestamptz default null)
+-- (시험 중에 잠깐 있던 시각 기준 판은 지운다 — 같은 이름이 두 개면 PostgREST 가 어느 쪽인지 고르지 못한다)
+drop function if exists delete_device(text, timestamptz);
+create or replace function delete_device(p_device text)
 returns void
 language sql
 security definer
 set search_path = public
 as $$
-  delete from coach_log   where device_id = p_device and (p_before is null or created_at    < p_before);
-  delete from app_event   where device_id = p_device and (p_before is null or created_at    < p_before);
-  delete from screen_view where device_id = p_device and (p_before is null or created_at    < p_before);
-  delete from app_session where device_id = p_device and (p_before is null or started_at    < p_before);
-  delete from app_user    where device_id = p_device and (p_before is null or first_seen_at < p_before);
+  delete from coach_log   where device_id = p_device;
+  delete from app_event   where device_id = p_device;
+  delete from screen_view where device_id = p_device;
+  delete from app_session where device_id = p_device;
+  delete from app_user    where device_id = p_device;
 $$;
 
 comment on function delete_device is '기기 ID 하나의 이용 기록 삭제 (DELETE /api/track, 관리자 기록 삭제, 만 14세 미만)';
@@ -364,10 +367,10 @@ end $$;
 -- ── 관리자 함수는 서버(service_role)만 부를 수 있게 ──────────────────
 do $$
 begin
-  revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text), delete_device(text, timestamptz), purge_old_records(),
+  revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text), delete_device(text), purge_old_records(),
     take_quota(text, int, bigint) from public;
   if exists (select 1 from pg_roles where rolname = 'anon') then
-    revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text), delete_device(text, timestamptz), purge_old_records(),
+    revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text), delete_device(text), purge_old_records(),
       take_quota(text, int, bigint) from anon, authenticated;
   end if;
 end $$;

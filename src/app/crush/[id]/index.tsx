@@ -26,7 +26,7 @@ import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { quotaLabel } from '@/lib/billing/quota';
 import { dateLabel, isSameDay } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
-import { deleteImageQuietly, pickImage, type PickedImage } from '@/lib/images';
+import { clearImageCaches, deleteImageQuietly, pickImage, type PickedImage } from '@/lib/images';
 import { relationshipLabel } from '@/lib/labels';
 import { drawChatQuestions } from '@/lib/mind-cards';
 import type { ChatMessage, EmojiPref, Tone } from '@/lib/types';
@@ -89,6 +89,8 @@ export default function CrushChat() {
           secretWipes.delete(id);
           const s = useAppStore.getState();
           (s.messages[id] ?? []).forEach((m) => deleteImageQuietly(m.imageUri));
+          // 사진 선택기·전송용 축소본이 캐시 폴더에 남긴 사본도 지운다
+          clearImageCaches();
           s.removeCrush(id);
         }, 400),
       );

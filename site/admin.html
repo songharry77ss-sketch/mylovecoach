@@ -364,7 +364,9 @@
       : `<p class="muted">${users.length ? '검색 결과가 없어요.' : '이 기간에 들어온 이용자가 없어요.'}</p>`;
   }
 
+  let openSeq = 0;
   async function openUser(deviceId) {
+    const seq = ++openSeq;
     openDevice = deviceId;
     renderUsers();
     const box = $('userDetail');
@@ -372,14 +374,30 @@
     box.innerHTML = '<p class="muted">불러오는 중…</p>';
     box.scrollIntoView({ behavior: 'smooth', block: 'start' });
     try {
-      renderDetail(await api(`/api/admin?view=user&deviceId=${encodeURIComponent(deviceId)}`), deviceId);
+      const detail = await api(`/api/admin?view=user&deviceId=${encodeURIComponent(deviceId)}`);
+      // 그사이 다른 기기를 열었으면 늦게 온 응답은 그리지 않는다 (「기록 삭제」가 엉뚱한 기기를 가리키지 않게)
+      if (seq !== openSeq) return;
+      renderDetail(detail, deviceId);
     } catch (e) {
+      if (seq !== openSeq) return;
       if (isAuthError(e)) return logout(e.message);
       box.innerHTML = `<p class="err">${esc(e.message)}</p>`;
     }
   }
 
   function renderDetail(d, requestedId) {
+    const empty = !d.user && !['screens', 'path', 'sessions', 'chats', 'events'].some((k) => (d[k] || []).length);
+    if (empty) {
+      // 기록이 하나도 없는 ID — 잘못 받은 ID 로 「삭제 완료」를 답하지 않게 삭제 버튼을 보여 주지 않는다
+      $('userDetail').innerHTML = `
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between">
+          <h2 style="margin:0; font-size:18px">저장된 기록이 없어요</h2>
+          <button class="ghost" data-close-detail>닫기</button>
+        </div>
+        <p class="muted" style="margin:10px 0 0">기기 ID <span class="mono">${esc(requestedId)}</span> 로 저장된 이용 기록이 없어요.
+          웹과 앱, 다시 설치한 앱은 기기 ID 가 서로 달라요. ID 를 다시 확인하거나, 이름·사용 날짜로 찾아보세요(운영 문서 「삭제를 요청하면?」).</p>`;
+      return;
+    }
     const u = d.user || { device_id: requestedId };
     const meta = users.find((x) => x.device_id === u.device_id) || {};
     const acq = u.source_detail || {};
@@ -534,7 +552,7 @@
     if (deleteBtn) {
       if (!deleteBtn.classList.contains('armed')) {
         deleteBtn.classList.add('armed');
-        deleteBtn.textContent = '한 번 더 누르면 영구 삭제';
+        deleteBtn.textContent = `한 번 더 누르면 ${deleteBtn.dataset.deviceDelete} 기록 영구 삭제`;
         setTimeout(() => { deleteBtn.classList.remove('armed'); deleteBtn.textContent = '기록 삭제'; }, 3000);
         return;
       }
