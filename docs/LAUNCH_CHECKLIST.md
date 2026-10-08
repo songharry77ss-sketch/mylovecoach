@@ -6,16 +6,16 @@
 
 | 대상 | 확인 결과 | 남은 확인 |
 |---|---|---|
-| 운영 웹 소스 | `32e63f662cf24df36caf6386c5f7014242588c18`; Vercel `37782999282` 성공, 공개 별칭 SHA 일치 | PR #7 변경; 새 서명 네이티브 빌드는 별도 준비 |
+| 운영 웹 소스 | `32e63f662cf24df36caf6386c5f7014242588c18`; Vercel `37782999282` 성공, 공개 별칭 SHA 일치 | 새 서명 네이티브 빌드는 별도 준비 |
 | App Store 1.0 | `READY_FOR_SALE`, 기존 무가입 빌드 116 출시 | 새 기능이 이 바이너리에 추가된 것으로 안내하지 않음 |
-| App Store 1.0.1 | `WAITING_FOR_REVIEW`, 출시 방식 `AFTER_APPROVAL` | 승인 및 실제 출시 여부 |
+| App Store 1.0.1 | 빌드 121 `WAITING_FOR_REVIEW`, 출시 방식 `AFTER_APPROVAL`; Google·회원가입 추가 전 소스 | 승인 및 실제 출시 여부; 이번 변경은 1.0.2로 별도 준비 |
 | TestFlight | 최신 121 `VALID`; 외부 그룹은 119까지 연결 | 121 및 새 통합 빌드의 그룹 연결·외부 심사·설치 여부 |
 | 서명 없는 iOS 검사 | `ios-check` 실행 `37782979607` 성공(전체 15분 27초) | 서명 빌드·스토어 업로드와 구분 |
-| 서명 없는 Android 검사 | `android-check.yml` 추가·정적 검사 완료, 아직 실행 전 | 합성 설정으로 arm64 Release 컴파일·무서명·버블 권한 제외 확인; 실제 OAuth·설치·AAB 업로드와 구분 |
+| 서명 없는 Android 검사 | `android-check.yml` 실행 `37785255424` 성공(전체 12분 1초) | 합성 설정으로 arm64 Release 컴파일·무서명·버블 권한 제외 확인; 실제 OAuth·설치·AAB 업로드와 구분 |
 | 공개 연령 표시 | Apple 공식 iTunes 한국 조회의 버전 1.0·등급 9+ 확인 | OS별 등급·최소 이용 연령·Gemini 18세 조건을 별도로 판단 |
 | 자동 심사 제출 | `app-store-autosubmit.yml`은 `disabled_manually` | 그대로 유지; 개인정보 게시가 자동 제출을 뜻하지 않음 |
 | Play | Alpha 116(1.0.0), 콘솔 제출 활동 2: 10-08 13:57 제출·14:09 출시됨; 그 조회 시점에는 게시 대기 변경 없음 | 선택된 이메일 목록의 테스터 설치·연속 참여 확인 |
-| Play 데이터 보안 | 기존 9유형 게시 뒤, 현재 116의 운영 진단을 필수로 정정한 1건 저장·검토 미전송 | 이 정정안의 검토 전송·게시와 1.0.2 회원용 11유형 초안 미반영을 구분 |
+| Play 데이터 보안 | 기존 9유형 게시 뒤, 현재 116의 운영 진단을 필수로 정정한 1건 저장·자동 사전 검사 완료·검토 미전송 | 이 정정안의 검토 전송·게시와 1.0.2 회원용 11유형 초안 미반영을 구분 |
 | Play 정식 출시 | 테스트 참여자 0명, 신청 비활성 | 비공개 테스트 12명·14일 연속 참여 및 정식 출시 접근 신청 |
 | Supabase 로그인 | 공개 설정에서 Apple·Kakao·Google 활성화, Email 가입 비활성화 재확인 | 실기기 최종 로그인·회원 연결·탈퇴 검증 |
 | Google OAuth | 기본 3권한과 계정 선택 화면 진입 확인 | 홈페이지 소유권·브랜딩 검증/게시, 최종 로그인 |
@@ -24,11 +24,11 @@
 | Supabase 감사 로그 | FREE 플랜·DB 감사 로그 기록 꺼짐·감사 표 0행·별도 정리 함수 0개 확인 | 외부 Auth Audit Logs는 Free 1시간 기준으로 회원 삭제와 구분 안내 |
 | AI 신고 서버 | `ai_report.sql` 적용, 배포·합성 신고 저장/조회/시험 행 삭제 확인 | 새 빌드의 화면에서 신고 경로 확인 |
 
-현재 `app.json`은 1.0.2입니다. 서명 없는 iOS 컴파일 검사는 성공했으며 새 서명 빌드·스토어 업로드는 실행하지 않았습니다. CI의 서명키 임시파일 사용은 사용자의 키 파일 저장 금지 규칙과의 허용 범위 확인 답변 대기입니다. 기존 116·121 및 외부 TestFlight 119, 운영 웹 배포와 구분하며 실제 회원가입·보너스·재로그인·탈퇴·인앱 구매 성공도 아직 검증하지 않았습니다. 위 Play 게시 상태는 별도 작업에 따른 변화이며 이 작업에서 스토어 검토를 전송한 것은 아닙니다.
+현재 `app.json`은 1.0.2입니다. 서명 없는 iOS·Android arm64 컴파일 검사는 성공했으며 새 서명 빌드·스토어 업로드는 실행하지 않았습니다. CI의 서명키 임시파일 사용은 사용자의 키 파일 저장 금지 규칙과의 허용 범위 확인 답변 대기입니다. 기존 116·121 및 외부 TestFlight 119, 운영 웹 배포와 구분하며 실제 회원가입·보너스·재로그인·탈퇴·인앱 구매 성공도 아직 검증하지 않았습니다. 위 Play 게시 상태는 별도 작업에 따른 변화이며 이 작업에서 스토어 검토를 전송한 것은 아닙니다.
 
-최신 웹 배포는 [실행 37782999282](https://github.com/songharry77ss-sketch/mylovecoach/actions/runs/37782999282) 성공, 배포 `dpl_EeJw2ZUHPeULw6o6CUZWpMVenam2`의 `READY`와 `mylovecoach.vercel.app`의 위 소스 SHA 일치를 확인했습니다. TypeScript·src+api ESLint, Jest 29모음 470개, ASC 도구 22개, 빌드 변수 8경로, YAML 구문, 웹 export가 통과했습니다. CI의 index/privacy 200·코치 API Google 동의 200/헤더 없음 200·신고 GET 405 및 운영 회원 GET 405·삭제 안내 200·Apple 수동 탈퇴 새 문구를 확인했습니다. 이는 실제 가입·탈퇴·구매를 완료한 검증이 아닙니다. 운영 Gemini 3.6과 구버전의 동의 헤더 없는 요청 허용은 유지합니다.
+최신 웹 배포는 [실행 37782999282](https://github.com/songharry77ss-sketch/mylovecoach/actions/runs/37782999282) 성공, 배포 `dpl_EeJw2ZUHPeULw6o6CUZWpMVenam2`의 `READY`와 `mylovecoach.vercel.app`의 위 소스 SHA 일치를 확인했습니다. TypeScript·src+api ESLint, Jest 29모음 470개, ASC 도구 22개, 빌드 변수 8경로, YAML 구문, 웹 export가 통과했습니다. CI의 index/privacy 200·코치 API Google 동의 200/헤더 없음 200·신고 GET 405 및 운영 회원 GET 405·삭제 안내 200·Apple 수동 탈퇴 새 문구를 확인했습니다. 운영 `/signup` 화면의 Google·카카오 버튼, 가입 보너스 3회·매일 무료 1회 및 약관 링크 표시도 확인했습니다. 이는 실제 가입·탈퇴·구매를 완료한 검증이 아닙니다. 운영 Gemini 3.6과 구버전의 동의 헤더 없는 요청 허용은 유지합니다.
 
-변경 코드는 [PR #7](https://github.com/songharry77ss-sketch/mylovecoach/pull/7)에서 관리하며 운영 배포와 새 스토어 제출을 구분합니다. [서명 없는 iOS 검사 37782979607](https://github.com/songharry77ss-sketch/mylovecoach/actions/runs/37782979607)은 성공했습니다(전체 15분 27초, 시뮬레이터 Release 컴파일 13분 27초).
+[PR #7](https://github.com/songharry77ss-sketch/mylovecoach/pull/7)은 `fd38c0549d6197b9428e0b3c0fbe1f7788ae7be6`으로 병합됐습니다. 운영 배포와 새 스토어 제출을 구분합니다. [서명 없는 iOS 검사 37782979607](https://github.com/songharry77ss-sketch/mylovecoach/actions/runs/37782979607)은 성공했습니다(전체 15분 27초, 시뮬레이터 Release 컴파일 13분 27초). [서명 없는 Android 검사 37785255424](https://github.com/songharry77ss-sketch/mylovecoach/actions/runs/37785255424)도 병합 소스 `fd38c05`로 성공했습니다(전체 12분 1초, arm64 Release 컴파일 10분 57초). APK 서명 부재와 버블 권한 제외를 확인했고 산출물은 업로드하지 않았습니다. 두 검사 모두 스토어 서명·실제 OAuth·실기기 설치 검증을 대신하지 않습니다.
 
 ### 과거 웹 배포
 
