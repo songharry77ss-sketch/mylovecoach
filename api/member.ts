@@ -1,9 +1,9 @@
 /**
- * 회원(카카오·Apple 로그인) API — Authorization: Bearer <Supabase 로그인 토큰>
+ * 회원(카카오·Google·Apple 로그인) API — Authorization: Bearer <Supabase 로그인 토큰>
  *   POST   /api/member { deviceId, nickname? } → 회원을 만들거나 갱신하고 이 기기와 잇는다.
  *                                              처음이면 가입 보너스(회원당·기기당 한 번) → { new, bonus, member }
- *   DELETE /api/member { appleAuthorizationCode? } → 회원 탈퇴: 회원 기록·이용 기록을 지우고, 카카오·Apple 연결을 끊은 뒤
- *                                              로그인 계정을 지운다
+ *   DELETE /api/member { appleAuthorizationCode? } → 회원 탈퇴: 회원 기록·이용 기록과 로그인 계정을 지운다.
+ *                                              키·코드가 있으면 카카오·Apple 연결 해제도 시도한다. Google 외부 연결은 자동 해제하지 않는다.
  * 환경변수: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, COACH_APP_TOKEN(선택, 앱 토큰 검사),
  *          KAKAO_ADMIN_KEY · APPLE_TEAM_ID · APPLE_KEY_ID · APPLE_PRIVATE_KEY (선택, 탈퇴 때 연결 끊기 — _unlink.ts)
  */

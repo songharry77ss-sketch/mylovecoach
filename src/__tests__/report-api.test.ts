@@ -1,0 +1,242 @@
+/**
+ * api/report.ts — AI 답변 신고. 앱 토큰·크기·빈도 제한, 형식 검사, Supabase 가 없을 때 503,
+ * 그리고 누가 보냈는지(기기 ID·IP)는 저장하지 않는지가 핵심이다.
+ * Supabase 는 fetch 를 가짜로 바꿔 어떤 요청이 나가는지만 본다.
+ */
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+import handler from '../../api/report';
+import { AI_REPORT_MODES, AI_REPORT_REASONS, AiReportSchema } from '../lib/ai-report-schema';
+
+interface FakeRes {
+  statusCode: number;
+  body?: { error?: string; ok?: boolean };
+  setHeader: () => FakeRes;
+  status: (code: number) => FakeRes;
+  json: (body: FakeRes['body']) => FakeRes;
+  end: () => FakeRes;
+}
+
+function fakeRes(): FakeRes {
+  const res = { statusCode: 200 } as FakeRes;
+  res.setHeader = () => res;
+  res.status = (code) => {
+    res.statusCode = code;
+    return res;
+  };
+  res.json = (body) => {
+    res.body = body;
+    return res;
+  };
+  res.end = () => res;
+  return res;
+}
+
+let ipSeq = 0;
+function fakeReq(method: string, body: unknown, headers: Record<string, string> = {}) {
+  ipSeq += 1;
+  return { method, body, query: {}, headers: { 'x-forwarded-for': `10.7.${Math.floor(ipSeq / 250)}.${ipSeq % 250}`, ...headers } } as never;
+}
+
+const calls: { url: string; method: string; body?: string }[] = [];
+/** Supabase 가 저장 요청에 돌려줄 상태 코드 (201 = 저장됨) */
+let insertStatus = 201;
+const goodBody = (extra: Record<string, unknown> = {}) => ({
+  mode: 'practice',
+  reason: 'sexual',
+  note: '상대역이 갑자기 이상한 말을 했어요',
+  content: '연습 상대 「민준」: (부적절한 말)',
+  model: 'google/relay',
+  platform: 'android',
+  appVersion: '1.0.0',
+  ...extra,
+});
+
+beforeEach(() => {
+  calls.length = 0;
+  insertStatus = 201;
+  process.env.SUPABASE_URL = 'https://db.example';
+  process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
+  delete process.env.ANALYTICS_ENABLED;
+  delete process.env.COACH_APP_TOKEN;
+  global.fetch = jest.fn(async (url: string, init: { method?: string; body?: string } = {}) => {
+    calls.push({ url: String(url), method: init.method ?? 'GET', body: init.body });
+    return { ok: insertStatus < 300, status: insertStatus, text: async () => '', json: async () => ({}) };
+  }) as unknown as typeof fetch;
+});
+
+const inserted = () => {
+  const call = calls.find((c) => c.url.endsWith('/rest/v1/ai_report') && c.method === 'POST');
+  return call ? (JSON.parse(call.body!) as Record<string, unknown>[])[0] : undefined;
+};
+
+describe('POST /api/report', () => {
+  it('이용 기록 수집이 꺼져 있어도 신고는 저장하고 201 — 기기 ID·IP 는 남기지 않는다', async () => {
+    const res = fakeRes();
+    await handler(fakeReq('POST', goodBody({ deviceId: 'd_testdevice01', ip: '1.2.3.4' }), { 'x-device-id': 'd_testdevice01' }), res as never);
+    expect(res.statusCode).toBe(201);
+    const row = inserted();
+    expect(row).toEqual({
+      mode: 'practice',
+      reason: 'sexual',
+      note: '상대역이 갑자기 이상한 말을 했어요',
+      content: '연습 상대 「민준」: (부적절한 말)',
+      model: 'google/relay',
+      platform: 'android',
+      app_version: '1.0.0',
+    });
+    expect(JSON.stringify(row)).not.toMatch(/d_testdevice01|10\.7\.|1\.2\.3\.4/);
+  });
+
+  it('마이 탭처럼 답변 없이 메모만 있어도 받는다 (content 는 비워 저장)', async () => {
+    const res = fakeRes();
+    await handler(fakeReq('POST', goodBody({ mode: 'coach', reason: 'other', content: undefined, note: '어제 받은 답장이 모욕적이었어요' })), res as never);
+    expect(res.statusCode).toBe(201);
+    expect(inserted()).toMatchObject({ mode: 'coach', reason: 'other', content: null, note: '어제 받은 답장이 모욕적이었어요' });
+  });
+
+  it('문자열 본문(JSON)도 받는다', async () => {
+    const res = fakeRes();
+    await handler(fakeReq('POST', JSON.stringify(goodBody())), res as never);
+    expect(res.statusCode).toBe(201);
+  });
+
+  it.each([
+    ['모르는 사유', { reason: 'boring' }],
+    ['모르는 기능', { mode: 'kkti' }],
+    ['메모 300자 초과', { note: '가'.repeat(301) }],
+    ['답변 4000자 초과', { content: '가'.repeat(4001) }],
+    ['답변도 메모도 없음', { content: '  ', note: '' }],
+    ['기기 종류가 너무 김', { platform: 'x'.repeat(17) }],
+  ])('형식이 틀리면 400 (%s)', async (_label, extra) => {
+    const res = fakeRes();
+    await handler(fakeReq('POST', goodBody(extra)), res as never);
+    expect(res.statusCode).toBe(400);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('JSON 이 아닌 본문은 400', async () => {
+    const res = fakeRes();
+    await handler(fakeReq('POST', '{not json'), res as never);
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('Supabase 가 연결되지 않았으면 저장하지 않고 503', async () => {
+    delete process.env.SUPABASE_URL;
+    const res = fakeRes();
+    await handler(fakeReq('POST', goodBody()), res as never);
+    expect(res.statusCode).toBe(503);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('저장에 실패하면 502 — 앱은 시트를 닫지 않고 다시 보내게 한다', async () => {
+    insertStatus = 500;
+    // 저장 실패 로그(console.warn)는 여기서 일부러 내는 것이라 가린다
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const res = fakeRes();
+    await handler(fakeReq('POST', goodBody()), res as never);
+    expect(res.statusCode).toBe(502);
+    expect(res.body?.error).toBeTruthy();
+    warn.mockRestore();
+  });
+
+  it('DB 의 하루 저장 상한(트리거가 PT429 로 거절)에 걸리면 429 와 내일 다시 보내 달라는 안내', async () => {
+    insertStatus = 429;
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const res = fakeRes();
+    await handler(fakeReq('POST', goodBody()), res as never);
+    warn.mockRestore();
+    expect(res.statusCode).toBe(429);
+    expect(res.body?.error).toContain('내일 다시 보내 주세요');
+  });
+
+  it('ai_report 표가 아직 없으면(404) 503 — 운영자가 알아보게 ai_report.sql 을 실행하라고 로그를 남긴다', async () => {
+    insertStatus = 404;
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const res = fakeRes();
+    await handler(fakeReq('POST', goodBody()), res as never);
+    expect(res.statusCode).toBe(503);
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('supabase/ai_report.sql'));
+    warn.mockRestore();
+    error.mockRestore();
+  });
+
+  it('DB 용량 보호(트리거가 PT503 으로 거절)도 503', async () => {
+    insertStatus = 503;
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const res = fakeRes();
+    await handler(fakeReq('POST', goodBody()), res as never);
+    warn.mockRestore();
+    expect(res.statusCode).toBe(503);
+  });
+
+  it('본문이 16KB 를 넘으면 413', async () => {
+    const res = fakeRes();
+    await handler(fakeReq('POST', goodBody(), { 'content-length': String(17 * 1024) }), res as never);
+    expect(res.statusCode).toBe(413);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('한글 4000자 답변 + 300자 메모는 16KB 안에 들어간다', () => {
+    const bytes = Buffer.byteLength(JSON.stringify(goodBody({ content: '가'.repeat(4000), note: '나'.repeat(300) })), 'utf8');
+    expect(bytes).toBeLessThan(16 * 1024);
+  });
+
+  it('같은 IP 가 10분에 10번을 넘으면 429', async () => {
+    let last = fakeRes();
+    for (let i = 0; i < 11; i += 1) {
+      last = fakeRes();
+      await handler({ method: 'POST', body: goodBody(), query: {}, headers: { 'x-forwarded-for': '10.8.8.8' } } as never, last as never);
+    }
+    expect(last.statusCode).toBe(429);
+    expect(calls.filter((c) => c.url.endsWith('/rest/v1/ai_report'))).toHaveLength(10);
+  });
+
+  it('앱 토큰이 설정돼 있으면 맞지 않는 요청은 401, 맞으면 201', async () => {
+    process.env.COACH_APP_TOKEN = 'app-token';
+    const wrong = fakeRes();
+    await handler(fakeReq('POST', goodBody(), { 'x-app-token': 'wrong' }), wrong as never);
+    expect(wrong.statusCode).toBe(401);
+    const right = fakeRes();
+    await handler(fakeReq('POST', goodBody(), { 'x-app-token': 'app-token' }), right as never);
+    expect(right.statusCode).toBe(201);
+  });
+
+  it('POST 가 아니면 405', async () => {
+    const res = fakeRes();
+    await handler(fakeReq('GET', undefined), res as never);
+    expect(res.statusCode).toBe(405);
+  });
+});
+
+describe('앱·서버·관리자 페이지가 같은 값을 쓴다', () => {
+  it('앱 시트에서 고를 수 있는 기능·사유는 모두 서버가 받는다', () => {
+    for (const mode of AI_REPORT_MODES) {
+      for (const reason of AI_REPORT_REASONS) expect(AiReportSchema.safeParse({ mode, reason, content: '답변' }).success).toBe(true);
+    }
+  });
+
+  it('관리자 페이지의 기능·사유 이름표가 모든 값을 덮는다', () => {
+    const html = readFileSync(join(__dirname, '../../site/admin.html'), 'utf8');
+    const keysOf = (name: string) => [...(html.match(new RegExp(`const ${name} = \\{([^\\n]*)\\};`))?.[1] ?? '').matchAll(/(\w+):\s*'/g)].map((m) => m[1]);
+    expect(keysOf('REPORT_MODE').sort()).toEqual([...AI_REPORT_MODES].sort());
+    expect(keysOf('REPORT_REASON').sort()).toEqual([...AI_REPORT_REASONS].sort());
+  });
+
+  it('신고의 하루 상한·1년 파기는 schema.sql 과 운영용 조각(ai_report.sql)이 같고, purge_old_records 에 기대지 않는다', () => {
+    const read = (file: string) => readFileSync(join(__dirname, '../../supabase', file), 'utf8').replace(/\r/g, '');
+    const schema = read('schema.sql');
+    const fragment = read('ai_report.sql');
+    const fn = (sql: string, name: string) => sql.match(new RegExp(`create or replace function ${name}\\(\\)[\\s\\S]*?\\$\\$;`))?.[0];
+    for (const name of ['ai_report_quota', 'purge_ai_report']) {
+      expect(fn(fragment, name)).toBeTruthy();
+      expect(fn(schema, name)).toBe(fn(fragment, name));
+    }
+    for (const sql of [schema, fragment]) expect(sql).toContain("cron.schedule('mylovecoach-purge-report', '35 18 * * *', 'select public.purge_ai_report()')");
+    // 브랜치마다 통째로 다시 만드는 purge_old_records 에 신고 파기를 두면, 다른 판 schema.sql 을 실행할 때 조용히 사라진다
+    expect(fn(schema, 'purge_old_records')).not.toContain('ai_report');
+    expect(fragment).not.toContain('function purge_old_records');
+  });
+});

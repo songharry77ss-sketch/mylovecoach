@@ -50,7 +50,7 @@ export const FREE_DAILY = 1;
 
 /**
  * 회원가입을 쓸 수 있는 빌드의 무료 규칙 (2026-10 결정):
- * 비회원은 맛보기 1회 → 카카오·Apple 로 가입하면 보너스 3회 + 매일 1회 충전.
+ * 비회원은 맛보기 1회 → 카카오·Google·Apple 로 가입하면 보너스 3회 + 매일 1회 충전.
  */
 export const GUEST_TRIAL_TOTAL = 1;
 export const SIGNUP_BONUS = 3;

@@ -35,14 +35,16 @@ function headers(extra: Record<string, string> = {}): Record<string, string> {
   };
 }
 
+type InsertOptions = { upsert?: boolean; ignoreDuplicates?: boolean };
+
 /**
- * 행 추가 (여러 건 가능). 실패해도 예외를 던지지 않습니다.
- * upsert: 같은 키가 있으면 보낸 값으로 덮어씀 · ignoreDuplicates: 같은 키가 있으면 그대로 둠
+ * 행 추가 — 성공 여부와 응답 상태 코드 (연결 안 됨·네트워크 실패는 status 0). 실패해도 예외를 던지지 않습니다.
+ * 거절 이유에 따라 답을 나눌 때 쓴다: 표가 없으면 404, 트리거가 PT429·PT503 으로 거절하면 429·503 (PostgREST 가 PTxyz → HTTP xyz)
  */
-export async function insert(table: string, rows: unknown[] | unknown, options: { upsert?: boolean; ignoreDuplicates?: boolean } = {}): Promise<boolean> {
-  if (!supabaseReady()) return false;
+export async function insertResult(table: string, rows: unknown[] | unknown, options: InsertOptions = {}): Promise<{ ok: boolean; status: number }> {
+  if (!supabaseReady()) return { ok: false, status: 0 };
   const body = Array.isArray(rows) ? rows : [rows];
-  if (!body.length) return true;
+  if (!body.length) return { ok: true, status: 0 };
   const resolution = options.ignoreDuplicates ? 'resolution=ignore-duplicates,' : options.upsert ? 'resolution=merge-duplicates,' : '';
   try {
     const res = await fetch(`${URL_ENV()}/rest/v1/${table}`, {
@@ -51,11 +53,19 @@ export async function insert(table: string, rows: unknown[] | unknown, options: 
       body: JSON.stringify(body),
     });
     if (!res.ok) console.warn(`[supabase] ${table} insert ${res.status}: ${(await res.text()).slice(0, 200)}`);
-    return res.ok;
+    return { ok: res.ok, status: res.status };
   } catch (e) {
     console.warn(`[supabase] ${table} insert 실패:`, e instanceof Error ? e.message : e);
-    return false;
+    return { ok: false, status: 0 };
   }
+}
+
+/**
+ * 행 추가 (여러 건 가능). 실패해도 예외를 던지지 않습니다.
+ * upsert: 같은 키가 있으면 보낸 값으로 덮어씀 · ignoreDuplicates: 같은 키가 있으면 그대로 둠
+ */
+export async function insert(table: string, rows: unknown[] | unknown, options: InsertOptions = {}): Promise<boolean> {
+  return (await insertResult(table, rows, options)).ok;
 }
 
 /** 행 수정 (조건은 PostgREST 쿼리 문자열, 예: `device_id=eq.abc`) */

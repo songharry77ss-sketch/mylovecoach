@@ -14,7 +14,7 @@ import { haptic } from '@/lib/haptics';
 import { supabase } from '@/lib/supabase';
 
 /**
- * 카카오 로그인에서 돌아오는 주소 (/auth/callback).
+ * 카카오·Google 로그인에서 돌아오는 주소 (/auth/callback).
  * 웹은 Supabase 가 주소의 code 로 로그인을 마치면 여기서 회원 연결·보너스를 처리한다.
  * 앱은 보통 로그인 창이 이 주소를 직접 받는다(+native-intent 가 이 화면을 열지 않음).
  * 로그인 도중 앱이 꺼졌다가 이 주소로 다시 켜진 경우에만 열리며, 그때는 code 로 로그인을 여기서 마친다.
@@ -34,8 +34,7 @@ export default function AuthCallback() {
         const query = Platform.OS === 'web' ? new URLSearchParams(window.location.search) : null;
         const failed = query ? query.get('error') : params.error;
         if (failed) {
-          // 원문 설명은 화면에 내지 않고 기록에만 남긴다
-          console.warn('[auth] callback error', failed, query?.get('error_description') ?? '');
+          // 주소의 원문 설명은 화면이나 로그에 남기지 않는다.
           throw new Error(authErrorMessage(failed));
         }
         if (Platform.OS !== 'web') {

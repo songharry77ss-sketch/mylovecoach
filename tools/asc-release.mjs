@@ -3,6 +3,7 @@
 // 심사에 낸 빌드가 출시되면 안 되는 경우(예: 116 에는 AI 분석 동의가 없음) --manual 로 승인돼도 출시되지 않게 막는다.
 // --withdraw : 심사 대기·심사 중인 제출을 취소한다(「심사에서 제거」). 버전은 DEVELOPER_REJECTED 가 되어
 //              빌드를 바꾼 뒤 node tools/asc-listing.mjs --build <번호> --submit 으로 다시 낸다.
+//              승인돼 「출시 버튼 대기」(PENDING_DEVELOPER_RELEASE)인 버전은 API 로 못 빼고(404) 웹 화면에서 빼야 한다 — 방법을 안내만 한다.
 import { createAscClient, secretsRoot } from './lib/asc-api.mjs';
 
 const args = process.argv.slice(2);
@@ -19,8 +20,16 @@ async function main() {
       await api('PATCH', `/v1/reviewSubmissions/${s.id}`, { data: { type: 'reviewSubmissions', id: s.id, attributes: { canceled: true } } });
       console.log(`심사 제출 ${s.id.slice(0, 8)}… (${s.attributes.state}) 을 취소했습니다.`);
     }
+    // 승인돼 출시 버튼을 기다리는 버전(PENDING_DEVELOPER_RELEASE)은 API 로 뺄 수 없다 — 끝난(COMPLETE) 묶음의 항목을
+    // removed 로 고치려 하면 404 (2026-10-08 확인). 웹 화면에서만 뺄 수 있다
+    const pending = (await getAll(`/v1/apps/${app.id}/appStoreVersions?filter[platform]=IOS&limit=10`)).filter((v) => v.attributes.appStoreState === 'PENDING_DEVELOPER_RELEASE');
+    for (const v of pending)
+      console.log(
+        `버전 ${v.attributes.versionString} 은 승인돼 출시 버튼을 기다리는 중이라 API 로 뺄 수 없습니다 — App Store Connect 웹 → 앱 → 버전 페이지 위 안내의 「심사에서 이 버전 제거」 → 제거. ` +
+          '그 뒤 node tools/asc-listing.mjs --build <번호> --submit (심사는 처음부터 다시 받습니다)',
+      );
     // 취소는 비동기로 처리된다 — 버전 상태가 바뀔 때까지 잠깐 기다린다
-    for (let i = 0; i < 12; i += 1) {
+    for (let i = 0; subs.length && i < 12; i += 1) {
       const vs = await getAll(`/v1/apps/${app.id}/appStoreVersions?filter[platform]=IOS&limit=10`);
       if (!vs.some((v) => ['WAITING_FOR_REVIEW', 'IN_REVIEW'].includes(v.attributes.appStoreState))) break;
       await new Promise((r) => setTimeout(r, 5000));

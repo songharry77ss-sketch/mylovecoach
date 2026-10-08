@@ -1,5 +1,5 @@
 /**
- * 회원가입·로그인 (카카오·Apple) — Supabase Auth.
+ * 회원가입·로그인 (카카오·Google·Apple) — Supabase Auth.
  * 로그인하면 서버(/api/member)에 이 기기를 잇고, 처음 가입이면 무료 코칭 보너스를 받는다 (회원·기기당 한 번).
  * 애플 규정상 아이폰에서 카카오 로그인을 보여 주면 Apple 로그인도 함께 보여 줘야 한다.
  */
@@ -27,7 +27,7 @@ export interface LinkResult {
   bonus: boolean;
 }
 
-/** Apple 로그인은 아이폰에서만 보여 준다 (안드로이드·웹은 카카오만) */
+/** Apple 로그인은 아이폰에서만 보여 준다 (안드로이드·웹은 카카오·Google) */
 export async function appleSignInAvailable(): Promise<boolean> {
   if (Platform.OS !== 'ios' || !supabase) return false;
   return AppleAuthentication.isAvailableAsync().catch(() => false);
@@ -69,22 +69,26 @@ async function currentSession() {
   return data.session;
 }
 
-/**
- * 카카오 로그인. 웹은 카카오 화면으로 넘어갔다가 /auth/callback 에서 마무리하므로 null 을 돌려준다.
- */
-export async function signInWithKakao(): Promise<LinkResult | null> {
+/** 웹은 제공자 화면으로 넘어갔다가 /auth/callback 에서 마무리하므로 null 을 돌려준다. */
+async function signInWithBrowser(provider: 'kakao' | 'google'): Promise<LinkResult | null> {
   const client = ensureClient();
   const redirectTo = redirectUrl();
+  // Google 은 로그인에 필요한 기본 정보만 요청한다. 추가 API 권한이나 장기 제공자 토큰은 요청하지 않는다.
+  const scopes = provider === 'google' ? { scopes: 'openid email profile' } : {};
   if (Platform.OS === 'web') {
-    const { error } = await client.auth.signInWithOAuth({ provider: 'kakao', options: { redirectTo } });
+    const { error } = await client.auth.signInWithOAuth({ provider, options: { redirectTo, ...scopes } });
     if (error) throw error;
     return null;
   }
-  const { data, error } = await client.auth.signInWithOAuth({ provider: 'kakao', options: { redirectTo, skipBrowserRedirect: true } });
-  if (error || !data.url) throw error ?? new Error('카카오 로그인 화면을 열지 못했어요.');
+  const { data, error } = await client.auth.signInWithOAuth({ provider, options: { redirectTo, skipBrowserRedirect: true, ...scopes } });
+  if (error || !data.url) throw error ?? new Error('로그인 화면을 열지 못했어요.');
   const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
   if (result.type !== 'success') throw new AuthCancelled('cancelled');
   const returned = new URL(result.url);
+  const expected = new URL(redirectTo);
+  if (returned.protocol !== expected.protocol || returned.host !== expected.host || returned.pathname !== expected.pathname) {
+    throw new Error(authErrorMessage(null));
+  }
   const params = new URLSearchParams(returned.search || returned.hash.replace(/^#/, ''));
   const code = params.get('code');
   if (!code) {
@@ -96,6 +100,12 @@ export async function signInWithKakao(): Promise<LinkResult | null> {
   if (exchangeError) throw exchangeError;
   return linkMember();
 }
+
+/** 카카오 로그인 (웹·앱 공통 브라우저 인증) */
+export const signInWithKakao = (): Promise<LinkResult | null> => signInWithBrowser('kakao');
+
+/** Google 로그인 (웹·앱 공통 브라우저 인증, 기본 프로필·이메일만) */
+export const signInWithGoogle = (): Promise<LinkResult | null> => signInWithBrowser('google');
 
 /** Apple 로그인 (아이폰 전용, 기기 안의 Apple 계정 창) */
 export async function signInWithApple(): Promise<LinkResult> {
@@ -213,7 +223,7 @@ async function appleCodeForRevoke(): Promise<string | undefined> {
   }
 }
 
-/** 회원 탈퇴 — 서버의 회원 기록·로그인 계정·이용 기록을 지우고 카카오·Apple 연결을 끊는다 */
+/** 회원 탈퇴 — 서버의 회원·로그인 계정·이용 기록을 지우고, 가능한 카카오·Apple 연결 해제도 시도한다 */
 export async function deleteAccount(): Promise<void> {
   // 로그인이 끝났거나(다시 로그인 안내) 서버에 연결하지 못하면 Apple 확인 창을 띄우기 전에 멈춘다
   await currentSession();
@@ -226,4 +236,4 @@ export async function deleteAccount(): Promise<void> {
   useAppStore.getState().setMember(null);
 }
 
-export const providerLabel = (provider: string) => (provider === 'apple' ? 'Apple' : provider === 'kakao' ? '카카오' : provider);
+export const providerLabel = (provider: string) => (provider === 'apple' ? 'Apple' : provider === 'kakao' ? '카카오' : provider === 'google' ? 'Google' : provider);

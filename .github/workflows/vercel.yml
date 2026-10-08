@@ -73,16 +73,29 @@ jobs:
           url="$dep"; [ -n "$alias" ] && url="https://$alias"
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "::notice title=배포 완료::$url (배포: $dep)"
+      # 이 확인은 배포가 끝난 뒤에 돈다 — 실패해도 운영은 이미 새 서버다. Gemini 결제 문제(402 등)는 배포 전에 풀어 둘 것
       - name: 동작 확인
         run: |
           url="${{ steps.deploy.outputs.url }}"
           echo "웹: $url"
           curl -sS -o /dev/null -w "index: %{http_code}\n" "$url/"
           curl -sS -o /dev/null -w "privacy: %{http_code}\n" "$url/privacy.html"
-          code=$(curl -sS -o /tmp/coach.json -w "%{http_code}" -X POST "$url/api/coach" -H 'content-type: application/json' \
-            -H 'x-ai-consent: google' \
-            ${COACH_APP_TOKEN:+-H "x-app-token: $COACH_APP_TOKEN"} \
-            -d '{"crush":{"name":"민지","gender":"female","relationship":"talking","style":[],"notes":""},"user":{"name":"지훈","gender":"male","style":[]},"tone":"natural","text":"첫 메시지 뭐라고 보낼까?","history":[]}')
-          echo "api/coach: $code"; head -c 400 /tmp/coach.json; echo
-          [ "$code" = "200" ] || { echo "::error::코치 API 응답 실패"; exit 1; }
+          body='{"crush":{"name":"민지","gender":"female","relationship":"talking","style":[],"notes":""},"user":{"name":"지훈","gender":"male","style":[]},"tone":"natural","text":"첫 메시지 뭐라고 보낼까?","history":[]}'
+          # 동의 시트가 있는 앱(x-ai-consent: google)과, 심사 중인 예전 앱(헤더 없음 — iOS 116·Android 113) 둘 다 확인.
+          # 예전 앱은 Vercel 환경변수 AI_CONSENT_REQUIRED=1 을 켠 뒤에는 426(최신 버전으로 업데이트 안내)이 맞는 응답이다
+          for consent in google none; do
+            hdr=()
+            if [ "$consent" = google ]; then hdr=(-H 'x-ai-consent: google'); fi
+            code=$(curl -sS -o /tmp/coach.json -w "%{http_code}" -X POST "$url/api/coach" -H 'content-type: application/json' \
+              "${hdr[@]}" \
+              ${COACH_APP_TOKEN:+-H "x-app-token: $COACH_APP_TOKEN"} \
+              -d "$body")
+            echo "api/coach ($consent): $code"; head -c 400 /tmp/coach.json; echo
+            if [ "$consent" = none ] && [ "$code" = "426" ]; then echo "::notice::헤더 없는 예전 앱 요청은 426 — AI_CONSENT_REQUIRED=1 이 켜져 있음"; continue; fi
+            [ "$code" = "200" ] || { echo "::error::코치 API 응답 실패 (x-ai-consent: $consent)"; exit 1; }
+          done
+          # AI 답변 신고 함수가 배포됐는지 — GET 은 405 (POST 만 받음). 404 면 api/report.ts 가 빠진 배포
+          code=$(curl -sS -o /dev/null -w "%{http_code}" "$url/api/report")
+          echo "api/report (GET): $code"
+          [ "$code" = "405" ] || { echo "::error::AI 답변 신고 API(/api/report)가 없습니다 (GET 이 405 가 아님: $code)"; exit 1; }
           echo "다음 단계: node tools/set-ci-secrets.mjs --api-url $url (앱 빌드가 이 서버를 쓰도록)"

@@ -90,6 +90,10 @@ beforeEach(() => {
       json: async () => json,
     });
     if (u.endsWith('/auth/v1/user')) return reply(true, user);
+    if (u.endsWith('/rest/v1/rpc/member_link')) {
+      const provider = (user as { app_metadata: { provider: string } }).app_metadata.provider;
+      return reply(true, { new: true, bonus: true, provider, nickname: '테스트 회원', created_at: '2026-10-08T00:00:00Z' });
+    }
     if (u.endsWith('/rest/v1/rpc/member_delete')) return memberDeleteOk ? reply(true, undefined, 204) : reply(false, { message: 'boom' });
     if (u.startsWith('https://appleid.apple.com/auth/token')) {
       return reply(true, { refresh_token: 'apple-refresh', ...(appleTokenSub ? { id_token: appleIdToken(appleTokenSub) } : {}) });
@@ -100,7 +104,31 @@ beforeEach(() => {
 
 const deletedAuthUser = () => calls.some((c) => c.method === 'DELETE' && c.url.includes(`/auth/v1/admin/users/${USER_ID}`));
 
+it('POST /api/member는 Google의 기본 프로필·이메일로 회원을 연결한다', async () => {
+  user = { id: USER_ID, app_metadata: { provider: 'google' }, user_metadata: { full_name: '테스트 회원' }, email: 'member@example.test' };
+  const res = fakeRes();
+  await handler({ method: 'POST', body: { deviceId: 'd_google_test' }, query: {}, headers: { authorization: 'Bearer user-token' } } as never, res as never);
+  expect(res.statusCode).toBe(200);
+  const linked = calls.find((c) => c.url.endsWith('/rest/v1/rpc/member_link'));
+  expect(JSON.parse(linked?.body ?? '{}')).toMatchObject({ p_user: USER_ID, p_provider: 'google', p_nickname: '테스트 회원', p_email: 'member@example.test' });
+  expect(res.body).toMatchObject({ bonus: true, member: { provider: 'google', nickname: '테스트 회원' } });
+});
+
 describe('DELETE /api/member (회원 탈퇴)', () => {
+  it('Google 회원도 회원 기록을 먼저 지운 뒤 Supabase 로그인 계정을 삭제한다', async () => {
+    user = { id: USER_ID, app_metadata: { provider: 'google' }, identities: [{ provider: 'google', id: 'google-sub', identity_data: { sub: 'google-sub' } }] };
+    process.env.KAKAO_ADMIN_KEY = 'kakao-admin';
+    setAppleKeys();
+    const res = fakeRes();
+    await handler(deleteReq(), res as never);
+    expect(res.statusCode).toBe(200);
+    const memberDeleteIndex = calls.findIndex((c) => c.url.endsWith('/rest/v1/rpc/member_delete'));
+    const authDeleteIndex = calls.findIndex((c) => c.method === 'DELETE' && c.url.includes(`/auth/v1/admin/users/${USER_ID}`));
+    expect(memberDeleteIndex).toBeGreaterThan(-1);
+    expect(authDeleteIndex).toBeGreaterThan(memberDeleteIndex);
+    expect(calls.every((c) => c.url.startsWith('https://db.example/'))).toBe(true);
+  });
+
   it('데이터베이스 정리(member_delete)가 실패하면 로그인 계정을 지우지 않고 502 — 다시 시도할 수 있다', async () => {
     memberDeleteOk = false;
     const res = fakeRes();

@@ -64,7 +64,7 @@ describe('중계 서버는 사용자가 동의한 회사(Google)로만 보낸다
     expect(gemini).not.toHaveBeenCalled();
   });
 
-  it('헤더가 없는 예전 앱의 요청은 그대로 받는다', async () => {
+  it('헤더가 없는 예전 앱은 그 판 처리방침대로 Google 에 동의한 것으로 보고 받는다', async () => {
     await post();
     expect(gemini).toHaveBeenCalledTimes(1);
   });
@@ -82,6 +82,13 @@ describe('중계 서버는 사용자가 동의한 회사(Google)로만 보낸다
     const res = await post({ 'x-ai-consent': 'google' });
     expect(res.statusCode).not.toBe(426);
     expect(gemini).toHaveBeenCalledTimes(1);
+  });
+
+  it('AI_CONSENT_REQUIRED=1 일 때 다른 회사에 동의한 앱은 업데이트 안내가 아니라 점검 중(503)으로 거절한다', async () => {
+    process.env.AI_CONSENT_REQUIRED = '1';
+    const res = await post({ 'x-ai-consent': 'anthropic' });
+    expect(res.statusCode).toBe(503);
+    expect(gemini).not.toHaveBeenCalled();
   });
 
   it('Gemini 키가 없으면 Anthropic 키·설정이 있어도 그쪽으로 보내지 않고 500', async () => {

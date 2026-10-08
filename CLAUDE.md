@@ -58,8 +58,8 @@ npx tsc --noEmit && npx eslint src --max-warnings=0 && npx jest
 - `src/lib/ai-tasks.ts` · `ai-schemas.ts` — 모드별(coach·report·mind·practice) 요청·프롬프트·출력. 서버는 `mode` 로 나눠 처리하고, mode 가 없으면 예전 앱의 코칭 요청
 - `src/store/app-store.ts` — zustand + AsyncStorage. 비밀 상담(`crush.secret`)은 `partialize` 에서 빠져 저장되지 않는다
 - `src/lib/billing/` — 요금제 4종: 주간·평생(스토어 구매 내역으로 판정) + 하루 이용권·횟수권(소모성, 기기 지갑 `wallet` 에 충전)
-- `modules/floating-bubble/` — 안드로이드 플로팅 버블 로컬 Expo 모듈 (iOS·웹은 아무것도 안 함)
-- `api/` — Vercel 서버리스 (`coach.ts` 가 Gemini 호출, `track.ts`·`admin.ts` 는 이용 기록, `team.ts` 는 관리자가 허용한 팀원 무제한 확인 — `docs/ANALYTICS_SETUP.md`)
+- `modules/floating-bubble/` — 안드로이드 플로팅 버블 로컬 Expo 모듈 (iOS·웹은 아무것도 안 함, 스토어 빌드에서는 빠짐 — 아래 「알아둘 함정」)
+- `api/` — Vercel 서버리스 (`coach.ts` 가 Gemini 호출, `track.ts`·`admin.ts` 는 이용 기록, `team.ts` 는 관리자가 허용한 팀원 무제한 확인 — `docs/ANALYTICS_SETUP.md`, `report.ts` 는 AI 답변 신고 — 앱의 `components/coach/ai-report-sheet.tsx`, 플레이 생성형 AI 정책상 필수)
 - `tools/` — 스토어 자동화 스크립트. 워크플로가 이걸 불러 쓴다
 - `docs/TESTER_GUIDE.md` — 테스터에게 보낼 안내문과 설치 링크, `docs/MARKETING.md` — 틱톡·X·스레드 마케팅 실행안
 
@@ -77,7 +77,7 @@ npx tsc --noEmit && npx eslint src --max-warnings=0 && npx jest
 - 평생권 가격은 Play ₩29,800, App Store ₩29,900 (애플에 ₩29,800 가격대가 없음). 그래서 공용 설명에는 평생권 금액을 적지 않는다. 앱은 스토어가 주는 실제 가격을 표시한다.
 - 하루 이용권(`mylovecoach.pass.day`)·횟수권(`mylovecoach.credits.10`)은 스토어에 **아직 없다**. `tools/asc-iap.mjs --consumables`, `tools/play-setup.mjs --products --consumables` 로 만든다 (상품 ID 는 한 번 만들면 재사용 불가 → 가격 확정 뒤). 스토어에 없는 상품은 결제 화면에서 자동으로 숨는다.
 - 소모성 상품은 복원이 안 된다(기기 지갑). 같은 결제가 두 번 충전되지 않게 거래 ID 를 `wallet.granted` 에 남긴다.
-- 플로팅 버블 때문에 `SYSTEM_ALERT_WINDOW` 를 더 이상 막지 않는다. Play Console 에 포그라운드 서비스(specialUse) 신고가 필요하다.
+- 플로팅 버블은 **스토어 빌드(`android.yml`)에서 기본으로 뺀다** (Play 포그라운드 서비스 신고 전). CI 사본에서만 autolinking 에서 `floating-bubble` 을 빼고 `SYSTEM_ALERT_WINDOW` 를 막으며, AAB 병합 매니페스트에 `FOREGROUND_SERVICE`·`foregroundServiceType`·`SYSTEM_ALERT_WINDOW` 가 남으면 실패한다. 저장소 설정과 직접 설치 APK(`android-apk.yml`)·로컬 빌드에는 버블이 그대로 있다. 스토어 빌드에 넣으려면 Play Console 에 포그라운드 서비스(specialUse) 신고(설명·시연 영상)를 먼저 하고 `-f floating_bubble=true`.
 - App Store 「앱이 수집하는 개인정보」 설문은 API 가 없다 (`/v1/apps/{id}/appDataUsages` 등 전부 404). 답안은 `docs/APP_PRIVACY.md`. 화면에서 **게시**하면 `app-store-autosubmit.yml` 이 15분 안에 심사 제출한다.
 - 개인정보 설문 답과 `site/privacy.html` 은 실제 전송 항목(`src/lib/analytics.ts`, `api/coach.ts`)과 맞아야 한다. 수집 항목을 바꾸면 셋을 같이 고칠 것.
 - 문의처는 크레이빙 회사 메일 `contact@craving.win` (songharry77ss@gmail.com 으로 전달됨 · 2026-10-07 사용자 결정, 처리방침 보호책임자 연락처와 같음). `mylovecoach.app` 도메인은 존재하지 않는다. 지원 URL 은 `/support.html`.
@@ -88,7 +88,7 @@ npx tsc --noEmit && npx eslint src --max-warnings=0 && npx jest
 
 정식 출시까지 남은 화면 작업은 **`docs/LAUNCH_CHECKLIST.md`** 에 정리돼 있다.
 
-- App Store: 「앱이 수집하는 개인정보」 설문 게시만 남음 (답안 `docs/APP_PRIVACY.md`). 게시하면 15분 안에 자동 제출
+- App Store: 1.0(빌드 116) 출시됨 (2026-10-08). AI 분석 동의를 넣은 1.0.1(빌드 121) 심사 중 → 출시 뒤 Vercel `AI_CONSENT_REQUIRED=1`
 - Play: 비공개 테스트 12명 × 14일, 또는 사업자(조직) 계정 전환. 비공개 테스트 초안은 API 로 만들어 둠
 - Supabase 프로젝트 생성 → `docs/ANALYTICS_SETUP.md` 1단계 (사용자가 해야 함)
 - 채팅에 노출된 적 있는 Gemini 키 교체

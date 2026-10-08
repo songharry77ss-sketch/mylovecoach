@@ -2,6 +2,7 @@ name: Play 비공개 테스트 올리기
 
 # 내부 테스트에 올라간 빌드를 비공개 테스트(alpha) 트랙에 올린다.
 # 앱이 「앱 초안」이면 초안까지만 만들어지고, 첫 출시는 Play Console 화면에서 눌러야 한다.
+# 이 앱은 반영하는 순간 대기 중인 변경 전체가 구글 검토로 넘어간다(보류 불가) → send_for_review 를 켰을 때만 반영하고, 끄면 검증만 한다.
 # 개인 개발자 계정은 이 비공개 테스트를 테스터 12명 이상 × 14일 연속 해야 프로덕션을 신청할 수 있다.
 # 필요한 시크릿: PLAY_SERVICE_ACCOUNT_JSON
 
@@ -14,6 +15,11 @@ on:
         type: string
       dry_run:
         description: '검증만 하고 반영하지 않기'
+        required: false
+        default: false
+        type: boolean
+      send_for_review:
+        description: '반영하고 구글 검토로 보내기 (데이터 보안 설문·서버 배포를 마친 뒤에만)'
         required: false
         default: false
         type: boolean
@@ -39,5 +45,6 @@ jobs:
           args=()
           [ -n "${{ inputs.version_code }}" ] && args+=(--version-code "${{ inputs.version_code }}")
           [ "${{ inputs.dry_run }}" = "true" ] && args+=(--dry-run)
+          [ "${{ inputs.send_for_review }}" = "true" ] && args+=(--send-for-review)
           node tools/play-closed-test.mjs "${args[@]}" 2>&1 | tee /tmp/out.txt
           { echo "## Play 비공개 테스트"; echo '```'; cat /tmp/out.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
