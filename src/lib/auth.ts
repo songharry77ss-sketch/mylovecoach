@@ -21,6 +21,26 @@ export class AuthCancelled extends Error {}
 /** 이 기기의 로그인 세션이 끝나 있을 때 (다시 로그인해야 함) */
 export class SessionMissing extends Error {}
 
+/** Apple 연결 해제 확인이 안 됨. 회원은 남겨 두고 재시도·수동 안내 선택을 보여 준다. */
+export class AppleRevocationError extends Error {
+  constructor(message: string, readonly code: string) {
+    super(message);
+    this.name = 'AppleRevocationError';
+  }
+}
+
+export interface DeleteAccountResult {
+  appleRevocation: 'revoked' | 'manual' | 'not_applicable';
+}
+
+interface DeleteAccountOptions {
+  /** 최종 확인창을 열었을 때의 회원. 확인 중 다른 계정으로 바뀌면 요청하지 않는다. */
+  expectedUserId?: string;
+  appleManualRevocationAcknowledged?: boolean;
+}
+
+export const MEMBER_DELETE_TIMEOUT_MS = 35_000;
+
 export interface LinkResult {
   member: MemberState;
   /** 이번에 가입 보너스를 받았는지 */
@@ -57,6 +77,7 @@ const ensureClient = () => {
 };
 
 const CONNECTION_ERROR = '서버에 연결하지 못했어요. 잠시 후 다시 시도해주세요.';
+const ACCOUNT_CHANGED_ERROR = '로그인 계정이 바뀌었어요. 현재 계정을 확인한 뒤 다시 탈퇴해주세요.';
 
 /**
  * 이 기기의 로그인 세션. 만료된 세션을 갱신하다 네트워크 오류 등으로 실패하면(error) 연결 오류로 알리고
@@ -130,20 +151,36 @@ export async function signInWithApple(): Promise<LinkResult> {
   return linkMember(name);
 }
 
-async function memberApi(method: 'POST' | 'DELETE', body?: Record<string, unknown>) {
+async function memberApi(method: 'POST' | 'DELETE', body?: Record<string, unknown>, expectedUserId?: string) {
   const session = await currentSession();
-  const res = await fetch(`${APP_CONFIG.apiUrl}/api/member`, {
-    method,
-    headers: {
-      'content-type': 'application/json',
-      Authorization: `Bearer ${session.access_token}`,
-      ...(APP_CONFIG.apiToken ? { 'x-app-token': APP_CONFIG.apiToken } : {}),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-  if (!res.ok) throw new Error(typeof json.error === 'string' ? json.error : CONNECTION_ERROR);
-  return { session, json };
+  if (expectedUserId !== undefined && session.user.id !== expectedUserId) throw new Error(ACCOUNT_CHANGED_ERROR);
+  const controller = method === 'DELETE' ? new AbortController() : null;
+  const timeout = controller ? setTimeout(() => controller.abort(), MEMBER_DELETE_TIMEOUT_MS) : null;
+  try {
+    const res = await fetch(`${APP_CONFIG.apiUrl}/api/member`, {
+      method,
+      headers: {
+        'content-type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+        ...(APP_CONFIG.apiToken ? { 'x-app-token': APP_CONFIG.apiToken } : {}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+      ...(controller ? { signal: controller.signal } : {}),
+    });
+    const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) {
+      const message = typeof json.error === 'string' ? json.error : CONNECTION_ERROR;
+      if (method === 'DELETE' && typeof json.code === 'string' && json.code.startsWith('apple_')) throw new AppleRevocationError(message, json.code);
+      throw new Error(message);
+    }
+    return { session, json };
+  } catch (error) {
+    // 서버가 이미 완료했을 수도 있어 자동 재전송하지 않는다. 확인을 못 한 상태에서 로컬 회원 표시도 지우지 않는다.
+    if (controller?.signal.aborted) throw new Error('탈퇴 처리 결과를 확인하지 못했어요. 잠시 후 계정 상태를 확인하고 다시 시도해주세요.');
+    throw error;
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
 }
 
 let linking: Promise<LinkResult> | null = null;
@@ -209,31 +246,58 @@ export async function signOut(): Promise<void> {
 /**
  * Apple 회원 탈퇴용 인증 코드. Apple 규정상 탈퇴할 때 앱과 Apple ID 의 연결(토큰)을 취소해야 해서,
  * 기기의 Apple 확인 창을 한 번 더 띄워 새 코드를 받는다 (서버가 이 코드로 토큰을 취소).
- * 취소하면 탈퇴를 멈추고, 그 밖의 오류(기기에서 Apple ID 로그아웃, Apple 서버 오류 등)로 코드를 못 받으면
- * 코드 없이 탈퇴를 이어 간다 — 서버는 토큰 취소만 건너뛴다.
+ * 취소하면 탈퇴를 멈춘다. 코드를 못 받으면 자동 삭제하지 않고 재시도·수동 연결 해제 안내를 선택하게 한다.
  */
-async function appleCodeForRevoke(): Promise<string | undefined> {
-  if (Platform.OS !== 'ios') return undefined;
+async function appleCodeForRevoke(): Promise<string> {
+  if (Platform.OS !== 'ios') throw new AppleRevocationError('이 기기에서는 Apple 연결을 자동 해제할 수 없어요. Apple 기기에서 다시 시도하거나 수동 연결 해제 안내를 확인해주세요.', 'apple_reauthentication_unavailable');
   try {
     const credential = await AppleAuthentication.signInAsync({ requestedScopes: [] });
-    return credential.authorizationCode ?? undefined;
+    if (!credential.authorizationCode?.trim()) throw new AppleRevocationError('Apple 확인 정보를 받지 못했어요. 다시 시도하거나 수동 연결 해제 안내를 확인해주세요.', 'apple_code_required');
+    return credential.authorizationCode;
   } catch (e) {
     if ((e as { code?: string }).code === 'ERR_REQUEST_CANCELED') throw new AuthCancelled('cancelled');
-    return undefined;
+    if (e instanceof AppleRevocationError) throw e;
+    throw new AppleRevocationError('Apple 확인을 마치지 못했어요. 다시 시도하거나 수동 연결 해제 안내를 확인해주세요.', 'apple_reauthentication_failed');
   }
 }
 
-/** 회원 탈퇴 — 서버의 회원·로그인 계정·이용 기록을 지우고, 가능한 카카오·Apple 연결 해제도 시도한다 */
-export async function deleteAccount(): Promise<void> {
+let deleting: Promise<DeleteAccountResult> | null = null;
+let deletingExpectedUserId: string | undefined;
+
+/** 같은 확인을 연달아 눌러도 일회용 Apple 코드 교환·회원 삭제 요청은 한 번만 진행한다. */
+export function deleteAccount(options: DeleteAccountOptions = {}): Promise<DeleteAccountResult> {
+  if (deleting && options.expectedUserId !== deletingExpectedUserId) return Promise.reject(new Error(ACCOUNT_CHANGED_ERROR));
+  if (!deleting) {
+    deletingExpectedUserId = options.expectedUserId;
+    deleting = requestDelete(options).finally(() => {
+      deleting = null;
+      deletingExpectedUserId = undefined;
+    });
+  }
+  return deleting;
+}
+
+/** Apple 자동 취소를 확인하거나 수동 안내를 명시적으로 확인한 뒤 회원·로그인 계정·이용 기록을 지운다. */
+async function requestDelete(options: DeleteAccountOptions): Promise<DeleteAccountResult> {
   // 로그인이 끝났거나(다시 로그인 안내) 서버에 연결하지 못하면 Apple 확인 창을 띄우기 전에 멈춘다
-  await currentSession();
-  const member = useAppStore.getState().member;
-  const appleAuthorizationCode = member?.provider === 'apple' ? await appleCodeForRevoke() : undefined;
+  const session = await currentSession();
+  if (options.expectedUserId !== undefined && session.user.id !== options.expectedUserId) throw new Error(ACCOUNT_CHANGED_ERROR);
+  const providers = session.user.app_metadata?.providers;
+  const hasApple = session.user.app_metadata?.provider === 'apple' || (Array.isArray(providers) && providers.includes('apple')) || session.user.identities?.some((identity) => identity.provider === 'apple');
+  const manual = options.appleManualRevocationAcknowledged === true;
+  const appleAuthorizationCode = hasApple && !manual ? await appleCodeForRevoke() : undefined;
   // 아직 보내지 않은 이용 기록은 버린다 (탈퇴로 지운 뒤에 탈퇴 전 기록이 다시 저장되지 않게)
   discardQueuedAnalytics();
-  await memberApi('DELETE', appleAuthorizationCode ? { appleAuthorizationCode } : undefined);
-  await dropLocalSession();
-  useAppStore.getState().setMember(null);
+  const { json } = await memberApi('DELETE', manual ? { appleManualRevocationAcknowledged: true } : appleAuthorizationCode ? { appleAuthorizationCode } : undefined, session.user.id);
+  if (json.deleted !== true) throw new Error('탈퇴 완료를 확인하지 못했어요. 계정 상태를 확인하고 다시 시도해주세요.');
+  // 응답을 기다리다 다른 계정으로 로그인했다면 새 계정의 세션·회원 표시를 지우지 않는다.
+  const remainingSession = await currentSession().catch(() => null);
+  if (remainingSession?.user.id === session.user.id && useAppStore.getState().member?.userId === session.user.id) {
+    await dropLocalSession();
+    if (useAppStore.getState().member?.userId === session.user.id) useAppStore.getState().setMember(null);
+  }
+  // 이전 서버가 취소 상태를 알려 주지 않았다면 Apple 자동 해제 성공으로 표현하지 않는다.
+  return { appleRevocation: json.appleRevocation === 'revoked' ? 'revoked' : json.appleRevocation === 'manual' || hasApple ? 'manual' : 'not_applicable' };
 }
 
 export const providerLabel = (provider: string) => (provider === 'apple' ? 'Apple' : provider === 'kakao' ? '카카오' : provider === 'google' ? 'Google' : provider);

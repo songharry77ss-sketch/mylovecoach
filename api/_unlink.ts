@@ -3,13 +3,15 @@
  *   카카오: 어드민 키로 「연결 끊기」(POST /v1/user/unlink) — 환경변수 KAKAO_ADMIN_KEY
  *   Apple : 탈퇴 직전에 받은 인증 코드를 토큰으로 바꾼 뒤, 그 토큰이 이 회원의 Apple ID 것일 때만 취소(/auth/revoke) — 환경변수
  *           APPLE_TEAM_ID · APPLE_KEY_ID · APPLE_PRIVATE_KEY(Sign in with Apple 키 .p8 내용) · APPLE_CLIENT_ID(기본 app.mylovecoach.ios)
- * 키가 없으면 건너뛰고('skipped'), 실패해도 탈퇴는 계속한다 — 결과는 서버 기록에만 남긴다.
+ * 카카오는 키가 없으면 건너뛴다. Apple 은 취소 확인 전 데이터를 지우지 않도록 실패 원인을 돌려준다.
  */
 import { sign } from 'node:crypto';
 
 import type { AuthUser } from './_supabase';
 
 export type UnlinkResult = 'ok' | 'skipped' | 'failed';
+export type AppleRevokeResult = 'ok' | 'missing_code' | 'identity_unavailable' | 'unavailable' | 'mismatch' | 'failed';
+export const APPLE_REVOKE_TIMEOUT_MS = 6000;
 
 const APPLE_ORIGIN = 'https://appleid.apple.com';
 const DEFAULT_APPLE_CLIENT_ID = 'app.mylovecoach.ios';
@@ -85,20 +87,25 @@ function idTokenSub(idToken: unknown): string | null {
  * 탈퇴 직전에 앱이 받은 Apple 인증 코드로 그 계정의 토큰을 취소한다 (앱과 Apple ID 의 연결 해제).
  * 기기의 Apple ID 가 가입 때와 다르면 다른 Apple ID 의 코드가 오므로, 토큰의 sub 가 이 회원의 Apple ID(expectedSub)와 같을 때만 취소한다.
  */
-export async function revokeApple(authorizationCode: string | null, expectedSub: string | null): Promise<UnlinkResult> {
-  if (!authorizationCode || !expectedSub) return 'skipped'; // 코드가 없거나 이 계정에 Apple 로그인이 없음
+export async function revokeApple(authorizationCode: string | null, expectedSub: string | null): Promise<AppleRevokeResult> {
+  if (!expectedSub) return 'identity_unavailable';
+  if (!authorizationCode) return 'missing_code';
   let clientSecret: string | null;
   try {
     clientSecret = appleClientSecret();
   } catch {
-    return 'failed'; // 키 형식이 잘못됨
+    return 'unavailable'; // 키 형식이 잘못됨. 키 자체는 기록하지 않는다.
   }
-  if (!clientSecret) return 'skipped';
+  if (!clientSecret) return 'unavailable';
   const clientId = process.env.APPLE_CLIENT_ID || DEFAULT_APPLE_CLIENT_ID;
+  // 코드 교환과 토큰 취소를 합쳐 제한한다. 시간 초과 결과를 성공으로 간주하거나 같은 코드를 자동 재전송하지 않는다.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), APPLE_REVOKE_TIMEOUT_MS);
   const form = (fields: Record<string, string>) => ({
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams(fields).toString(),
+    signal: controller.signal,
   });
   try {
     const tokenRes = await fetch(
@@ -107,11 +114,10 @@ export async function revokeApple(authorizationCode: string | null, expectedSub:
     );
     if (!tokenRes.ok) return 'failed';
     const tokens = (await tokenRes.json()) as { refresh_token?: string; access_token?: string; id_token?: string };
-    if (idTokenSub(tokens.id_token) !== expectedSub) {
-      // 다른 Apple ID 의 연결을 끊지 않게 건너뛴다 (이 회원의 Apple 토큰은 남음)
-      console.warn('[member] Apple 코드가 이 회원의 Apple ID 것이 아니라 토큰 취소를 건너뜀');
-      return 'skipped';
-    }
+    const tokenSub = idTokenSub(tokens.id_token);
+    if (!tokenSub) return 'identity_unavailable';
+    // 다른 Apple ID 의 토큰을 취소하거나 현재 회원 데이터를 지우지 않는다.
+    if (tokenSub !== expectedSub) return 'mismatch';
     const token = tokens.refresh_token ?? tokens.access_token;
     if (!token) return 'failed';
     const revokeRes = await fetch(
@@ -126,5 +132,7 @@ export async function revokeApple(authorizationCode: string | null, expectedSub:
     return revokeRes.ok ? 'ok' : 'failed';
   } catch {
     return 'failed';
+  } finally {
+    clearTimeout(timeout);
   }
 }
