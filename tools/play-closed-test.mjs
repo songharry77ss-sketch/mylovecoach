@@ -1,4 +1,4 @@
-// 실행: node tools/play-closed-test.mjs [--version-code 114] [--dry-run] [--secrets <폴더>]
+// 실행: node tools/play-closed-test.mjs [--version-code 114] [--notes-file <파일>] [--notes-lang ko-KR] [--send-for-review] [--dry-run] [--secrets <폴더>]
 // 내부 테스트에 올라가 있는 빌드를 비공개 테스트(alpha) 트랙에 올린다.
 //
 // 앱이 아직 「앱 초안」(한 번도 게시 안 됨)이면 API 로는 초안(draft) 출시까지만 만들 수 있다.
@@ -6,6 +6,9 @@
 // 「테스터 지정 → 버전 검토 → 출시 시작」을 눌러야 실제로 시작된다 (첫 게시는 화면에서만 가능).
 // 앱이 이미 게시된 상태면 바로 출시(completed)한다.
 //
+// --notes-file : 출시 노트(UTF-8 글, 500자 이하)를 이 파일 내용으로 바꾼다. 주지 않으면 지금 비공개 테스트의 출시 노트를 그대로 둔다
+// --send-for-review : 실제로 반영한다. 이 앱은 반영하면 대기 중인 변경 전체가 바로 구글 검토로 넘어가므로(보류 불가),
+//                     이 옵션을 주지 않으면 검증만 하고 멈춘다
 // --dry-run : 실제로 반영하지 않고 edits:validate 로 검증만 한다
 import { Buffer } from 'node:buffer';
 import { createSign } from 'node:crypto';
@@ -65,11 +68,26 @@ async function main() {
   }
   console.log(`비공개 테스트에 올릴 빌드: versionCode ${versionCodes.join(', ')}`);
 
+  // 출시 노트: 파일을 주면 그 내용으로, 아니면 지금 비공개 테스트의 노트를 그대로 둔다 (트랙을 통째로 덮어쓰기 때문)
+  const notesFile = argOf('--notes-file');
+  const notesLang = argOf('--notes-lang') ?? 'ko-KR';
+  let releaseNotes;
+  if (notesFile) {
+    const text = readFileSync(notesFile, 'utf8').trim();
+    if (!text || text.length > 500) throw new Error(`출시 노트는 1~500자여야 합니다 (지금 ${text.length}자)`);
+    releaseNotes = [{ language: notesLang, text }];
+  } else {
+    const current = (await call('GET', `/edits/${edit.id}/tracks/${TRACK}`)).json;
+    releaseNotes = current?.releases?.find((r) => r.releaseNotes?.length)?.releaseNotes;
+  }
+  console.log(`출시 노트: ${releaseNotes ? releaseNotes.map((n) => `${n.language} ${n.text.length}자`).join(', ') : '없음'}`);
+
   // 먼저 바로 출시(completed)를 시도하고, 앱 초안이라 거부되면 초안(draft)으로 만든다
   let status = 'completed';
   for (const attempt of ['completed', 'draft']) {
     status = attempt;
-    const set = await call('PUT', `/edits/${edit.id}/tracks/${TRACK}`, { track: TRACK, releases: [{ name: '1.0.0', versionCodes, status }] });
+    const release = { name: '1.0.0', versionCodes, status, ...(releaseNotes ? { releaseNotes } : {}) };
+    const set = await call('PUT', `/edits/${edit.id}/tracks/${TRACK}`, { track: TRACK, releases: [release] });
     if (!set.ok) throw new Error(`트랙 설정 실패: ${set.message}`);
     const val = await call('POST', `/edits/${edit.id}:validate`);
     if (val.ok) break;
@@ -87,8 +105,20 @@ async function main() {
     return;
   }
 
+  // 이 앱은 관리형 게시가 꺼져 있어 반영(commit)하는 순간 대기 중인 변경 전체가 구글 검토로 넘어간다
+  // (2026-10-08 확인: changesNotSentForReview 를 주면 "Changes are sent for review automatically" 로 거부됨).
+  // 데이터 보안·서버가 준비되기 전에 검토가 시작되지 않도록, --send-for-review 를 명시했을 때만 반영한다.
+  if (!args.includes('--send-for-review')) {
+    await call('DELETE', `/edits/${edit.id}`);
+    console.log(`검증 통과 — 반영하면 ${status === 'draft' ? '초안으로 저장되고' : '비공개 테스트 출시와 함께'} 대기 중인 변경 전체가 구글 검토로 넘어갑니다.`);
+    console.log('준비(데이터 보안 설문·서버 배포)가 끝났으면 --send-for-review 를 붙여 다시 실행하세요. 이번에는 반영하지 않았습니다.');
+    return;
+  }
   const commit = await call('POST', `/edits/${edit.id}:commit`);
-  if (!commit.ok) throw new Error(`반영 실패: ${commit.message}`);
+  if (!commit.ok) {
+    await call('DELETE', `/edits/${edit.id}`);
+    throw new Error(`반영 실패: ${commit.message}`);
+  }
 
   if (status === 'draft') {
     console.log('\n✓ 비공개 테스트 초안을 만들었습니다.');
