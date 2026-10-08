@@ -2,7 +2,7 @@
   "expo": {
     "name": "나만의 연애코치",
     "slug": "mylovecoach",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mylovecoach",
