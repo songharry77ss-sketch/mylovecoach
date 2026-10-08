@@ -243,6 +243,14 @@ export function currentConsentVersion(): number | null {
   return identity.consentVersion ?? null;
 }
 
+/**
+ * 대기 중인 기록을 보내지 않고 버린다 — 회원 탈퇴 직전에 부른다.
+ * 탈퇴로 서버 기록을 지운 뒤에 탈퇴 전 기록이 뒤늦게 다시 저장되지 않게 한다.
+ */
+export function discardQueuedAnalytics(): void {
+  dropPending();
+}
+
 /** 시험용: 세션 상태 */
 export function sessionStateForTest() {
   return { sessionId, sessionStartedAt, foregroundMs, foregroundSince, backgroundAt, queued: queue.length, currentScreen, consent: identity.consent };

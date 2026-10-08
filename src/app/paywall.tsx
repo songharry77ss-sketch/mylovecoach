@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { SignupCard } from '@/components/auth/signup-card';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
@@ -13,10 +14,11 @@ import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { billingSupported, purchasePlan, restorePremium, type PlanProduct } from '@/lib/billing/iap';
-import { CREDITS_PER_PACK, FALLBACK_PRICES, PRODUCT_IDS, isConsumablePlan, type PlanKey } from '@/lib/billing/plans';
+import { CREDITS_PER_PACK, FALLBACK_PRICES, PRODUCT_IDS, SIGNUP_BONUS, freeRules, isConsumablePlan, type PlanKey } from '@/lib/billing/plans';
 import { isPremiumActive, quotaLabel, quotaStatus } from '@/lib/billing/quota';
 import { haptic } from '@/lib/haptics';
 import { APP_CONFIG } from '@/lib/config';
+import { authAvailable } from '@/lib/supabase';
 import { useAppStore } from '@/store/app-store';
 
 type Reason = 'quota' | 'regenerate' | 'my' | 'banner' | 'report' | 'practice' | 'mind';
@@ -65,6 +67,7 @@ export default function Paywall() {
   const usage = useAppStore((s) => s.usage);
   const wallet = useAppStore((s) => s.wallet);
   const team = useAppStore((s) => s.team);
+  const isMember = useAppStore((s) => s.member != null);
   const setPremium = useAppStore((s) => s.setPremium);
 
   // 앱에서는 스토어 응답을 받은 뒤에 상품을 보여 준다 (스토어에 없는 상품이 잠깐이라도 보이지 않도록)
@@ -90,7 +93,9 @@ export default function Paywall() {
   const dayPrice = onSalePrice(products, 'day');
   const subtitle = reason === 'quota' && dayPrice ? `하루 이용권이면 ${dayPrice}으로 지금 바로 이어서 코칭받을 수 있어요.` : HEADLINES[reason].subtitle;
   const active = isPremiumActive(premium, Date.now());
-  const status = quotaStatus(premium, usage, Date.now(), wallet, team);
+  const status = quotaStatus(premium, usage, Date.now(), wallet, team, freeRules(authAvailable, isMember));
+  // 비회원이면 결제보다 가입(무료 보너스)을 먼저 권한다
+  const offerSignup = authAvailable && !isMember && !active && status.kind !== 'team';
   const storeName = Platform.OS === 'ios' || previewStore === 'ios' ? 'App Store' : 'Google Play';
 
   const buy = async () => {
@@ -136,7 +141,10 @@ export default function Paywall() {
     }
   };
 
-  const headline = HEADLINES[reason];
+  const headline =
+    offerSignup && status.kind === 'exhausted'
+      ? { title: '무료 맛보기를\n다 썼어요', subtitle: `가입하면 무료 코칭 ${SIGNUP_BONUS}회를 더 드려요. 이용권으로 바로 이어서 할 수도 있어요.` }
+      : HEADLINES[reason];
 
   return (
     <Screen safeTop safeBottom contentStyle={styles.content}>
@@ -154,7 +162,7 @@ export default function Paywall() {
           {active ? '프리미엄 이용 중이에요' : headline.title}
         </AppText>
         <AppText variant="body" color="textSecondary" align="center">
-          {active ? (premium?.plan === 'lifetime' ? '평생권으로 모든 기능을 무제한으로 쓰고 있어요.' : '주간 구독으로 모든 기능을 무제한으로 쓰고 있어요.') : subtitle}
+          {active ? (premium?.plan === 'lifetime' ? '평생권으로 모든 기능을 무제한으로 쓰고 있어요.' : '주간 구독으로 모든 기능을 무제한으로 쓰고 있어요.') : offerSignup && status.kind === 'exhausted' ? headline.subtitle : subtitle}
         </AppText>
         {!active && (status.kind === 'team' || status.kind === 'pass' || (status.credits ?? 0) > 0) ? (
           <View style={[styles.statusPill, { backgroundColor: theme.primarySoft }]}>
@@ -164,6 +172,16 @@ export default function Paywall() {
           </View>
         ) : null}
       </View>
+
+      {offerSignup ? (
+        <SignupCard
+          onDone={(result) => {
+            haptic.celebrate();
+            close();
+            toast.show(result.bonus ? `가입 완료! 무료 코칭 ${SIGNUP_BONUS}회를 받았어요 🎁` : '로그인했어요.', 'success');
+          }}
+        />
+      ) : null}
 
       <View style={[styles.benefits, { backgroundColor: theme.surface }]}>
         {BENEFITS.map((b) => (
@@ -230,7 +248,7 @@ export default function Paywall() {
             프리미엄은 앱에서 시작할 수 있어요
           </AppText>
           <AppText variant="caption" color="textSecondary" align="center">
-            iPhone · Android 앱에서 이용권을 결제하면 횟수 제한 없이 코칭받을 수 있어요. 웹에서는 매일 무료 코칭이 충전돼요.
+            iPhone · Android 앱에서 이용권을 결제하면 횟수 제한 없이 코칭받을 수 있어요. 웹에서는 {authAvailable ? '가입하면 ' : ''}매일 무료 코칭이 충전돼요.
           </AppText>
         </View>
       )}

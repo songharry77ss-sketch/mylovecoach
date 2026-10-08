@@ -1,4 +1,4 @@
-import { CREDITS_PER_PACK, DAY_PASS_MS, FREE_DAILY, FREE_TRIAL_TOTAL, type ConsumablePlanKey, type PremiumPlanKey } from '@/lib/billing/plans';
+import { CREDITS_PER_PACK, DAY_PASS_MS, DEFAULT_RULES, SIGNUP_BONUS, type ConsumablePlanKey, type FreeRules, type PremiumPlanKey } from '@/lib/billing/plans';
 
 /** 기기에 저장해 두는 프리미엄 상태 (스토어 조회 결과의 캐시) */
 export interface PremiumState {
@@ -24,6 +24,8 @@ export interface WalletState {
   passUntil: number;
   /** 남은 코칭 횟수권 */
   credits: number;
+  /** 남은 가입 보너스 무료 횟수 (예전에 저장된 지갑에는 없음) */
+  bonus?: number;
   /** 이미 지급한 거래 ID (같은 결제가 두 번 충전되지 않게, 최근 50개) */
   granted: string[];
 }
@@ -63,7 +65,7 @@ export function isTeamActive(team: TeamState | null | undefined, now: number): b
   return team != null && now - team.verifiedAt < TEAM_TRUST_MS;
 }
 
-export type QuotaKind = 'premium' | 'team' | 'pass' | 'trial' | 'daily' | 'credits' | 'exhausted';
+export type QuotaKind = 'premium' | 'team' | 'pass' | 'trial' | 'daily' | 'bonus' | 'credits' | 'exhausted';
 
 export interface QuotaStatus {
   kind: QuotaKind;
@@ -73,16 +75,22 @@ export interface QuotaStatus {
   free?: number;
   /** 남은 횟수권 */
   credits?: number;
+  /** 남은 가입 보너스 */
+  bonus?: number;
+  /** 매일 충전되는 무료 횟수가 없으면 0 (비회원) */
+  daily?: number;
   /** 하루 이용권이 끝나는 시각 */
   until?: number;
 }
 
-function freeLeft(usage: UsageState, now: number): { kind: 'trial' | 'daily'; left: number } {
-  const trialLeft = Math.max(0, FREE_TRIAL_TOTAL - usage.total);
+function freeLeft(usage: UsageState, now: number, rules: FreeRules): { kind: 'trial' | 'daily'; left: number } {
+  const trialLeft = Math.max(0, rules.trial - usage.total);
   if (trialLeft > 0) return { kind: 'trial', left: trialLeft };
   const usedToday = usage.day === dayKey(now) ? usage.dayCount : 0;
-  return { kind: 'daily', left: Math.max(0, FREE_DAILY - usedToday) };
+  return { kind: 'daily', left: Math.max(0, rules.daily - usedToday) };
 }
+
+const bonusOf = (wallet: WalletState) => Math.max(0, wallet.bonus ?? 0);
 
 export function quotaStatus(
   premium: PremiumState | null | undefined,
@@ -90,21 +98,25 @@ export function quotaStatus(
   now: number,
   wallet: WalletState = EMPTY_WALLET,
   team: TeamState | null = null,
+  rules: FreeRules = DEFAULT_RULES,
 ): QuotaStatus {
   if (isPremiumActive(premium, now)) return { kind: 'premium', remaining: Infinity };
   if (isTeamActive(team, now)) return { kind: 'team', remaining: Infinity };
   if (wallet.passUntil > now) return { kind: 'pass', remaining: Infinity, until: wallet.passUntil };
-  const free = freeLeft(usage, now);
+  const free = freeLeft(usage, now, rules);
+  const bonus = bonusOf(wallet);
   const credits = Math.max(0, wallet.credits);
-  if (free.left > 0) return { kind: free.kind, remaining: free.left + credits, free: free.left, credits };
+  const extra = bonus ? { bonus } : {};
+  if (free.left > 0) return { kind: free.kind, remaining: free.left + bonus + credits, free: free.left, credits, ...extra };
+  if (bonus > 0) return { kind: 'bonus', remaining: bonus + credits, free: 0, credits, bonus };
   if (credits > 0) return { kind: 'credits', remaining: credits, free: 0, credits };
-  return { kind: 'exhausted', remaining: 0, free: 0, credits: 0 };
+  return { kind: 'exhausted', remaining: 0, free: 0, credits: 0, ...(rules.daily === 0 ? { daily: 0 } : {}) };
 }
 
 /** 무료 코칭 1회 사용을 기록한 새 상태 */
-export function consumeFree(usage: UsageState, now: number): UsageState {
+export function consumeFree(usage: UsageState, now: number, rules: FreeRules = DEFAULT_RULES): UsageState {
   const today = dayKey(now);
-  const inTrial = usage.total < FREE_TRIAL_TOTAL;
+  const inTrial = usage.total < rules.trial;
   const usedToday = usage.day === today ? usage.dayCount : 0;
   // 체험 횟수로 쓴 것은 일일 무료 횟수에서 차감하지 않는다
   return { total: usage.total + 1, day: today, dayCount: inTrial ? usedToday : usedToday + 1 };
@@ -112,7 +124,7 @@ export function consumeFree(usage: UsageState, now: number): UsageState {
 
 /**
  * 한 번 사용 처리. 프리미엄·팀원·하루 이용권이면 아무것도 깎지 않고,
- * 무료 횟수 → 횟수권 순서로 차감한다.
+ * 무료 횟수 → 가입 보너스 → 횟수권 순서로 차감한다.
  */
 export function consumeOne(
   premium: PremiumState | null | undefined,
@@ -120,11 +132,20 @@ export function consumeOne(
   wallet: WalletState,
   now: number,
   team: TeamState | null = null,
+  rules: FreeRules = DEFAULT_RULES,
 ): { usage: UsageState; wallet: WalletState } {
   if (isPremiumActive(premium, now) || isTeamActive(team, now) || wallet.passUntil > now) return { usage, wallet };
-  if (freeLeft(usage, now).left > 0) return { usage: consumeFree(usage, now), wallet };
+  if (freeLeft(usage, now, rules).left > 0) return { usage: consumeFree(usage, now, rules), wallet };
+  if (bonusOf(wallet) > 0) return { usage, wallet: { ...wallet, bonus: bonusOf(wallet) - 1 } };
   if (wallet.credits > 0) return { usage, wallet: { ...wallet, credits: wallet.credits - 1 } };
-  return { usage: consumeFree(usage, now), wallet };
+  return { usage: consumeFree(usage, now, rules), wallet };
+}
+
+/** 가입 보너스 지급 (같은 회원에게 두 번 주지 않음). 이미 줬으면 null */
+export function grantSignupBonus(wallet: WalletState, memberKey: string): WalletState | null {
+  const key = `signup:${memberKey}`;
+  if (wallet.granted.includes(key)) return null;
+  return { ...wallet, bonus: bonusOf(wallet) + SIGNUP_BONUS, granted: [...wallet.granted, key].slice(-50) };
 }
 
 /** 소모성 상품 결제 1건을 지갑에 충전한다. 이미 충전한 거래면 null */
@@ -143,7 +164,7 @@ const clock = (at: number) => {
 
 /** 화면에 보여 줄 남은 횟수 안내 문구 */
 export function quotaLabel(status: QuotaStatus): string {
-  const creditNote = status.credits ? ` · 횟수권 ${status.credits}회` : '';
+  const creditNote = `${status.bonus && status.kind !== 'bonus' ? ` · 가입 보너스 ${status.bonus}회` : ''}${status.credits ? ` · 횟수권 ${status.credits}회` : ''}`;
   switch (status.kind) {
     case 'premium':
       return '프리미엄 · 무제한';
@@ -155,9 +176,11 @@ export function quotaLabel(status: QuotaStatus): string {
       return `무료 코칭 ${status.free ?? status.remaining}회 남았어요${creditNote}`;
     case 'daily':
       return `오늘의 무료 코칭 ${status.free ?? status.remaining}회 남았어요${creditNote}`;
+    case 'bonus':
+      return `가입 보너스 무료 코칭 ${status.bonus ?? status.remaining}회 남았어요${status.credits ? ` · 횟수권 ${status.credits}회` : ''}`;
     case 'credits':
       return `코칭 횟수권 ${status.remaining}회 남았어요`;
     case 'exhausted':
-      return '오늘의 무료 코칭을 다 썼어요 · 내일 다시 충전돼요';
+      return status.daily === 0 ? `무료 맛보기를 다 썼어요 · 가입하면 무료 ${SIGNUP_BONUS}회 더` : '오늘의 무료 코칭을 다 썼어요 · 내일 다시 충전돼요';
   }
 }

@@ -102,6 +102,146 @@ create table if not exists team_member (
   created_at  timestamptz not null default now()
 );
 
+-- ── 회원 (카카오·Google·Apple 로그인, Supabase Auth 의 auth.users 와 같은 id) ──
+create table if not exists member (
+  user_id       uuid primary key,
+  provider      text,                        -- kakao · google · apple
+  nickname      text,
+  email         text,                        -- 제공자가 알려 준 경우만 (Apple 은 가린 주소일 수 있음)
+  device_id     text,                        -- 마지막으로 로그인한 기기
+  bonus_device  text,                        -- 가입 보너스를 준 기기 (기기당 한 번)
+  bonus_at      timestamptz,
+  created_at    timestamptz not null default now(),
+  last_login_at timestamptz not null default now()
+);
+create index if not exists member_device_idx on member (device_id);
+create unique index if not exists member_bonus_device_idx on member (bonus_device) where bonus_device is not null;
+alter table app_user add column if not exists user_id uuid;   -- 가입한 회원이면 그 id
+create index if not exists app_user_user_idx on app_user (user_id) where user_id is not null;
+
+-- 탈퇴한 회원이 가입 보너스를 받은 기기 — 같은 기기로 다시 가입해 보너스를 또 받지 않게, 탈퇴 후 1년만 보관
+create table if not exists bonus_spent (
+  device_id    text primary key,
+  bonus_at     timestamptz,
+  withdrawn_at timestamptz not null default now()
+);
+
+-- 회원이 로그인한 기기 이력 — 마지막 기기(member.device_id)만 보면, 다른 기기로 로그인한 뒤 예전 기기에서
+-- 처음 쌓인 이용 기록이 회원과 이어지지 않고 탈퇴해도 남는다. 회원 정보라 탈퇴할 때 member_delete 가 지운다 (외래 키 없음)
+create table if not exists member_device (
+  user_id   uuid not null,
+  device_id text not null,
+  first_at  timestamptz not null default now(),   -- 이 기기로 처음 로그인한 시각
+  last_at   timestamptz not null default now(),   -- 이 기기로 마지막으로 로그인한 시각
+  primary key (user_id, device_id)
+);
+create index if not exists member_device_device_idx on member_device (device_id, last_at desc);
+
+-- 이 표가 생기기 전에 가입한 회원의 기기(마지막 기기·보너스 기기·이미 이어진 이용 기록의 기기)를 채운다. 이미 있으면 그대로
+insert into member_device (user_id, device_id, first_at, last_at)
+select user_id, device_id, min(at), max(at) from (
+  select user_id, device_id, last_login_at as at from member where device_id is not null
+  union all
+  select user_id, bonus_device, coalesce(bonus_at, created_at) from member where bonus_device is not null
+  union all
+  select a.user_id, a.device_id, m.created_at from app_user a join member m on m.user_id = a.user_id
+) d
+group by user_id, device_id
+on conflict (user_id, device_id) do nothing;
+
+-- 처음 기록되는 기기에 회원이 로그인한 적 있으면(가입 뒤에 이용 기록을 켠 경우) 그 기기로 가장 최근에 로그인한 회원으로 표시
+create or replace function app_user_member()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.user_id is null then
+    select d.user_id into new.user_id
+      from member_device d join member m on m.user_id = d.user_id
+     where d.device_id = new.device_id and m.provider is not null
+     order by d.last_at desc limit 1;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists app_user_member on app_user;
+create trigger app_user_member before insert on app_user for each row execute function app_user_member();
+
+-- 로그인할 때마다: 회원을 만들거나 갱신하고, 기기와 잇고, 처음이면 보너스 (회원당·기기당 한 번)
+create or replace function member_link(p_user uuid, p_provider text, p_nickname text, p_email text, p_device text)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_new   boolean;
+  v_bonus boolean := false;
+  m       member;
+begin
+  insert into member (user_id, provider, nickname, email, device_id)
+  values (p_user, p_provider, p_nickname, p_email, p_device)
+  on conflict (user_id) do update
+    set last_login_at = now(),
+        provider      = coalesce(excluded.provider, member.provider),
+        device_id     = coalesce(excluded.device_id, member.device_id),
+        nickname      = coalesce(member.nickname, excluded.nickname),
+        email         = coalesce(excluded.email, member.email)
+  returning (xmax = 0) into v_new;
+
+  if p_device is not null
+     and not exists (select 1 from member where bonus_device = p_device)
+     and not exists (select 1 from bonus_spent where device_id = p_device) then
+    begin
+      update member set bonus_device = p_device, bonus_at = now() where user_id = p_user and bonus_at is null;
+      v_bonus := found;
+    exception when unique_violation then
+      v_bonus := false;   -- 같은 기기로 동시에 가입한 다른 계정이 먼저 받음
+    end;
+  end if;
+
+  -- 이 기기로 로그인한 이력을 남기고(나중에 이 기기에서 처음 쌓이는 이용 기록은 트리거가 잇는다),
+  -- 이 기기의 이용 기록을 회원과 잇는다. 이미 다른 회원과 이어진 기기는 건드리지 않는다
+  if p_device is not null then
+    insert into member_device (user_id, device_id) values (p_user, p_device)
+    on conflict (user_id, device_id) do update set last_at = now();
+    update app_user set user_id = p_user where device_id = p_device and (user_id is null or user_id = p_user);
+  end if;
+
+  select * into m from member where user_id = p_user;
+  return json_build_object('new', v_new, 'bonus', v_bonus, 'provider', m.provider, 'nickname', m.nickname, 'created_at', m.created_at);
+end $$;
+
+-- 회원 탈퇴: 회원 기록·로그인한 기기 이력과, 이 회원과 이어진 기기들의 이용 기록을 지운다 (로그인 계정은 서버가 Auth API 로 지움).
+-- 앱이 알려 준 기기 ID(member.device_id·member_device) 만으로는 지우지 않는다 — 서버에서 이 회원과 이어진(app_user.user_id) 기기만.
+-- 다시 실행해도 안전하다 (지울 것이 없으면 아무 일도 하지 않음)
+create or replace function member_delete(p_user uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_devices text[];
+begin
+  select array_agg(device_id) into v_devices from app_user where user_id = p_user;
+  if v_devices is not null then
+    delete from coach_log   where device_id = any (v_devices);
+    delete from app_event   where device_id = any (v_devices);
+    delete from screen_view where device_id = any (v_devices);
+    delete from app_session where device_id = any (v_devices);
+    delete from app_user    where device_id = any (v_devices);
+  end if;
+  -- 같은 기기로 다시 가입해 보너스를 또 받지 않게, 보너스를 준 기기 ID 와 지급 시각만 따로 1년 보관
+  insert into bonus_spent (device_id, bonus_at)
+  select bonus_device, bonus_at from member where user_id = p_user and bonus_device is not null
+  on conflict (device_id) do nothing;
+  delete from member_device where user_id = p_user;
+  delete from member where user_id = p_user;
+end $$;
+
 -- ── 관리자 로그인 시도 (비밀번호 대입 방지, 성공하면 그 IP 기록은 지움) ─
 -- ── 하루 저장량 상한 (공개 API 로 무료 DB 를 채우지 못하게, 날짜·종류별 저장한 내용의 크기 KB) ─
 create table if not exists usage_quota (
@@ -188,6 +328,9 @@ alter table app_event       enable row level security;
 alter table team_member     enable row level security;
 alter table ai_report       enable row level security;
 alter table admin_auth_fail enable row level security;
+alter table member          enable row level security;
+alter table member_device   enable row level security;
+alter table bonus_spent     enable row level security;
 alter table usage_quota     enable row level security;
 
 -- ── 관리자 대시보드용 집계 ────────────────────────────────────────────
@@ -216,6 +359,20 @@ as $$
     'users_active',   (select count(*) from app_user, span where last_seen_at  >= span.since),
     'online_now',     (select count(*) from app_user where last_seen_at >= now() - interval '5 minutes'),
     'premium_users',  (select count(*) from app_user where premium_plan is not null),
+    'members_total',  (select count(*) from member where provider is not null),
+    'members_new',    (select count(*) from member, span where provider is not null and created_at >= span.since),
+    'members_by_provider', (
+      select coalesce(json_agg(row_to_json(p) order by p.users desc), '[]'::json) from (
+        select provider, count(*) as users from member, span
+        where provider is not null and created_at >= span.since group by 1 order by 2 desc
+      ) p
+    ),
+    'members_by_day', (
+      select coalesce(json_agg(json_build_object('day', to_char(d.d, 'MM-DD'), 'users', d.users) order by d.d), '[]'::json) from (
+        select (created_at at time zone 'Asia/Seoul')::date as d, count(*) as users
+        from member, span where provider is not null and created_at >= span.since group by 1
+      ) d
+    ),
     'sessions',       (select count(*) from app_session, span where started_at >= span.since),
     'avg_session_sec',(select coalesce(round(avg(duration_ms) / 1000.0), 0) from app_session, span where started_at >= span.since and duration_ms is not null),
     'coach_requests', (select count(*) from coach_log,  span where created_at >= span.since),
@@ -302,8 +459,10 @@ as $$
            (select count(*) from app_session s where s.device_id = u.device_id)                                as sessions,
            (select round(coalesce(sum(v.duration_ms), 0) / 1000.0) from screen_view v where v.device_id = u.device_id) as total_sec,
            (select count(*) from coach_log c where c.device_id = u.device_id)                                  as coach_count,
-           exists (select 1 from team_member t where t.device_id = u.device_id)                                as is_team
+           exists (select 1 from team_member t where t.device_id = u.device_id)                                as is_team,
+           m.provider as member_provider, m.nickname as member_nickname, m.created_at as member_since
     from recent u
+    left join member m on m.user_id = u.user_id and m.provider is not null
   ) r;
 $$;
 
@@ -319,6 +478,8 @@ as $$
   select json_build_object(
     'user',    (select row_to_json(a) from app_user a where a.device_id = p_device),
     'is_team', exists (select 1 from team_member t where t.device_id = p_device),
+    'member',  (select json_build_object('provider', m.provider, 'nickname', m.nickname, 'email', m.email, 'created_at', m.created_at, 'last_login_at', m.last_login_at)
+                from app_user a join member m on m.user_id = a.user_id where a.device_id = p_device and m.provider is not null),
     'screens', (
       select coalesce(json_agg(row_to_json(s) order by s.total_sec desc), '[]'::json) from (
         select screen_name(screen) as screen, count(*) as views, round(coalesce(sum(duration_ms), 0) / 1000.0) as total_sec
@@ -385,6 +546,9 @@ as $$
   delete from screen_view     where created_at   < now() - interval '1 year';
   delete from app_session     where started_at   < now() - interval '1 year';
   delete from app_user        where last_seen_at < now() - interval '1 year';
+  delete from bonus_spent     where withdrawn_at < now() - interval '1 year';
+  -- 로그인한 기기 이력은 회원 정보라 1년 파기 대상이 아니다(탈퇴할 때 member_delete 가 지움). 회원 행이 따로 지워져 남은 것만 정리
+  delete from member_device   where not exists (select 1 from member m where m.user_id = member_device.user_id);
   -- 처음 들어온 경로는 계속 쓰는 이용자라도 수집 1년이 지나면 지운다
   update app_user set source = null, source_detail = null
    where first_seen_at < now() - interval '1 year' and (source is not null or source_detail is not null);
@@ -392,7 +556,7 @@ as $$
   delete from usage_quota     where day < (now() at time zone 'Asia/Seoul')::date - 7;
 $$;
 
-comment on function purge_old_records is '1년 지난 이용 기록·유입 경로, 30일 지난 관리자 로그인 시도, 7일 지난 저장량 기록 파기 (pg_cron 매일 03:30 KST)';
+comment on function purge_old_records is '1년 지난 이용 기록·유입 경로, 탈퇴 1년 지난 보너스 기기, 회원이 없는 기기 이력, 30일 지난 관리자 로그인 시도, 7일 지난 저장량 기록 파기 (pg_cron 매일 03:30 KST)';
 
 -- 매일 03:30(한국 시간) = 18:30 UTC 에 파기. pg_cron 을 쓸 수 없는 곳(로컬 시험 등)에서는 건너뛴다
 do $$
@@ -444,9 +608,9 @@ end $$;
 do $$
 begin
   revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text), delete_device(text), purge_old_records(),
-    take_quota(text, int, bigint) from public;
+    take_quota(text, int, bigint), member_link(uuid, text, text, text, text), member_delete(uuid), app_user_member() from public;
   if exists (select 1 from pg_roles where rolname = 'anon') then
     revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text), delete_device(text), purge_old_records(),
-      take_quota(text, int, bigint) from anon, authenticated;
+      take_quota(text, int, bigint), member_link(uuid, text, text, text, text), member_delete(uuid), app_user_member() from anon, authenticated;
   end if;
 end $$;

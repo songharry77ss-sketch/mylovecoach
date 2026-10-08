@@ -125,8 +125,13 @@
     <div class="grid stats" id="stats"></div>
 
     <div class="grid cols">
-      <div class="card"><h2>날짜별 가입 <span class="muted">처음 실행한 날 기준</span></h2><div id="signupsByDay"></div></div>
-      <div class="card"><h2>어디서 왔는지 <span class="muted">이 기간 가입자의 유입 경로</span></h2><div id="signupSources"></div></div>
+      <div class="card"><h2>날짜별 회원가입 <span class="muted">카카오·Google·Apple 가입</span></h2><div id="membersByDay"></div></div>
+      <div class="card"><h2>가입 방법</h2><div id="membersByProvider"></div></div>
+    </div>
+
+    <div class="grid cols">
+      <div class="card"><h2>날짜별 첫 실행 <span class="muted">비회원 포함</span></h2><div id="signupsByDay"></div></div>
+      <div class="card"><h2>어디서 왔는지 <span class="muted">이 기간 처음 온 사람의 유입 경로</span></h2><div id="signupSources"></div></div>
     </div>
 
     <div class="card" style="margin-bottom:20px">
@@ -190,7 +195,7 @@
   const num = (n) => Number(n ?? 0).toLocaleString('ko-KR');
 
   const LABEL = {
-    online_now: '지금 접속 중', users_total: '전체 가입자', users_new: '이 기간 가입', users_active: '이 기간 이용',
+    online_now: '지금 접속 중', members_total: '전체 회원', members_new: '이 기간 회원가입', users_total: '전체 이용자', users_new: '이 기간 첫 실행', users_active: '이 기간 이용',
     premium_users: '프리미엄', sessions: '실행 횟수', avg_session_sec: '평균 체류',
     coach_requests: '코칭 요청', with_image: '캡처 첨부',
   };
@@ -206,8 +211,9 @@
   const EVENT = {
     app_open: '앱 실행', start: '첫 화면에서 시작', coach_success: '코칭 받음', coach_error: '코칭 오류', coach_blocked: '무료 횟수 소진으로 막힘',
     ai_blocked: '무료 횟수 소진으로 막힘', paywall_open: '결제 화면 열림', purchase_start: '결제 시작', analytics_opt_in: '이용 기록 수집 켬',
-    analytics_opt_out: '이용 기록 수집 끔', kkti_start: 'KKTI 시작', kkti_complete: 'KKTI 완료', kkti_share: 'KKTI 공유', kkti_cta: 'KKTI → 코칭',
+    analytics_opt_out: '이용 기록 수집 끔', signup: '회원가입', login: '로그인', logout: '로그아웃', signup_open: '가입 화면 열림', kkti_start: 'KKTI 시작', kkti_complete: 'KKTI 완료', kkti_share: 'KKTI 공유', kkti_cta: 'KKTI → 코칭',
   };
+  const PROVIDER = { kakao: '카카오', google: 'Google', apple: 'Apple' };
   const START = { image: '캡처로 시작', text: '글로 시작', secret: '비밀 상담으로 시작' };
   const CHANNEL = { ios: 'App Store 앱', android: 'Play 스토어 앱', apk: 'APK 직접 설치', web: '웹 직접 방문' };
   const GENDER = { male: '남', female: '여', other: '기타' };
@@ -271,6 +277,8 @@
     $('updated').textContent = `${new Date(data.generatedAt).toLocaleString('ko-KR')} 기준 · 최근 ${s.days}일`;
     $('stats').innerHTML = Object.keys(LABEL).map((k) => statCard(k, s[k])).join('');
 
+    $('membersByDay').innerHTML = barTable(s.members_by_day, 'day', 'users', (r) => `${num(r.users)}명`);
+    $('membersByProvider').innerHTML = barTable((s.members_by_provider || []).map((r) => ({ ...r, label: PROVIDER[r.provider] ?? r.provider })), 'label', 'users', (r) => `${num(r.users)}명`);
     $('signupsByDay').innerHTML = barTable(s.signups_by_day, 'day', 'users', (r) => `${num(r.users)}명`);
     $('signupSources').innerHTML = barTable((s.signup_sources || []).map((r) => ({ ...r, label: CHANNEL[r.source] ?? r.source })), 'label', 'users', (r) => `${num(r.users)}명`);
     $('byDay').innerHTML = barTable(s.by_day, 'day', 'requests', (r) => `${num(r.requests)}건 · ${num(r.users)}명`);
@@ -377,7 +385,7 @@
       ? `<table>
           <thead><tr><th>이름·프로필</th><th>유입 · 시작</th><th>처음 → 마지막 접속</th><th class="num">실행</th><th class="num">체류</th><th class="num">코칭</th></tr></thead>
           <tbody>${rows.map((u) => `<tr class="clickable ${u.device_id === openDevice ? 'selected' : ''}" data-user="${esc(u.device_id)}">
-            <td><b>${esc(u.name || '이름 없음')}</b> ${isLive(u.last_seen_at) ? '<span class="pill live">접속 중</span>' : ''} ${u.is_team ? '<span class="pill">팀원</span>' : ''} ${u.premium_plan ? `<span class="pill hot">${u.premium_plan === 'lifetime' ? '평생권' : '주간'}</span>` : ''}
+            <td><b>${esc(u.name || u.member_nickname || '이름 없음')}</b> ${u.member_provider ? `<span class="pill">${esc(PROVIDER[u.member_provider] ?? u.member_provider)} 회원</span>` : '<span class="muted">비회원</span>'} ${isLive(u.last_seen_at) ? '<span class="pill live">접속 중</span>' : ''} ${u.is_team ? '<span class="pill">팀원</span>' : ''} ${u.premium_plan ? `<span class="pill hot">${u.premium_plan === 'lifetime' ? '평생권' : '주간'}</span>` : ''}
               <div class="muted">${esc([GENDER[u.gender] ?? u.gender, u.age ? `${u.age}세` : null, u.mbti, u.platform].filter(Boolean).join(' · ') || '-')}</div></td>
             <td>${esc(sourceLabel(u))}<div class="muted">${esc(START[u.start_mode] ?? '')}</div></td>
             <td class="muted" style="white-space:nowrap">${when(u.first_seen_at)}<br>→ ${when(u.last_seen_at)}</td>
@@ -439,6 +447,7 @@
       </div>
       <div class="grid cols">
         <div><h2>프로필 · 유입</h2>${kv([
+          ['회원', d.member ? esc(`${PROVIDER[d.member.provider] ?? d.member.provider} 가입 · ${when(d.member.created_at)}${d.member.nickname ? ` · ${d.member.nickname}` : ''}${d.member.email ? ` · ${d.member.email}` : ''}`) : '비회원'],
           ['기기 ID', `<span class="mono">${esc(u.device_id)}</span>`],
           ['프로필', esc([GENDER[u.gender] ?? u.gender, u.age ? `${u.age}세` : null, u.mbti].filter(Boolean).join(' · ') || '-')],
           ['기기', esc([u.platform, u.app_version ? `v${u.app_version}` : null].filter(Boolean).join(' · '))],

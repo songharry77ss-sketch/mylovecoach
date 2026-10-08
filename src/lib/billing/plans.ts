@@ -43,10 +43,30 @@ export const DAY_PASS_MS = 24 * 60 * 60 * 1000;
  */
 export const FREE_UNLIMITED = process.env.EXPO_PUBLIC_FREE_UNLIMITED === '1';
 
-/** 처음 설치한 사용자에게 주는 무료 코칭 횟수 */
+/** 처음 설치한 사용자에게 주는 무료 코칭 횟수 (회원가입을 쓸 수 없는 빌드) */
 export const FREE_TRIAL_TOTAL = 3;
 /** 체험을 다 쓴 뒤 매일 충전되는 무료 횟수 */
 export const FREE_DAILY = 1;
+
+/**
+ * 회원가입을 쓸 수 있는 빌드의 무료 규칙 (2026-10 결정):
+ * 비회원은 맛보기 1회 → 카카오·Google·Apple 로 가입하면 보너스 3회 + 매일 1회 충전.
+ */
+export const GUEST_TRIAL_TOTAL = 1;
+export const SIGNUP_BONUS = 3;
+
+/** 무료 횟수 규칙 — 체험 횟수와 매일 충전 횟수 */
+export interface FreeRules {
+  trial: number;
+  daily: number;
+}
+
+/** 예전 규칙 (가입 없음): 체험 3회 + 매일 1회 */
+export const DEFAULT_RULES: FreeRules = { trial: FREE_TRIAL_TOTAL, daily: FREE_DAILY };
+
+/** 가입을 쓸 수 있으면 비회원은 맛보기 1회만, 회원은 매일 1회 충전 */
+export const freeRules = (authAvailable: boolean, member: boolean): FreeRules =>
+  !authAvailable ? DEFAULT_RULES : { trial: GUEST_TRIAL_TOTAL, daily: member ? FREE_DAILY : 0 };
 
 export const isConsumablePlan = (plan: PlanKey): plan is ConsumablePlanKey => plan === 'day' || plan === 'credits';
 

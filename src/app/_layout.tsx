@@ -14,6 +14,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { flushAnalytics, initAnalytics, launchAcquisition, pauseAnalytics, resumeAnalytics, setConsent, trackScreen, updateIdentity } from '@/lib/analytics';
 import { endBilling, initBilling } from '@/lib/billing/iap';
 import { refreshTeam } from '@/lib/billing/team';
+import { linkMember } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import { haptic, setHapticsEnabled } from '@/lib/haptics';
 import { cleanupOrphanImages, clearImageCaches } from '@/lib/images';
 import { processPendingDeletion } from '@/lib/server-deletion';
@@ -173,6 +175,25 @@ export default function RootLayout() {
     return () => sub.remove();
   }, [hydrated]);
 
+  // 로그인은 돼 있는데 회원 연결을 못 마친 경우(웹에서 돌아오다 끊김 등) 조용히 다시 잇는다.
+  // 반대로 로그인 세션이 끝났으면(만료·다른 곳에서 로그아웃) 기기의 회원 표시도 지운다 — 네트워크 오류일 때는 그대로 둔다
+  useEffect(() => {
+    if (!hydrated || !supabase) return;
+    const client = supabase;
+    client.auth
+      .getSession()
+      .then(({ data, error }) => {
+        const { member, setMember } = useAppStore.getState();
+        if (data.session && !member) return linkMember();
+        if (!data.session && !error && member) setMember(null);
+      })
+      .catch(() => {});
+    const { data: listener } = client.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') useAppStore.getState().setMember(null);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, [hydrated]);
+
   const navTheme = {
     ...(scheme === 'dark' ? DarkTheme : DefaultTheme),
     colors: {
@@ -215,6 +236,8 @@ export default function RootLayout() {
               <Stack.Screen name="settings/profile" options={{ title: '내 프로필' }} />
               <Stack.Screen name="settings/api-key" options={{ title: 'AI 코치 연결' }} />
               <Stack.Screen name="paywall" options={{ headerShown: false, presentation: 'modal' }} />
+              <Stack.Screen name="signup" options={{ headerShown: false, presentation: 'modal' }} />
+              <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
               <Stack.Screen name="+not-found" options={{ title: '페이지를 찾을 수 없어요' }} />
             </Stack>
             </CelebrationProvider>

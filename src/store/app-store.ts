@@ -2,10 +2,11 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 import type { AiProvider } from '@/lib/ai-consent';
-import type { ConsumablePlanKey } from '@/lib/billing/plans';
+import { freeRules, type ConsumablePlanKey } from '@/lib/billing/plans';
 import type { Acquisition } from '@/lib/analytics';
-import { consumeOne, EMPTY_USAGE, EMPTY_WALLET, grantConsumable, type PremiumState, type TeamState, type UsageState, type WalletState } from '@/lib/billing/quota';
+import { consumeOne, EMPTY_USAGE, EMPTY_WALLET, grantConsumable, grantSignupBonus, type PremiumState, type TeamState, type UsageState, type WalletState } from '@/lib/billing/quota';
 import { createId } from '@/lib/id';
+import { authAvailable } from '@/lib/supabase';
 import type {
   ChatMessage,
   CoachAnalysis,
@@ -22,6 +23,15 @@ import type {
   UserProfile,
 } from '@/lib/types';
 import { appStorage } from '@/store/storage';
+
+/** 카카오·Apple 로 가입한 회원 정보 (로그인 세션은 Supabase 가 따로 저장) */
+export interface MemberState {
+  userId: string;
+  /** kakao · apple */
+  provider: string;
+  nickname: string | null;
+  joinedAt: number;
+}
 
 /** 서버 이용 기록 삭제 요청 — 어느 기기의 기록을, 언제(철회 시각) 기준으로 지울지 */
 export interface PendingDeletion {
@@ -47,6 +57,8 @@ export interface AppState {
   wallet: WalletState;
   /** 관리자가 무제한을 허용한 팀원 기기면 그 정보 (서버 확인 결과의 캐시) */
   team: TeamState | null;
+  /** 가입한 회원이면 그 정보. null 이면 비회원 */
+  member: MemberState | null;
   /** 「내 기기 ID」를 눌러 팀원 등록을 하려는 기기 — 이때부터 팀원 여부를 서버에 묻는다 (teamCheckAt 부터 14일 동안) */
   teamCheck: boolean;
   /** 팀원 확인을 켠 시각 (0 이면 예전 판에서 켠 것 — 처음 확인할 때 지금으로 채운다) */
@@ -122,6 +134,9 @@ export interface AppState {
   setAcquisition: (acquisition: Acquisition) => void;
   setPremium: (premium: PremiumState | null) => void;
   setTeam: (team: TeamState | null) => void;
+  setMember: (member: MemberState | null) => void;
+  /** 가입 보너스 지급 (같은 회원에게 한 번). 지급했으면 true */
+  grantSignupBonus: (userId: string) => boolean;
   enableTeamCheck: () => void;
   disableTeamCheck: () => void;
   /** 서버에 남은 이 기기의 이용 기록을 지워 달라고 요청해 둔다 (실제 전송은 lib/server-deletion) */
@@ -198,6 +213,7 @@ export const useAppStore = create<AppState>()(
       usage: EMPTY_USAGE,
       wallet: EMPTY_WALLET,
       team: null,
+      member: null,
       teamCheck: false,
       teamCheckAt: 0,
       pendingDeletion: null,
@@ -353,6 +369,13 @@ export const useAppStore = create<AppState>()(
       setAcquisition: (acquisition) => set({ acquisition }),
       setPremium: (premium) => set({ premium }),
       setTeam: (team) => set({ team }),
+      setMember: (member) => set({ member }),
+      grantSignupBonus: (userId) => {
+        const next = grantSignupBonus(get().wallet, userId);
+        if (!next) return false;
+        set({ wallet: next });
+        return true;
+      },
       enableTeamCheck: () => set({ teamCheck: true, teamCheckAt: Date.now() }),
       disableTeamCheck: () => set({ teamCheck: false, teamCheckAt: 0 }),
       // 기기의 서버 기록을 모두 지우므로 예전 기록 표시도 내린다
@@ -367,7 +390,7 @@ export const useAppStore = create<AppState>()(
       },
       consumeQuota: () =>
         set((s) => {
-          const next = consumeOne(s.premium, s.usage, s.wallet, Date.now(), s.team);
+          const next = consumeOne(s.premium, s.usage, s.wallet, Date.now(), s.team, freeRules(authAvailable, s.member != null));
           return { usage: next.usage, wallet: next.wallet };
         }),
       consumeFreeCredit: () => get().consumeQuota(),
@@ -426,9 +449,9 @@ export const useAppStore = create<AppState>()(
           return { practice };
         }),
       addMindAnswer: (answer) => set((s) => ({ mindHistory: [answer, ...s.mindHistory].slice(0, 10) })),
-      // 구매 상태·이용권·무료 사용량·팀원 여부는 「모든 데이터 삭제」로 지우지 않는다 (구매는 스토어 계정에 묶여 있고, 삭제로 무료 횟수가 초기화되면 안 됨)
-      // 서버에 남은 이 기기의 이용 기록도 지워 달라고 요청하고, AI 분석·이용 기록 동의는 처음 상태로 돌려 다시 묻는다
-      // (첫 화면 체크박스는 꺼진 채로 보이므로, 저장된 동의도 지워야 화면과 실제가 맞는다)
+      // 구매 상태·이용권·무료 사용량·팀원·회원 여부는 「모든 데이터 삭제」로 지우지 않는다 (회원은 마이 → 로그아웃·탈퇴로)
+      // (구매는 스토어 계정에 묶여 있고, 삭제로 무료 횟수가 초기화되면 안 됨). 서버에 남은 이 기기의 이용 기록도 지워 달라고 요청하고,
+      // AI 분석·이용 기록 동의는 처음 상태로 돌려 다시 묻는다 (첫 화면 체크박스는 꺼진 채로 보이므로, 저장된 동의도 지워야 화면과 실제가 맞는다)
       resetAll: () =>
         set((s) => ({
           analyticsConsent: null,
@@ -474,6 +497,7 @@ export const useAppStore = create<AppState>()(
           usage: s.usage,
           wallet: s.wallet,
           team: s.team,
+          member: s.member,
           teamCheck: s.teamCheck,
           teamCheckAt: s.teamCheckAt,
           pendingDeletion: s.pendingDeletion,

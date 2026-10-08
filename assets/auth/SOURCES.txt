@@ -1,0 +1,8 @@
+Google 로그인 버튼 자산
+
+공식 버튼 규격: https://developers.google.com/identity/branding-guidelines
+Google G 로고: https://developers.google.com/static/identity/images/g-logo.png
+Google Sans Medium: Google Fonts CSS API에서 버튼 문구 「Google로 계속하기」에 필요한 글자만 내려받음.
+Google Sans에 없는 한글은 기기의 기본 글꼴로 표시함.
+https://fonts.googleapis.com/css2?family=Google+Sans:wght@500&text=Google%EB%A1%9C%20%EA%B3%84%EC%86%8D%ED%95%98%EA%B8%B0
+글꼴 라이선스: OFL-GoogleSans.txt (SIL Open Font License 1.1)

@@ -1,5 +1,5 @@
 import { entitlementFrom } from '@/lib/billing/entitlement';
-import { CREDITS_PER_PACK, DAY_PASS_MS, FREE_DAILY, FREE_TRIAL_TOTAL, PRODUCT_IDS, isConsumablePlan, planOfProduct, premiumPlanOfProduct } from '@/lib/billing/plans';
+import { CREDITS_PER_PACK, DAY_PASS_MS, FREE_DAILY, FREE_TRIAL_TOTAL, GUEST_TRIAL_TOTAL, PRODUCT_IDS, SIGNUP_BONUS, freeRules, isConsumablePlan, planOfProduct, premiumPlanOfProduct } from '@/lib/billing/plans';
 import {
   consumeFree,
   consumeOne,
@@ -7,6 +7,7 @@ import {
   EMPTY_USAGE,
   EMPTY_WALLET,
   grantConsumable,
+  grantSignupBonus,
   isPremiumActive,
   isTeamActive,
   quotaLabel,
@@ -181,5 +182,42 @@ describe('팀원 무제한', () => {
     expect(isTeamActive(team, NOW + 7 * DAY)).toBe(false);
     expect(quotaStatus(null, spent, NOW + 7 * DAY, EMPTY_WALLET, team).kind).not.toBe('team');
     expect(isTeamActive(null, NOW)).toBe(false);
+  });
+});
+
+describe('가입 규칙 (맛보기 1회 → 가입 보너스 3회 + 매일 1회)', () => {
+  const guest = freeRules(true, false);
+  const member = freeRules(true, true);
+
+  it('가입을 쓸 수 없는 빌드는 예전 규칙(체험 3회 + 매일 1회)', () => {
+    expect(freeRules(false, false)).toEqual({ trial: FREE_TRIAL_TOTAL, daily: FREE_DAILY });
+  });
+
+  it('비회원은 맛보기 1회 뒤 막히고, 가입하면 3회를 더 쓴다', () => {
+    expect(quotaStatus(null, EMPTY_USAGE, NOW, EMPTY_WALLET, null, guest)).toEqual({ kind: 'trial', remaining: GUEST_TRIAL_TOTAL, free: GUEST_TRIAL_TOTAL, credits: 0 });
+    let usage = consumeOne(null, EMPTY_USAGE, EMPTY_WALLET, NOW, null, guest).usage;
+    const blocked = quotaStatus(null, usage, NOW, EMPTY_WALLET, null, guest);
+    expect(blocked).toEqual({ kind: 'exhausted', remaining: 0, free: 0, credits: 0, daily: 0 });
+    expect(quotaLabel(blocked)).toContain('가입하면');
+    // 다음 날이 돼도 비회원은 충전되지 않는다
+    expect(quotaStatus(null, usage, NOW + DAY, EMPTY_WALLET, null, guest).kind).toBe('exhausted');
+
+    let wallet = grantSignupBonus(EMPTY_WALLET, 'user-1')!;
+    expect(grantSignupBonus(wallet, 'user-1')).toBeNull();
+    // 가입한 날: 오늘 무료 1회 + 보너스 3회
+    expect(quotaStatus(null, usage, NOW, wallet, null, member)).toEqual({ kind: 'daily', remaining: FREE_DAILY + SIGNUP_BONUS, free: FREE_DAILY, credits: 0, bonus: SIGNUP_BONUS });
+    ({ usage, wallet } = consumeOne(null, usage, wallet, NOW, null, member));
+    expect(quotaStatus(null, usage, NOW, wallet, null, member)).toEqual({ kind: 'bonus', remaining: SIGNUP_BONUS, free: 0, credits: 0, bonus: SIGNUP_BONUS });
+    for (let i = 0; i < SIGNUP_BONUS; i++) ({ usage, wallet } = consumeOne(null, usage, wallet, NOW, null, member));
+    expect(wallet.bonus).toBe(0);
+    expect(quotaLabel(quotaStatus(null, usage, NOW, wallet, null, member))).toContain('내일');
+    expect(quotaStatus(null, usage, NOW + DAY, wallet, null, member).kind).toBe('daily');
+  });
+
+  it('보너스는 횟수권보다 먼저 쓴다', () => {
+    const wallet = { ...grantSignupBonus(EMPTY_WALLET, 'u')!, credits: 2 };
+    const spent = { total: 5, day: dayKey(NOW), dayCount: 1 };
+    const next = consumeOne(null, spent, wallet, NOW, null, member).wallet;
+    expect([next.bonus, next.credits]).toEqual([SIGNUP_BONUS - 1, 2]);
   });
 });
