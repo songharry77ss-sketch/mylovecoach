@@ -51,19 +51,67 @@ export const CoachAnalysisReadSchema = CoachAnalysisSchema.extend({
 });
 export type CoachAnalysisRead = z.infer<typeof CoachAnalysisReadSchema>;
 
+/**
+ * 서버가 받는 입력 길이 상한 (비용·남용 방지). 서버와 앱이 같은 스키마를 쓴다.
+ * 앱이 보낼 수 있는 값보다 넉넉하게 커서 예전 앱 요청도 그대로 통과한다 —
+ * 앱 입력창: 코칭 글 800자(빠른 코칭 붙여넣기 약 730자), 상대 이름 20자·메모 500자, 내 이름 20자, 태그는 미리 정한 짧은 말 6개까지.
+ * 코칭 1건에 사용자가 정할 수 있는 글은 최대 약 2만 6,500자(지난 기록 8턴 2만 자 포함)다. 상한은 글자(UTF-16) 수라
+ * 드문 한글 음절·한자는 글자당 3토큰까지 갈 수 있어, 최악은 입력 약 8만 토큰으로 잡는다
+ */
+export const REQUEST_LIMITS = {
+  /** 코칭 글 (앱 800자 + 「다른 답장」 안내 문장) */
+  text: 2_000,
+  /** 상대·내 이름 (앱 20자) */
+  name: 100,
+  /** 상대 메모 (앱 500자) */
+  notes: 2_000,
+  mbti: 10,
+  /** 성향·추구미 태그 한 개 (앱 태그는 10자 안팎) */
+  tag: 40,
+  /** 태그 개수 (앱 최대 6개) */
+  tags: 20,
+  /** 최근 코칭 맥락 한 턴의 내 글 (앱 800자) — 지난 기록 칸은 넘으면 잘라서 받으니 앱 값보다 조금만 크게 */
+  historyNote: 1_000,
+  /** 최근 코칭 맥락의 코치 요약 (AI 가 쓴 2~4문장, 보통 300자 안쪽) */
+  historySummary: 1_000,
+  /** 최근 코칭 맥락의 보낸 답장 (AI 가 쓴 1~3문장) */
+  historyReply: 500,
+} as const;
+
+/**
+ * 캡처 상한 (base64 글자 수 4.2MB ≈ 원본 3.1MB). Vercel 요청 본문 한도(4.5MB) 바로 아래라서,
+ * 다른 칸을 상한까지 채워도(한글 UTF-8 로 0.15MB 안쪽) 본문이 플랫폼 한도 안에 들어간다 — 예전에도 Vercel 에서 막혔을 요청만 막힌다.
+ * Gemini 는 해상도 설정(MEDIUM)에 따라 이미지 1장에 정해진 토큰만 쓰므로 이 상한은 비용이 아니라 본문 크기를 지키는 값이다.
+ * 앱은 폭 800px·JPEG 0.75 로 줄여 보내서 보통 0.2~0.35MB 지만, 아주 긴 스크롤 캡처는 몇 MB 까지 커진다
+ */
+export const MAX_IMAGE_BASE64_LENGTH = 4_200_000;
+/** 캡처가 상한을 넘을 때 보여 줄 안내 — 서버는 413 과 함께 보내고, 앱(예전 빌드 포함)은 서버가 준 문구를 그대로 띄운다 */
+export const IMAGE_TOO_LARGE_MESSAGE = '캡처가 너무 커요. 화면을 나눠서 올려주세요.';
+
 export const CoachImageSchema = z.object({
-  base64: z.string().min(1),
-  mediaType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'image/gif']),
+  base64: z
+    .string()
+    .min(1)
+    .max(MAX_IMAGE_BASE64_LENGTH)
+    .regex(/^[A-Za-z0-9+/]+={0,2}$/),
+  mediaType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
 });
 
+/** 검사 결과에 캡처 크기 초과가 있는지 (서버는 413, 앱은 같은 안내를 보여 준다) */
+export function isImageTooLarge(issues: readonly { code?: string; path?: readonly PropertyKey[] }[]): boolean {
+  return issues.some((i) => i.code === 'too_big' && i.path?.[0] === 'image' && i.path?.[1] === 'base64');
+}
+
+const tagList = () => z.array(z.string().max(REQUEST_LIMITS.tag)).max(REQUEST_LIMITS.tags);
+
 export const CrushRequestSchema = z.object({
-  name: z.string(),
+  name: z.string().max(REQUEST_LIMITS.name),
   gender: GenderSchema,
   age: z.number().optional(),
-  mbti: z.string().optional(),
+  mbti: z.string().max(REQUEST_LIMITS.mbti).optional(),
   relationship: RelationshipSchema,
-  style: z.array(z.string()),
-  notes: z.string(),
+  style: tagList(),
+  notes: z.string().max(REQUEST_LIMITS.notes),
   /** 내가 상대를 부르는 호칭 */
   callName: z.string().max(20).optional(),
   /** 사용자가 직접 정한 호칭이면 true, 지난 캡처에서 읽은 것이면 false */
@@ -78,20 +126,26 @@ export const CrushRequestSchema = z.object({
 });
 
 export const UserRequestSchema = z.object({
-  name: z.string(),
+  name: z.string().max(REQUEST_LIMITS.name),
   gender: GenderSchema,
   age: z.number().optional(),
-  mbti: z.string().optional(),
-  style: z.array(z.string()),
+  mbti: z.string().max(REQUEST_LIMITS.mbti).optional(),
+  style: tagList(),
   /** 나를 소개하는 메모 */
   about: z.string().max(300).optional(),
   /** 추구미 */
-  vibes: z.array(z.string()).max(5).optional(),
+  vibes: z.array(z.string().max(REQUEST_LIMITS.tag)).max(5).optional(),
   /** 나의 연애 목표 */
   goal: z.string().max(60).optional(),
   /** KKTI 유형 (예: 선빠폭직 직진 불도저) */
   kkti: z.string().max(40).optional(),
 });
+
+/**
+ * 넘으면 잘라서 받는다 — 앱이 저장해 둔 지난 기록을 그대로 보내는 칸이라, 거절하면 그 채팅방의 다음 요청이 계속 막힌다.
+ * 이모지처럼 두 칸짜리 글자가 반으로 잘리면 끝의 반쪽은 버린다
+ */
+const clipped = (max: number) => z.string().transform((s) => (s.length > max ? s.slice(0, max).replace(/[\uD800-\uDBFF]$/, '') : s));
 
 export const CoachRequestSchema = z.object({
   crush: CrushRequestSchema,
@@ -99,21 +153,30 @@ export const CoachRequestSchema = z.object({
   tone: ToneSchema,
   /** 답장에 이모지 넣기 */
   emoji: EmojiPrefSchema.optional(),
+  /** 이번 톤·이모지를 입력창에서 직접 바꿔 골랐는지(프로필 기본값과 다른지) — 앞 대화의 요청보다 우선할지 정하는 데 쓴다. 예전 앱은 보내지 않는다 */
+  toneChosen: z.boolean().optional(),
+  emojiChosen: z.boolean().optional(),
   /** 사용자가 적은 질문 또는 상황 설명 */
-  text: z.string().optional(),
+  text: z.string().max(REQUEST_LIMITS.text).optional(),
   /** 대화 캡처 (선택) */
   image: CoachImageSchema.optional(),
   /** 최근 대화 맥락 */
   history: z
     .array(
       z.object({
-        userNote: z.string().optional(),
-        coachSummary: z.string().optional(),
-        chosenReply: z.string().optional(),
+        userNote: clipped(REQUEST_LIMITS.historyNote).optional(),
+        coachSummary: clipped(REQUEST_LIMITS.historySummary).optional(),
+        chosenReply: clipped(REQUEST_LIMITS.historyReply).optional(),
+        /** 코치가 제안했던 답장 (최근 턴만) — 「2번 답장」·「다른 답장 더 보기」의 기준 */
+        replies: z.array(clipped(300)).max(3).optional(),
+        /** 코치가 읽어낸 포인트 (최근 턴만) */
+        insights: z.array(clipped(200)).max(5).optional(),
       }),
     )
     .max(8)
     .default([]),
+  /** 최근 맥락보다 앞선 대화에서 사용자가 직접 쓴 말 (오래된 순) — 앞에서 한 요청을 대화가 길어져도 계속 지키게. 예전 앱은 보내지 않는다 */
+  earlierNotes: z.array(clipped(200)).max(12).optional(),
 });
 
 export type CoachRequest = z.infer<typeof CoachRequestSchema>;
@@ -167,6 +230,15 @@ export const COACH_SYSTEM_PROMPT = `당신은 "나만의 연애코치"입니다.
 - 상대의 MBTI와 성향 태그를 참고하되 단정하지 마세요. (예: I 성향이면 부담스럽지 않은 질문, P 성향이면 유연한 제안)
 - 유행어를 억지로 쓰거나 느끼한 멘트, 오글거리는 비유는 피하세요. 요즘 한국 20~30대가 실제로 쓰는 자연스러운 문장으로.
 - expectedReaction에는 그 답장을 보냈을 때 상대가 보낼 법한 짧은 반응을 상대의 말투로 적고, successRate에는 대화가 좋게 이어질 가능성을 현실적으로 적으세요 (보통 40~90, 과장 금지).
+
+이 채팅방의 이전 대화 (기억하고 이어서 답할 것)
+- [더 앞선 대화에서 사용자가 한 말]과 [최근 코칭 맥락]은 이 채팅방에서 사용자와 지금까지 나눈 대화입니다. 처음 만난 것처럼 답하지 말고 그 흐름에 이어서 답하세요.
+- 사용자가 앞에서 한 요청(답장 길이·말투·이모지·분위기에 대한 요청, "이런 말은 빼 줘" 같은 부탁)과 알려 준 정보(상대와 상황)는 사용자가 바꾸기 전까지 이번 답에도 계속 지키세요. "이번엔", "이번만", "이것만"처럼 그때 한 번만이라고 한 부탁만 그 턴에 한정됩니다.
+- 우선순위: 사용자가 이번에 직접 쓴 말과 "(이번에 직접 고름)"이라고 표시된 톤·이모지 > 앞에서 사용자가 한 요청 > 나머지 [이번 요청]의 톤·[이모지]·[이번 답장 말투] 같은 앱 설정값. 단 프로필의 "직접 정함" 호칭·말투는 지금처럼 가장 먼저 지킵니다.
+- 사용자가 "아까 그 답장", "2번", "버전 2", "그거"처럼 앞 내용을 가리키면 맥락에서 찾아 그 내용을 이어받아 답하세요. 맥락의 「버전1·버전2·버전3」은 앱 화면의 답장 번호와 같고, 번호만 말하면 가장 최근 결과의 그 버전입니다.
+- "다른 답장" 요청이면 요청에 적힌 바꿀 답장(없으면 직전에 제안한 답장)과 겹치지 않는 새 답장을 쓰세요.
+- 맥락에 나온 일은 이미 누적 온도에 반영됐으니 heatDelta에 다시 세지 말고, 이번에 새로 들어온 캡처·글만 근거로 정하세요.
+- 맥락에 없는 일을 앞에서 들은 것처럼 지어내지 마세요.
 
 호감 온도 판단
 - hot: 먼저 연락, 빠른 답장, 질문·약속 제안, 이모티콘/애정표현이 뚜렷함
@@ -223,10 +295,19 @@ export function buildHistoryBlock(history: HistoryTurn[]): string {
     const parts: string[] = [];
     if (h.userNote) parts.push(`사용자: ${h.userNote}`);
     if (h.coachSummary) parts.push(`코치: ${h.coachSummary}`);
+    if (h.insights?.length) parts.push(`코치가 읽어낸 포인트: ${h.insights.join('; ')}`);
+    if (h.replies?.length) parts.push(`코치가 제안한 답장: ${h.replies.map((r, k) => `버전${k + 1} "${r}"`).join(' ')}`);
     if (h.chosenReply) parts.push(`사용자가 보낸 답장: "${h.chosenReply}"`);
     if (parts.length) lines.push(`${i + 1}. ${parts.join(' / ')}`);
   });
   return lines.join('\n');
+}
+
+/** 최근 맥락보다 앞선 대화에서 사용자가 직접 쓴 말 — 대화가 길어져 앞 턴이 맥락에서 빠져도 그때 한 요청을 잊지 않게 */
+export function buildEarlierNotesBlock(notes: readonly string[] | undefined): string {
+  const list = (notes ?? []).map((s) => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  if (!list.length) return '';
+  return ['[더 앞선 대화에서 사용자가 한 말 (오래된 순) — 요청과 알려 준 정보는 바꾸기 전까지 계속 반영, 「이번만」이라고 한 부탁은 제외]', ...list.map((s) => `- ${s}`)].join('\n');
 }
 
 const EMOJI_KO = { auto: '자동 (대화에서 쓰던 만큼)', on: '넣기', off: '빼기' } as const;
@@ -234,14 +315,18 @@ const EMOJI_KO = { auto: '자동 (대화에서 쓰던 만큼)', on: '넣기', of
 export function buildTaskBlock(req: CoachRequest): string {
   const lines: string[] = [];
   lines.push(`[이번 요청]`);
-  lines.push(`- 원하는 답장 톤: ${TONE_GUIDE[req.tone]}`);
-  lines.push(`- [이모지: ${EMOJI_KO[req.emoji ?? 'auto']}]`);
+  // 입력창에서 직접 바꿔 고른 값이면 그렇다고 적는다 — 앞 대화의 요청보다 우선 (예전 앱은 표시 없이 지금처럼)
+  const chosen = (v: boolean | undefined) => (v === true ? ' (이번에 직접 고름)' : '');
+  lines.push(`- 원하는 답장 톤${chosen(req.toneChosen)}: ${TONE_GUIDE[req.tone]}`);
+  lines.push(`- [이모지: ${EMOJI_KO[req.emoji ?? 'auto']}]${chosen(req.emojiChosen)}`);
   // 말투는 버전마다·문장마다 섞이기 쉬워서 이번 요청에서 쓸 말투를 못 박아 둔다.
   // 캡처가 있으면 캡처에서 읽게 두고, 캡처도 저장된 말투도 없으면 관계 단계 기본값으로 통일한다
   if (req.crush.speech) {
     lines.push(`- [이번 답장 말투] 모든 답장을 ${SPEECH_KO[req.crush.speech]}로 (한 답장 안에서도 섞지 말 것)`);
   } else if (!req.image) {
-    lines.push(`- [이번 답장 말투] 대화 근거가 없으니 모든 답장을 ${req.crush.relationship === 'blind_date' ? '존댓말' : '반말'}로 통일 (한 답장 안에서도 섞지 말 것)`);
+    lines.push(
+      `- [이번 답장 말투] 캡처도 저장된 말투도 없으니, 앞 대화에서 정한 말투가 있으면 그것으로, 없으면 모든 답장을 ${req.crush.relationship === 'blind_date' ? '존댓말' : '반말'}로 통일 (한 답장 안에서도 섞지 말 것)`,
+    );
   } else {
     lines.push(`- [이번 답장 말투] 캡처에서 사용자가 쓰는 말투로 모든 답장을 통일 (한 답장 안에서도 섞지 말 것)`);
   }
@@ -264,7 +349,12 @@ export function buildContextText(req: CoachRequest): string {
     crush: { mbti: req.crush.mbti, age: req.crush.age, relationship: req.crush.relationship, gender: req.crush.gender },
     user: { mbti: req.user.mbti, age: req.user.age },
   });
-  const blocks = [buildProfileBlock(req), knowledge ? `[코치 참고 자료 — 경향일 뿐 단정하지 말 것]\n${knowledge}` : '', buildHistoryBlock(req.history)].filter(Boolean);
+  const blocks = [
+    buildProfileBlock(req),
+    knowledge ? `[코치 참고 자료 — 경향일 뿐 단정하지 말 것]\n${knowledge}` : '',
+    buildEarlierNotesBlock(req.earlierNotes),
+    buildHistoryBlock(req.history),
+  ].filter(Boolean);
   return blocks.join('\n\n');
 }
 

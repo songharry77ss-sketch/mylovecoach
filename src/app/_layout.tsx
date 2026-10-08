@@ -1,13 +1,14 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import { AppState, Platform } from 'react-native';
+import { useEffect, useState } from 'react';
+import { AppState, Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AiConsentHost } from '@/components/coach/ai-consent-sheet';
 import { CelebrationProvider } from '@/components/fx/celebration';
+import { IntroSplash } from '@/components/fx/intro-splash';
 import { ToastProvider } from '@/components/ui/toast';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -17,11 +18,28 @@ import { refreshTeam } from '@/lib/billing/team';
 import { linkMember } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { haptic, setHapticsEnabled } from '@/lib/haptics';
+import { isDemoMode } from '@/lib/demo';
 import { cleanupOrphanImages, clearImageCaches } from '@/lib/images';
 import { processPendingDeletion } from '@/lib/server-deletion';
 import { useAppStore } from '@/store/app-store';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+// 같은 로고의 인트로로 이어지므로 네이티브 페이드와 로고 움직임이 겹치지 않게 한다.
+SplashScreen.setOptions({ duration: 0, fade: false });
+
+/** 데모·빠른 코칭·로그인 콜백은 바로 연다. OAuth 복귀 화면을 인트로로 가리지 않는다. */
+const skipIntroForPath = (path: string | null | undefined) => path === '/quick' || path?.startsWith('/quick/') === true || path === '/auth/callback';
+const INTRO_SAFETY_MS = 7000;
+const hideNativeSplash = () => {
+  SplashScreen.hideAsync().catch(() => {});
+};
+
+/** 저장된 진동 설정을 읽은 뒤에만 두근 효과를 낸다. 웹은 누르기 전 진동이 제한되므로 건너뛴다. */
+const introBeat = () => {
+  if (Platform.OS === 'web') return;
+  const s = useAppStore.getState();
+  if (useAppStore.persist.hasHydrated() && s.hapticsOn) haptic.heartbeat();
+};
 
 /**
  * 이용 기록 동의를 받은 방식의 판. 동의 수정판은 store 에 analyticsConsentVersion(직접 체크 = 2)을 둔다.
@@ -51,6 +69,7 @@ export default function RootLayout() {
   const setHydrated = useAppStore((s) => s.setHydrated);
   const hapticsOn = useAppStore((s) => s.hapticsOn);
   const pathname = usePathname();
+  const [introDone, setIntroDone] = useState(() => isDemoMode || skipIntroForPath(pathname));
 
   // 마이 탭의 「진동 효과」 설정을 진동 모듈에 반영
   useEffect(() => {
@@ -58,14 +77,32 @@ export default function RootLayout() {
   }, [hapticsOn]);
 
   useEffect(() => {
-    if (hydrated) {
-      SplashScreen.hideAsync().catch(() => {});
-      return;
-    }
+    if (hydrated) return;
     // 저장소 접근이 막힌 환경(사생활 보호 모드 등)에서도 앱이 멈추지 않도록 안전장치
     const t = setTimeout(() => setHydrated(), 2500);
     return () => clearTimeout(t);
   }, [hydrated, setHydrated]);
+
+  // 첫 경로가 늦게 정해져도 빠른 코칭·로그인 콜백은 저장소 준비 후 곧바로 보인다.
+  useEffect(() => {
+    if (!introDone && hydrated && skipIntroForPath(pathname)) setIntroDone(true);
+  }, [introDone, hydrated, pathname]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    // 인트로 첫 그림이 준비되면 onShown 에서 내린다. 준비 알림이 누락돼도 화면은 열린다.
+    const t = setTimeout(hideNativeSplash, introDone ? 0 : 1500);
+    return () => clearTimeout(t);
+  }, [hydrated, introDone]);
+
+  useEffect(() => {
+    if (introDone) return;
+    const t = setTimeout(() => {
+      hideNativeSplash();
+      setIntroDone(true);
+    }, INTRO_SAFETY_MS);
+    return () => clearTimeout(t);
+  }, [introDone]);
 
   // 저장소를 다 읽은 뒤, 어떤 채팅방에도 연결되지 않은 캡처 파일을 지운다 (비밀 상담 흔적 포함)
   useEffect(() => {
@@ -211,6 +248,8 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ThemeProvider value={navTheme}>
           <ToastProvider>
+            {/* 인트로 아래 화면은 계속 준비하되 화면 낭독기가 가려진 버튼을 읽지 않게 한다. */}
+            <View style={styles.fill} importantForAccessibility={introDone ? 'auto' : 'no-hide-descendants'} accessibilityElementsHidden={!introDone}>
             <CelebrationProvider>
             <Stack
               screenOptions={{
@@ -241,12 +280,18 @@ export default function RootLayout() {
               <Stack.Screen name="+not-found" options={{ title: '페이지를 찾을 수 없어요' }} />
             </Stack>
             </CelebrationProvider>
+            </View>
             {/* AI 로 대화를 보내기 전 동의 시트 — 어느 화면(모달 포함)에서 AI 를 부르든 여기서 하나만 뜬다 */}
             <AiConsentHost />
             <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
           </ToastProvider>
+          {introDone ? null : <IntroSplash ready={hydrated} onShown={hideNativeSplash} onBeat={introBeat} onDone={() => setIntroDone(true)} />}
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  fill: { flex: 1 },
+});

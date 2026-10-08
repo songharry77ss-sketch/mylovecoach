@@ -91,24 +91,36 @@ export interface EncodedImage {
   mediaType: 'image/jpeg';
 }
 
-/** 모델 전송 최대 가로 폭. 카톡 캡처 글자가 충분히 읽히면서 토큰(Claude: 픽셀 비례)을 줄이는 값 */
+/**
+ * 모델 전송 최대 가로 폭. 카톡 캡처 글자가 충분히 읽히면서 전송량을 줄이는 값.
+ * Gemini 는 해상도 설정(MEDIUM)에 따라 이미지 1장에 정해진 토큰만 쓰므로 폭을 줄여도 토큰은 거의 그대로이고, 전송량·지연만 준다
+ */
 export const MODEL_IMAGE_MAX_WIDTH = 800;
+
+/** 보낼 때 줄일 폭. 800px 보다 넓을 때만 줄이고, 좁은 캡처는 키우지 않는다 (키워도 글자는 또렷해지지 않고 전송량만 는다) */
+export function modelResizeWidth(width: number): number | null {
+  return width > MODEL_IMAGE_MAX_WIDTH ? MODEL_IMAGE_MAX_WIDTH : null;
+}
 
 /**
  * 모델 전송용으로 리사이즈 + JPEG 압축 + base64 인코딩.
- * 원본 폭을 모르면(0) 일단 리사이즈를 시도합니다.
+ * 원본 폭을 모르면(0 — 다시 시도·다른 답장처럼 저장된 캡처를 다시 보낼 때) 이미지를 읽어 잰다.
  */
 export async function encodeForModel(uri: string, width?: number): Promise<EncodedImage> {
   const context = ImageManipulator.manipulate(uri);
-  const shouldResize = !width || width > MODEL_IMAGE_MAX_WIDTH;
-  if (shouldResize) context.resize({ width: MODEL_IMAGE_MAX_WIDTH });
-  const image = await context.renderAsync();
-  const saved = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.75, base64: true });
-  image.release();
-  // 전송용 축소본 파일은 base64 를 받은 뒤 필요 없다
-  deleteCacheCopy(saved.uri);
-  if (!saved.base64) throw new Error('이미지를 준비하지 못했어요.');
-  return { base64: saved.base64, mediaType: 'image/jpeg' };
+  const measured = width && width > 0 ? null : await context.renderAsync();
+  const target = modelResizeWidth(measured?.width ?? width ?? 0);
+  let image = measured;
+  try {
+    image = target ? await context.resize({ width: target }).renderAsync() : (measured ?? (await context.renderAsync()));
+    const saved = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.75, base64: true });
+    deleteCacheCopy(saved.uri);
+    if (!saved.base64) throw new Error('이미지를 준비하지 못했어요.');
+    return { base64: saved.base64, mediaType: 'image/jpeg' };
+  } finally {
+    if (measured && measured !== image) measured.release();
+    image?.release();
+  }
 }
 
 export function deleteImageQuietly(uri?: string) {

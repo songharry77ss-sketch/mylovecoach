@@ -25,6 +25,7 @@ import {
   GENDER_KO,
   GenderSchema,
   RELATIONSHIP_KO,
+  REQUEST_LIMITS,
   RelationshipSchema,
   TemperatureSchema,
   UserRequestSchema,
@@ -36,7 +37,18 @@ import {
 
 export type AiMode = 'coach' | 'report' | 'mind' | 'practice';
 
-/** 연습 프롬프트에 넣는 최근 말풍선 수. 앱도 이만큼만 보내 기존 서버의 40개 상한을 넘지 않는다. */
+/**
+ * 요청에 든 배열 길이의 바깥 상한. 앱이 보내는 배열은 가장 긴 것이 50개 안쪽이다(연습 대화 12마디 × 말풍선 최대 4개·온도 기록 40개).
+ * zod 는 배열 원소를 전부 검사한 뒤에야 .max() 를 보므로, 원소 수백만 개짜리 본문 하나로 이슈 객체가 수백만 개 생겨 메모리가 터진다.
+ * 그래서 zod 에 넘기기 전에 길이만 싸게 훑어 거절한다
+ */
+export const MAX_REQUEST_ARRAY_LENGTH = 64;
+
+/**
+ * 연습 프롬프트에 넣는 최근 말풍선 수. 앱도 이만큼만 보낸다.
+ * 서버는 예전 앱이 한 판을 통째로 보내도(12마디면 말풍선 48개까지) 받아서 최근 것만 쓴다 —
+ * 예전엔 40개 상한에 걸려 11~12마디째에 400 이 났다
+ */
 export const PRACTICE_PROMPT_TURNS = 30;
 
 export const ReportRequestSchema = z.object({
@@ -66,14 +78,14 @@ export const MindRequestSchema = z.object({
   situation: z.string().min(2).max(600),
   /** 속마음을 알고 싶은 사람의 성별 */
   perspective: GenderSchema,
-  user: z.object({ gender: GenderSchema, age: z.number().optional(), mbti: z.string().optional() }).optional(),
+  user: z.object({ gender: GenderSchema, age: z.number().optional(), mbti: z.string().max(REQUEST_LIMITS.mbti).optional() }).optional(),
   crush: z
     .object({
       name: z.string().max(20).optional(),
       age: z.number().optional(),
-      mbti: z.string().optional(),
+      mbti: z.string().max(REQUEST_LIMITS.mbti).optional(),
       relationship: RelationshipSchema.optional(),
-      style: z.array(z.string()).max(8).optional(),
+      style: z.array(z.string().max(REQUEST_LIMITS.tag)).max(8).optional(),
     })
     .optional(),
 });
@@ -86,7 +98,7 @@ export const PracticeRequestSchema = z.object({
     age: z.number(),
     mbti: z.string().max(4),
     job: z.string().max(30),
-    style: z.array(z.string()).max(8),
+    style: z.array(z.string().max(REQUEST_LIMITS.tag)).max(8),
     relationship: RelationshipSchema,
     scenario: z.string().max(300),
     speech: z.enum(['polite', 'casual']),
@@ -94,8 +106,7 @@ export const PracticeRequestSchema = z.object({
   }),
   user: UserRequestSchema,
   heat: z.number(),
-  // 기존 앱이 한 판을 통째로 보내도 받는다 (12마디에 상대 말풍선까지 더하면 40개를 넘을 수 있다).
-  turns: z.array(z.object({ role: z.enum(['me', 'them']), text: z.string().max(600) })).min(1).max(64),
+  turns: z.array(z.object({ role: z.enum(['me', 'them']), text: z.string().max(600) })).min(1).max(MAX_REQUEST_ARRAY_LENGTH),
 });
 
 export type ReportRequest = z.infer<typeof ReportRequestSchema>;
@@ -105,6 +116,27 @@ export type MindRequestInput = z.input<typeof MindRequestSchema>;
 export type PracticeRequest = z.infer<typeof PracticeRequestSchema>;
 export type PracticeRequestInput = z.input<typeof PracticeRequestSchema>;
 
+/** 요청 스키마에서 배열이 있는 가장 깊은 곳은 3단계(sessions[i].insights) — 4단계까지 본다 */
+const ARRAY_SCAN_DEPTH = 4;
+
+/** 너무 긴 배열이 있으면 그 경로, 없으면 null. 글자·숫자는 들여다보지 않는다 */
+function longArrayPath(value: unknown, depth = 0): PropertyKey[] | null {
+  if (depth > ARRAY_SCAN_DEPTH || value === null || typeof value !== 'object') return null;
+  if (Array.isArray(value)) {
+    if (value.length > MAX_REQUEST_ARRAY_LENGTH) return [];
+    for (let i = 0; i < value.length; i++) {
+      const hit = longArrayPath(value[i], depth + 1);
+      if (hit) return [i, ...hit];
+    }
+    return null;
+  }
+  for (const key in value) {
+    const hit = longArrayPath((value as Record<string, unknown>)[key], depth + 1);
+    if (hit) return [key, ...hit];
+  }
+  return null;
+}
+
 /** 서버가 받는 요청 — mode 가 없으면 예전 앱의 코칭 요청으로 본다 */
 export function parseAiRequest(body: unknown):
   | { ok: true; mode: 'coach'; req: z.infer<typeof CoachRequestSchema> }
@@ -112,6 +144,13 @@ export function parseAiRequest(body: unknown):
   | { ok: true; mode: 'mind'; req: MindRequest }
   | { ok: true; mode: 'practice'; req: PracticeRequest }
   | { ok: false; issues: z.core.$ZodIssue[] } {
+  const long = longArrayPath(body);
+  if (long) {
+    return {
+      ok: false,
+      issues: [{ code: 'too_big', origin: 'array', maximum: MAX_REQUEST_ARRAY_LENGTH, inclusive: true, path: long, message: `Too big: expected array to have <=${MAX_REQUEST_ARRAY_LENGTH} items` }],
+    };
+  }
   const mode = (body as { mode?: unknown } | null)?.mode;
   const pick = () => {
     switch (mode) {

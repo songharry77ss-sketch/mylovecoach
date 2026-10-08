@@ -20,9 +20,10 @@ import { useAiAction } from '@/hooks/use-ai-action';
 import { useKeyboardVisible } from '@/hooks/use-keyboard';
 import { useTheme } from '@/hooks/use-theme';
 import { practiceFeedbackReportContent, practiceReportContent } from '@/lib/ai-report';
+import { beginAiRequest } from '@/lib/ai-request-lifetime';
 import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { PRACTICE_PROMPT_TURNS } from '@/lib/ai-tasks';
-import { requestAi } from '@/lib/coach-client';
+import { aiRouteOf, requestAi } from '@/lib/coach-client';
 import { userToRequest } from '@/lib/coach-schema';
 import { haptic } from '@/lib/haptics';
 import { relationshipLabel } from '@/lib/labels';
@@ -30,7 +31,20 @@ import { PRACTICE_MAX_TURNS, bestLine, latestPartnerText, myTurnCount, practiceV
 import type { PracticeTurn } from '@/lib/types';
 import { useAppStore } from '@/store/app-store';
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/** 동의 철회·화면 종료 때 말풍선 대기도 바로 끝낸다. */
+function waitForReply(ms: number, signal: AbortSignal): Promise<boolean> {
+  if (signal.aborted) return Promise.resolve(false);
+  return new Promise((resolve) => {
+    const finish = (ready: boolean) => {
+      clearTimeout(timer);
+      signal.removeEventListener('abort', abort);
+      resolve(ready);
+    };
+    const abort = () => finish(false);
+    const timer = setTimeout(() => finish(true), ms);
+    signal.addEventListener('abort', abort, { once: true });
+  });
+}
 
 export default function PracticeSessionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -43,14 +57,22 @@ export default function PracticeSessionScreen() {
   const user = useAppStore((s) => s.user);
   const kkti = useAppStore((s) => s.kkti);
   const quota = useQuota();
-  const { run, busy, error, setError } = useAiAction();
+  const { run, busy, error, setError, cancel } = useAiAction();
   const report = useAiReport();
   const [text, setText] = useState('');
   const [typing, setTyping] = useState(false);
   const [heatFrom, setHeatFrom] = useState<{ from: number; key: string } | null>(null);
   const listRef = useRef<FlatList<PracticeTurn>>(null);
   const rootRef = useRef<View>(null);
+  const replyRef = useRef<ReturnType<typeof beginAiRequest> | null>(null);
   const [headerOffset, setHeaderOffset] = useState(0);
+
+  useEffect(() => () => {
+    const reply = replyRef.current;
+    replyRef.current = null;
+    reply?.controller.abort();
+    cancel();
+  }, [id, cancel]);
 
   const measure = useCallback(() => {
     rootRef.current?.measureInWindow?.((_x, y) => {
@@ -81,10 +103,10 @@ export default function PracticeSessionScreen() {
   const used = myTurnCount(session);
   const left = PRACTICE_MAX_TURNS - used;
   const finished = session.ended || left <= 0;
-  const canSend = !busy && !finished && text.trim().length > 0;
+  const canSend = !busy && !typing && !finished && text.trim().length > 0;
 
   const send = async () => {
-    if (!canSend) return;
+    if (!canSend || replyRef.current) return;
     const message = text.trim();
     const store = useAppStore.getState();
     // 연습 한 번에 1회만 차감 — 첫 답장을 받을 때
@@ -99,59 +121,88 @@ export default function PracticeSessionScreen() {
     setError(null);
     const mine = store.addPracticeTurn(session.id, { role: 'me', text: message });
     if (!mine) return;
-    // 프롬프트에 쓰는 최근 말풍선만 보낸다 (예전 서버는 40개를 넘으면 거절했다)
-    const turns = [...session.turns, mine].slice(-PRACTICE_PROMPT_TURNS).map((t) => ({ role: t.role, text: t.text }));
-    const result = await run(
-      'practice',
-      (o) => {
-        // 「입력 중…」은 AI 분석 동의를 받은 뒤(실제로 보낼 때) 띄운다 — 동의 시트 뒤에서 상대가 답장하는 것처럼 보이지 않게
-        setTyping(true);
-        return requestAi(
-          'practice',
-          {
-            persona: { name: p.name, gender: p.gender, age: p.age, mbti: p.mbti, job: p.job || '직장인', style: p.style, relationship: p.relationship, scenario: p.scenario, speech: p.speech, difficulty: p.difficulty },
-            user: userToRequest(user, kktiLabel(kkti)),
-            heat: session.heat,
-            turns,
-          },
-          o,
-        );
-      },
-      { reason: 'practice', chargeable },
-    );
-    if (!result) {
-      setTyping(false);
-      haptic.error();
-      // 실패한 내 메시지는 지우고 입력창에 되돌려 다시 보낼 수 있게
+    // 통신뿐 아니라 응답 뒤 말풍선·온도 반영까지 같은 동의와 화면 수명으로 보호한다.
+    const reply = beginAiRequest();
+    replyRef.current = reply;
+    reply.controller.signal.addEventListener('abort', cancel, { once: true });
+    const active = () => {
+      const current = useAppStore.getState().practice[session.id];
+      return reply.active() && current !== undefined && !current.ended;
+    };
+    try {
+      // 프롬프트에 쓰는 최근 말풍선만 보낸다 (예전 서버는 40개를 넘으면 거절했다)
+      const turns = [...session.turns, mine].slice(-PRACTICE_PROMPT_TURNS).map((t) => ({ role: t.role, text: t.text }));
+      const result = await run(
+        'practice',
+        (o) => {
+          reply.confirmConsent(aiRouteOf(o.directApiKey)?.provider);
+          // 「입력 중…」은 AI 분석 동의를 받은 뒤(실제로 보낼 때) 띄운다 — 동의 시트 뒤에서 상대가 답장하는 것처럼 보이지 않게
+          setTyping(true);
+          return requestAi(
+            'practice',
+            {
+              persona: { name: p.name, gender: p.gender, age: p.age, mbti: p.mbti, job: p.job || '직장인', style: p.style, relationship: p.relationship, scenario: p.scenario, speech: p.speech, difficulty: p.difficulty },
+              user: userToRequest(user, kktiLabel(kkti)),
+              heat: session.heat,
+              turns,
+            },
+            o,
+          );
+        },
+        { reason: 'practice', chargeable },
+      );
+      if (!active()) return;
+      if (!result) {
+        setTyping(false);
+        haptic.error();
+        // 실패한 내 메시지는 지우고 입력창에 되돌려 다시 보낼 수 있게
+        useAppStore.setState((s) => {
+          const cur = s.practice[session.id];
+          if (!cur) return {};
+          return { practice: { ...s.practice, [session.id]: { ...cur, turns: cur.turns.filter((t) => t.id !== mine.id) } } };
+        });
+        setText(message);
+        return;
+      }
+      const before = useAppStore.getState().practice[session.id]?.heat ?? session.heat;
+      // run이 성공할 때 이미 차감됐다. 답장 연출을 취소해도 같은 연습에서 다시 차감하지 않는다.
       useAppStore.setState((s) => {
-        const cur = s.practice[session.id];
-        if (!cur) return {};
-        return { practice: { ...s.practice, [session.id]: { ...cur, turns: cur.turns.filter((t) => t.id !== mine.id) } } };
+        const current = s.practice[session.id];
+        if (!current || current.charged) return {};
+        return { practice: { ...s.practice, [session.id]: { ...current, charged: true } } };
       });
-      setText(message);
-      return;
-    }
-    const before = useAppStore.getState().practice[session.id]?.heat ?? session.heat;
-    useAppStore.getState().updatePracticeTurn(session.id, mine.id, { feedback: result.feedback, better: result.better || undefined, delta: result.heatDelta });
-    // 상대가 말풍선을 하나씩 보내는 것처럼
-    for (let i = 0; i < result.replies.length; i++) {
-      await sleep(i === 0 ? 350 : 700 + Math.min(900, result.replies[i].length * 25));
-      useAppStore.getState().addPracticeTurn(session.id, { role: 'them', text: result.replies[i] });
-      haptic.soft();
-    }
-    setTyping(false);
-    setHeatFrom({ from: before, key: mine.id });
-    useAppStore.getState().applyPracticeResult(session.id, result.heatDelta, result.mood, result.ended);
-    if (result.heatDelta >= 8) celebrate({ kind: 'hearts', count: 16 });
-    else if (result.heatDelta < 0) haptic.drop();
-    else haptic.heartbeat();
-    const after = useAppStore.getState().practice[session.id];
-    if (after && (after.ended || myTurnCount(after) >= PRACTICE_MAX_TURNS)) {
-      setTimeout(() => celebrate({ kind: after.heat >= 30 ? 'confetti' : 'sparkles', count: 26 }), 900);
+      useAppStore.getState().updatePracticeTurn(session.id, mine.id, { feedback: result.feedback, better: result.better || undefined, delta: result.heatDelta });
+      // 상대가 말풍선을 하나씩 보내는 것처럼
+      for (let i = 0; i < result.replies.length; i++) {
+        const ready = await waitForReply(i === 0 ? 350 : 700 + Math.min(900, result.replies[i].length * 25), reply.controller.signal);
+        if (!ready || !active()) return;
+        useAppStore.getState().addPracticeTurn(session.id, { role: 'them', text: result.replies[i] });
+        haptic.soft();
+      }
+      setTyping(false);
+      setHeatFrom({ from: before, key: mine.id });
+      useAppStore.getState().applyPracticeResult(session.id, result.heatDelta, result.mood, result.ended);
+      if (result.heatDelta >= 8) celebrate({ kind: 'hearts', count: 16 });
+      else if (result.heatDelta < 0) haptic.drop();
+      else haptic.heartbeat();
+      const after = useAppStore.getState().practice[session.id];
+      if (after && (after.ended || myTurnCount(after) >= PRACTICE_MAX_TURNS)) {
+        if (await waitForReply(900, reply.controller.signal) && reply.active() && useAppStore.getState().practice[session.id]) {
+          celebrate({ kind: after.heat >= 30 ? 'confetti' : 'sparkles', count: 26 });
+        }
+      }
+    } finally {
+      reply.finish();
+      reply.controller.signal.removeEventListener('abort', cancel);
+      if (replyRef.current === reply) {
+        replyRef.current = null;
+        setTyping(false);
+      }
     }
   };
 
   const end = () => {
+    replyRef.current?.controller.abort();
     haptic.heavy();
     useAppStore.getState().endPractice(session.id);
     celebrate({ kind: session.heat >= 30 ? 'confetti' : 'sparkles', count: 24 });

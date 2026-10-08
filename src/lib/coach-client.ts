@@ -11,7 +11,7 @@ import {
   type ReportRequestInput,
 } from '@/lib/ai-tasks';
 import { analyticsEnabled, currentConsentVersion, currentSessionId } from '@/lib/analytics';
-import { COACH_MODEL, CoachAnalysisReadSchema, CoachRequestSchema, normalizeAnalysis, type CoachRequestInput } from '@/lib/coach-schema';
+import { COACH_MODEL, CoachAnalysisReadSchema, CoachRequestSchema, IMAGE_TOO_LARGE_MESSAGE, isImageTooLarge, normalizeAnalysis, type CoachRequestInput } from '@/lib/coach-schema';
 import { APP_CONFIG } from '@/lib/config';
 import { demoAnalysis, demoMind, demoPractice, demoReport, isDemoMode } from '@/lib/demo';
 import { callGeminiTask } from '@/lib/gemini';
@@ -20,7 +20,7 @@ import type { CoachAnalysis } from '@/lib/types';
 export class CoachError extends Error {
   constructor(
     message: string,
-    readonly code: 'not_configured' | 'network' | 'auth' | 'rate_limit' | 'refused' | 'server' | 'parse' | 'consent',
+    readonly code: 'not_configured' | 'network' | 'auth' | 'rate_limit' | 'refused' | 'server' | 'parse' | 'consent' | 'too_large',
   ) {
     super(message);
     this.name = 'CoachError';
@@ -49,6 +49,10 @@ const REQUEST_TIMEOUT_MS = 90_000;
 
 function withTimeout(signal?: AbortSignal): AbortSignal {
   const controller = new AbortController();
+  if (signal?.aborted) {
+    controller.abort();
+    return controller.signal;
+  }
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   signal?.addEventListener('abort', () => controller.abort());
   controller.signal.addEventListener('abort', () => clearTimeout(timer));
@@ -117,7 +121,13 @@ export async function requireAiConsent(feature: AiFeature, directApiKey?: string
  * 코치 분석 요청. 프록시 서버가 설정돼 있으면 서버를, 아니면 개인 키로 AI 를 직접 호출합니다.
  */
 export async function requestCoaching(input: CoachRequestInput, options: CoachClientOptions = {}): Promise<CoachAnalysis> {
-  const req = CoachRequestSchema.parse(input);
+  // 서버와 같은 길이 상한으로 먼저 검사한다 — 캡처가 너무 크면 보내지 않고 서버(413)와 같은 안내를 보여 준다
+  const parsed = CoachRequestSchema.safeParse(input);
+  if (!parsed.success) {
+    if (isImageTooLarge(parsed.error.issues)) throw new CoachError(IMAGE_TOO_LARGE_MESSAGE, 'too_large');
+    throw new CoachError('요청 형식이 올바르지 않아요.', 'parse');
+  }
+  const req = parsed.data;
   if (isDemoMode) return demoAnalysis(req);
   if (viaServer()) {
     const body = await postToServer('coach', req, { ...consentHeaders(options.deviceId) }, options.signal);
@@ -170,7 +180,7 @@ async function postToServer(feature: AiFeature, body: unknown, extraHeaders: Rec
   }
   const json = await safeJson(res);
   if (!res.ok) {
-    const code = res.status === 401 || res.status === 403 ? 'auth' : res.status === 429 ? 'rate_limit' : res.status === 422 ? 'refused' : 'server';
+    const code = res.status === 401 || res.status === 403 ? 'auth' : res.status === 429 ? 'rate_limit' : res.status === 422 ? 'refused' : res.status === 413 ? 'too_large' : 'server';
     throw new CoachError((json as { error?: string })?.error ?? `서버 오류 (${res.status})`, code);
   }
   return json;

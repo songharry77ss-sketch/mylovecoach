@@ -5,6 +5,7 @@ import type { AiProvider } from '@/lib/ai-consent';
 import { freeRules, type ConsumablePlanKey } from '@/lib/billing/plans';
 import type { Acquisition } from '@/lib/analytics';
 import { consumeOne, EMPTY_USAGE, EMPTY_WALLET, grantConsumable, grantSignupBonus, type PremiumState, type TeamState, type UsageState, type WalletState } from '@/lib/billing/quota';
+import type { CoachRequest } from '@/lib/coach-schema';
 import { createId } from '@/lib/id';
 import { authAvailable } from '@/lib/supabase';
 import type {
@@ -15,6 +16,7 @@ import type {
   HistoryTurn,
   KktiSaved,
   MindAnswer,
+  MindReading,
   PracticePersona,
   PracticeSession,
   PracticeTurn,
@@ -103,6 +105,8 @@ export interface AppState {
   practice: Record<string, PracticeSession>;
   /** 최근에 본 속마음 풀이 (최근 10개, 최신이 앞) */
   mindHistory: MindAnswer[];
+  /** 속마음 풀이 결과 재사용 — 같은 상황·대상 성별·내 프로필이면 AI 를 다시 부르지 않는다. 키(mindCacheKey) → { reading, at } */
+  mindCache: Record<string, { reading: MindReading; at: number }>;
 
   setHydrated: () => void;
   setUser: (user: UserProfile) => void;
@@ -115,7 +119,8 @@ export interface AppState {
   createSecretChat: () => string;
   updateCrush: (id: string, patch: Partial<Omit<Crush, 'id' | 'createdAt'>>) => void;
   removeCrush: (id: string) => void;
-  saveReport: (crushId: string, report: CrushReport, basedOn: number) => void;
+  /** 보고서 저장. profileKey 는 보고서를 만들 때 보낸 프로필의 지문 (reportProfileKey) */
+  saveReport: (crushId: string, report: CrushReport, basedOn: number, profileKey?: string) => void;
 
   addMessage: (message: Omit<ChatMessage, 'id' | 'createdAt'> & { id?: string; createdAt?: number }) => ChatMessage;
   updateMessage: (crushId: string, id: string, patch: Partial<ChatMessage>) => void;
@@ -126,7 +131,8 @@ export interface AppState {
   selectReply: (crushId: string, messageId: string, index: number) => void;
 
   setHasApiKey: (v: boolean) => void;
-  getCachedAnalysis: (key: string) => CoachAnalysis | null;
+  /** since 를 주면 그 시각보다 먼저 만든 결과는 쓰지 않는다 (그 뒤 사용자가 새 요청을 했으면 다시 답해야 하므로) */
+  getCachedAnalysis: (key: string, since?: number | null) => CoachAnalysis | null;
   putCachedAnalysis: (key: string, analysis: CoachAnalysis) => void;
   setAnalyticsConsent: (consent: boolean) => void;
   /** AI 분석 동의 기록 — 동의한 AI 회사, 동의 안 함·철회면 null */
@@ -160,12 +166,18 @@ export interface AppState {
   applyPracticeResult: (sessionId: string, delta: number, mood: string, ended: boolean) => void;
   endPractice: (sessionId: string) => void;
   removePractice: (sessionId: string) => void;
+  /** 속마음 기록에 넣는다. 같은 키(같은 상황·대상·내 프로필)의 예전 기록은 빼서 한 번만 보이게 */
   addMindAnswer: (answer: MindAnswer) => void;
+  getCachedMind: (key: string) => MindReading | null;
+  putCachedMind: (key: string, reading: MindReading) => void;
   resetAll: () => void;
 }
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const CACHE_MAX = 40;
+/** 속마음 풀이는 대화처럼 지나가는 내용이 아니라서 오래 둔다 (새로 풀고 싶으면 「다시 풀이」) */
+const MIND_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const MIND_CACHE_MAX = 60;
 const PRACTICE_MAX = 12;
 export const HEAT_MIN = -20;
 export const HEAT_MAX = 100;
@@ -233,6 +245,7 @@ export const useAppStore = create<AppState>()(
       kkti: null,
       practice: {},
       mindHistory: [],
+      mindCache: {},
 
       setHydrated: () => set({ hydrated: true }),
       setUser: (user) => set({ user }),
@@ -271,13 +284,14 @@ export const useAppStore = create<AppState>()(
           const messages = { ...s.messages };
           delete crushes[id];
           delete messages[id];
-          return { crushes, messages };
+          // 해시 키만 남는 재사용 사본은 방별로 역추적할 수 없으므로 함께 비운다. 다른 방 원본은 보존한다.
+          return { crushes, messages, analysisCache: {} };
         }),
-      saveReport: (crushId, report, basedOn) =>
+      saveReport: (crushId, report, basedOn, profileKey) =>
         set((s) => {
           const crush = s.crushes[crushId];
           if (!crush) return {};
-          return { crushes: { ...s.crushes, [crushId]: { ...crush, report: { data: report, at: Date.now(), basedOn } } } };
+          return { crushes: { ...s.crushes, [crushId]: { ...crush, report: { data: report, at: Date.now(), basedOn, profileKey } } } };
         }),
 
       addMessage: (input) => {
@@ -344,10 +358,11 @@ export const useAppStore = create<AppState>()(
       selectReply: (crushId, messageId, index) => get().updateMessage(crushId, messageId, { selectedReplyIndex: index }),
 
       setHasApiKey: (hasApiKey) => set({ hasApiKey }),
-      getCachedAnalysis: (key) => {
+      getCachedAnalysis: (key, since) => {
         const hit = get().analysisCache[key];
         if (!hit) return null;
         if (Date.now() - hit.at > CACHE_TTL_MS) return null;
+        if (since != null && hit.at < since) return null;
         return hit.analysis;
       },
       putCachedAnalysis: (key, analysis) =>
@@ -448,7 +463,21 @@ export const useAppStore = create<AppState>()(
           delete practice[sessionId];
           return { practice };
         }),
-      addMindAnswer: (answer) => set((s) => ({ mindHistory: [answer, ...s.mindHistory].slice(0, 10) })),
+      addMindAnswer: (answer) =>
+        set((s) => ({ mindHistory: [answer, ...s.mindHistory.filter((h) => !answer.key || h.key !== answer.key)].slice(0, 10) })),
+      getCachedMind: (key) => {
+        const hit = get().mindCache[key];
+        if (!hit || Date.now() - hit.at > MIND_CACHE_TTL_MS) return null;
+        return hit.reading;
+      },
+      putCachedMind: (key, reading) =>
+        set((s) => {
+          const entries = Object.entries(s.mindCache)
+            .filter(([k, v]) => k !== key && Date.now() - v.at <= MIND_CACHE_TTL_MS)
+            .sort((a, b) => b[1].at - a[1].at)
+            .slice(0, MIND_CACHE_MAX - 1);
+          return { mindCache: { ...Object.fromEntries(entries), [key]: { reading, at: Date.now() } } };
+        }),
       // 구매 상태·이용권·무료 사용량·팀원·회원 여부는 「모든 데이터 삭제」로 지우지 않는다 (회원은 마이 → 로그아웃·탈퇴로)
       // (구매는 스토어 계정에 묶여 있고, 삭제로 무료 횟수가 초기화되면 안 됨). 서버에 남은 이 기기의 이용 기록도 지워 달라고 요청하고,
       // AI 분석·이용 기록 동의는 처음 상태로 돌려 다시 묻는다 (첫 화면 체크박스는 꺼진 채로 보이므로, 저장된 동의도 지워야 화면과 실제가 맞는다)
@@ -466,6 +495,7 @@ export const useAppStore = create<AppState>()(
           kkti: null,
           practice: {},
           mindHistory: [],
+          mindCache: {},
           aiConsent: null,
           aiConsentProvider: null,
           aiConsentAt: null,
@@ -516,6 +546,7 @@ export const useAppStore = create<AppState>()(
           kkti: s.kkti,
           practice: s.practice,
           mindHistory: s.mindHistory,
+          mindCache: s.mindCache,
         };
       },
       // 저장값은 읽을 때 바로잡는다. version 을 올리면 이전 버전 앱(되돌린 웹 배포 등)이 저장값을 통째로 버리므로 올리지 않는다
@@ -570,24 +601,134 @@ export const useAppStore = create<AppState>()(
 );
 
 /** 최근 코칭 맥락을 모델에 넘길 형태로 압축 */
-export function buildHistory(messages: ChatMessage[], limit = 6): HistoryTurn[] {
-  const turns: HistoryTurn[] = [];
+/** 코칭 요청에 그대로 싣는 최근 턴 수 (서버 상한 8) */
+export const HISTORY_TURNS = 8;
+/** 그중 코치가 제안한 답장·읽어낸 포인트까지 싣는 최근 턴 수 (토큰을 아끼려고 최근 것만) */
+const DETAILED_TURNS = 3;
+/** 최근 턴보다 앞선 대화에서 사용자가 직접 쓴 말을 몇 개까지 싣는지 (서버 상한 12) */
+const EARLIER_NOTES = 10;
+
+interface ChatTurn {
+  /** 요청에 실을 사용자 메모 (캡처 표시 포함) */
+  note?: string;
+  /** 사용자가 직접 쓴 글만 (「다른 답장 더 보기」 같은 자동 문구 제외) */
+  typed?: string;
+  analysis?: CoachAnalysis;
+  selectedReplyIndex?: number;
+}
+
+/** 채팅방 메시지를 「사용자 → 코치」 턴으로 묶는다 (실패·대기 중 메시지는 뺀다) */
+function chatTurns(messages: ChatMessage[]): ChatTurn[] {
+  const turns: ChatTurn[] = [];
   for (const m of messages) {
     if (m.pending || m.error) continue;
     if (m.role === 'user') {
-      turns.push({ userNote: m.text?.trim() || (m.imageUri ? '(대화 캡처 업로드)' : undefined) });
+      const text = m.text?.trim() || undefined;
+      const auto = Boolean(text?.startsWith('🔄'));
+      // 캡처와 글을 같이 보냈으면 둘 다 남긴다 — 캡처는 다시 보내지 않으므로 「캡처를 올렸었다」는 사실이 맥락이다
+      const note = m.imageUri ? (text ? `(대화 캡처 업로드) ${text}` : '(대화 캡처 업로드)') : text;
+      turns.push({ note, typed: auto ? undefined : text });
     } else if (m.analysis) {
       const last = turns[turns.length - 1];
-      const chosen = m.selectedReplyIndex != null ? m.analysis.replies[m.selectedReplyIndex]?.text : undefined;
-      if (last && last.coachSummary == null) {
-        last.coachSummary = m.analysis.summary;
-        last.chosenReply = chosen;
+      if (last && !last.analysis) {
+        last.analysis = m.analysis;
+        last.selectedReplyIndex = m.selectedReplyIndex;
       } else {
-        turns.push({ coachSummary: m.analysis.summary, chosenReply: chosen });
+        turns.push({ analysis: m.analysis, selectedReplyIndex: m.selectedReplyIndex });
       }
     }
   }
-  return turns.slice(-limit);
+  return turns;
+}
+
+/** 글자(코드포인트) 단위로 자른다 — 이모지를 반으로 잘라 깨진 글자를 보내지 않게 */
+const clip = (s: string, max: number) => {
+  const chars = Array.from(s);
+  return chars.length > max ? `${chars.slice(0, max).join('')}…` : s;
+};
+
+/**
+ * 코칭 요청에 싣는 최근 대화 맥락 (오래된 순).
+ * 최근 DETAILED_TURNS 턴은 코치가 제안한 답장과 읽어낸 포인트까지 싣는다 —
+ * 사용자가 「2번 답장 더 짧게」처럼 앞 내용을 가리키거나 「다른 답장 더 보기」를 누를 때 AI 가 앞 답장을 알아야 한다
+ */
+export function buildHistory(messages: ChatMessage[], limit = HISTORY_TURNS): HistoryTurn[] {
+  const turns = chatTurns(messages).slice(-limit);
+  return turns.map((t, i) => {
+    const turn: HistoryTurn = { userNote: t.note };
+    if (!t.analysis) return turn;
+    turn.coachSummary = t.analysis.summary;
+    turn.chosenReply = t.selectedReplyIndex != null ? t.analysis.replies?.[t.selectedReplyIndex]?.text : undefined;
+    if (i >= turns.length - DETAILED_TURNS) {
+      const replies = (t.analysis.replies ?? []).map((r) => r.text?.trim()).filter((s): s is string => Boolean(s)).slice(0, 3);
+      if (replies.length) turn.replies = replies.map((s) => clip(s, 200));
+      const insights = (t.analysis.insights ?? []).map((s) => s?.trim()).filter((s): s is string => Boolean(s)).slice(0, 3);
+      if (insights.length) turn.insights = insights.map((s) => clip(s, 160));
+    }
+    return turn;
+  });
+}
+
+/**
+ * 최근 맥락(buildHistory) 밖으로 밀려난 더 앞선 턴에서 사용자가 직접 쓴 말 (오래된 순).
+ * 「이모지 빼 줘」「상대는 회사 선배야」처럼 앞에서 한 요청·정보를 대화가 길어져도 계속 지키게 한다
+ */
+export function buildEarlierNotes(messages: ChatMessage[], recent = HISTORY_TURNS, limit = EARLIER_NOTES): string[] {
+  const turns = chatTurns(messages);
+  return typedOf(turns.slice(0, Math.max(0, turns.length - recent)))
+    .slice(-limit)
+    .map((s) => clip(s, 160));
+}
+
+const typedOf = (turns: ChatTurn[]) => turns.map((t) => t.typed?.replace(/\s+/g, ' ')).filter((s): s is string => Boolean(s));
+
+/** 이 캡처(지문)를 이 채팅방에서 이미 분석했는지 — 그 요청 바로 뒤 코치 답이 결과를 냈으면 이미 누적 온도에 반영된 캡처 */
+export function analyzedCaptureBefore(messages: ChatMessage[], imageHash: string): boolean {
+  for (let i = 0; i < messages.length; i++) {
+    const m = messages[i];
+    if (m.role !== 'user' || m.imageHash !== imageHash) continue;
+    const reply = messages.slice(i + 1).find((x) => x.role === 'coach');
+    if (reply?.analysis) return true;
+  }
+  return false;
+}
+
+/** 「다른 답장 더 보기」가 보낸 자동 요청 메시지인지 */
+export const isVariationRequest = (m: ChatMessage) => m.role === 'user' && (Boolean(m.variationOf) || Boolean(m.text?.trim().startsWith('🔄')));
+
+/**
+ * 코치 카드를 만든 요청 — 같은 턴의 사용자 메시지(「다른 답장」 자동 요청은 건너뛰고 그 앞의 실제 요청).
+ * 「다른 버전 더 보기」가 이 요청의 캡처·글로 다시 묻는다
+ */
+export function turnRequestOf(messages: ChatMessage[], coachMessageId: string): ChatMessage | undefined {
+  const idx = messages.findIndex((m) => m.id === coachMessageId);
+  for (let i = idx - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m.role !== 'user' || isVariationRequest(m)) continue;
+    if (m.imageUri || m.text?.trim()) return m;
+  }
+  return undefined;
+}
+
+/** 실패한 「다른 답장」 요청이 바꾸려던 코치 카드 (예전 메시지처럼 id 가 없으면 그 앞의 마지막 결과 카드) */
+export function variationTargetOf(messages: ChatMessage[], request: ChatMessage): ChatMessage | undefined {
+  if (request.variationOf) return messages.find((m) => m.id === request.variationOf && m.analysis);
+  const idx = messages.findIndex((m) => m.id === request.id);
+  for (let i = idx - 1; i >= 0; i--) if (messages[i].role === 'coach' && messages[i].analysis) return messages[i];
+  return undefined;
+}
+
+/**
+ * 이 채팅방에서 사용자가 마지막으로 직접 요청한 시각 — 글이든 캡처든 (「다른 답장 더 보기」 자동 요청은 빼고, 없으면 null).
+ * 저장된 코칭 결과는 이보다 나중에 만든 것만 다시 쓴다 — 그 사이 「이모지 빼 줘」 같은 새 요청이나 새 캡처가 있었다면 그걸 기억해서 다시 답해야 하므로
+ */
+export function lastRequestAt(messages: ChatMessage[]): number | null {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m.role !== 'user' || m.pending || m.error || isVariationRequest(m)) continue;
+    if (m.text?.trim() || m.imageUri) return m.createdAt;
+  }
+  return null;
 }
 
 /** 상대 분석 보고서용 코칭 기록 (최근 15개, 오래된 순) */
@@ -612,6 +753,38 @@ export function buildReportSessions(messages: ChatMessage[], limit = 15) {
   return sessions.slice(-limit);
 }
 
+/**
+ * 마지막 보고서 뒤로 새 코칭 기록이 생겼는지 — 없으면 「다시 분석하기」를 막는다 (같은 기록으로 다시 부르면 비슷한 보고서에 1회만 쓰인다).
+ * 분석 개수가 늘었거나, 채팅을 지운 뒤 다시 쌓은 경우처럼 보고서보다 늦게 생긴 분석이 있으면 새 기록으로 본다. 보고서가 없으면 언제나 true
+ */
+export function hasNewSessionsSince(report: { at: number; basedOn: number } | undefined, messages: ChatMessage[]): boolean {
+  if (!report) return true;
+  const analyzed = messages.filter((m) => m.analysis);
+  return analyzed.length > report.basedOn || analyzed.some((m) => m.createdAt > report.at);
+}
+
+/**
+ * 보고서 요청에 넣는 상대·내 프로필의 지문 (관계 단계·목표·MBTI·메모·호칭·말투·내 프로필·KKTI 등 보내는 그대로).
+ * 누적 온도는 뺀다 — 온도는 새 코칭 기록과 함께만 바뀌어서 hasNewSessionsSince 가 따로 본다
+ */
+export function reportProfileKey(profile: { crush: CoachRequest['crush']; user: CoachRequest['user'] }): string {
+  return quickHash(JSON.stringify({ crush: { ...profile.crush, heat: undefined }, user: profile.user }));
+}
+
+/**
+ * 보고서를 (다시) 만들 수 있는 까닭 — 같은 기록·같은 프로필로 다시 부르면 비슷한 보고서에 1회만 쓰이므로 바뀐 게 없으면 null 로 막는다.
+ * first: 아직 보고서가 없음 · sessions: 새 코칭 기록이 생김 · profile: 상대·내 프로필이 바뀜 ·
+ * unknown: 지문이 없는 예전 보고서 (프로필이 바뀌었는지 알 수 없어 열어 둔다)
+ */
+export type ReportRefresh = 'first' | 'sessions' | 'profile' | 'unknown' | null;
+
+export function reportRefresh(report: Crush['report'], messages: ChatMessage[], profileKey: string): ReportRefresh {
+  if (!report) return 'first';
+  if (hasNewSessionsSince(report, messages)) return 'sessions';
+  if (!report.profileKey) return 'unknown';
+  return report.profileKey === profileKey ? null : 'profile';
+}
+
 /** 채팅방 목록 정렬 (최근 활동순). 셀렉터 안에서 새 배열을 만들면 무한 렌더가 나므로 useMemo 로 감싸 사용 */
 export const sortCrushes = (crushes: Record<string, Crush>): Crush[] =>
   Object.values(crushes).sort((a, b) => (b.lastMessageAt ?? b.updatedAt) - (a.lastMessageAt ?? a.updatedAt));
@@ -625,6 +798,11 @@ export function quickHash(input: string): string {
   return h.toString(36) + input.length.toString(36);
 }
 
-export function analysisCacheKey(parts: { crushId: string; tone: string; text: string; imageBase64?: string; variation?: boolean; emoji?: string }): string {
-  return quickHash([parts.crushId, parts.tone, parts.text.trim(), parts.imageBase64 ?? '', parts.variation ? 'v' : '', parts.emoji ?? ''].join('\u0001'));
+export function analysisCacheKey(parts: { crushId: string; tone: string; text: string; imageBase64?: string; variation?: boolean; emoji?: string; toneChosen?: boolean; emojiChosen?: boolean }): string {
+  return quickHash([parts.crushId, parts.tone, parts.text.trim(), parts.imageBase64 ?? '', parts.variation ? 'v' : '', parts.emoji ?? '', ...(parts.toneChosen ? ['tone-chosen'] : []), ...(parts.emojiChosen ? ['emoji-chosen'] : [])].join('\u0001'));
+}
+
+/** 속마음 풀이 재사용 키 — AI 에 보내는 것(상황 글·대상 성별·묻는 사람의 성별·나이·MBTI)이 같으면 같은 키 */
+export function mindCacheKey(parts: { situation: string; perspective: string; user?: { gender: string; age?: number; mbti?: string } }): string {
+  return quickHash(['mind', parts.situation.trim(), parts.perspective, parts.user?.gender ?? '', parts.user?.age ?? '', parts.user?.mbti ?? ''].join('\u0001'));
 }

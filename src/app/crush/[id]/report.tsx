@@ -26,9 +26,12 @@ import { relativeTime } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
 import { relationshipLabel } from '@/lib/labels';
 import type { CrushReport, HeatPoint } from '@/lib/types';
-import { buildReportSessions, useAppStore } from '@/store/app-store';
+import { buildReportSessions, reportProfileKey, reportRefresh, useAppStore, type ReportRefresh } from '@/store/app-store';
 
 const REPORT_PHRASES = ['지금까지의 대화를 모으는 중…', '호감 신호를 고르는 중…', '그 사람의 연락 패턴을 보는 중…', '공략법을 정리하는 중…', '궁합 점수를 계산하는 중…', '거의 다 됐어요!'];
+
+/** 「다시 분석하기」 버튼 글 — 왜 다시 만들 수 있는지 알려 준다 (막혔거나 예전 보고서면 그냥 「다시 분석하기」) */
+const refreshTitle = (refresh: ReportRefresh) => (refresh === 'sessions' ? '새 대화까지 반영해 다시 분석' : refresh === 'profile' ? '바뀐 정보로 다시 분석' : '다시 분석하기');
 
 export default function CrushReportScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -58,10 +61,14 @@ export default function CrushReportScreen() {
   const log = crush.heatLog ?? [];
   const peak = log.reduce((m, p) => Math.max(m, p.value), heat);
   const report = crush.report;
-  const stale = report && analyzed > report.basedOn;
+  const profile = { crush: crushToRequest(crush), user: userToRequest(user, kktiLabel(kkti)) };
+  const profileKey = reportProfileKey(profile);
+  // 지난 보고서 뒤로 새 코칭 기록도, 바뀐 프로필(관계 단계·목표·MBTI·메모·내 정보 등)도 없으면 다시 분석해도 같은 입력이라 막는다 (첫 보고서는 언제나 만들 수 있다)
+  const refresh = reportRefresh(report, messages ?? [], profileKey);
   const rel = relationshipLabel(crush.relationship);
 
   const generate = async () => {
+    if (!refresh) return;
     haptic.thud();
     const result = await run(
       'report',
@@ -69,8 +76,7 @@ export default function CrushReportScreen() {
         requestAi(
           'report',
           {
-            crush: crushToRequest(crush),
-            user: userToRequest(user, kktiLabel(kkti)),
+            ...profile,
             sessions: buildReportSessions(messages ?? []),
             heatLog: log.slice(-40),
           },
@@ -79,7 +85,7 @@ export default function CrushReportScreen() {
       { reason: 'report' },
     );
     if (result) {
-      saveReport(crush.id, result, analyzed);
+      saveReport(crush.id, result, analyzed, profileKey);
       celebrate({ kind: 'sparkles', count: 20 });
     } else {
       haptic.error();
@@ -172,7 +178,12 @@ export default function CrushReportScreen() {
           <AppText variant="caption" color="textTertiary" align="center">
             {relativeTime(report.at)}에 {report.basedOn}번의 코칭 기록으로 만들었어요
           </AppText>
-          <Button title={stale ? '새 대화까지 반영해 다시 분석' : '다시 분석하기'} variant={stale ? 'primary' : 'soft'} onPress={generate} />
+          <Button title={refreshTitle(refresh)} variant={refresh === 'sessions' || refresh === 'profile' ? 'primary' : 'soft'} onPress={generate} disabled={!refresh} />
+          {!refresh ? (
+            <AppText variant="caption" color="textTertiary" align="center">
+              새 대화를 코칭받거나 상대·내 정보를 바꾸면 다시 분석할 수 있어요
+            </AppText>
+          ) : null}
         </View>
       ) : null}
       {report && !busy ? <AiReportLink mode="report" report={report.data} label="이 보고서 신고" /> : null}

@@ -4,7 +4,10 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { create, type ReactTestRenderer } from 'react-test-renderer';
 
 import PracticeSessionScreen from '@/app/practice/[id]';
+import { withdrawAiConsent } from '@/lib/ai-consent';
 import { PRACTICE_PROMPT_TURNS, parseAiRequest } from '@/lib/ai-tasks';
+import { currentQuota } from '@/lib/billing/gate';
+import { EMPTY_USAGE, EMPTY_WALLET } from '@/lib/billing/quota';
 import { PRACTICE_MAX_TURNS } from '@/lib/practice';
 import type { PracticePersona, PracticeTurn } from '@/lib/types';
 import { useAppStore } from '@/store/app-store';
@@ -185,5 +188,64 @@ describe('연애 연습 화면 — 말풍선 상한과 AI 답변 신고', () => 
     expect(texts(screen)).toContain('연습 상대 「민지」: 주말 좋아요 ㅎㅎ');
 
     act(() => screen.unmount());
+  });
+
+  it.each(['동의 철회', '화면 종료', '연습 끝내기'])('응답을 받은 뒤 말풍선 대기 중 %s하면 남은 답장·온도를 기록하지 않는다', async (action) => {
+    fetchMock.mockClear();
+    fetchMock.mockImplementationOnce(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ result: { replies: ['첫 답장', '늦은 둘째 답장', '늦은 셋째 답장'], heatDelta: 4, mood: '😊', feedback: '좋은 질문이에요', better: '', ended: false } }),
+    }));
+    useAppStore.setState({
+      aiConsent: true,
+      aiConsentProvider: 'google',
+      usage: EMPTY_USAGE,
+      wallet: { ...EMPTY_WALLET, credits: 10 },
+      practice: { pr_long: { id: 'pr_long', persona: PERSONA, turns: [{ id: 't0', role: 'them', text: PERSONA.opener, at: 0 }], heat: 20, mood: '🙂', startedAt: 0, updatedAt: 0, charged: false } },
+    });
+    const quotaBefore = currentQuota().remaining;
+    let tree: ReactTestRenderer | null = null;
+    await act(async () => {
+      tree = create(<SafeAreaProvider initialMetrics={METRICS}><PracticeSessionScreen /></SafeAreaProvider>);
+      await flush();
+    });
+    const screen = tree as unknown as ReactTestRenderer;
+    let unmounted = false;
+    try {
+      act(() => screen.root.findByType(TextInput).props.onChangeText('이번 주말 어때요?'));
+      await act(async () => {
+        const send = byLabel(screen, '보내기');
+        send[send.length - 1].props.onPress();
+        await flush();
+      });
+      for (let i = 0; i < 50 && !useAppStore.getState().practice.pr_long.turns.some((turn) => turn.feedback); i += 1) await act(flush);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(useAppStore.getState().practice.pr_long.turns.some((turn) => turn.feedback)).toBe(true);
+      // 화면 종료는 첫 답장 직전, 철회·끝내기는 첫 답장과 둘째 답장 사이를 검사한다.
+      if (action !== '화면 종료') {
+        await act(async () => { jest.advanceTimersByTime(400); await flush(); });
+        expect(useAppStore.getState().practice.pr_long.turns.at(-1)?.text).toBe('첫 답장');
+      }
+      const before = useAppStore.getState().practice.pr_long.turns;
+      act(() => {
+        if (action === '동의 철회') withdrawAiConsent();
+        else if (action === '화면 종료') { screen.unmount(); unmounted = true; }
+        else byLabel(screen, '연습 끝내기')[0].props.onPress();
+      });
+      await act(async () => {
+        await flush();
+        jest.advanceTimersByTime(5_000);
+        await flush();
+      });
+      const after = useAppStore.getState().practice.pr_long;
+      expect(after.turns).toEqual(before);
+      expect(after.heat).toBe(20);
+      expect(after.charged).toBe(true);
+      expect(currentQuota().remaining).toBe(quotaBefore - 1);
+      expect(after.turns.some((turn) => turn.text.startsWith('늦은'))).toBe(false);
+    } finally {
+      if (!unmounted) act(() => screen.unmount());
+    }
   });
 });
