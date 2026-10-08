@@ -88,7 +88,7 @@ npx tsc --noEmit && npx eslint src --max-warnings=0 && npx jest
 
 정식 출시까지 남은 화면 작업은 **`docs/LAUNCH_CHECKLIST.md`** 에 정리돼 있다.
 
-- App Store: 「앱이 수집하는 개인정보」 설문 게시만 남음 (답안 `docs/APP_PRIVACY.md`). 게시하면 15분 안에 자동 제출
+- App Store: 1.0(빌드 116) 출시됨 (2026-10-08). AI 분석 동의를 넣은 1.0.1(빌드 121) 심사 중 → 출시 뒤 Vercel `AI_CONSENT_REQUIRED=1`
 - Play: 비공개 테스트 12명 × 14일, 또는 사업자(조직) 계정 전환. 비공개 테스트 초안은 API 로 만들어 둠
 - Supabase 프로젝트 생성 → `docs/ANALYTICS_SETUP.md` 1단계 (사용자가 해야 함)
 - 채팅에 노출된 적 있는 Gemini 키 교체
