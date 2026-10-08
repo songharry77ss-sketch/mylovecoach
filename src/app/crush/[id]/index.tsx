@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
+import { useAiReport } from '@/components/coach/ai-report-sheet';
 import { AnalysisCard } from '@/components/coach/analysis-card';
 import { Composer } from '@/components/coach/composer';
 import { heatMeta } from '@/components/coach/heat-gauge';
@@ -59,6 +60,8 @@ export default function CrushChat() {
   const autoSent = useRef(false);
   const keyboardVisible = useKeyboardVisible();
   const secret = Boolean(crush?.secret);
+  // AI 답변 신고 시트는 이 화면에 하나만 둔다 — 결과 카드마다 두면 목록이 위쪽 카드를 내렸다 다시 그릴 때 열린 시트가 사라질 수 있다
+  const report = useAiReport();
 
   // 키보드가 얼마나 가리는지 계산하려면 대화 영역이 화면 위에서 얼마나 내려와 있는지(헤더+상태바)를 알아야 한다.
   // expo-router 57 에는 헤더 높이 훅이 없어서 직접 재어 쓴다.
@@ -291,6 +294,8 @@ export default function CrushChat() {
                   onSelectReply={(i) => selectReply(crush.id, item.id, i)}
                   onRegenerate={item.analysis.replies.length ? () => regenerate(item) : undefined}
                   regenerating={sending}
+                  // 비밀 상담이면 신고하면 이 답변은 저장된다고 시트가 먼저 알린다
+                  onReport={report.available ? (content) => report.open({ mode: 'coach', content, secret }) : undefined}
                 />
               ) : null}
             </View>
@@ -463,6 +468,7 @@ export default function CrushChat() {
           </View>
         </Pressable>
       </Modal>
+      {report.sheet}
     </View>
   );
 }

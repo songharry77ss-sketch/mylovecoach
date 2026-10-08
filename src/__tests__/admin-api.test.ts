@@ -31,6 +31,9 @@ function fakeRes(): FakeRes {
 const DEVICE = 'device-secret-0123456789-abcdefghijklmnop';
 const calls: { url: string; method: string }[] = [];
 let failRows = 0;
+/** ai_report 표가 아직 없는 DB 흉내 (스키마 조각을 실행하기 전) */
+let reportTableMissing = false;
+const REPORTS = [{ id: 1, created_at: '2026-10-07T10:00:00Z', mode: 'practice', reason: 'sexual', note: null, content: '연습 상대 「민준」: …', model: 'google/relay', platform: 'android', app_version: '1.0.0', status: 'new' }];
 
 function fakeReq(headers: Record<string, string>, query: Record<string, string> = {}, method = 'GET') {
   return { method, body: undefined, query, headers: { 'x-forwarded-for': '10.2.3.4', ...headers } } as never;
@@ -39,6 +42,7 @@ function fakeReq(headers: Record<string, string>, query: Record<string, string> 
 beforeEach(() => {
   calls.length = 0;
   failRows = 0;
+  reportTableMissing = false;
   process.env.SUPABASE_URL = 'https://db.example';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
   process.env.ADMIN_TOKEN = '0729';
@@ -48,11 +52,14 @@ beforeEach(() => {
     calls.push({ url: String(url), method });
     const u = String(url);
     if (u.includes('/rest/v1/admin_auth_fail') && method === 'POST') failRows += 1;
+    if (u.includes('/rest/v1/ai_report') && reportTableMissing) return { ok: false, status: 404, text: async () => 'relation "ai_report" does not exist', json: async () => ({}) };
     const json = u.includes('/rest/v1/admin_auth_fail')
       ? Array.from({ length: failRows }, (_, i) => ({ id: i }))
       : u.includes('/rpc/admin_stats')
         ? { days: 7 }
-        : [];
+        : u.includes('/rest/v1/ai_report')
+          ? REPORTS
+          : [];
     return { ok: true, status: 200, text: async () => JSON.stringify(json), json: async () => json };
   }) as unknown as typeof fetch;
 });
@@ -88,6 +95,29 @@ describe('/api/admin', () => {
       await handler(fakeReq({ 'x-admin-device': DEVICE, authorization: `Bearer ${1000 + i}` }), last as never);
     }
     expect(last.statusCode).toBe(429);
+  });
+
+  it('기본 응답에 최근 AI 답변 신고 50건을 함께 돌려준다', async () => {
+    const res = fakeRes();
+    await handler(fakeReq({ 'x-admin-device': DEVICE, authorization: 'Bearer 0729' }), res as never);
+    expect(res.statusCode).toBe(200);
+    expect(res.body?.reports).toEqual(REPORTS);
+    expect(res.body?.reportsReady).toBe(true);
+    const call = calls.find((c) => c.url.includes('/rest/v1/ai_report'));
+    expect(call?.url).toContain('order=created_at.desc');
+    expect(call?.url).toContain('limit=50');
+  });
+
+  it('ai_report 표가 아직 없어도 나머지 화면은 그대로 열리고, 신고 표가 없다는 표시를 준다', async () => {
+    reportTableMissing = true;
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const res = fakeRes();
+    await handler(fakeReq({ 'x-admin-device': DEVICE, authorization: 'Bearer 0729' }), res as never);
+    warn.mockRestore();
+    expect(res.statusCode).toBe(200);
+    expect(res.body?.reports).toEqual([]);
+    // 관리자 페이지는 「아직 신고가 없어요」 대신 ai_report.sql 을 실행하라고 알린다
+    expect(res.body?.reportsReady).toBe(false);
   });
 
   it('「기록 삭제」는 void 함수의 본문 없는 204 응답에도 성공한다 (예전에는 지우고도 502)', async () => {

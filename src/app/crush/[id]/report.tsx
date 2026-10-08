@@ -5,6 +5,7 @@ import { useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp, useAnimatedStyle, useSharedValue, withDelay, withSpring } from 'react-native-reanimated';
 
+import { AiReportLink } from '@/components/coach/ai-report-sheet';
 import { HeatGauge, heatMeta } from '@/components/coach/heat-gauge';
 import { PendingBubble } from '@/components/coach/pending-bubble';
 import { useCelebrate } from '@/components/fx/celebration';
@@ -174,6 +175,7 @@ export default function CrushReportScreen() {
           <Button title={stale ? '새 대화까지 반영해 다시 분석' : '다시 분석하기'} variant={stale ? 'primary' : 'soft'} onPress={generate} />
         </View>
       ) : null}
+      {report && !busy ? <AiReportLink mode="report" report={report.data} label="이 보고서 신고" /> : null}
     </Screen>
   );
 }

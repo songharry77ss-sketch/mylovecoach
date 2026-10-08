@@ -13,6 +13,7 @@ import { PressableScale } from '@/components/ui/pressable-scale';
 import { useToast } from '@/components/ui/toast';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { coachReportContent } from '@/lib/ai-report';
 import { haptic } from '@/lib/haptics';
 import { TEMPERATURES } from '@/lib/labels';
 import type { ChatMessage, CoachAnalysis, Tone } from '@/lib/types';
@@ -29,6 +30,11 @@ interface AnalysisCardProps {
   onSelectReply: (index: number) => void;
   onRegenerate?: (tone?: Tone) => void;
   regenerating?: boolean;
+  /**
+   * 이 답변 신고 (신고할 내용을 넘긴다). 없으면 신고 버튼을 숨긴다.
+   * 시트는 화면이 하나만 둔다 — 카드마다 두면 목록이 카드를 내렸다 다시 그릴 때 열린 시트·적던 메모가 사라질 수 있다
+   */
+  onReport?: (content: string) => void;
 }
 
 const SPEECH_CHIP = { polite: '🙇 존댓말 유지', casual: '👋 반말 유지', mixed: '🔀 말투 섞임', unknown: null } as const;
@@ -37,7 +43,7 @@ const SPEECH_CHIP = { polite: '🙇 존댓말 유지', casual: '👋 반말 유�
  * 결과 카드 — 누적 호감 온도가 차오르고, 답장 여러 버전을 스와이프로 넘겨 본다.
  * 카드를 누르거나 아래 버튼으로 복사하면 하트가 터진다. 이유·다음 스텝은 접어 둔다.
  */
-export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedReplyIndex, onSelectReply, onRegenerate, regenerating }: AnalysisCardProps) {
+export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedReplyIndex, onSelectReply, onRegenerate, regenerating, onReport }: AnalysisCardProps) {
   const theme = useTheme();
   const toast = useToast();
   const celebrate = useCelebrate();
@@ -77,6 +83,9 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
     await Share.share({ message: reply.text }).catch(() => {});
   };
 
+  // 불쾌하거나 부적절한 답변 신고 — 카드에 보이는 AI 글(요약, 지금 보고 있는 답장과 예상 반응·이유, 포인트·다음 스텝·주의할 점)을 보낸다 (구글 플레이 생성형 AI 정책)
+  const reportAnswer = () => onReport?.(coachReportContent(analysis, current));
+
   if (!reply) {
     return (
       <View style={styles.wrap}>
@@ -87,6 +96,14 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
             <AppText variant="small" color="primary">
               👉 {analysis.nextStep}
             </AppText>
+          ) : null}
+          {onReport ? (
+            <Pressable accessibilityRole="button" onPress={reportAnswer} hitSlop={6} style={styles.reportRow}>
+              <Ionicons name="flag-outline" size={13} color={theme.textTertiary} />
+              <AppText variant="caption" color="textTertiary">
+                이 답변 신고하기
+              </AppText>
+            </Pressable>
           ) : null}
         </View>
       </View>
@@ -155,6 +172,11 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
           <PressableScale accessibilityLabel="답장 공유하기" feedback={false} onPress={shareReply} style={[styles.shareBtn, { backgroundColor: theme.surface }]}>
             <Ionicons name="share-outline" size={19} color={theme.textSecondary} />
           </PressableScale>
+          {onReport ? (
+            <PressableScale accessibilityLabel="이 답변 신고하기" feedback={false} onPress={reportAnswer} style={[styles.shareBtn, { backgroundColor: theme.surface }]}>
+              <Ionicons name="flag-outline" size={18} color={theme.textTertiary} />
+            </PressableScale>
+          ) : null}
         </View>
       </View>
 
@@ -237,4 +259,5 @@ const styles = StyleSheet.create({
   detail: { gap: 2 },
   detailTitle: { fontWeight: '700' },
   again: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, alignSelf: 'flex-start', paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radius.pill },
+  reportRow: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start' },
 });

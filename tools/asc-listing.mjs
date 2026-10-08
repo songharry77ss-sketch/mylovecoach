@@ -112,7 +112,7 @@ async function main() {
     if (!version && vs.data.length === 0)
       version = (await api('POST', '/v1/appStoreVersions', { data: { type: 'appStoreVersions', attributes: { platform: 'IOS', versionString: VERSION }, relationships: { app: { data: { type: 'apps', id: app.id } } } } })).data;
     if (!version) throw new Error(`편집 가능한 버전이 없습니다 (현재 상태: ${vs.data.map((v) => v.attributes.appStoreState).join(', ')})`);
-    // 출시 방식(releaseType)은 건드리지 않는다 — 사람이 정한 「수동 출시」를 이 도구가 「승인 즉시 출시」로 되돌리지 않게 (2026-10-07 1.0 은 MANUAL)
+    // 출시 방식(releaseType)은 건드리지 않는다 — 1.0 은 10-07 사용자 결정으로 수동 출시(MANUAL). 바꿀 때는 tools/asc-release.mjs 로
     await api('PATCH', `/v1/appStoreVersions/${version.id}`, { data: { type: 'appStoreVersions', id: version.id, attributes: { copyright: `${new Date().getFullYear()} mylovecoach` } } });
     return `${version.attributes.versionString} (${version.attributes.appStoreState ?? ''})`;
   });

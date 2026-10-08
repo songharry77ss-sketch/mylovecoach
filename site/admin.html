@@ -160,6 +160,12 @@
       <h2>최근 코칭 기록 — 무엇을 물어봤는지</h2>
       <div id="logs"></div>
     </div>
+
+    <div class="card" style="margin-top:20px">
+      <h2>AI 답변 신고 <span class="muted">앱 안에서 들어온 최근 50건 · 이용 기록 동의와 상관없이 쌓임 · 1년 뒤 자동 파기</span></h2>
+      <p class="muted" style="margin:0 0 10px">누가 보냈는지(기기 ID·IP)는 저장하지 않아요. 같은 유형이 반복되면 연습 상대역 규칙(src/lib/ai-tasks.ts)이나 Gemini 안전 설정을 손봐 주세요.</p>
+      <div id="reports" style="overflow-x:auto"></div>
+    </div>
   </div>
 </div>
 
@@ -205,6 +211,9 @@
   const START = { image: '캡처로 시작', text: '글로 시작', secret: '비밀 상담으로 시작' };
   const CHANNEL = { ios: 'App Store 앱', android: 'Play 스토어 앱', apk: 'APK 직접 설치', web: '웹 직접 방문' };
   const GENDER = { male: '남', female: '여', other: '기타' };
+  // AI 답변 신고 (src/lib/ai-report-schema.ts 와 같은 값)
+  const REPORT_MODE = { coach: '답장 추천', report: '상대 분석 보고서', practice: '연애 연습', mind: '속마음 풀이' };
+  const REPORT_REASON = { offensive: '불쾌·모욕', sexual: '성적·부적절', hate: '혐오·차별', dangerous: '위험·불법 조장', inaccurate: '사실과 다름', other: '기타' };
   const screenLabel = (s) => SCREEN[s] ?? s;
   const eventLabel = (n) => EVENT[n] ?? (n.startsWith('purchase_') ? `결제 결과: ${n.slice(9)}` : n.endsWith('_success') ? `${n.slice(0, -8)} 성공` : n);
   const secs = (v) => { const t = Math.round(Number(v) || 0); return t >= 3600 ? `${Math.floor(t / 3600)}시간 ${Math.floor((t % 3600) / 60)}분` : t >= 60 ? `${Math.floor(t / 60)}분 ${t % 60}초` : `${t}초`; };
@@ -288,6 +297,22 @@
           </tr>`).join('')}</tbody>
         </table>`
       : '<p class="muted">아직 코칭 기록이 없어요.</p>';
+
+    const reports = data.reports || [];
+    $('reports').innerHTML = data.reportsReady === false
+      ? '<p class="notice">신고 목록을 읽지 못했어요. 신고 표(ai_report)가 아직 없다면 앱에서 보낸 신고도 모두 실패하고 있어요 — Supabase SQL Editor 에 <b>supabase/ai_report.sql</b> 을 실행해 주세요.</p>'
+      : reports.length
+      ? `<table>
+          <thead><tr><th>시각</th><th>기능 · 사유</th><th>신고한 답변</th><th>메모</th><th>기기</th></tr></thead>
+          <tbody>${reports.map((r) => `<tr>
+            <td class="muted" style="white-space:nowrap">${when(r.created_at)}</td>
+            <td style="white-space:nowrap">${esc(REPORT_MODE[r.mode] ?? r.mode)}<br><span class="pill hot">${esc(REPORT_REASON[r.reason] ?? r.reason)}</span></td>
+            <td class="q">${esc(r.content || '(답변 없이 메모로 신고)')}</td>
+            <td class="q">${esc(r.note || '-')}</td>
+            <td class="muted">${esc([r.platform, r.app_version ? `v${r.app_version}` : null, r.model].filter(Boolean).join(' · ') || '-')}</td>
+          </tr>`).join('')}</tbody>
+        </table>`
+      : '<p class="muted">아직 들어온 신고가 없어요.</p>';
   }
 
   async function api(path, body) {

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, ZoomIn, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 
+import { AiReportLink } from '@/components/coach/ai-report-sheet';
 import { PendingBubble } from '@/components/coach/pending-bubble';
 import { useCelebrate } from '@/components/fx/celebration';
 import { AnimatedNumber } from '@/components/ui/animated-number';
@@ -45,6 +46,8 @@ export default function MindScreen() {
   useEffect(() => {
     if (started.current || reading || !situation) return;
     started.current = true;
+    // 기다리는 사이 「모든 데이터 삭제」를 하면 늦게 온 결과를 기록에 다시 남기지 않는다
+    const epoch = useAppStore.getState().resetEpoch;
     run(
       'mind',
       (o) => requestAi('mind', { situation, perspective, user: user ? { gender: user.gender, age: user.age, mbti: user.mbti } : undefined }, o),
@@ -55,7 +58,7 @@ export default function MindScreen() {
         return;
       }
       setReading(r);
-      useAppStore.getState().addMindAnswer({ situation, perspective, reading: r, at: Date.now() });
+      if (useAppStore.getState().resetEpoch === epoch) useAppStore.getState().addMindAnswer({ situation, perspective, reading: r, at: Date.now() });
       haptic.heartbeat();
     });
   }, [reading, situation, perspective, run, user, attempt]);
@@ -155,6 +158,7 @@ export default function MindScreen() {
               </PressableScale>
             </Animated.View>
           ) : null}
+          <AiReportLink mode="mind" situation={situation} reading={reading} label="이 풀이 신고" />
 
           <Button title="다른 상황도 물어보기" variant="soft" onPress={() => router.back()} />
         </>

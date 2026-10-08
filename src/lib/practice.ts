@@ -1,6 +1,6 @@
 /** 연애 연습 도우미 — 실제 상대로 연습 상대 만들기, 결과 판정 */
 import { createId } from '@/lib/id';
-import type { Crush, Gender, PracticePersona, PracticeSession, Relationship } from '@/lib/types';
+import type { Crush, Gender, PracticePersona, PracticeSession, PracticeTurn, Relationship } from '@/lib/types';
 
 /** 한 번의 연습에서 보낼 수 있는 내 메시지 수 */
 export const PRACTICE_MAX_TURNS = 12;
@@ -81,4 +81,13 @@ export function practiceVerdict(heat: number): { title: string; emoji: string; b
 /** 가장 크게 온도를 올린 내 메시지 */
 export function bestLine(session: PracticeSession) {
   return session.turns.filter((t) => t.role === 'me' && (t.delta ?? 0) > 0).sort((a, b) => (b.delta ?? 0) - (a.delta ?? 0))[0];
+}
+
+/** 상대역이 가장 최근에 한 말 — 한 번에 보낸 말풍선 묶음을 줄바꿈으로 잇는다. 아직 없으면 빈 문자열 (화면 위 「신고」 깃발용) */
+export function latestPartnerText(turns: PracticeTurn[]): string {
+  let end = turns.length - 1;
+  while (end >= 0 && turns[end].role !== 'them') end -= 1;
+  let start = end;
+  while (start > 0 && turns[start - 1].role === 'them') start -= 1;
+  return end < 0 ? '' : turns.slice(start, end + 1).map((t) => t.text).join('\n');
 }

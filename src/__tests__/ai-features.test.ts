@@ -1,5 +1,5 @@
 import { normalizeMind, normalizePractice } from '@/lib/ai-schemas';
-import { buildTask, parseAiRequest } from '@/lib/ai-tasks';
+import { PRACTICE_PROMPT_TURNS, buildTask, parseAiRequest } from '@/lib/ai-tasks';
 import { buildGeminiTaskBody } from '@/lib/gemini';
 import type { CoachAnalysis } from '@/lib/types';
 import { useAppStore } from '@/store/app-store';
@@ -58,6 +58,25 @@ describe('AI 요청 모드', () => {
   it('잘못된 요청은 거절한다', () => {
     expect(parseAiRequest({ mode: 'mind', situation: '', perspective: 'male' }).ok).toBe(false);
     expect(parseAiRequest({ mode: 'practice', persona: {}, user, heat: 0, turns: [] }).ok).toBe(false);
+  });
+
+  it('말풍선 48개인 연습 요청을 받고, 프롬프트엔 최근 말풍선만 넣는다', () => {
+    // 예전 서버는 40개 상한에 걸려 11~12마디째에 400 을 냈다 — 예전 앱은 지금도 통째로 보낸다
+    const turns = Array.from({ length: 48 }, (_, i) => ({ role: i % 4 === 3 ? ('me' as const) : ('them' as const), text: `말풍선 ${i + 1}` }));
+    const parsed = parseAiRequest({
+      mode: 'practice',
+      persona: { name: '민지', gender: 'female', age: 28, mbti: 'ENFP', job: '마케터', style: [], relationship: 'blind_date', scenario: '소개팅 다음 날', speech: 'polite', difficulty: 2 },
+      user,
+      heat: 20,
+      turns,
+    });
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    const task = buildTask(parsed);
+    expect(task.task).toContain('말풍선 48');
+    expect(task.task).toContain(`말풍선 ${48 - PRACTICE_PROMPT_TURNS + 1}`);
+    expect(task.task).not.toContain(`말풍선 ${48 - PRACTICE_PROMPT_TURNS}\n`);
+    expect(task.task.split('\n').filter((l) => /^(나|민지): 말풍선 /.test(l))).toHaveLength(PRACTICE_PROMPT_TURNS);
   });
 });
 
