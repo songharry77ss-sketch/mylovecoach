@@ -5,6 +5,7 @@
 //    (예전에는 기본이 제출이라, 상태를 보려고 돌린 실행이나 감시 루프가 철회 직후의 낡은 빌드를
 //     그대로 다시 제출한 사고가 있었다. 상태만 볼 때는 tools/asc-status.mjs 를 쓴다)
 // --resubmit : 일부러 심사에서 뺀 버전(DEVELOPER_REJECTED)도 다시 낸다 (--submit 과 함께)
+// 처음 내는 구독·평생권이 심사 묶음에 없으면 제출하지 않는다(웹 화면에서 골라야 함). 상품 없이 내려면 --without-products
 //
 // 「앱이 수집하는 개인정보」 설문은 API 가 없어 화면에서만 게시할 수 있다.
 // app-store-autosubmit.yml 이 --submit 으로 주기 실행하면, 설문을 게시하는 순간 다음 실행에서 제출된다.
@@ -14,7 +15,7 @@
 //   ready(제출 가능, --submit 없음) | submitted | in_review | released | rejected | withdrawn | waiting_privacy | waiting_build | blocked | none
 import { appendFileSync } from 'node:fs';
 
-import { createAscClient, secretsRoot } from './lib/asc-api.mjs';
+import { createAscClient, MISSING_PRODUCTS_HELP, missingProducts, secretsRoot } from './lib/asc-api.mjs';
 
 const args = process.argv.slice(2);
 const { api, getAll, findApp } = createAscClient(secretsRoot(args));
@@ -120,8 +121,13 @@ async function main() {
     }
   }
 
+  const missing = args.includes('--without-products') ? [] : await missingProducts({ getAll, appId: app.id, submissionId: sub.id });
+  if (missing.length) {
+    process.exitCode = 1;
+    return finish('blocked', `심사 묶음에 상품이 빠져 있어 제출하지 않았습니다 (${missing.join(', ')}). ${MISSING_PRODUCTS_HELP}`);
+  }
   await api('PATCH', `/v1/reviewSubmissions/${sub.id}`, { data: { type: 'reviewSubmissions', id: sub.id, attributes: { submitted: true } } });
-  finish('submitted', `버전 ${editable.attributes.versionString} 을 심사에 제출했습니다. 보통 1~2일 안에 결과가 나오고, 승인되면 자동으로 출시됩니다.`);
+  finish('submitted', `버전 ${editable.attributes.versionString} 을 심사에 제출했습니다. 보통 1~2일 안에 결과가 나옵니다. 출시 방식(자동·수동)은 바꾸지 않았습니다 — node tools/asc-release.mjs 로 확인하세요.`);
 }
 
 main().catch((e) => {

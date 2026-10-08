@@ -2,13 +2,14 @@
 // App Store Connect 에 앱 레코드(번들 ID app.mylovecoach.ios)가 만들어진 뒤, 등록 정보를 API 로 한 번에 채운다.
 //   이름·부제·개인정보 URL·카테고리 / 설명·키워드·지원 URL / 6.7" 스크린샷 / 연령 등급 / 심사 연락처·메모 / 무료 가격 / 한국 출시
 //   --submit : 빌드를 버전에 연결하고 심사에 제출 (--build 로 번호를 주면 그 빌드, 없으면 가장 최근 빌드)
+//              처음 내는 구독·평생권이 심사 묶음에 없으면 제출하지 않는다(웹 화면에서 골라야 함). 상품 없이 내려면 --without-products
 // API 로 안 되는 것(화면에서만 가능): 앱 레코드 생성, 「앱이 수집하는 개인정보」(App Privacy) 설문.
 // 값(키)은 출력하지 않는다. 같은 값을 다시 넣어도 안전하게 여러 번 실행할 수 있다.
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { BUNDLE_ID, createAscClient, secretsRoot, step } from './lib/asc-api.mjs';
+import { BUNDLE_ID, createAscClient, MISSING_PRODUCTS_HELP, missingProducts, secretsRoot, step } from './lib/asc-api.mjs';
 
 const LOCALE = 'ko';
 const VERSION = '1.0.0';
@@ -279,8 +280,10 @@ async function main() {
         const already = items.some((it) => it.relationships?.appStoreVersion?.data?.id === version.id);
         if (!already) throw new Error(`버전을 심사 묶음에 넣지 못했습니다 — ${e.message}`);
       });
+      const missing = args.includes('--without-products') ? [] : await missingProducts({ getAll, appId: app.id, submissionId: sub.id });
+      if (missing.length) throw new Error(`심사 묶음에 상품이 빠져 있어 제출하지 않았습니다 (${missing.join(', ')}). ${MISSING_PRODUCTS_HELP}`);
       await api('PATCH', `/v1/reviewSubmissions/${sub.id}`, { data: { type: 'reviewSubmissions', id: sub.id, attributes: { submitted: true } } });
-      return '제출 완료 (보통 1~2일 내 결과, 승인되면 자동 출시)';
+      return '제출 완료 (보통 1~2일 내 결과 · 출시 방식은 그대로 — node tools/asc-release.mjs 로 확인)';
     });
   }
 }

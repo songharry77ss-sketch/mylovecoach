@@ -94,6 +94,26 @@ export const step = async (label, fn) => {
   }
 };
 
+/**
+ * 심사 묶음에 빠진 상품이 있는지 본다.
+ * 처음 내는 구독·비소모성 상품은 API(subscriptionSubmissions·inAppPurchaseSubmissions)로 낼 수 없다(FIRST_SUBSCRIPTION_MUST_BE_SUBMITTED_ON_VERSION).
+ * App Store Connect 웹의 버전 페이지 「앱 내 구입 및 구독」에서 골라야 묶음에 들어간다. 안 고른 채 버전만 내면 결제 상품 없이 심사를 받게 된다.
+ * 아직 심사에 안 낸(READY_TO_SUBMIT) 상품 수보다 묶음 안의 상품 항목(버전이 아닌 항목)이 적으면 빠진 것으로 본다.
+ */
+export async function missingProducts({ getAll, appId, submissionId }) {
+  const waiting = [];
+  for (const g of await getAll(`/v1/apps/${appId}/subscriptionGroups?limit=10`).catch(() => []))
+    for (const s of await getAll(`/v1/subscriptionGroups/${g.id}/subscriptions?limit=50`).catch(() => [])) if (s.attributes.state === 'READY_TO_SUBMIT') waiting.push(s.attributes.productId);
+  for (const i of await getAll(`/v1/apps/${appId}/inAppPurchasesV2?limit=50`).catch(() => [])) if (i.attributes.state === 'READY_TO_SUBMIT') waiting.push(i.attributes.productId);
+  if (!waiting.length) return [];
+  const items = await getAll(`/v1/reviewSubmissions/${submissionId}/items?include=appStoreVersion&limit=50`).catch(() => []);
+  const productItems = items.filter((it) => !it.relationships?.appStoreVersion?.data).length;
+  return productItems < waiting.length ? waiting : [];
+}
+
+export const MISSING_PRODUCTS_HELP =
+  'App Store Connect 웹 → 앱 → 버전 페이지 「앱 내 구입 및 구독」에서 상품을 고른 뒤 다시 실행하세요. 처음 내는 상품은 API 로 넣을 수 없습니다. 상품 없이 버전만 내려면 --without-products';
+
 /** 원하는 금액과 같은(없으면 가장 가까운) 가격 포인트를 고른다 */
 export function pickPricePoint(points, wanted) {
   const priced = points.map((p) => ({ p, price: Number(p.attributes.customerPrice) })).filter((x) => Number.isFinite(x.price));
