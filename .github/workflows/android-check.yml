@@ -1,0 +1,116 @@
+name: Android Compile Check
+
+# 실제 키·서버 설정을 사용하지 않는 컴파일 검사. 설치 파일 업로드·스토어 제출은 하지 않는다.
+# arm64 release의 JS/Hermes·네이티브 코드·리소스를 검사하며 실제 로그인·서명·설치 검증은 별도다.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compile-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      CI: '1'
+      EXPO_NO_DOTENV: '1'
+      EXPO_PUBLIC_API_URL: 'https://compile-check.invalid'
+      EXPO_PUBLIC_API_TOKEN: ''
+      EXPO_PUBLIC_SUPABASE_URL: 'https://supabase.compile-check.invalid'
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: 'compile-check-placeholder-not-a-real-key'
+      EXPO_PUBLIC_FREE_UNLIMITED: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-disabled: true
+      - name: Android SDK 라이선스
+        run: |
+          test -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          set +o pipefail
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
+          set -o pipefail
+      - run: npm ci
+      - name: 스토어와 동일하게 플로팅 버블 제외 (CI 사본만)
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          pkg.expo ??= {};
+          pkg.expo.autolinking ??= {};
+          const android = pkg.expo.autolinking.android ?? {};
+          android.exclude = [...new Set([...(pkg.expo.autolinking.exclude ?? []), ...(android.exclude ?? []), 'floating-bubble'])];
+          pkg.expo.autolinking.android = android;
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          const app = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+          app.expo.android.blockedPermissions = [...new Set([...(app.expo.android.blockedPermissions ?? []), 'android.permission.SYSTEM_ALERT_WINDOW'])];
+          fs.writeFileSync('app.json', JSON.stringify(app, null, 2) + '\n');
+          NODE
+          node --no-warnings --eval "require('expo/bin/autolinking')" expo-modules-autolinking resolve --platform android --json > "$RUNNER_TEMP/android-check-modules.json"
+          node <<'NODE'
+          const fs = require('node:fs');
+          const result = fs.readFileSync(process.env.RUNNER_TEMP + '/android-check-modules.json', 'utf8');
+          if (JSON.parse(result).modules.length < 10 || /floatingbubble|floating-bubble/.test(result)) throw new Error('플로팅 버블 제외 확인 실패');
+          NODE
+      - name: Android 네이티브 프로젝트 생성
+        run: npx expo prebuild --platform android --no-install
+      - name: 모든 서명 비활성화 (CI 사본만)
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          // Expo 템플릿의 공개 테스트 키도 사용하지 않는다. 운영 키를 복원하거나 새 키를 만들지 않는다.
+          fs.rmSync('android/app/debug.keystore', { force: true });
+          fs.rmSync('android/debug.keystore', { force: true });
+          fs.appendFileSync('android/app/build.gradle', `
+          // 이 CI 실행은 어떤 키로도 서명하지 않는다.
+          android.buildTypes.configureEach { signingConfig = null }
+          gradle.taskGraph.whenReady { graph ->
+              if (android.buildTypes.any { it.signingConfig != null } || graph.allTasks.any { it.name ==~ /(?i)^(validateSigning|sign).*/ }) {
+                  throw new GradleException('서명 작업이 포함되어 컴파일 검사를 중단합니다.')
+              }
+          }
+          `);
+          const path = 'android/gradle.properties';
+          let props = fs.readFileSync(path, 'utf8');
+          props = props.replace(/^org\.gradle\.jvmargs=.*$/m, 'org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g');
+          props = props.replace(/^reactNativeArchitectures=.*$/m, 'reactNativeArchitectures=arm64-v8a');
+          fs.writeFileSync(path, props);
+          NODE
+          if find android -type f \( -name '*.keystore' -o -name '*.jks' -o -name '*.p12' \) -print -quit | grep -q .; then
+            echo '::error::Android 생성 폴더에 키 파일이 남아 있어 검사를 중단합니다.'
+            exit 1
+          fi
+      - name: Release 전체 컴파일 (서명 없음·arm64)
+        working-directory: android
+        run: ./gradlew :app:assembleRelease --no-daemon --console=plain --max-workers=2
+      - name: 서명 부재와 스토어 권한 확인
+        run: |
+          apk=android/app/build/outputs/apk/release/app-release-unsigned.apk
+          test -s "$apk"
+          unzip -tq "$apk" > /dev/null
+          apksigner=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)
+          aapt2=$(find "$ANDROID_HOME/build-tools" -type f -name aapt2 | sort -V | tail -1)
+          test -x "$apksigner"
+          test -x "$aapt2"
+          "$apksigner" version > /dev/null
+          if "$apksigner" verify "$apk" > /dev/null 2>&1; then
+            echo '::error::검사 APK에 서명이 있어 중단합니다.'
+            exit 1
+          fi
+          "$aapt2" dump xmltree "$apk" --file AndroidManifest.xml > "$RUNNER_TEMP/android-check-manifest.txt"
+          if grep -q -E 'FOREGROUND_SERVICE|foregroundServiceType|SYSTEM_ALERT_WINDOW' "$RUNNER_TEMP/android-check-manifest.txt"; then
+            echo '::error::스토어에서 제외한 버블 관련 권한이 APK에 남아 있습니다.'
+            exit 1
+          fi
+          printf '%s\n' 'Android arm64 release 컴파일·서명 부재·버블 권한 제외 검사를 통과했습니다.' >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n' '합성 설정을 사용한 검사 전용이며 로그인·실기기 설치·Play 게시 검증은 아닙니다. 산출물은 업로드하지 않았습니다.' >> "$GITHUB_STEP_SUMMARY"

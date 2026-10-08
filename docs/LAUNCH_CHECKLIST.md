@@ -6,10 +6,13 @@
 
 | 대상 | 확인 결과 | 남은 확인 |
 |---|---|---|
-| 운영 웹 소스 | `claude/jolly-pascal-tr47bw`의 PR #5 병합 `a51b488a7ce3e3572016ebd709d691e0072f2d28`; 운영 웹 배포 SHA 일치 | 새 네이티브 빌드는 별도 준비 |
+| 운영 웹 소스 | `32e63f662cf24df36caf6386c5f7014242588c18`; Vercel `37782999282` 성공, 공개 별칭 SHA 일치 | PR #7 변경; 새 서명 네이티브 빌드는 별도 준비 |
 | App Store 1.0 | `READY_FOR_SALE`, 기존 무가입 빌드 116 출시 | 새 기능이 이 바이너리에 추가된 것으로 안내하지 않음 |
 | App Store 1.0.1 | `WAITING_FOR_REVIEW`, 출시 방식 `AFTER_APPROVAL` | 승인 및 실제 출시 여부 |
 | TestFlight | 최신 121 `VALID`; 외부 그룹은 119까지 연결 | 121 및 새 통합 빌드의 그룹 연결·외부 심사·설치 여부 |
+| 서명 없는 iOS 검사 | `ios-check` 실행 `37782979607` 성공(전체 15분 27초) | 서명 빌드·스토어 업로드와 구분 |
+| 서명 없는 Android 검사 | `android-check.yml` 추가·정적 검사 완료, 아직 실행 전 | 합성 설정으로 arm64 Release 컴파일·무서명·버블 권한 제외 확인; 실제 OAuth·설치·AAB 업로드와 구분 |
+| 공개 연령 표시 | Apple 공식 iTunes 한국 조회의 버전 1.0·등급 9+ 확인 | OS별 등급·최소 이용 연령·Gemini 18세 조건을 별도로 판단 |
 | 자동 심사 제출 | `app-store-autosubmit.yml`은 `disabled_manually` | 그대로 유지; 개인정보 게시가 자동 제출을 뜻하지 않음 |
 | Play | Alpha 116(1.0.0), 콘솔 제출 활동 2: 10-08 13:57 제출·14:09 출시됨; 그 조회 시점에는 게시 대기 변경 없음 | 선택된 이메일 목록의 테스터 설치·연속 참여 확인 |
 | Play 데이터 보안 | 기존 9유형 게시 뒤, 현재 116의 운영 진단을 필수로 정정한 1건 저장·검토 미전송 | 이 정정안의 검토 전송·게시와 1.0.2 회원용 11유형 초안 미반영을 구분 |
@@ -21,9 +24,15 @@
 | Supabase 감사 로그 | FREE 플랜·DB 감사 로그 기록 꺼짐·감사 표 0행·별도 정리 함수 0개 확인 | 외부 Auth Audit Logs는 Free 1시간 기준으로 회원 삭제와 구분 안내 |
 | AI 신고 서버 | `ai_report.sql` 적용, 배포·합성 신고 저장/조회/시험 행 삭제 확인 | 새 빌드의 화면에서 신고 경로 확인 |
 
-현재 `app.json`은 1.0.2 업데이트를 준비 중입니다. 새 네이티브 빌드는 실행하지 않았습니다. CI의 서명키 임시파일 사용은 사용자의 키 파일 저장 금지 규칙과의 허용 범위 확인 대기입니다. 기존 116·121 및 외부 TestFlight 119, 운영 웹 배포와 구분하며 실제 회원가입·보너스·재로그인·탈퇴 성공도 아직 검증하지 않았습니다. 위 Play 게시 상태는 별도 작업에 따른 변화이며 이 작업에서 스토어 검토를 전송한 것은 아닙니다.
+현재 `app.json`은 1.0.2입니다. 서명 없는 iOS 컴파일 검사는 성공했으며 새 서명 빌드·스토어 업로드는 실행하지 않았습니다. CI의 서명키 임시파일 사용은 사용자의 키 파일 저장 금지 규칙과의 허용 범위 확인 답변 대기입니다. 기존 116·121 및 외부 TestFlight 119, 운영 웹 배포와 구분하며 실제 회원가입·보너스·재로그인·탈퇴·인앱 구매 성공도 아직 검증하지 않았습니다. 위 Play 게시 상태는 별도 작업에 따른 변화이며 이 작업에서 스토어 검토를 전송한 것은 아닙니다.
 
-최종 웹 배포는 [실행 37727616053](https://github.com/songharry77ss-sketch/mylovecoach/actions/runs/37727616053) 성공, 배포 `dpl_BNW522otXtatHuhBkX74xXvt5tRq`의 `READY`와 `mylovecoach.vercel.app`의 위 SHA 일치를 확인했습니다. TypeScript·ESLint, Jest 28개 모음/413개 테스트, 웹 export가 통과했습니다. 로컬 인트로·약관 키보드 링크·취소 후 복귀와 운영 가입 화면·새 약관 문구 HTTP 200을 확인했습니다. 배포 CI에서 코치 API는 Google 동의 헤더로 200, 헤더 없이도 200이며 신고 API GET은 405였습니다. 운영 Gemini 3.6과 구버전의 동의 헤더 없는 요청 허용을 유지합니다.
+최신 웹 배포는 [실행 37782999282](https://github.com/songharry77ss-sketch/mylovecoach/actions/runs/37782999282) 성공, 배포 `dpl_EeJw2ZUHPeULw6o6CUZWpMVenam2`의 `READY`와 `mylovecoach.vercel.app`의 위 소스 SHA 일치를 확인했습니다. TypeScript·src+api ESLint, Jest 29모음 470개, ASC 도구 22개, 빌드 변수 8경로, YAML 구문, 웹 export가 통과했습니다. CI의 index/privacy 200·코치 API Google 동의 200/헤더 없음 200·신고 GET 405 및 운영 회원 GET 405·삭제 안내 200·Apple 수동 탈퇴 새 문구를 확인했습니다. 이는 실제 가입·탈퇴·구매를 완료한 검증이 아닙니다. 운영 Gemini 3.6과 구버전의 동의 헤더 없는 요청 허용은 유지합니다.
+
+변경 코드는 [PR #7](https://github.com/songharry77ss-sketch/mylovecoach/pull/7)에서 관리하며 운영 배포와 새 스토어 제출을 구분합니다. [서명 없는 iOS 검사 37782979607](https://github.com/songharry77ss-sketch/mylovecoach/actions/runs/37782979607)은 성공했습니다(전체 15분 27초, 시뮬레이터 Release 컴파일 13분 27초).
+
+### 과거 웹 배포
+
+PR #5 병합 `a51b488a7ce3e3572016ebd709d691e0072f2d28`는 [실행 37727616053](https://github.com/songharry77ss-sketch/mylovecoach/actions/runs/37727616053)·배포 `dpl_BNW522otXtatHuhBkX74xXvt5tRq`로 당시 배포·별칭 SHA 일치를 확인했습니다. TypeScript·ESLint·Jest 28모음 413개·웹 export와 로컬 인트로·약관 키보드 링크·취소 복귀 검증은 이 과거 배포의 기록입니다.
 
 ## 회원가입·Google 1.0.2 업데이트 준비
 
@@ -40,6 +49,7 @@
 - [ ] 샌드박스 결제·구매 복원 확인. 스토어에 없는 하루권·횟수권은 계속 숨김.
 - [ ] [STORE_LISTING.md](STORE_LISTING.md)의 다음 가입 빌드용 설명·무료 횟수·심사 메모 적용. 기존 심사 중 버전과 새 빌드의 설명을 혼동하지 않음.
 - [ ] 실제 반복 사용 가능한 심사 접근 정보를 스토어 보안 입력란에 준비. 비회원 맛보기 1회·가입 보너스만으로 전체 기능 접근을 보장하지 않음. 숫자 연령 등급은 콘솔의 실제 결과를 확인.
+- [ ] Gemini API의 18세 미만 대상·접근 가능 서비스 제한과 현재 「14세 미만 대상 아님」 안내 간의 대상 연령·접근 정책 결정. 사용자에게 질문했으며 답변 대기이고, 공개 방침·연령 설정은 아직 변경하지 않음.
 
 ### 빌드 경로와 제출 구분
 
@@ -52,6 +62,8 @@
 - `eas.json`의 원격 버전 자동 증가를 위 GitHub Actions 번호 설정과 혼동하지 않습니다.
 
 ## 개인정보·탈퇴에서 아직 확정할 것
+
+[Apple 공식 iTunes 한국 조회](https://itunes.apple.com/lookup?id=6813404855&country=kr)에서 공개 앱 버전 1.0, `contentAdvisoryRating=9+`, 출시 시각 `2026-10-08T00:56:37Z`를 확인했습니다. 이는 모든 OS의 등급이나 Gemini API 사용 자격을 확정한 결과가 아닙니다. [Gemini API 현행 약관](https://ai.google.dev/gemini-api/terms)은 18세 미만을 대상으로 하거나 접근 가능성이 있는 서비스에서의 사용을 제한합니다. 기존 「14세 미만 대상 아님」 안내만으로 조건 충족을 확인할 수 없어 연령 정책 결정이 미해결이며, 기존 운영 웹·116도 같은 API를 사용하므로 신규 빌드에만 한정하지 않습니다.
 
 - 회원가입은 선택입니다. 비회원 맛보기 1회, 회원 보너스 3회+매일 1회이며 기존 무가입 앱의 체험 3회+매일 1회와 다릅니다.
 - Google은 `openid email profile`만 사용합니다. 회원 식별자·이메일과 제공되는 이름·프로필 사진 주소가 Supabase Auth에 보관될 수 있고 사진 파일을 별도로 저장하지는 않습니다.
