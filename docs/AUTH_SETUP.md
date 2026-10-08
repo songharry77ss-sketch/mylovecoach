@@ -1,21 +1,21 @@
 # 회원가입 (카카오 · Apple · Google) 설정
 
-회원가입·Google 로그인은 기본 브랜치에 병합됐습니다(`81b5f29`, 2026-10-08). 운영 웹 적용과 새 iOS·Android 테스트 빌드 준비를 구분합니다. **현재 스토어의 무가입 빌드에 웹 회원가입이 소급해서 추가되는 것은 아닙니다.**
+회원가입·Google 로그인 코드 위에 통합 개선을 [PR #5](https://github.com/songharry77ss-sketch/mylovecoach/pull/5)로 병합하여 운영 웹에 배포했습니다(`a51b488a7ce3e3572016ebd709d691e0072f2d28`, 2026-10-08). 운영 웹 적용과 새 iOS·Android 테스트 빌드 준비를 구분합니다. **현재 스토어의 무가입 빌드에 웹 회원가입이 소급해서 추가되는 것은 아닙니다.**
 
 ## 확인된 상태 (2026-10-08)
 
 | 구분 | 상태 |
 |---|---|
 | Supabase 프로젝트 | `mylovecoach`, 조직 CRAVING, ref `cridqlgriezwkzevytjs`; 기존 회원 스키마·신고 표와 서버 연결 확인 기록 있음 |
-| Supabase 로그인 제공자 | Apple·Kakao·Google 활성화, Email 가입 비활성화 유지; Apple Client ID `app.mylovecoach.ios` |
+| Supabase 로그인 제공자 | 공개 설정에서 Apple·Kakao·Google 활성화, Email 가입 비활성화 재확인; Apple Client ID `app.mylovecoach.ios` |
 | Google | Web OAuth 클라이언트 생성·기본 `openid email profile` 설정, 계정 선택 화면까지 진입 확인; 최종 회원 연결·재로그인·탈퇴는 실기 검증 필요 |
 | Google 브랜딩 | 홈페이지 소유권 확인이 미완료라는 자동 검사 안내 확인; Search Console 소유권 확인 후 콘솔이 안내한 반영 시간(24시간)을 기다려 재검사·게시 필요 |
-| Kakao | 제공자 활성화와 카카오 앱 ID 1599398 확인; 비즈 앱 표시·이메일 선택 동의의 최종 상태는 별도 확인 필요 |
+| Kakao | 운영 authorize URL에서 카카오 로그인 화면 진입 확인(실제 가입하지 않음). 콘솔 세션 만료로 비즈 앱 표시와 닉네임·프로필 사진·이메일 동의항목 3개 직접 재확인은 콘솔 로그인 대기 |
 | Supabase 감사 로그 | FREE 플랜, `Write audit logs to the database` 꺼짐, `auth.audit_log_entries` 0행 확인; 외부 Auth Audit Logs는 요금표의 Free 1시간 기준 |
 | Apple 설정 | 앱 ID의 Sign in with Apple 설정 및 빌드 플러그인 있음; 실제 가입·토큰 취소는 새 iOS 빌드에서 검증 필요 |
 | App Store | 1.0은 `READY_FOR_SALE`; 1.0.1은 `WAITING_FOR_REVIEW`·`MANUAL`; 최신 빌드 121은 `VALID`, 외부 TestFlight 그룹에는 119까지 연결됨 |
-| Play | API에서 internal·alpha 트랙의 116이 `completed`; 콘솔 게시·검토 진행 및 설치 가능 여부는 API 트랙 상태와 별도로 확인 |
-| 다음 빌드 | 회원가입·Google 통합 테스트 빌드는 아직 이 문서에서 완료로 기록하지 않음; 번호·실행·설치·로그인 결과를 각각 확인 |
+| Play | API에서 internal·alpha 트랙의 116이 `completed`; 콘솔 변경 2건은 검토 미제출. 실제 설치 가능 여부는 별도 확인 |
+| 다음 빌드 | 새 네이티브 빌드는 실행하지 않음. 서명키 임시파일을 사용하는 CI와 사용자의 키 파일 저장 금지 규칙 사이의 허용 범위 확인 대기 |
 
 기존 Apple·Kakao 설정과 Email 가입 비활성화를 유지합니다. 키·시크릿 값은 설정 화면 사이에서만 옮기며 문서·파일·채팅·로그에 출력하거나 저장하지 않습니다. 이미 있는 키를 설정 확인 목적으로 재발급하지 않습니다.
 
@@ -41,7 +41,7 @@ Google 기본 로그인 권한은 브랜딩 미검증만으로 일괄 차단되�
 
 ## 새 테스트 빌드와 스토어 제출 전 확인
 
-통합 작업 코드에는 가입 카드의 약관·개인정보 링크, 탈퇴 시 구독 별도 취소 안내와 구독 관리 접근, 공개 정책의 감사 로그 구분을 반영했습니다. 같은 채팅방의 과거 대화·코칭 요청 맥락 전송 안내도 AI 동의와 정책에 맞췄습니다. **웹 재배포와 실제 회원가입·탈퇴 검증은 아직 미완료**이며 코드 반영과 운영 검증을 구분합니다.
+가입 카드의 약관·개인정보 링크, 탈퇴 시 구독 별도 취소 안내와 구독 관리 접근, 감사 로그 구분, 같은 채팅방의 과거 대화·코칭 맥락 전송 안내를 운영 웹에 반영했습니다. [배포 실행 37727616053](https://github.com/songharry77ss-sketch/mylovecoach/actions/runs/37727616053)은 성공했고, 배포 `dpl_BNW522otXtatHuhBkX74xXvt5tRq`는 `READY`, `mylovecoach.vercel.app`의 SHA는 위 병합 커밋과 일치합니다. 운영 가입 화면·새 약관 문구 HTTP 200과 Google 계정 선택·Kakao 로그인 화면 진입을 확인했습니다. **실제 회원가입·회원 연결·재로그인·탈퇴는 아직 검증하지 않았습니다.**
 
 - 빌드 번호는 실제 사용된 번호를 조회한 뒤 명시합니다. 현재 기록상 iOS는 121보다 큰 미사용 번호, Android는 116보다 큰 미사용 versionCode가 필요합니다. 각 워크플로의 기본 `100 + 실행 번호`는 서로 연동되지 않습니다.
 - 가입용 빌드 변수 두 개와 운영 API 주소가 주입됐는지 값 노출 없이 확인합니다. iOS·Android에서 로그인 취소와 앱 복귀, 성공 후 회원 연결, 재실행·재로그인, 보너스 중복 방지를 검증합니다.
