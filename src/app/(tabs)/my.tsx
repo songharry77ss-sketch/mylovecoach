@@ -4,6 +4,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, AppState, Linking, Platform, StyleSheet, Switch, View } from 'react-native';
 
+import { useAccountDeletion } from '@/components/auth/apple-deletion-help';
 import { useAiReport } from '@/components/coach/ai-report-sheet';
 import { AppText } from '@/components/ui/app-text';
 import { Avatar } from '@/components/ui/avatar';
@@ -20,7 +21,7 @@ import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { billingSupported, openSubscriptionManagement, restorePremium } from '@/lib/billing/iap';
 import { quotaLabel } from '@/lib/billing/quota';
 import { refreshTeam } from '@/lib/billing/team';
-import { AuthCancelled, deleteAccount, providerLabel, SessionMissing, signOut } from '@/lib/auth';
+import { providerLabel, signOut } from '@/lib/auth';
 import { SIGNUP_BONUS } from '@/lib/billing/plans';
 import { authAvailable } from '@/lib/supabase';
 import { aiRouteOf } from '@/lib/coach-client';
@@ -64,6 +65,21 @@ export default function MyScreen() {
   const createSecretChat = useAppStore((s) => s.createSecretChat);
   const quota = useQuota();
   const aiReport = useAiReport();
+  const deletion = useAccountDeletion({
+    memberId: member?.userId,
+    getCurrentMemberId: () => useAppStore.getState().member?.userId,
+    subscribeToMember: (listener) => useAppStore.subscribe((state, previous) => {
+      if (state.member?.userId !== previous.member?.userId) listener(state.member?.userId);
+    }),
+    onDeleted: (message) => { haptic.heavy(); toast.show(message); },
+    onCancelled: () => toast.show('Apple 확인을 취소해 탈퇴하지 않았어요.'),
+    onSessionMissing: () => {
+      useAppStore.getState().setMember(null);
+      toast.show('로그인이 끝났어요. 다시 로그인한 뒤 탈퇴해주세요.', 'error');
+      router.push('/signup');
+    },
+    onError: (message) => toast.show(message, 'error'),
+  });
   const isPremium = quota.enforced && quota.kind === 'premium';
   // 「~부터」 가격은 스토어에서 확인된 가장 싼 상품으로만 적는다
   const products = usePlanProducts();
@@ -154,26 +170,7 @@ export default function MyScreen() {
     (member?.provider === 'google' ? '\n\nGoogle 계정의 로그인 연결은 자동 해제되지 않아요. Google 계정의 연결된 앱에서 별도로 해제할 수 있어요.' : '');
 
   const withdraw = () =>
-    confirm('회원 탈퇴', withdrawMessage, '탈퇴', async () => {
-      try {
-        await deleteAccount();
-        haptic.heavy();
-        toast.show('탈퇴했어요. 그동안 고마웠어요.');
-      } catch (e) {
-        if (e instanceof AuthCancelled) {
-          toast.show('Apple 확인을 취소해 탈퇴하지 않았어요.');
-          return;
-        }
-        if (e instanceof SessionMissing) {
-          // 로그인이 끝난 기기 — 다시 로그인하면 이 메뉴에서 이어서 탈퇴할 수 있다
-          useAppStore.getState().setMember(null);
-          toast.show('로그인이 끝났어요. 다시 로그인한 뒤 탈퇴해주세요.', 'error');
-          router.push('/signup');
-          return;
-        }
-        toast.show(e instanceof Error ? e.message : '탈퇴를 마치지 못했어요. 잠시 후 다시 시도해주세요.', 'error');
-      }
-    });
+    confirm('회원 탈퇴', withdrawMessage, '탈퇴', deletion.remove);
 
   // AI 분석 동의 — 켜면 처음 쓸 때와 같은 동의 시트를 띄우고, 끄면 바로 철회한다 (다음에 AI 를 쓰면 다시 묻는다)
   const toggleAiConsent = async (on: boolean) => {
@@ -299,7 +296,7 @@ export default function MyScreen() {
                   <ListRow icon="card-outline" title="Google Play 구독 관리" onPress={() => Linking.openURL('https://play.google.com/store/account/subscriptions').catch(() => toast.show('구독 관리 페이지를 열지 못했어요.', 'error'))} />
                 </>
               ) : null}
-              <ListRow icon="person-remove-outline" title="회원 탈퇴" destructive onPress={withdraw} />
+              <ListRow icon="person-remove-outline" title={deletion.busy ? '탈퇴 처리 중…' : '회원 탈퇴'} destructive onPress={deletion.busy ? undefined : withdraw} />
             </>
           ) : (
             <ListRow icon="gift-outline" title={`가입하고 무료 코칭 ${SIGNUP_BONUS}회 받기`} subtitle="카카오 · Google · Apple로 바로 가입" onPress={() => router.push('/signup')} />
@@ -437,6 +434,7 @@ export default function MyScreen() {
       />
       <ListRow icon="trash-outline" title="모든 데이터 삭제" destructive onPress={confirmReset} />
       {aiReport.sheet}
+      {deletion.sheet}
     </Screen>
   );
 }

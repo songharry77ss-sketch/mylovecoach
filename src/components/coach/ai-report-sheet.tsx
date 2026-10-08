@@ -162,7 +162,7 @@ function ReportForm({ target, onClose, onSendingChange }: { target: AiReportTarg
                 🕶️ 비밀 상담 중이에요. 신고하면 이 답변은 저장돼요.
               </AppText>
               <AppText variant="caption" color="textSecondary">
-                비밀 상담 내용은 원래 어디에도 남지 않지만, 신고한 답변은 운영자 검토를 위해 1년 동안 보관돼요.
+                비밀 상담은 기기의 저장 기록에서 제외되지만, 신고한 답변은 운영자 검토를 위해 1년 동안 보관돼요.
               </AppText>
             </View>
           ) : null}

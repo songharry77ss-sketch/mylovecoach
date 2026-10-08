@@ -1,11 +1,11 @@
 /**
- * api/member.ts DELETE(회원 탈퇴) — 데이터베이스 정리 → 카카오·Apple 연결 끊기 → 로그인 계정 삭제 순서.
+ * api/member.ts DELETE(회원 탈퇴) — Apple 취소 확인·수동 안내 확인 → 데이터베이스 정리 → 로그인 계정 삭제 순서.
  * Supabase·카카오·Apple 은 fetch 를 가짜로 바꿔 어떤 요청이 나가는지만 본다.
  */
 import { generateKeyPairSync, verify } from 'node:crypto';
 
 import handler from '../../api/member';
-import { appleClientSecret, appleUserId, kakaoUserId } from '../../api/_unlink';
+import { APPLE_REVOKE_TIMEOUT_MS, appleClientSecret, appleUserId, kakaoUserId, revokeApple } from '../../api/_unlink';
 
 interface FakeRes {
   statusCode: number;
@@ -103,6 +103,7 @@ beforeEach(() => {
 });
 
 const deletedAuthUser = () => calls.some((c) => c.method === 'DELETE' && c.url.includes(`/auth/v1/admin/users/${USER_ID}`));
+const deletedMember = () => calls.some((c) => c.url.endsWith('/rest/v1/rpc/member_delete'));
 
 it('POST /api/member는 Google의 기본 프로필·이메일로 회원을 연결한다', async () => {
   user = { id: USER_ID, app_metadata: { provider: 'google' }, user_metadata: { full_name: '테스트 회원' }, email: 'member@example.test' };
@@ -179,25 +180,165 @@ describe('DELETE /api/member (회원 탈퇴)', () => {
       token_type_hint: 'refresh_token',
     });
     expect(calls.indexOf(revoke!)).toBeLessThan(calls.findIndex((c) => c.method === 'DELETE' && c.url.includes('/auth/v1/admin/users/')));
+    expect(calls.indexOf(revoke!)).toBeLessThan(calls.findIndex((c) => c.url.endsWith('/rest/v1/rpc/member_delete')));
+    expect(res.body?.appleRevocation).toBe('revoked');
     expect(deletedAuthUser()).toBe(true);
   });
 
   it.each([
     ['다른 Apple ID 의 코드(토큰의 sub 가 다름)', '009999.other'],
     ['토큰 응답에 id_token 이 없어 확인할 수 없음', null],
-  ])('Apple 회원: %s → 그 토큰은 취소하지 않고 탈퇴만 마친다', async (_label, sub) => {
+  ])('Apple 회원: %s → 토큰·회원·로그인 계정을 지우지 않는다', async (_label, sub) => {
     user = appleUser;
     setAppleKeys();
     appleTokenSub = sub;
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const res = fakeRes();
     await handler(deleteReq({ appleAuthorizationCode: 'apple-code' }), res as never);
-    expect(res.statusCode).toBe(200);
+    expect(res.statusCode).toBe(sub ? 409 : 502);
+    expect(res.body?.code).toBe(sub ? 'apple_account_mismatch' : 'apple_identity_unavailable');
     expect(calls.some((c) => c.url === 'https://appleid.apple.com/auth/token')).toBe(true);
     expect(calls.some((c) => c.url === 'https://appleid.apple.com/auth/revoke')).toBe(false);
+    expect(deletedMember()).toBe(false);
+    expect(deletedAuthUser()).toBe(false);
+  });
+
+  it.each([undefined, false, 'true', 1, {}])('Apple 코드가 없고 수동 확인도 true가 아니면(%j) 어떤 계정 데이터도 지우지 않는다', async (ack) => {
+    user = appleUser;
+    setAppleKeys();
+    const res = fakeRes();
+    await handler(deleteReq({ appleManualRevocationAcknowledged: ack }), res as never);
+    expect(res.statusCode).toBe(409);
+    expect(res.body?.code).toBe('apple_code_required');
+    expect(deletedMember()).toBe(false);
+    expect(deletedAuthUser()).toBe(false);
+  });
+
+  it('Apple 취소용 키가 없으면 자동 삭제를 멈추고 수동 안내 선택 오류를 돌려준다', async () => {
+    user = appleUser;
+    const res = fakeRes();
+    await handler(deleteReq({ appleAuthorizationCode: 'apple-code' }), res as never);
+    expect(res.statusCode).toBe(502);
+    expect(res.body?.code).toBe('apple_revocation_unavailable');
+    expect(deletedMember()).toBe(false);
+    expect(deletedAuthUser()).toBe(false);
+  });
+
+  it('Apple 계정 정보가 불완전해도 자동 삭제로 우회하지 않는다', async () => {
+    user = { id: USER_ID, app_metadata: { provider: 'apple' }, identities: [] };
+    const res = fakeRes();
+    await handler(deleteReq({ appleAuthorizationCode: 'apple-code' }), res as never);
+    expect(res.body?.code).toBe('apple_identity_unavailable');
+    expect(deletedMember()).toBe(false);
+  });
+
+  it.each(['/auth/token', '/auth/revoke'])('Apple %s 실패 시 DB·Auth를 보존한다', async (endpoint) => {
+    user = appleUser;
+    setAppleKeys();
+    const base = global.fetch as jest.Mock;
+    const original = base.getMockImplementation()!;
+    base.mockImplementation(async (url: string, init: never) => String(url) === `https://appleid.apple.com${endpoint}` ? { ok: false, status: 500 } : original(url, init));
+    const res = fakeRes();
+    await handler(deleteReq({ appleAuthorizationCode: 'apple-code' }), res as never);
+    expect(res.body?.code).toBe('apple_revocation_failed');
+    expect(deletedMember()).toBe(false);
+    expect(deletedAuthUser()).toBe(false);
+  });
+
+  it('Apple 연결이 있는 Google 로그인도 자동 취소를 확인하기 전에는 지우지 않는다', async () => {
+    user = { ...appleUser, app_metadata: { provider: 'google', providers: ['google', 'apple'] } };
+    const res = fakeRes();
+    await handler(deleteReq(), res as never);
+    expect(res.body?.code).toBe('apple_code_required');
+    expect(deletedMember()).toBe(false);
+  });
+
+  it('본인이 수동 해제 안내를 명시적으로 확인하면 키·코드 없이 삭제하고 manual로 구분한다', async () => {
+    user = appleUser;
+    const res = fakeRes();
+    await handler(deleteReq({ appleManualRevocationAcknowledged: true }), res as never);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ deleted: true, appleRevocation: 'manual' });
+    expect(deletedMember()).toBe(true);
     expect(deletedAuthUser()).toBe(true);
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('토큰 취소를 건너뜀'));
-    warn.mockRestore();
+    expect(calls.some((c) => c.url.includes('appleid.apple.com'))).toBe(false);
+  });
+
+  it('수동 확인 플래그가 있어도 인증 안 된 사용자의 데이터는 지우지 않는다', async () => {
+    const res = fakeRes();
+    await handler({ method: 'DELETE', body: { appleManualRevocationAcknowledged: true }, headers: {} } as never, res as never);
+    expect(res.statusCode).toBe(401);
+    expect(deletedMember()).toBe(false);
+    expect(deletedAuthUser()).toBe(false);
+  });
+
+  it('Apple 취소 뒤 DB가 실패해도 Auth는 남고 새 코드로 안전하게 다시 시도할 수 있다', async () => {
+    user = appleUser;
+    setAppleKeys();
+    memberDeleteOk = false;
+    const first = fakeRes();
+    await handler(deleteReq({ appleAuthorizationCode: 'first-code' }), first as never);
+    expect(first.statusCode).toBe(502);
+    expect(deletedAuthUser()).toBe(false);
+    memberDeleteOk = true;
+    const second = fakeRes();
+    await handler(deleteReq({ appleAuthorizationCode: 'fresh-code' }), second as never);
+    expect(second.statusCode).toBe(200);
+    const exchanges = calls.filter((c) => c.url === 'https://appleid.apple.com/auth/token');
+    expect(exchanges.map((c) => new URLSearchParams(c.body).get('code'))).toEqual(['first-code', 'fresh-code']);
+    expect(calls.filter((c) => c.method === 'DELETE')).toHaveLength(1);
+  });
+
+  it('Auth 삭제가 실패하면 재시도할 수 있고, 이미 삭제된 Auth의 404는 반복 완료로 처리한다', async () => {
+    user = appleUser;
+    const base = global.fetch as jest.Mock;
+    const original = base.getMockImplementation()!;
+    let attempts = 0;
+    base.mockImplementation(async (url: string, init: { method?: string }) => {
+      if (String(url).includes('/auth/v1/admin/users/') && init.method === 'DELETE') {
+        attempts += 1;
+        return { ok: false, status: attempts === 1 ? 500 : 404 };
+      }
+      return original(url, init);
+    });
+    const first = fakeRes();
+    await handler(deleteReq({ appleManualRevocationAcknowledged: true }), first as never);
+    expect(first.statusCode).toBe(502);
+    const second = fakeRes();
+    await handler(deleteReq({ appleManualRevocationAcknowledged: true }), second as never);
+    expect(second.statusCode).toBe(200);
+    expect(second.body).toEqual({ deleted: true, appleRevocation: 'manual' });
+    expect(calls.filter((c) => c.url.endsWith('/rest/v1/rpc/member_delete'))).toHaveLength(2);
+    expect(attempts).toBe(2);
+  });
+
+  it.each(['null', 'true', '[]'])('수동 안내 확인 본문이 올바른 객체가 아니면(%s) 삭제하지 않는다', async (body) => {
+    user = appleUser;
+    const res = fakeRes();
+    await handler(deleteReq(body), res as never);
+    expect(res.body?.code).toBe('apple_code_required');
+    expect(deletedMember()).toBe(false);
+  });
+
+  it('Apple 네트워크가 멈추면 시간 제한으로 중단하고 데이터를 지우지 않는다', async () => {
+    jest.useFakeTimers();
+    try {
+      user = appleUser;
+      setAppleKeys();
+      const base = global.fetch as jest.Mock;
+      const original = base.getMockImplementation()!;
+      base.mockImplementation((url: string, init: { signal?: AbortSignal }) => String(url).includes('appleid.apple.com')
+        ? new Promise((_resolve, reject) => init.signal?.addEventListener('abort', () => reject(new Error('aborted')), { once: true }))
+        : original(url, init));
+      const res = fakeRes();
+      const pending = handler(deleteReq({ appleAuthorizationCode: 'apple-code' }), res as never);
+      await jest.advanceTimersByTimeAsync(APPLE_REVOKE_TIMEOUT_MS + 1);
+      await pending;
+      expect(res.body?.code).toBe('apple_revocation_failed');
+      expect(deletedMember()).toBe(false);
+      expect(deletedAuthUser()).toBe(false);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('Apple 로그인이 없는 계정이면 코드가 와도 Apple 에 요청하지 않는다', async () => {
@@ -259,5 +400,10 @@ describe('연결 끊기 도우미', () => {
 
   it('Apple 키가 없으면 null', () => {
     expect(appleClientSecret()).toBeNull();
+  });
+
+  it('Apple 취소 HTTP 200은 본문이 없어도 성공으로 처리한다(이미 취소된 토큰도 같은 응답)', async () => {
+    setAppleKeys();
+    await expect(revokeApple('apple-code', APPLE_SUB)).resolves.toBe('ok');
   });
 });

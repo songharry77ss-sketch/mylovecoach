@@ -1,7 +1,7 @@
 // PC 에서 실행: node tools/asc-listing.mjs [--submit] [--build <번호>] [--wait <분>] [--retry <분>] [--secrets <폴더>] [--site https://mylovecoach.vercel.app]
 // App Store Connect 에 앱 레코드(번들 ID app.mylovecoach.ios)가 만들어진 뒤, 등록 정보를 API 로 한 번에 채운다.
 //   이름·부제·개인정보 URL·카테고리 / 설명·키워드·지원 URL / 6.7" 스크린샷 / 연령 등급 / 심사 연락처·메모 / 무료 가격 / 한국 출시
-//   --submit : 빌드를 버전에 연결하고 심사에 제출 (--build 로 번호를 주면 그 빌드, 없으면 가장 최근 빌드)
+//   --submit : --build 로 지정한 빌드만 같은 앱 버전에 연결·재확인한 뒤 심사에 제출
 //              처음 내는 구독·평생권이 심사 묶음에 없으면 제출하지 않는다(웹 화면에서 골라야 함). 상품 없이 내려면 --without-products
 // API 로 안 되는 것(화면에서만 가능): 앱 레코드 생성, 「앱이 수집하는 개인정보」(App Privacy) 설문.
 // 값(키)은 출력하지 않는다. 같은 값을 다시 넣어도 안전하게 여러 번 실행할 수 있다.
@@ -10,14 +10,13 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { BUNDLE_ID, createAscClient, MISSING_PRODUCTS_HELP, missingProducts, secretsRoot, step } from './lib/asc-api.mjs';
+import { assertEditableVersion, assertReleaseTarget, findEditableVersion, findTargetBuild, linkAndVerifyBuild, readWhatsNew } from './lib/asc-release-guard.mjs';
 
 const LOCALE = 'ko';
 const TERRITORY_KR = 'KOR';
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..');
 // 버전 번호는 app.json 이 원본 — 빌드에 박히는 번호와 App Store 버전이 같아야 빌드를 연결할 수 있다
 const VERSION = JSON.parse(readFileSync(join(repo, 'app.json'), 'utf8')).expo.version;
-/** 업데이트(1.0.0 이후)는 「이번 버전의 새로운 기능」이 있어야 심사에 낼 수 있다 */
-const WHATS_NEW = '· AI 분석 전에 무엇을 어디로 보내는지 먼저 묻고 동의를 받아요 (마이 탭에서 언제든 철회)\n· 연애 연습 대화가 길어지면 생기던 오류를 고쳤어요\n· 개인정보 처리방침과 신고 기능을 다듬었어요';
 const args = process.argv.slice(2);
 const argOf = (n) => (args.includes(n) ? args[args.indexOf(n) + 1] : undefined);
 const root = secretsRoot(args);
@@ -26,6 +25,7 @@ const { api, getAll, uploadAsset, findApp } = createAscClient(root);
 
 // ---- 등록 문구: docs/STORE_LISTING.md 에서 읽는다 (문서가 원본)
 const listingMd = readFileSync(join(repo, 'docs', 'STORE_LISTING.md'), 'utf8');
+const WHATS_NEW = readWhatsNew(listingMd, VERSION);
 const field = (label) => (listingMd.match(new RegExp(`\\*\\*${label}[^*]*\\*\\*:\\s*(.+)`)) ?? [])[1]?.trim();
 const section = (title) => (listingMd.match(new RegExp(`## ${title}[^\\n]*\\n([\\s\\S]*?)(?=\\n## |$)`)) ?? [])[1]?.trim() ?? '';
 /** App Store 는 설명에 이모지를 허용하지 않으므로 지운다 (Play 는 그대로 사용) */
@@ -48,6 +48,9 @@ const LISTING = {
 };
 
 async function main() {
+  const wanted = argOf('--build');
+  if (args.includes('--submit') && !wanted) throw new Error('심사 제출에는 --build <검증한 빌드 번호>가 필요합니다.');
+  if (wanted !== undefined && !/^[1-9][0-9]*$/.test(wanted)) throw new Error('빌드 번호는 양의 정수여야 합니다.');
   const app = await findApp();
   if (!app) {
     console.log(`앱 레코드가 아직 없습니다. App Store Connect → 앱 → + → 신규 앱 에서 번들 ID ${BUNDLE_ID} 로 만든 뒤 다시 실행하세요.`);
@@ -55,6 +58,15 @@ async function main() {
     return;
   }
   console.log(`앱: ${app.attributes.name} (id ${app.id}) · 사이트 ${SITE}`);
+
+  // 다른 버전이 심사 중이면 등록 정보도 바꾸기 전에 멈춘다. 최신·첫 초안으로 대체하지 않는다.
+  const versions = await getAll(`/v1/apps/${app.id}/appStoreVersions?filter[platform]=IOS&limit=100`);
+  let version = findEditableVersion(versions, VERSION);
+  if (!version) {
+    version = (await api('POST', '/v1/appStoreVersions', { data: { type: 'appStoreVersions', attributes: { platform: 'IOS', versionString: VERSION }, relationships: { app: { data: { type: 'apps', id: app.id } } } } })).data;
+    assertEditableVersion(version, VERSION);
+  }
+  console.log(`✓ 대상 버전 ${VERSION} 확인`);
 
   // 1) 앱 정보: 이름·부제·개인정보 URL·카테고리·콘텐츠 권리
   const infos = await api('GET', `/v1/apps/${app.id}/appInfos`);
@@ -107,22 +119,8 @@ async function main() {
   });
 
   // 3) 버전(app.json) + 한국어 설명
-  let version;
-  await step(`버전 ${VERSION}`, async () => {
-    const vs = await api('GET', `/v1/apps/${app.id}/appStoreVersions?filter[platform]=IOS`);
-    // READY_FOR_REVIEW(심사 묶음에 담겼지만 아직 안 낸 초안)도 빌드·설명을 고칠 수 있다 (2026-10-05 실제로 확인)
-    version = vs.data.find((v) => ['PREPARE_FOR_SUBMISSION', 'READY_FOR_REVIEW', 'DEVELOPER_REJECTED', 'REJECTED', 'METADATA_REJECTED', 'INVALID_BINARY'].includes(v.attributes.appStoreState ?? v.attributes.appVersionState));
-    // 처음이거나, 이전 버전이 모두 출시(READY_FOR_SALE)됐고 app.json 의 새 번호가 아직 없으면 새 버전을 만든다.
-    // 심사 중·출시 버튼 대기인 버전이 있으면 새 버전을 만들 수 없으므로 아래 오류로 멈춘다
-    const busy = vs.data.some((v) => !['READY_FOR_SALE', 'REPLACED_WITH_NEW_VERSION', 'REMOVED_FROM_SALE'].includes(v.attributes.appStoreState));
-    if (!version && !busy && !vs.data.some((v) => v.attributes.versionString === VERSION))
-      version = (await api('POST', '/v1/appStoreVersions', { data: { type: 'appStoreVersions', attributes: { platform: 'IOS', versionString: VERSION }, relationships: { app: { data: { type: 'apps', id: app.id } } } } })).data;
-    if (!version) throw new Error(`편집 가능한 버전이 없습니다 (현재 상태: ${vs.data.map((v) => v.attributes.appStoreState).join(', ')})`);
-    // 출시 방식(releaseType)은 건드리지 않는다 — 1.0 은 10-07 사용자 결정으로 수동 출시(MANUAL). 바꿀 때는 tools/asc-release.mjs 로
-    await api('PATCH', `/v1/appStoreVersions/${version.id}`, { data: { type: 'appStoreVersions', id: version.id, attributes: { copyright: `${new Date().getFullYear()} mylovecoach` } } });
-    return `${version.attributes.versionString} (${version.attributes.appStoreState ?? ''})`;
-  });
-  if (!version) return;
+  // 출시 방식(releaseType)은 현재 설정을 보존한다. 따로 확인·결정하지 않고 바꾸지 않는다.
+  await api('PATCH', `/v1/appStoreVersions/${version.id}`, { data: { type: 'appStoreVersions', id: version.id, attributes: { copyright: `${new Date().getFullYear()} mylovecoach` } } });
 
   let vloc;
   await step('설명·키워드·지원 URL', async () => {
@@ -178,7 +176,8 @@ async function main() {
       }
       if (contact.contactEmail) break;
     }
-    const attrs = { ...contact, demoAccountRequired: false, notes: LISTING.reviewNotes };
+    // 콘솔에 정한 심사 계정 필요 여부·접근 정보는 덮어쓰지 않는다.
+    const attrs = { ...contact, notes: LISTING.reviewNotes };
     const cur = await api('GET', `/v1/appStoreVersions/${version.id}/appStoreReviewDetail`).catch(() => null);
     if (cur?.data) await api('PATCH', `/v1/appStoreReviewDetails/${cur.data.id}`, { data: { type: 'appStoreReviewDetails', id: cur.data.id, attributes: attrs } });
     else await api('POST', '/v1/appStoreReviewDetails', { data: { type: 'appStoreReviewDetails', attributes: attrs, relationships: { appStoreVersion: { data: { type: 'appStoreVersions', id: version.id } } } } });
@@ -230,44 +229,37 @@ async function main() {
   // /v1/builds 목록에는 처리 중(PROCESSING) 빌드가 나오지 않는다. 그대로 최신을 고르면
   // 방금 올린 빌드 대신 이전 빌드가 제출될 수 있으므로, --build 로 번호를 지정하면 그 빌드만 쓴다.
   // --wait <분> 을 주면 그 빌드가 업로드·처리(VALID)될 때까지 1분마다 다시 확인한다.
-  const wanted = argOf('--build');
   const waitMin = Number(argOf('--wait') ?? '0') || 0;
   const deadline = Date.now() + waitMin * 60_000;
   let allBuilds = [];
   let target;
   let build = null;
   for (;;) {
-    const versions = await getAll(`/v1/preReleaseVersions?filter[app]=${app.id}&filter[platform]=IOS&limit=10`);
-    allBuilds = [];
-    for (const v of versions) allBuilds.push(...(await getAll(`/v1/preReleaseVersions/${v.id}/builds?limit=20`)));
-    allBuilds.sort((x, y) => Number(y.attributes.version) - Number(x.attributes.version));
-    target = wanted ? allBuilds.find((b) => b.attributes.version === wanted) : allBuilds[0];
-    build = target && target.attributes.processingState === 'VALID' && !target.attributes.expired ? target : null;
+    ({ builds: allBuilds, target, build } = await findTargetBuild({ getAll, appId: app.id, versionString: VERSION, buildNumber: wanted }));
     if (build || Date.now() >= deadline) break;
     console.log(`  · 빌드 ${wanted ?? '최신'} 대기 중 (${target ? target.attributes.processingState : '아직 업로드 안 됨'}) …`);
     await new Promise((r) => setTimeout(r, 60_000));
   }
   console.log(`빌드: ${allBuilds.map((b) => `${b.attributes.version}(${b.attributes.processingState})`).join(', ') || '없음 (ios.yml 로 TestFlight 업로드 필요)'}`);
   if (!build) {
-    console.log(
+    throw new Error(
       wanted
         ? `빌드 ${wanted} 이 ${target ? `아직 ${target.attributes.processingState} 상태` : '목록에 없음'} — 처리 완료 후 다시 실행하세요`
-        : `가장 최근 빌드 ${target?.attributes.version ?? ''} 이 아직 처리 중이라 연결하지 않았습니다`,
+        : `버전 ${VERSION}의 최신 빌드가 없거나 처리 완료되지 않아 연결하지 않았습니다`,
     );
   }
-  if (build)
-    await step(`버전에 빌드 ${build.attributes.version} 연결`, () =>
-      api('PATCH', `/v1/appStoreVersions/${version.id}/relationships/build`, { data: { type: 'builds', id: build.id } }).then(() => ''),
-    );
+  const releaseTarget = { api, versionId: version.id, versionString: VERSION, build };
+  await linkAndVerifyBuild(releaseTarget);
+  console.log(`✓ 버전 ${VERSION}에 빌드 ${build.attributes.version} 연결·재확인`);
   if (args.includes('--submit')) {
-    if (!build) return console.log('제출 보류: 처리 완료된 빌드가 없습니다');
     // --retry <분> : 화면에서만 할 수 있는 항목(개인정보 설문 등)이 아직이면 2분마다 다시 시도한다.
     // 사용자가 설문을 게시하는 순간 바로 제출되게 하려는 것.
     const retryMin = Number(argOf('--retry') ?? '0') || 0;
     const retryUntil = Date.now() + retryMin * 60_000;
     for (;;) {
       const ok = await submitOnce();
-      if (ok || Date.now() >= retryUntil) break;
+      if (ok) break;
+      if (Date.now() >= retryUntil) throw new Error('심사 제출을 완료하지 못했습니다. 위 실패 항목을 해결한 뒤 다시 실행하세요.');
       console.log('  · 2분 뒤 다시 제출해 봅니다 (App Store Connect 화면에서 빠진 항목을 채우면 자동으로 통과)');
       await new Promise((r) => setTimeout(r, 120_000));
     }
@@ -276,6 +268,8 @@ async function main() {
   console.log('심사 제출은 --submit 을 붙여 실행. 그 전에 App Store Connect → 앱이 수집하는 개인정보(App Privacy) 설문을 화면에서 완료해야 합니다.');
 
   async function submitOnce() {
+    // 재시도 사이 다른 세션이 빌드·버전을 바꿨다면 더 시도하지 않는다.
+    await assertReleaseTarget(releaseTarget);
     return step('심사 제출', async () => {
       const open = await api('GET', `/v1/reviewSubmissions?filter[app]=${app.id}&filter[state]=READY_FOR_REVIEW,UNRESOLVED_ISSUES&filter[platform]=IOS`);
       const sub = open.data[0] ?? (await api('POST', '/v1/reviewSubmissions', { data: { type: 'reviewSubmissions', attributes: { platform: 'IOS' }, relationships: { app: { data: { type: 'apps', id: app.id } } } } })).data;
@@ -289,6 +283,7 @@ async function main() {
       });
       const missing = args.includes('--without-products') ? [] : await missingProducts({ getAll, appId: app.id, submissionId: sub.id });
       if (missing.length) throw new Error(`심사 묶음에 상품이 빠져 있어 제출하지 않았습니다 (${missing.join(', ')}). ${MISSING_PRODUCTS_HELP}`);
+      await assertReleaseTarget(releaseTarget);
       await api('PATCH', `/v1/reviewSubmissions/${sub.id}`, { data: { type: 'reviewSubmissions', id: sub.id, attributes: { submitted: true } } });
       return '제출 완료 (보통 1~2일 내 결과 · 출시 방식은 그대로 — node tools/asc-release.mjs 로 확인)';
     });

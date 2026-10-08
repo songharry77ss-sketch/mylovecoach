@@ -126,7 +126,8 @@ describe('Google 회원 상태 정리', () => {
 
   it('탈퇴는 회원 API를 호출하고 Apple 인증이나 별도 Google 권한 요청 없이 로컬 세션을 지운다', async () => {
     Platform.OS = 'ios';
-    await deleteAccount();
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ deleted: true, appleRevocation: 'not_applicable' }) });
+    await expect(deleteAccount({ expectedUserId: 'google-user' })).resolves.toEqual({ appleRevocation: 'not_applicable' });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe('https://coach.test/api/member');
     expect(fetchMock.mock.calls[0][1].method).toBe('DELETE');
@@ -135,5 +136,19 @@ describe('Google 회원 상태 정리', () => {
     expect(oauth).not.toHaveBeenCalled();
     expect(auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
     expect(useAppStore.getState().member).toBeNull();
+  });
+
+  it.each([
+    { label: '서버 삭제 실패', ok: false, body: { error: '회원 삭제를 마치지 못했어요.' }, message: '회원 삭제를 마치지 못했어요.' },
+    { label: '삭제 완료 표시 없는 성공 응답', ok: true, body: {}, message: '탈퇴 완료를 확인하지 못했어요.' },
+  ])('$label 때 Google 회원과 로컬 세션을 보존한다', async ({ ok, body, message }) => {
+    fetchMock.mockResolvedValue({ ok, json: async () => body });
+    await expect(deleteAccount({ expectedUserId: 'google-user' })).rejects.toThrow(message);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][1].method).toBe('DELETE');
+    expect(AppleAuthentication.signInAsync).not.toHaveBeenCalled();
+    expect(oauth).not.toHaveBeenCalled();
+    expect(auth.signOut).not.toHaveBeenCalled();
+    expect(useAppStore.getState().member?.userId).toBe('google-user');
   });
 });

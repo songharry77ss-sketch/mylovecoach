@@ -55,7 +55,7 @@ jobs:
       IOS_CERT_PRIVATE_KEY_BASE64: ${{ secrets.IOS_CERT_PRIVATE_KEY_BASE64 }}
       EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
       EXPO_PUBLIC_API_TOKEN: ${{ secrets.EXPO_PUBLIC_API_TOKEN }}
-      # 회원가입(카카오·Apple) — 공개 값이라 저장소 변수. 비어 있으면 가입 없이 예전 무료 규칙
+      # 회원가입(카카오·Apple·Google) — 공개 값이라 저장소 변수. 누락 시 스토어 빌드를 중단한다.
       EXPO_PUBLIC_SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
       EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
       BUILD_NUMBER_INPUT: ${{ inputs.build_number }}
@@ -76,6 +76,9 @@ jobs:
           fi
           # 서버 주소가 없으면 앱이 개인 API 키로만 AI 를 부르고 AI 답변 신고 진입점이 모두 숨는다 → 스토어에 내면 안 되는 빌드
           if [ -z "$EXPO_PUBLIC_API_URL" ]; then echo "::error::EXPO_PUBLIC_API_URL 변수가 비어 있어 코치 서버·AI 답변 신고가 없는 빌드가 됩니다 (node tools/set-ci-secrets.mjs --api-url …)"; exit 1; fi
+          for name in EXPO_PUBLIC_SUPABASE_URL EXPO_PUBLIC_SUPABASE_ANON_KEY; do
+            if [ -z "${!name//[[:space:]]/}" ]; then echo "::error::회원가입 빌드 변수 누락: $name (값은 출력하지 않음)"; exit 1; fi
+          done
       - run: bash tools/select-xcode.sh
       - run: npm ci
       - name: 네이티브 프로젝트 생성 (expo prebuild) + CocoaPods
