@@ -77,7 +77,7 @@
 
 사진을 우리 서버에 저장하지 않는다는 사실만으로 Play의 「임시 처리」에 해당하지는 않습니다. [Play 기준](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en)은 해당 요청을 실시간으로 처리하는 동안 메모리에만 보관하는 경우입니다. Google은 유료 서비스에서도 Gemini API의 텍스트 입력·추가 맥락·출력을 안전 및 금지된 사용 방지 등의 목적으로 [55일 보관한다고 안내](https://ai.google.dev/gemini-api/docs/usage-policies)합니다. 이 앱에 적용되는 별도의 보관 예외를 확인하지 않았으므로 사진 입력이 요청 직후 모두 삭제된다고 가정하지 않습니다. 이는 **원본 사진 파일을 반드시 55일 보관한다는 단정이 아닙니다**. 사진 첨부는 글 입력으로 대신할 수 있어 선택 수집입니다.
 
-AI Studio의 로그·데이터셋 공유 설정은 결제 등급과 별도로 확인합니다. Google에 데이터셋을 자발적으로 공유하면 해당 데이터에는 제품 개선·모델 학습을 허용하는 [별도 공유 규칙](https://ai.google.dev/gemini-api/docs/logs-policy)이 적용됩니다. Play의 「공유 없음」은 개발자 지시에 따라 처리하는 [서비스 제공업체 예외](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en)를 근거로 판단하며, 자발적 데이터 공유 여부까지 확인한 뒤 콘솔에 반영합니다.
+AI Studio의 로그·데이터셋 공유 설정은 결제 등급과 별도로 확인했습니다. 2026-10-08 운영 프로젝트 화면에서 **GenerateContent API 저장 꺼짐, 로그 0개, 기존 데이터셋 없음**을 읽기 전용으로 확인했으며 설정은 바꾸지 않았습니다. Interactions API 저장은 기본값인 켜짐이지만, 현재 앱은 GenerateContent API를 사용합니다. 이 확인은 위의 남용 방지용 보관이 없다는 뜻이 아닙니다. Google에 데이터셋을 자발적으로 공유하면 해당 데이터에는 제품 개선·모델 학습을 허용하는 [별도 공유 규칙](https://ai.google.dev/gemini-api/docs/logs-policy)이 적용됩니다. Play의 「공유 없음」은 개발자 지시에 따라 처리하는 [서비스 제공업체 예외](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en)를 근거로 판단하며, 위 확인 결과와 함께 콘솔에 반영합니다.
 
 ## 2026-10 기능 추가 때 확인한 것 (설문 답 변경 없음)
 
