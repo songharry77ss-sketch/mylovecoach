@@ -31,7 +31,7 @@ import { clearImageCaches, deleteImageQuietly, pickImage, type PickedImage } fro
 import { relationshipLabel } from '@/lib/labels';
 import { drawChatQuestions } from '@/lib/mind-cards';
 import type { ChatMessage, EmojiPref, Tone } from '@/lib/types';
-import { useAppStore } from '@/store/app-store';
+import { isVariationRequest, turnRequestOf, useAppStore, variationTargetOf } from '@/store/app-store';
 
 export default function CrushChat() {
   const { id, pendingImage, pendingWidth, pendingText } = useLocalSearchParams<{ id: string; pendingImage?: string; pendingWidth?: string; pendingText?: string }>();
@@ -52,6 +52,8 @@ export default function CrushChat() {
 
   const [tone, setTone] = useState<Tone>(user?.defaultTone ?? 'natural');
   const [emoji, setEmoji] = useState<EmojiPref>(user?.emoji ?? 'on');
+  const [toneChosen, setToneChosen] = useState(false);
+  const [emojiChosen, setEmojiChosen] = useState(false);
   const [image, setImage] = useState<PickedImage | null>(null);
   const [viewer, setViewer] = useState<string | null>(null);
   const [questionSeed, setQuestionSeed] = useState(0);
@@ -174,7 +176,7 @@ export default function CrushChat() {
   };
 
   const submit = (text: string) => {
-    if (!guardedSend({ crushId: crush.id, image, text, tone, emoji })) return false;
+    if (!guardedSend({ crushId: crush.id, image, text, tone, emoji, toneChosen, emojiChosen })) return false;
     setImage(null);
   };
 
@@ -184,6 +186,14 @@ export default function CrushChat() {
     const prev = idx > 0 ? messages[idx - 1] : undefined;
     if (!prev || prev.role !== 'user') return;
     if (quota.remaining <= 0) return openPaywall('quota');
+    // 실패한 게 「다른 답장 더 보기」였으면 같은 카드의 다른 답장을 다시 요청한다 (빈 요청으로 첫 메시지 추천을 받지 않게)
+    if (isVariationRequest(prev)) {
+      const target = variationTargetOf(messages, prev);
+      removeMessage(crush.id, failed.id);
+      removeMessage(crush.id, prev.id);
+      if (target) regenerate(target);
+      return;
+    }
     removeMessage(crush.id, failed.id);
     removeMessage(crush.id, prev.id);
     guardedSend({
@@ -191,19 +201,16 @@ export default function CrushChat() {
       image: prev.imageUri ? { uri: prev.imageUri, width: 0, height: 0 } : null,
       text: prev.text?.startsWith('🔄') ? '' : (prev.text ?? ''),
       tone: prev.tone ?? tone,
-      emoji,
+      emoji: prev.emoji ?? emoji,
+      toneChosen: prev.toneChosen,
+      emojiChosen: prev.emojiChosen,
     });
   };
 
   const regenerate = (coachMessage: ChatMessage) => {
-    const idx = messages.findIndex((m) => m.id === coachMessage.id);
-    let prev: ChatMessage | undefined;
-    for (let i = idx - 1; i >= 0; i--) {
-      if (messages[i].role === 'user' && (messages[i].imageUri || messages[i].text)) {
-        prev = messages[i];
-        if (messages[i].imageUri) break;
-      }
-    }
+    // 이 카드를 만든 요청(같은 턴의 사용자 메시지) — 예전에는 캡처가 나올 때까지 계속 거슬러 올라가,
+    // 글만 주고받은 채팅방에서는 맨 처음 질문을 기준으로 삼았다
+    const prev = turnRequestOf(messages, coachMessage.id);
     guardedSend(
       {
         crushId: crush.id,
@@ -211,6 +218,8 @@ export default function CrushChat() {
         text: prev?.text && !prev.text.startsWith('🔄') ? prev.text : '',
         tone,
         emoji,
+        toneChosen,
+        emojiChosen,
         variationOf: coachMessage.id,
       },
       'regenerate',
@@ -273,12 +282,15 @@ export default function CrushChat() {
                   <AppText variant="small" color="danger">
                     {item.error}
                   </AppText>
-                  <View style={styles.errorActions}>
-                    <Button title="다시 시도" size="sm" variant="secondary" fullWidth={false} onPress={() => retry(item)} />
-                    {item.text === 'not_configured' || item.text === 'auth' ? (
-                      <Button title="AI 연결 설정" size="sm" variant="soft" fullWidth={false} onPress={() => router.push('/settings/api-key')} />
-                    ) : null}
-                  </View>
+                  {/* 캡처가 너무 크면 같은 캡처로 다시 해도 또 막히니 안내만 남긴다 */}
+                  {item.text !== 'too_large' ? (
+                    <View style={styles.errorActions}>
+                      <Button title="다시 시도" size="sm" variant="secondary" fullWidth={false} onPress={() => retry(item)} />
+                      {item.text === 'not_configured' || item.text === 'auth' ? (
+                        <Button title="AI 연결 설정" size="sm" variant="soft" fullWidth={false} onPress={() => router.push('/settings/api-key')} />
+                      ) : null}
+                    </View>
+                  ) : null}
                 </View>
               ) : item.analysis ? (
                 <AnalysisCard
@@ -442,9 +454,9 @@ export default function CrushChat() {
 
         <Composer
           tone={tone}
-          onToneChange={setTone}
+          onToneChange={(value) => { setTone(value); setToneChosen(true); }}
           emoji={emoji}
-          onEmojiChange={setEmoji}
+          onEmojiChange={(value) => { setEmoji(value); setEmojiChosen(true); }}
           image={image}
           onPickImage={chooseImage}
           onClearImage={() => setImage(null)}

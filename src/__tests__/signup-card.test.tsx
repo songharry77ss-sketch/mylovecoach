@@ -1,8 +1,10 @@
 import { act } from 'react';
 import { create, type ReactTestRenderer } from 'react-test-renderer';
+import { Linking, Platform } from 'react-native';
 
 import { SignupCard } from '@/components/auth/signup-card';
 import { AuthCancelled, signInWithGoogle, type LinkResult } from '@/lib/auth';
+import { APP_CONFIG } from '@/lib/config';
 
 jest.mock('@/lib/auth', () => ({
   AuthCancelled: class extends Error {},
@@ -59,4 +61,31 @@ it('Google 로그인을 취소하면 오류나 가입 완료를 표시하지 않
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Google로 계속하기' }).props.onPress());
   expect(onDone).not.toHaveBeenCalled();
   expect(tree.root.findAllByProps({ accessibilityLiveRegion: 'polite' })).toHaveLength(0);
+});
+
+it('가입 전에 약관과 개인정보 처리방침을 열어도 로그인은 시작하지 않는다', async () => {
+  const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+  await act(async () => tree.root.findByProps({ accessibilityLabel: '이용약관 보기' }).props.onPress());
+  await act(async () => tree.root.findByProps({ accessibilityLabel: '개인정보 처리방침 보기' }).props.onPress());
+  expect(open.mock.calls.map(([url]) => url)).toEqual([APP_CONFIG.termsUrl, APP_CONFIG.privacyUrl]);
+  expect(google).not.toHaveBeenCalled();
+  expect(onDone).not.toHaveBeenCalled();
+  open.mockRestore();
+});
+
+it('웹 약관은 키보드와 새 탭 메뉴로 열 수 있는 실제 링크다', async () => {
+  const previous = Platform.OS;
+  try {
+    Object.defineProperty(Platform, 'OS', { configurable: true, value: 'web' });
+    await act(async () => tree.update(<SignupCard onDone={onDone} />));
+    for (const [label, url] of [['이용약관 보기', APP_CONFIG.termsUrl], ['개인정보 처리방침 보기', APP_CONFIG.privacyUrl]]) {
+      const props = tree.root.findByProps({ accessibilityLabel: label }).props;
+      expect(props.href).toBe(url);
+      expect(props.hrefAttrs).toEqual({ target: '_blank', rel: 'noopener noreferrer' });
+      expect(props.onPress).toBeUndefined();
+    }
+    expect(google).not.toHaveBeenCalled();
+  } finally {
+    Object.defineProperty(Platform, 'OS', { configurable: true, value: previous });
+  }
 });

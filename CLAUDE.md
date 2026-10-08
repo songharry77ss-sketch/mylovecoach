@@ -23,14 +23,15 @@ gh workflow run status.yml
 
 # 배포
 gh workflow run vercel.yml                    # 웹 + API
-gh workflow run ios.yml                       # TestFlight
-gh workflow run android.yml -f track=internal # Play 내부 테스트
+gh workflow run ios.yml -f build_number=<미사용번호> # TestFlight
+gh workflow run android.yml -f track=internal -f version_code=<미사용번호> -f floating_bubble=false # Play 내부 테스트
 gh workflow run android-apk.yml               # 플레이스토어 없이 바로 설치할 APK
-gh workflow run app-store.yml -f build=112 -f wait_minutes=60        # App Store 등록 정보 갱신 + 빌드 처리를 기다렸다가 버전에 연결
-# 심사 제출은 app-store-autosubmit.yml 이 15분마다 알아서 시도한다 (출시되면 스스로 꺼짐)
+gh workflow run app-store.yml -f build=<검증한빌드번호> -f wait_minutes=60 # 등록 정보 갱신 + 빌드 연결
+# 심사 제출은 별도 작업이다. app-store-autosubmit.yml 은 disabled_manually 상태를 유지한다.
 
 # Play 비공개 테스트 (개인 계정은 12명 × 14일 해야 프로덕션 가능)
-gh workflow run play-closed-test.yml          # 내부 테스트 최신 빌드를 비공개 테스트에 (앱 초안이면 초안까지만)
+gh workflow run play-closed-test.yml -f version_code=<검증한빌드번호> -f dry_run=true # 검증만
+# 실제 반영은 send_for_review=true 를 별도로 지정해야 하며, 대기 중인 다른 변경도 검토로 넘어갈 수 있다.
 
 # 테스터
 gh workflow run testflight-link.yml -f action=on -f limit=500   # 아이폰 공개 초대 링크
@@ -73,22 +74,26 @@ npx tsc --noEmit && npx eslint src --max-warnings=0 && npx jest
 - 같은 버전(train)의 이전 빌드가 베타 심사 중이면 새 빌드는 제출이 422 로 막힌다. 앞 빌드가 승인되면 같이 풀린다.
 - Play 내부 테스트의 **테스터 이메일 목록은 API 로 못 바꾼다** (API 는 구글 그룹만 지원). Play Console 화면에서만 가능.
 - 내부 테스트 **참여 링크**(`play.google.com/apps/internaltest/숫자`)도 API 로 조회되지 않는다. Console 의 테스터 탭에서 복사.
-- 무료 무제한 스위치 `FREE_UNLIMITED` 는 빌드 환경변수 `EXPO_PUBLIC_FREE_UNLIMITED=1` 일 때만 켜진다. **스토어 빌드(ios.yml·android.yml)와 웹은 유료 판매**(무료 3회 + 하루 1회 → 페이월), **직접 설치 APK(android-apk.yml)만 무료 무제한**이다 (APK 는 스토어 결제가 안 되므로). 스토어 문구(`docs/STORE_LISTING.md`)·지원 페이지도 유료 기준이다.
+- 무료 무제한 스위치 `FREE_UNLIMITED` 는 빌드 환경변수 `EXPO_PUBLIC_FREE_UNLIMITED=1` 일 때만 켜진다. **스토어 빌드(ios.yml·android.yml)와 웹은 유료 판매**다. 가입 지원 빌드는 비회원 맛보기 1회, 가입 보너스 3회 + 매일 1회이며 가입 설정이 없는 기존 빌드는 체험 3회 + 매일 1회다. **직접 설치 APK(android-apk.yml)만 무료 무제한**이다 (APK 는 스토어 결제가 안 되므로). 스토어 문구(`docs/STORE_LISTING.md`)·지원 페이지도 유료 기준이다.
 - 평생권 가격은 Play ₩29,800, App Store ₩29,900 (애플에 ₩29,800 가격대가 없음). 그래서 공용 설명에는 평생권 금액을 적지 않는다. 앱은 스토어가 주는 실제 가격을 표시한다.
 - 하루 이용권(`mylovecoach.pass.day`)·횟수권(`mylovecoach.credits.10`)은 스토어에 **아직 없다**. `tools/asc-iap.mjs --consumables`, `tools/play-setup.mjs --products --consumables` 로 만든다 (상품 ID 는 한 번 만들면 재사용 불가 → 가격 확정 뒤). 스토어에 없는 상품은 결제 화면에서 자동으로 숨는다.
 - 소모성 상품은 복원이 안 된다(기기 지갑). 같은 결제가 두 번 충전되지 않게 거래 ID 를 `wallet.granted` 에 남긴다.
 - 플로팅 버블은 **스토어 빌드(`android.yml`)에서 기본으로 뺀다** (Play 포그라운드 서비스 신고 전). CI 사본에서만 autolinking 에서 `floating-bubble` 을 빼고 `SYSTEM_ALERT_WINDOW` 를 막으며, AAB 병합 매니페스트에 `FOREGROUND_SERVICE`·`foregroundServiceType`·`SYSTEM_ALERT_WINDOW` 가 남으면 실패한다. 저장소 설정과 직접 설치 APK(`android-apk.yml`)·로컬 빌드에는 버블이 그대로 있다. 스토어 빌드에 넣으려면 Play Console 에 포그라운드 서비스(specialUse) 신고(설명·시연 영상)를 먼저 하고 `-f floating_bubble=true`.
-- App Store 「앱이 수집하는 개인정보」 설문은 API 가 없다 (`/v1/apps/{id}/appDataUsages` 등 전부 404). 답안은 `docs/APP_PRIVACY.md`. 화면에서 **게시**하면 `app-store-autosubmit.yml` 이 15분 안에 심사 제출한다.
-- 개인정보 설문 답과 `site/privacy.html` 은 실제 전송 항목(`src/lib/analytics.ts`, `api/coach.ts`)과 맞아야 한다. 수집 항목을 바꾸면 셋을 같이 고칠 것.
+- App Store 「앱이 수집하는 개인정보」 설문은 API 가 없다 (`/v1/apps/{id}/appDataUsages` 등 전부 404). 답안은 `docs/APP_PRIVACY.md`. 화면의 **게시**와 앱 심사 제출은 별개다. `app-store-autosubmit.yml` 은 2026-10-08 `disabled_manually` 확인, 그대로 유지한다.
+- 개인정보 설문 답과 `site/privacy.html` 은 실제 전송 항목(`src/lib/analytics.ts`, `api/coach.ts`, `src/lib/auth.ts`, `api/member.ts`)과 맞아야 한다. 현재 스토어 답안과 다음 가입 빌드 초안을 `docs/APP_PRIVACY.md`에서 구분한다. Google 기본 프로필은 Supabase Auth에 이름·사진 주소가 남을 수 있으므로 회원 표의 닉네임·이메일만으로 수집 범위를 단정하지 않는다.
 - 문의처는 크레이빙 회사 메일 `contact@craving.win` (songharry77ss@gmail.com 으로 전달됨 · 2026-10-07 사용자 결정, 처리방침 보호책임자 연락처와 같음). `mylovecoach.app` 도메인은 존재하지 않는다. 지원 URL 은 `/support.html`.
 - 내부 앱 공유(`play-share.yml`)는 앱이 「앱 초안」이면 `NOT_PUBLISHED` 로 거부된다. 앱 설정 체크리스트를 끝내면 쓸 수 있다.
 - `git push` 가 거부되면 다른 세션(휴대폰·클라우드)이 같은 브랜치에 올렸을 수 있다. diff 를 먼저 보고 rebase.
 
-## 남은 일
+## 현재 상태와 남은 일
 
-정식 출시까지 남은 화면 작업은 **`docs/LAUNCH_CHECKLIST.md`** 에 정리돼 있다.
+확인 기준은 2026-10-08이며 자세한 순서는 **`docs/LAUNCH_CHECKLIST.md`**에 정리한다.
 
-- App Store: 1.0(빌드 116) 출시됨 (2026-10-08). AI 분석 동의를 넣은 1.0.1(빌드 121) 심사 중 → 출시 뒤 Vercel `AI_CONSENT_REQUIRED=1`
-- Play: 비공개 테스트 12명 × 14일, 또는 사업자(조직) 계정 전환. 비공개 테스트 초안은 API 로 만들어 둠
-- Supabase 프로젝트 생성 → `docs/ANALYTICS_SETUP.md` 1단계 (사용자가 해야 함)
-- 채팅에 노출된 적 있는 Gemini 키 교체
+- App Store: 1.0(116) `READY_FOR_SALE`; 1.0.1 `WAITING_FOR_REVIEW`·`MANUAL`. 최신 121은 `VALID`지만 외부 TestFlight 그룹은 119까지 연결돼 있다. 업로드·외부 설치·심사·출시를 구분한다.
+- Play: API에서 internal·alpha의 116 `completed`. 콘솔 검토·게시 상태와 실제 설치 가능 여부는 별도 확인한다. 현재 9유형 답안은 무가입 빌드 기준이며 다음 가입 빌드는 이메일·사용자 ID 등과 계정 삭제 답안을 추가 검토한다.
+- 회원가입·Google은 기본 브랜치 `81b5f29`에 병합됐다. Supabase Apple·Kakao·Google은 활성화, Email 가입은 비활성화 유지. Google 계정 선택 화면 도달과 최종 회원 연결·탈퇴 검증은 다르다.
+- Supabase 프로젝트·기존 회원 스키마·신고 DB와 운영 신고 저장 검증은 완료 기록이 있다. 프로젝트를 새로 만들거나 과거 스키마를 확인 없이 다시 실행하지 않는다.
+- 운영 Gemini 유료 연결·GenerateContent 선택 저장 꺼짐·로그 0·데이터셋 없음 확인 기록을 유지한다. 남용 방지 보관 55일과 별도이며 키 값은 조회·기록하지 않는다.
+- 다음 테스트 빌드는 미사용 번호를 명시하고 로그인 복귀·가입·탈퇴·AI 동의·신고·구매 복원을 실기 검증한다. 새 버전의 실제 배포 전에는 `AI_CONSENT_REQUIRED=1`로 기존 116을 먼저 차단하지 않는다.
+- Supabase 감사 로그는 FREE 플랜·DB 저장 꺼짐·감사 표 0행을 10-08 확인했다. 외부 Auth Audit Logs는 공식 Free 1시간 기준이고 회원 탈퇴 즉시 삭제와는 별개다. 향후 DB 기록을 켜면 별도 보관·파기 기준을 정한다(`docs/AUTH_SETUP.md`).
+- 이전 기록에 남은 키 교체 필요 여부는 실제 처리 이력 확인 대상으로 둔다. 확인 없이 키를 재발급하거나 값을 파일·로그·대화에 남기지 않는다.

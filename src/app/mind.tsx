@@ -14,16 +14,22 @@ import { PressableScale } from '@/components/ui/pressable-scale';
 import { Screen } from '@/components/ui/screen';
 import { useToast } from '@/components/ui/toast';
 import { Radius, Spacing } from '@/constants/theme';
-import { useAiAction } from '@/hooks/use-ai-action';
+import { useMindReading, type MindOutcome } from '@/hooks/use-mind-reading';
 import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
 import { useTheme } from '@/hooks/use-theme';
-import { requestAi } from '@/lib/coach-client';
+import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { haptic } from '@/lib/haptics';
 import { themLabel } from '@/lib/mind-cards';
-import type { Gender, MindReading } from '@/lib/types';
+import type { Gender } from '@/lib/types';
 import { useAppStore } from '@/store/app-store';
 
 const PHRASES = ['그 사람 입장이 되어 보는 중…', '흔한 경우의 수를 따져 보는 중…', '속마음을 받아 적는 중… 💭', '가능성을 계산하는 중…', '거의 다 됐어요!'];
+
+/** 결과가 나오면 두근, 실패하면 툭 */
+const feel = (outcome: MindOutcome) => {
+  if (outcome === 'failed') haptic.error();
+  else if (outcome) haptic.heartbeat();
+};
 
 /** 속마음 풀이 결과 — 상황 카드나 직접 쓴 질문을 받아 「그 사람」의 속마음을 보여 준다 */
 export default function MindScreen() {
@@ -32,36 +38,22 @@ export default function MindScreen() {
   const router = useRouter();
   const toast = useToast();
   const celebrate = useCelebrate();
-  const user = useAppStore((s) => s.user);
   const history = useAppStore((s) => s.mindHistory);
-  const { run, busy, error, blocked, openPaywall } = useAiAction();
+  const quota = useQuota();
   const hasDayPass = onSalePrice(usePlanProducts(), 'day') != null;
-  const fromHistory = params.history != null ? history[Number(params.history)] : undefined;
+  // 기록에서 연 풀이는 처음 연 그 기록을 계속 보여 준다 (다시 풀면 기록 순서가 바뀌어도 화면이 다른 기록으로 넘어가지 않게)
+  const [fromHistory] = useState(() => (params.history != null ? history[Number(params.history)] : undefined));
   const perspective: Gender = fromHistory?.perspective ?? (params.perspective === 'female' || params.perspective === 'other' ? params.perspective : 'male');
   const situation = fromHistory?.situation ?? params.situation ?? '';
-  const [reading, setReading] = useState<MindReading | null>(fromHistory?.reading ?? null);
+  const { reading, reused, ask, retry, busy, error, blocked, openPaywall } = useMindReading(situation, perspective, fromHistory?.reading);
   const started = useRef(false);
-  const [attempt, setAttempt] = useState(0);
 
+  // 처음 열면 한 번 풀어 준다 — 같은 카드·같은 대상·같은 내 프로필로 풀어 둔 결과가 있으면 AI 를 부르지 않고 그 결과를 보여 준다
   useEffect(() => {
     if (started.current || reading || !situation) return;
     started.current = true;
-    // 기다리는 사이 「모든 데이터 삭제」를 하면 늦게 온 결과를 기록에 다시 남기지 않는다
-    const epoch = useAppStore.getState().resetEpoch;
-    run(
-      'mind',
-      (o) => requestAi('mind', { situation, perspective, user: user ? { gender: user.gender, age: user.age, mbti: user.mbti } : undefined }, o),
-      { reason: 'mind' },
-    ).then((r) => {
-      if (!r) {
-        haptic.error();
-        return;
-      }
-      setReading(r);
-      if (useAppStore.getState().resetEpoch === epoch) useAppStore.getState().addMindAnswer({ situation, perspective, reading: r, at: Date.now() });
-      haptic.heartbeat();
-    });
-  }, [reading, situation, perspective, run, user, attempt]);
+    ask(false).then(feel);
+  }, [ask, reading, situation]);
 
   const copySample = async () => {
     if (!reading?.sampleReply) return;
@@ -91,16 +83,7 @@ export default function MindScreen() {
           </AppText>
           <View style={styles.row}>
             <Button title="이용권 보기" size="sm" fullWidth={false} onPress={() => openPaywall('mind')} />
-            <Button
-              title="다시 시도"
-              size="sm"
-              variant="soft"
-              fullWidth={false}
-              onPress={() => {
-                started.current = false;
-                setAttempt((a) => a + 1);
-              }}
-            />
+            <Button title="다시 시도" size="sm" variant="soft" fullWidth={false} onPress={() => retry().then(feel)} />
           </View>
         </View>
       ) : null}
@@ -110,21 +93,17 @@ export default function MindScreen() {
           <AppText variant="small" color="danger">
             {error}
           </AppText>
-          <Button
-            title="다시 시도"
-            size="sm"
-            variant="secondary"
-            fullWidth={false}
-            onPress={() => {
-              started.current = false;
-              setAttempt((a) => a + 1);
-            }}
-          />
+          <Button title="다시 시도" size="sm" variant="secondary" fullWidth={false} onPress={() => retry().then(feel)} />
         </View>
       ) : null}
 
-      {reading ? (
+      {reading && !busy ? (
         <>
+          {reused ? (
+            <AppText variant="caption" color="textTertiary" align="center">
+              전에 풀어 본 상황이라 저장된 풀이를 보여 드려요
+            </AppText>
+          ) : null}
           <Animated.View entering={ZoomIn.springify().damping(14)} style={[styles.voiceWrap]}>
             <AppText variant="caption" color="textTertiary">
               💭 {who}의 속마음
@@ -160,7 +139,16 @@ export default function MindScreen() {
           ) : null}
           <AiReportLink mode="mind" situation={situation} reading={reading} label="이 풀이 신고" />
 
-          <Button title="다른 상황도 물어보기" variant="soft" onPress={() => router.back()} />
+          <View style={styles.actions}>
+            <Button title="다른 상황도 물어보기" variant="soft" onPress={() => router.back()} />
+            {/* 저장된 풀이 대신 AI 에게 새로 묻는다 */}
+            <Button title="다시 풀이" variant="ghost" onPress={() => ask(true).then(feel)} />
+            {quota.enforced && !isUnlimited(quota) ? (
+              <AppText variant="caption" color="textTertiary" align="center">
+                다시 풀면 1회가 차감돼요
+              </AppText>
+            ) : null}
+          </View>
         </>
       ) : null}
     </Screen>
@@ -225,6 +213,7 @@ const styles = StyleSheet.create({
   situation: { borderRadius: Radius.lg, padding: Spacing.lg, gap: 4 },
   error: { borderRadius: Radius.md, padding: Spacing.md, gap: Spacing.sm },
   row: { flexDirection: 'row', gap: Spacing.sm },
+  actions: { gap: Spacing.xs },
   voiceWrap: { gap: Spacing.xs },
   voice: { borderRadius: Radius.xl, borderTopLeftRadius: 6, borderWidth: 1, padding: Spacing.lg },
   section: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.md },

@@ -31,6 +31,7 @@ export type AiConsentPrompter = (route: AiRoute) => Promise<boolean>;
 let prompter: AiConsentPrompter | null = null;
 /** 지금 떠 있는 시트의 답. 그사이 들어온 요청은 시트를 새로 띄우지 않고 이 답을 같이 기다린다 */
 let pending: Promise<boolean> | null = null;
+let consentRevision = 0;
 
 export function setAiConsentPrompter(next: AiConsentPrompter | null): void {
   prompter = next;
@@ -55,10 +56,14 @@ export async function ensureAiConsent(route: AiRoute): Promise<boolean> {
     const ask = prompter;
     // 시트가 아직 없으면(화면 준비 전) 물을 수 없으니 보내지 않는다
     if (!ask) return false;
+    const epoch = useAppStore.getState().resetEpoch;
+    const revision = consentRevision;
     pending = Promise.resolve()
       .then(() => ask(route))
       .catch(() => false)
       .then((agreed) => {
+        // 시트가 열린 사이 데이터를 지우거나 동의를 철회했으면 지난 시트의 답으로 되살리지 않는다.
+        if (useAppStore.getState().resetEpoch !== epoch || consentRevision !== revision) return false;
         useAppStore.getState().setAiConsent(agreed ? route.provider : null);
         track('ai_consent', { agreed, provider: route.provider, via: route.via });
         return agreed;
@@ -73,6 +78,7 @@ export async function ensureAiConsent(route: AiRoute): Promise<boolean> {
 
 /** 마이 탭에서 동의 철회 — 다음에 AI 기능을 쓰면 다시 묻는다 */
 export function withdrawAiConsent(): void {
+  consentRevision += 1;
   useAppStore.getState().setAiConsent(null);
   track('ai_consent_withdraw');
 }

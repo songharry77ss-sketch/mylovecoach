@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useFonts } from 'expo-font';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { Radius, Spacing } from '@/constants/theme';
@@ -10,6 +10,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { appleSignInAvailable, AuthCancelled, signInWithApple, signInWithGoogle, signInWithKakao, type LinkResult } from '@/lib/auth';
 import { SIGNUP_BONUS } from '@/lib/billing/plans';
+import { APP_CONFIG } from '@/lib/config';
 import { haptic } from '@/lib/haptics';
 
 interface Props {
@@ -31,6 +32,19 @@ export function SignupCard({ onDone, title, subtitle }: Props) {
   const [busy, setBusy] = useState<SignInProvider | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [googleFontLoaded] = useFonts(GOOGLE_FONT);
+
+  const openPolicy = async (url: string) => {
+    try {
+      await Linking.openURL(url);
+    } catch {
+      setError('안내 페이지를 열지 못했어요. 잠시 후 다시 시도해주세요.');
+    }
+  };
+
+  // 웹은 실제 링크로 열어 키보드와 새 탭 메뉴를 지원한다.
+  const policyProps = (url: string) => Platform.OS === 'web'
+    ? { href: url, hrefAttrs: { target: '_blank', rel: 'noopener noreferrer' } }
+    : { onPress: () => openPolicy(url) };
 
   useEffect(() => {
     appleSignInAvailable().then(setApple);
@@ -108,6 +122,14 @@ export function SignupCard({ onDone, title, subtitle }: Props) {
       <AppText variant="caption" color="textTertiary" align="center">
         가입하면 이용약관과 개인정보 처리방침에 동의하는 것으로 봐요. 마이 탭에서 언제든 탈퇴할 수 있어요.
       </AppText>
+      <View style={styles.policyLinks}>
+        <Pressable accessibilityRole="link" accessibilityLabel="이용약관 보기" {...policyProps(APP_CONFIG.termsUrl)} hitSlop={8}>
+          <AppText variant="caption" color="primary" style={styles.policyLink}>이용약관</AppText>
+        </Pressable>
+        <Pressable accessibilityRole="link" accessibilityLabel="개인정보 처리방침 보기" {...policyProps(APP_CONFIG.privacyUrl)} hitSlop={8}>
+          <AppText variant="caption" color="primary" style={styles.policyLink}>개인정보 처리방침</AppText>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -121,5 +143,7 @@ const styles = StyleSheet.create({
   googleLogo: { width: 20, height: 20 },
   googleText: { fontSize: 14, lineHeight: 20, fontWeight: '500' },
   googleBusy: { position: 'absolute', right: 12 },
+  policyLinks: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: Spacing.lg },
+  policyLink: { textDecorationLine: 'underline' },
   kakao: { backgroundColor: KAKAO_YELLOW, borderRadius: Radius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
 });

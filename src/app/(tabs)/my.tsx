@@ -149,6 +149,7 @@ export default function MyScreen() {
 
   const withdrawMessage =
     '회원 정보와 서버에 저장된 이용 기록을 모두 지워요. 이 기기의 채팅방은 남아 있어요. 되돌릴 수 없어요.' +
+    '\n\n회원 탈퇴로 스토어 구독이 취소되지는 않아요. App Store 또는 Google Play에서 구독을 별도로 취소해 주세요.' +
     (member?.provider === 'apple' && Platform.OS === 'ios' ? '\n\nApple 과의 연결을 끊기 위해 Apple 확인 창이 한 번 더 떠요.' : '') +
     (member?.provider === 'google' ? '\n\nGoogle 계정의 로그인 연결은 자동 해제되지 않아요. Google 계정의 연결된 앱에서 별도로 해제할 수 있어요.' : '');
 
@@ -292,6 +293,12 @@ export default function MyScreen() {
                 subtitle={[member.nickname, `${new Date(member.joinedAt).toLocaleDateString('ko-KR')} 가입`].filter(Boolean).join(' · ')}
               />
               <ListRow icon="log-out-outline" title="로그아웃" onPress={logout} />
+              {Platform.OS === 'web' ? (
+                <>
+                  <ListRow icon="card-outline" title="App Store 구독 관리" onPress={() => Linking.openURL('https://apps.apple.com/account/subscriptions').catch(() => toast.show('구독 관리 페이지를 열지 못했어요.', 'error'))} />
+                  <ListRow icon="card-outline" title="Google Play 구독 관리" onPress={() => Linking.openURL('https://play.google.com/store/account/subscriptions').catch(() => toast.show('구독 관리 페이지를 열지 못했어요.', 'error'))} />
+                </>
+              ) : null}
               <ListRow icon="person-remove-outline" title="회원 탈퇴" destructive onPress={withdraw} />
             </>
           ) : (
@@ -314,7 +321,7 @@ export default function MyScreen() {
           ) : (
             <ListRow icon="heart-outline" title="이용권 보기" subtitle={quotaLabel(quota)} value={fromPrice} onPress={() => router.push({ pathname: '/paywall', params: { reason: 'my' } })} />
           )}
-          {billingSupported && premium?.plan === 'weekly' ? <ListRow icon="card-outline" title="구독 관리 · 해지" onPress={() => openSubscriptionManagement().catch(() => {})} /> : null}
+          {billingSupported ? <ListRow icon="card-outline" title="구독 관리 · 해지" onPress={() => openSubscriptionManagement().catch(() => toast.show('스토어 구독 관리 화면을 열지 못했어요.', 'error'))} /> : null}
           {billingSupported && !isPremium ? <ListRow icon="refresh-outline" title="구매 복원" subtitle="주간 구독·평생권" onPress={restore} /> : null}
         </>
       ) : null}

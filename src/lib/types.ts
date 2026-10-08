@@ -95,8 +95,8 @@ export interface Crush {
   heat?: number;
   /** 온도 변화 기록 (오래된 순, 최근 60개) */
   heatLog?: HeatPoint[];
-  /** 마지막으로 만든 상대 분석 보고서 */
-  report?: { data: CrushReport; at: number; basedOn: number };
+  /** 마지막으로 만든 상대 분석 보고서. profileKey 는 그때 보낸 상대·내 프로필의 지문 (reportProfileKey — 예전 보고서에는 없다) */
+  report?: { data: CrushReport; at: number; basedOn: number; profileKey?: string };
   /** 비밀 상담 — 기기에 저장하지 않고 채팅방을 나가면 지운다 */
   secret?: boolean;
 }
@@ -148,12 +148,19 @@ export interface ChatMessage {
   text?: string;
   /** 요청한 톤 */
   tone?: Tone;
+  emoji?: EmojiPref;
+  toneChosen?: boolean;
+  emojiChosen?: boolean;
   /** 코치 분석 결과 */
   analysis?: CoachAnalysis;
   /** 이 분석으로 바뀐 누적 호감 온도 */
   heat?: { before: number; after: number; delta: number };
   /** 사용자가 복사(선택)한 답장 인덱스 */
   selectedReplyIndex?: number;
+  /** 「다른 답장 더 보기」 요청이면 바꿀 코치 카드(메시지) id — 실패 뒤 다시 시도할 때 같은 카드로 다시 보낸다 */
+  variationOf?: string;
+  /** 보낸 캡처의 짧은 지문 — 같은 캡처를 질문·톤만 바꿔 다시 분석해도 누적 온도는 한 번만 움직이게 */
+  imageHash?: string;
   /** 요청 실패 시 */
   error?: string;
   /** 응답 대기 중 */
@@ -167,6 +174,10 @@ export interface HistoryTurn {
   coachSummary?: string;
   /** 사용자가 실제로 선택한 답장 */
   chosenReply?: string;
+  /** 코치가 제안한 답장 (최근 몇 턴만) — 「2번 답장 더 짧게」·「다른 답장 더 보기」가 앞 답장을 알 수 있게 */
+  replies?: string[];
+  /** 코치가 대화에서 읽어낸 포인트 (최근 몇 턴만) — 캡처는 다시 보내지 않으므로 이어지는 질문의 근거가 된다 */
+  insights?: string[];
 }
 
 /** 연애 연습 상대역 */
@@ -225,4 +236,6 @@ export interface MindAnswer {
   perspective: Gender;
   reading: MindReading;
   at: number;
+  /** 재사용 키 (mindCacheKey). 같은 키의 예전 기록은 목록에서 한 번만 보인다. 예전 기록에는 없다 */
+  key?: string;
 }
