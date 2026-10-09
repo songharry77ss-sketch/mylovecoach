@@ -2,7 +2,7 @@
 
 회원가입·Google 로그인은 운영 웹에 배포했으며, 최신 운영 소스는 `32e63f662cf24df36caf6386c5f7014242588c18`입니다. Apple 탈퇴 보완 등을 포함한 [PR #7](https://github.com/songharry77ss-sketch/mylovecoach/pull/7)은 병합됐고 2026-10-08 카카오 설정과 로그인 화면 진입도 재확인했습니다. 운영 웹 적용과 새 iOS·Android 테스트 빌드 준비를 구분합니다. **현재 스토어의 무가입 빌드에 웹 회원가입이 소급해서 추가되는 것은 아닙니다.**
 
-## 확인된 상태 (2026-10-08)
+## 확인된 상태 (최신 스토어 조회 2026-10-09)
 
 | 구분 | 상태 |
 |---|---|
@@ -13,7 +13,7 @@
 | Kakao | 앱 1599398 「나만의 연애코치」의 비즈 앱 표시 확인. 닉네임 필수·프로필 사진 선택·이메일 선택, 이메일 동의 목적 「회원 식별 및 계정 안내」 확인. REST 설정 5779198의 클라이언트 시크릿 활성화 스위치 2개 ON·등록 콜백 일치 확인. Supabase 인증에서 `prompt=login`을 추가한 검증도 카카오 로그인 화면에 도달했으며 KOE 오류 없음·실제 가입 미진행 |
 | Supabase 감사 로그 | FREE 플랜, `Write audit logs to the database` 꺼짐, `auth.audit_log_entries` 0행 확인; 외부 Auth Audit Logs는 요금표의 Free 1시간 기준 |
 | Apple 설정 | 앱 ID의 Sign in with Apple 설정 및 빌드 플러그인 있음; 실제 가입·토큰 취소는 새 iOS 빌드에서 검증 필요 |
-| App Store | 1.0은 `READY_FOR_SALE`; 1.0.1(121)은 `WAITING_FOR_REVIEW`·`AFTER_APPROVAL` 그대로. 최신 121은 `VALID`, 외부 TestFlight 그룹에는 119까지 연결됨 |
+| App Store | 10-09 API에서 1.0.1(121) `READY_FOR_SALE`·`AFTER_APPROVAL` 확인. 1.0.2 초안은 `PREPARE_FOR_SUBMISSION`·`MANUAL`로 생성하고 한국어 새 소식만 저장·일치 검증; 빌드 미연결. 최신 업로드 빌드는 여전히 121 `VALID` |
 | App Store 개인정보 | 현재 무가입 버전의 9유형 정정 게시와 새로고침 후 목적·모든 유형 신원 연결/추적 안 함 확인. 가입용 이메일·사용자 ID를 더한 1.0.2의 11유형은 미반영 |
 | Play | Alpha 116과 기존 9유형 답안은 출시됨. 이후 진단 필수 정정 1건 저장·자동 사전 검사 완료·검토 미전송. Production 참여자 0명, 정식 출시 신청 비활성 |
 | 다음 빌드 | 1.0.2 준비 중. iOS·Android 무서명 컴파일 검사는 성공했지만 새 서명 빌드·스토어 업로드는 미실행. CI 서명키 임시파일 사용은 사용자 답변 대기 |

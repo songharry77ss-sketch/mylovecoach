@@ -3,9 +3,9 @@ name: iOS TestFlight
 # 수동 실행: gh workflow run ios.yml  (또는 GitHub → Actions → iOS TestFlight → Run workflow)
 # 필요한 시크릿: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8_BASE64, APPLE_TEAM_ID
 #              + IOS_DISTRIBUTION_P12_BASE64/IOS_DISTRIBUTION_P12_PASSWORD (기존 배포 인증서)
-#                또는 IOS_CERT_PRIVATE_KEY_BASE64 (새 인증서를 만들 개인키 PEM)
+#                또는 IOS_CERT_PRIVATE_KEY_BASE64 (기존 인증서와 짝인 개인키 PEM)
 # 변수(필수): EXPO_PUBLIC_API_URL — 코치 서버 주소 (Vercel 배포 주소). 없으면 AI 답변 신고가 없는 빌드라 실패시킨다
-# 인증서·프로비저닝 프로파일·번들 ID 등록은 codemagic-cli-tools 가 App Store Connect API 로 자동 처리한다 (Mac 불필요).
+# 기존 인증서·프로파일·번들 ID만 조회한다. 없거나 Apple 로그인 권한이 없으면 생성하지 않고 실패한다.
 
 on:
   workflow_dispatch:
@@ -46,13 +46,6 @@ jobs:
       group: ios-testflight
       cancel-in-progress: false
     env:
-      APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.ASC_KEY_ID }}
-      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-      ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      IOS_DISTRIBUTION_P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_P12_BASE64 }}
-      IOS_DISTRIBUTION_P12_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_P12_PASSWORD }}
-      IOS_CERT_PRIVATE_KEY_BASE64: ${{ secrets.IOS_CERT_PRIVATE_KEY_BASE64 }}
       EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
       EXPO_PUBLIC_API_TOKEN: ${{ secrets.EXPO_PUBLIC_API_TOKEN }}
       # 회원가입(카카오·Apple·Google) — 공개 값이라 저장소 변수. 누락 시 스토어 빌드를 중단한다.
@@ -62,12 +55,23 @@ jobs:
       XCODE_PREFER: ${{ inputs.xcode }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
       - name: 시크릿 확인
+        env:
+          APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.ASC_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          IOS_DISTRIBUTION_P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_P12_BASE64 }}
+          IOS_CERT_PRIVATE_KEY_BASE64: ${{ secrets.IOS_CERT_PRIVATE_KEY_BASE64 }}
         run: |
+          # 중단 시 러너 자체가 폐기되는 GitHub 호스팅 환경만 허용한다.
+          [ "$RUNNER_ENVIRONMENT" = 'github-hosted' ] || { echo '::error::서명은 GitHub 호스팅 러너에서만 허용합니다.'; exit 1; }
           for name in APP_STORE_CONNECT_KEY_IDENTIFIER APP_STORE_CONNECT_ISSUER_ID ASC_KEY_P8_BASE64 APPLE_TEAM_ID; do
             if [ -z "${!name}" ]; then echo "::error::시크릿 누락: $name"; exit 1; fi
           done
@@ -92,33 +96,48 @@ jobs:
           "$RUNNER_TEMP/cm-venv/bin/pip" install --quiet codemagic-cli-tools
           echo "$RUNNER_TEMP/cm-venv/bin" >> "$GITHUB_PATH"
       - name: 서명 자료 준비 (API 키 · 인증서 개인키)
+        env:
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          IOS_DISTRIBUTION_P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_P12_BASE64 }}
+          IOS_DISTRIBUTION_P12_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_P12_PASSWORD }}
+          IOS_CERT_PRIVATE_KEY_BASE64: ${{ secrets.IOS_CERT_PRIVATE_KEY_BASE64 }}
         run: |
           set -euo pipefail
           umask 077
-          mkdir -p "$RUNNER_TEMP/signing"
+          mkdir -p "$RUNNER_TEMP/signing/tmp"
           printf '%s' "$ASC_KEY_P8_BASE64" | tr -d ' \t\r\n' | base64 --decode > "$RUNNER_TEMP/signing/AuthKey.p8"
           # 키 내용을 환경 파일에 쓰지 않고 파일 참조(@file:)로 넘긴다 (.p8 끝에 줄바꿈이 없으면 heredoc 구분자가 깨지는 문제도 피함)
           echo "APP_STORE_CONNECT_PRIVATE_KEY=@file:$RUNNER_TEMP/signing/AuthKey.p8" >> "$GITHUB_ENV"
           if [ -n "$IOS_DISTRIBUTION_P12_BASE64" ]; then
             printf '%s' "$IOS_DISTRIBUTION_P12_BASE64" | tr -d ' \t\r\n' | base64 --decode > "$RUNNER_TEMP/signing/dist.p12"
-            openssl pkcs12 -in "$RUNNER_TEMP/signing/dist.p12" -nocerts -nodes -legacy -passin "pass:$IOS_DISTRIBUTION_P12_PASSWORD" -out "$RUNNER_TEMP/signing/cert_key.pem" 2>/dev/null \
-              || openssl pkcs12 -in "$RUNNER_TEMP/signing/dist.p12" -nocerts -nodes -passin "pass:$IOS_DISTRIBUTION_P12_PASSWORD" -out "$RUNNER_TEMP/signing/cert_key.pem"
+            openssl pkcs12 -in "$RUNNER_TEMP/signing/dist.p12" -nocerts -nodes -legacy -passin env:IOS_DISTRIBUTION_P12_PASSWORD -out "$RUNNER_TEMP/signing/cert_key.pem" 2>/dev/null \
+              || openssl pkcs12 -in "$RUNNER_TEMP/signing/dist.p12" -nocerts -nodes -passin env:IOS_DISTRIBUTION_P12_PASSWORD -out "$RUNNER_TEMP/signing/cert_key.pem"
             echo "기존 배포 인증서의 개인키를 사용합니다"
           else
             printf '%s' "$IOS_CERT_PRIVATE_KEY_BASE64" | tr -d ' \t\r\n' | base64 --decode > "$RUNNER_TEMP/signing/cert_key.pem"
-            echo "제공된 개인키로 배포 인증서를 조회/생성합니다"
+            echo "제공된 개인키와 짝인 기존 배포 인증서만 조회합니다"
           fi
-          head -1 "$RUNNER_TEMP/signing/cert_key.pem" | grep -q "PRIVATE KEY" || { echo "::error::개인키 PEM 형식이 아닙니다"; exit 1; }
-      - name: 인증서 · 프로비저닝 프로파일 · 번들 ID (자동 생성)
+          openssl pkey -in "$RUNNER_TEMP/signing/cert_key.pem" -noout >/dev/null 2>&1 || { echo "::error::개인키 PEM 형식이 아닙니다"; exit 1; }
+      - name: 기존 인증서 · Apple 로그인 프로파일 확인
+        env:
+          APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.ASC_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          TMPDIR: ${{ runner.temp }}/signing/tmp
         run: |
           set -euo pipefail
-          keychain initialize
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
+          umask 077
+          keychain initialize --path "$RUNNER_TEMP/signing/build.keychain-db"
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --disable-jwt-cache \
+            --type IOS_APP_STORE --strict-match-identifier \
             --certificate-key="@file:$RUNNER_TEMP/signing/cert_key.pem" \
-            --create
-          keychain add-certificates
-          xcode-project use-profiles --project ios/app.xcodeproj
+            --certificates-dir "$RUNNER_TEMP/signing/certificates" \
+            --profiles-dir "$RUNNER_TEMP/signing/profiles"
+          python3 tools/validate-ios-profiles.py
+          keychain add-certificates --path "$RUNNER_TEMP/signing/build.keychain-db" --certificate "$RUNNER_TEMP/signing/certificates/*.p12"
+          xcode-project use-profiles --project ios/app.xcodeproj \
+            --profile "$RUNNER_TEMP/signing/verified-profiles/*.mobileprovision" \
+            --export-options-plist "$RUNNER_TEMP/signing/export_options.plist"
       - name: 빌드 번호 설정
         run: |
           n="${BUILD_NUMBER_INPUT:-$((100 + GITHUB_RUN_NUMBER))}"
@@ -127,7 +146,9 @@ jobs:
           (cd ios && agvtool new-version -all "$n")
       - name: IPA 빌드
         run: |
-          xcode-project build-ipa --workspace "$XCODE_WORKSPACE" --scheme "$XCODE_SCHEME"
+          xcode-project build-ipa --workspace "$XCODE_WORKSPACE" --scheme "$XCODE_SCHEME" \
+            --no-show-build-settings --archive-flags=-hideShellScriptEnvironment \
+            --export-options-plist "$RUNNER_TEMP/signing/export_options.plist"
       - uses: actions/upload-artifact@v4
         with:
           name: mylovecoach-ios-${{ env.BUILD_NUMBER }}
@@ -135,16 +156,38 @@ jobs:
           retention-days: 14
       - name: TestFlight 업로드
         if: ${{ inputs.submit_to_testflight }}
+        env:
+          APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.ASC_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          TMPDIR: ${{ runner.temp }}/signing/tmp
         run: |
-          app-store-connect publish --path 'build/ios/ipa/*.ipa'
+          umask 077
+          app-store-connect publish --disable-jwt-cache --path 'build/ios/ipa/*.ipa'
           echo "업로드 완료 → App Store Connect 처리(5~15분) 후 TestFlight 에 나타납니다"
 
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: ios-failure-logs-${{ github.run_id }}
-          path: /tmp/xcodebuild_logs/
-          retention-days: 7
       - name: 서명 자료 정리
-        if: always()
-        run: rm -rf "$RUNNER_TEMP/signing"
+        if: ${{ always() && runner.environment == 'github-hosted' }}
+        env:
+          APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          set +e
+          # 원본 Xcode 로그는 아티팩트로 올리지 않는다. 일반 실패·취소 시 서명 사본까지 정리한다.
+          keychain use-login >/dev/null 2>&1
+          security delete-keychain "$RUNNER_TEMP/signing/build.keychain-db" >/dev/null 2>&1
+          # publish가 altool용으로 만든 사본은 강제 중단 시 context manager가 지우지 못할 수 있다.
+          if [ -n "$APP_STORE_CONNECT_KEY_IDENTIFIER" ]; then
+            rm -f "$HOME/.private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8"
+          fi
+          profiles="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+          if [ -d "$profiles" ]; then
+            find "$profiles" -maxdepth 1 -type f -name "mylovecoach-ci-${GITHUB_RUN_ID}-*.mobileprovision" -delete
+          fi
+          rm -rf "$RUNNER_TEMP/signing" /tmp/xcodebuild_logs
+          find /tmp -maxdepth 1 -type f -name 'xcodebuild_*.log' -delete
+          if [ -e "$RUNNER_TEMP/signing" ]; then echo '::error::서명 임시파일 정리가 완료되지 않았습니다.'; exit 1; fi
+          if [ -n "$APP_STORE_CONNECT_KEY_IDENTIFIER" ] && [ -e "$HOME/.private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8" ]; then
+            echo '::error::업로드용 API 키 사본 정리가 완료되지 않았습니다.'; exit 1
+          fi
+          if [ -d "$profiles" ] && find "$profiles" -maxdepth 1 -type f -name "mylovecoach-ci-${GITHUB_RUN_ID}-*.mobileprovision" | grep -q .; then
+            echo '::error::프로파일 사본 정리가 완료되지 않았습니다.'; exit 1
+          fi
