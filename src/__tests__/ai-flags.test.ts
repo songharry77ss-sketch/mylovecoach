@@ -103,3 +103,32 @@ describe('스위치에 맞춘 대체 모델', () => {
     expect(models).toEqual(['gemini-3.5-flash-lite', 'gemini-3.5-flash-lite', 'gemini-3.5-flash']);
   });
 });
+
+describe('Flex 먼저 스위치 (GEMINI_FLEX_MODES · GEMINI_FLEX_WAIT_MS)', () => {
+  const flexOf = (mode: AiMode, env: Record<string, string>) => resolveAiFlags(mode, env).flags.flexFirstMs;
+
+  it('고른 모드만 Flex 를 먼저 부르고, 기다릴 시간은 기본 12초', () => {
+    const env = { GEMINI_FLEX_MODES: 'coach, practice' };
+    expect(MODES.map((m) => flexOf(m, env))).toEqual([12_000, undefined, undefined, 12_000]);
+    expect(MODES.map((m) => flexOf(m, { GEMINI_FLEX_MODES: 'ALL' }))).toEqual([12_000, 12_000, 12_000, 12_000]);
+  });
+
+  it('none·off·0 이면 모두 끈다 (문제가 생겼을 때 바로 끄는 스위치)', () => {
+    for (const v of ['none', 'off', '0']) expect(MODES.map((m) => flexOf(m, { GEMINI_FLEX_MODES: v }))).toEqual([undefined, undefined, undefined, undefined]);
+  });
+
+  it('기다릴 시간은 2~30초 사이 정수만 받고, 잘못된 값은 경고 후 기본값', () => {
+    expect(flexOf('coach', { GEMINI_FLEX_MODES: 'coach', GEMINI_FLEX_WAIT_MS: '8000' })).toBe(8000);
+    for (const bad of ['500', '60000', '8.5', 'abc']) {
+      const { flags, warnings } = resolveAiFlags('coach', { GEMINI_FLEX_MODES: 'coach', GEMINI_FLEX_WAIT_MS: bad });
+      expect(flags.flexFirstMs).toBe(12_000);
+      expect(warnings).toEqual([expect.stringContaining('GEMINI_FLEX_WAIT_MS 무시')]);
+    }
+  });
+
+  it('모르는 모드 이름이 섞이면 통째로 무시하고 기본값 (오타로 엉뚱한 모드가 켜지지 않게)', () => {
+    const { flags, warnings } = resolveAiFlags('coach', { GEMINI_FLEX_MODES: 'coach,chat' });
+    expect(flags.flexFirstMs).toBeUndefined();
+    expect(warnings).toEqual([expect.stringContaining('GEMINI_FLEX_MODES 무시')]);
+  });
+});

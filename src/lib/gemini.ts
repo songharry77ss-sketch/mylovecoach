@@ -139,6 +139,8 @@ export interface GeminiResult {
   finishReason?: string;
   /** 이 결과를 얻기까지 부른 횟수 */
   attempts?: number;
+  /** 답한 처리 등급 — flex 면 반값으로 처리됨 (비우면 일반) */
+  tier?: 'flex';
 }
 export interface GeminiFailure {
   ok: false;
@@ -157,6 +159,8 @@ export interface GeminiFailure {
   attempts?: number;
   /** 과부하·한도 응답이 알려 준 다시 시도해도 되는 시간 (ms) */
   retryAfterMs?: number;
+  /** flex 로 받은 실패(거절·형식 오류 등)면 'flex' */
+  tier?: 'flex';
 }
 
 export interface CallGeminiOptions extends GeminiBodyOptions {
@@ -170,6 +174,14 @@ export interface CallGeminiOptions extends GeminiBodyOptions {
   retryDelayMs?: number;
   /** Google 에 알려 주는 서버 쪽 기다림 상한(초, X-Server-Timeout). Flex 는 기본 600초라 실시간 화면에는 짧게 준다. 보장되지는 않는다 */
   serverTimeoutSec?: number;
+  /**
+   * Flex 먼저 (ms). 주면 같은 모델을 반값 등급(flex)으로 먼저 부르고, 이 시간 안에 답이 없거나 밀려나면(HTTP 오류)
+   * 일반 등급으로 처음부터 다시 부른다 — 품질(같은 모델)은 그대로, 늦어져도 이 시간만큼만 늦어진다.
+   * 거절·형식 오류·키 오류는 등급과 상관없이 같으니 다시 부르지 않는다. 비우면 일반 등급만 (지금 동작)
+   */
+  flexFirstMs?: number;
+  /** Flex 를 먼저 불렀을 때 결과 — 서버 로그용 (served: flex 가 답함, 아니면 일반으로 넘어간 이유와 기다린 시간) */
+  onFlex?: (outcome: { served: boolean; ms: number; reason?: string }) => void;
   /** 부를 때마다 (모델, 몇 번째) — 서버 로그용 */
   onAttempt?: (model: string, attempt: number) => void;
 }
@@ -217,6 +229,8 @@ const isTransient = (f: GeminiFailure) => f.status === 503 || f.status === 429;
  * 그 밖의 실패(키 오류·400·거절)와 출력 상한에 걸린 응답(MAX_TOKENS)은 다시 부르지 않는다 — 다시 불러도 같은 결과에 비용만 든다
  */
 export async function callGeminiTask(task: AiTask, apiKey: string, options: CallGeminiOptions = {}): Promise<GeminiResult | GeminiFailure> {
+  // 서버는 serviceTier 를 주지 않아 아래 다시 부르기는 모두 일반 등급이고, flex 는 flexFirstMs 로 맨 앞에 한 번만 부른다.
+  // serviceTier 를 직접 주면(A/B 측정) 모든 시도를 그 등급으로 부른다
   const body = buildGeminiTaskBody(task, options);
   const primary = options.model || GEMINI_DEFAULT_MODEL;
   const fallback = (options.fallbackModels ?? GEMINI_FALLBACK_MODELS).find((m) => m && m !== primary);
@@ -229,6 +243,14 @@ export async function callGeminiTask(task: AiTask, apiKey: string, options: Call
     return { ...result, model, attempts };
   };
 
+  if (options.flexFirstMs && options.flexFirstMs > 0) {
+    if (options.signal?.aborted) throw abortError();
+    attempts += 1;
+    options.onAttempt?.(primary, attempts);
+    const flex = await callFlexFirst(task, apiKey, primary, options, options.flexFirstMs);
+    if (flex) return { ...flex, model: primary, attempts, tier: 'flex' };
+  }
+
   let result = await attempt(primary);
   // 대체 모델을 [] 로 주면(A/B 비교처럼 모델을 바꾸면 안 될 때) 넘어가지 않는다. 스위치가 없으면 primary 가 기본 모델이라 지금 그대로
   if (!result.ok && result.upstreamStatus === 404 && primary !== GEMINI_DEFAULT_MODEL && options.fallbackModels?.length !== 0) return attempt(GEMINI_DEFAULT_MODEL);
@@ -240,6 +262,45 @@ export async function callGeminiTask(task: AiTask, apiKey: string, options: Call
     if (result.ok || !isTransient(result)) return result;
   }
   return fallback ? attempt(fallback) : result;
+}
+
+/**
+ * Flex 등급으로 한 번 부른다. 답을 받으면(성공이든 거절·형식 오류·키 오류든 — 등급을 바꿔도 같은 결과) 그대로 돌려주고,
+ * 시간 안에 못 받았거나 HTTP 오류(밀려남 503·429, 등급 미지원 400 등)면 null — 일반 등급으로 다시 부르라는 뜻.
+ * 앱이 끊은 것(options.signal)은 그대로 끊김으로 던진다
+ */
+async function callFlexFirst(
+  task: AiTask,
+  apiKey: string,
+  model: string,
+  options: CallGeminiOptions,
+  waitMs: number,
+): Promise<GeminiResult | GeminiFailure | null> {
+  const started = Date.now();
+  const deadline = new AbortController();
+  const onAbort = () => deadline.abort();
+  options.signal?.addEventListener('abort', onAbort);
+  const timer = setTimeout(() => deadline.abort(), waitMs);
+  const done = (served: boolean, reason?: string) => options.onFlex?.({ served, ms: Date.now() - started, reason });
+  try {
+    const body = buildGeminiTaskBody(task, { ...options, serviceTier: 'flex' });
+    const result = await callGeminiOnce(body, apiKey, model, { ...options, signal: deadline.signal, serverTimeoutSec: Math.ceil(waitMs / 1000) });
+    if (result.ok || result.upstreamStatus === undefined || result.code === 'auth') {
+      // flex 가 답했다 (거절·형식 오류도 flex 가 처리한 것 — 일반 등급으로 다시 불러도 같다)
+      done(true, result.ok ? undefined : result.code);
+      return result;
+    }
+    done(false, `http ${result.upstreamStatus}`);
+    return null;
+  } catch (e) {
+    if (options.signal?.aborted) throw e;
+    // 우리가 정한 시간이 지나 끊었거나(대개) 연결 오류 — 일반 등급으로
+    done(false, deadline.signal.aborted ? 'timeout' : 'network');
+    return null;
+  } finally {
+    clearTimeout(timer);
+    options.signal?.removeEventListener('abort', onAbort);
+  }
 }
 
 /** usageMetadata → 토큰 수. 숫자가 아닌 값은 버린다 */
