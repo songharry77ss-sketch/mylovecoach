@@ -28,10 +28,13 @@ export interface AiModeFlags {
 }
 
 const ALL_MODES: readonly AiMode[] = ['coach', 'report', 'mind', 'practice'];
-/** GEMINI_FLEX_MODES 가 없을 때 Flex 를 먼저 부르는 모드 (근거: docs/LAUNCH_CHECKLIST.md 「AI 비용」의 Flex 실측) */
-export const DEFAULT_FLEX_MODES: readonly AiMode[] = [];
-/** Flex 를 기다리는 기본 시간 — 이보다 늦으면 일반 등급으로 다시 부른다 */
-export const DEFAULT_FLEX_WAIT_MS = 12_000;
+/**
+ * GEMINI_FLEX_MODES 가 없을 때 Flex 를 먼저 부르는 모드. 근거: docs/AI_COST.md 의 2026-10-10 실측 —
+ * 짧은 요청(속마음·연습·보고서)은 3.6 Flash Flex 가 대부분 일반과 같은 몇 초 안에 답했고, 긴 코칭은 대부분 밀려나(503) 기다림만 늘어 뺐다
+ */
+export const DEFAULT_FLEX_MODES: readonly AiMode[] = ['report', 'mind', 'practice'];
+/** Flex 를 기다리는 기본 시간 — 이보다 늦으면 일반 등급으로 다시 부른다 (실측 Flex 응답은 이 모드들에서 6.4초 이하) */
+export const DEFAULT_FLEX_WAIT_MS = 8_000;
 
 type Env = Record<string, string | undefined>;
 

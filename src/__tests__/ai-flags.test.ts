@@ -1,4 +1,4 @@
-import { resolveAiFlags } from '../../api/_ai-flags';
+import { DEFAULT_FLEX_WAIT_MS, resolveAiFlags } from '../../api/_ai-flags';
 import { buildCoachTask, type AiMode, type AiTask } from '@/lib/ai-tasks';
 import { CoachRequestSchema } from '@/lib/coach-schema';
 import { callGeminiTask, GEMINI_FALLBACK_MODELS } from '@/lib/gemini';
@@ -6,10 +6,16 @@ import { callGeminiTask, GEMINI_FALLBACK_MODELS } from '@/lib/gemini';
 const MODES: AiMode[] = ['coach', 'report', 'mind', 'practice'];
 
 describe('서버 비용 스위치 읽기', () => {
-  it('하나도 없으면 지금 동작 그대로 (gemini-3.5-flash · 생각 low · temperature 보냄 · 대체 모델도 그대로), 경고도 없다', () => {
+  it('하나도 없으면 기본값 (gemini-3.5-flash · 생각 low · temperature 보냄 · 대체 모델 그대로 · 코칭 말고는 Flex 먼저), 경고도 없다', () => {
     for (const mode of MODES) {
       expect(resolveAiFlags(mode, {})).toEqual({
-        flags: { model: 'gemini-3.5-flash', thinkingLevel: 'low', omitTemperature: false, fallbackModels: GEMINI_FALLBACK_MODELS },
+        flags: {
+          model: 'gemini-3.5-flash',
+          thinkingLevel: 'low',
+          omitTemperature: false,
+          fallbackModels: GEMINI_FALLBACK_MODELS,
+          ...(mode === 'coach' ? {} : { flexFirstMs: DEFAULT_FLEX_WAIT_MS }),
+        },
         warnings: [],
       });
     }
@@ -43,7 +49,7 @@ describe('서버 비용 스위치 읽기', () => {
       GEMINI_THINKING_MIND: 'none',
       GEMINI_OMIT_TEMPERATURE: 'yes please',
     });
-    expect(flags).toEqual({ model: 'gemini-3.5-flash', thinkingLevel: 'low', omitTemperature: false, fallbackModels: GEMINI_FALLBACK_MODELS });
+    expect(flags).toEqual({ model: 'gemini-3.5-flash', thinkingLevel: 'low', omitTemperature: false, fallbackModels: GEMINI_FALLBACK_MODELS, flexFirstMs: DEFAULT_FLEX_WAIT_MS });
     expect(warnings).toHaveLength(4);
     expect(warnings.join('\n')).toEqual(expect.stringContaining('GEMINI_MODEL_LIGHT'));
     expect(warnings.join('\n')).toEqual(expect.stringContaining('GEMINI_THINKING_MIND'));
@@ -82,7 +88,8 @@ describe('스위치에 맞춘 대체 모델', () => {
     }) as unknown as typeof fetch;
     return { fetchImpl, models };
   }
-  const ENV = { GEMINI_MODEL: 'gemini-3.6-flash', GEMINI_MODEL_LIGHT: 'gemini-3.5-flash-lite' };
+  // 대체 모델 순서만 보려고 Flex 먼저는 끈다 (Flex 는 아래 「Flex 먼저 스위치」와 gemini.test.ts 에서 따로 본다)
+  const ENV = { GEMINI_MODEL: 'gemini-3.6-flash', GEMINI_MODEL_LIGHT: 'gemini-3.5-flash-lite', GEMINI_FLEX_MODES: 'none' };
 
   it('속마음·연습이 가벼운 모델이면, 혼잡할 때 가장 비싼 기본 모델이 아니라 운영자가 고른 GEMINI_MODEL 로 넘어간다', async () => {
     const { fetchImpl, models } = fakeFetch('gemini-3.5-flash-lite');
@@ -99,7 +106,7 @@ describe('스위치에 맞춘 대체 모델', () => {
 
   it('GEMINI_MODEL 도 가벼운 모델이면 예전처럼 gemini-3.5-flash 로', async () => {
     const { fetchImpl, models } = fakeFetch('gemini-3.5-flash-lite');
-    await callGeminiTask(task, 'k', { ...resolveAiFlags('mind', { GEMINI_MODEL: 'gemini-3.5-flash-lite' }).flags, fetchImpl, retryDelayMs: 0 });
+    await callGeminiTask(task, 'k', { ...resolveAiFlags('mind', { GEMINI_MODEL: 'gemini-3.5-flash-lite', GEMINI_FLEX_MODES: 'none' }).flags, fetchImpl, retryDelayMs: 0 });
     expect(models).toEqual(['gemini-3.5-flash-lite', 'gemini-3.5-flash-lite', 'gemini-3.5-flash']);
   });
 });
@@ -107,10 +114,15 @@ describe('스위치에 맞춘 대체 모델', () => {
 describe('Flex 먼저 스위치 (GEMINI_FLEX_MODES · GEMINI_FLEX_WAIT_MS)', () => {
   const flexOf = (mode: AiMode, env: Record<string, string>) => resolveAiFlags(mode, env).flags.flexFirstMs;
 
-  it('고른 모드만 Flex 를 먼저 부르고, 기다릴 시간은 기본 12초', () => {
+  it('기본은 보고서·속마음·연습만 Flex 먼저 (긴 코칭은 실측에서 대부분 밀려나 뺐다), 기다릴 시간은 8초', () => {
+    expect(DEFAULT_FLEX_WAIT_MS).toBe(8000);
+    expect(MODES.map((m) => flexOf(m, {}))).toEqual([undefined, 8000, 8000, 8000]);
+  });
+
+  it('고른 모드만 Flex 를 먼저 부른다', () => {
     const env = { GEMINI_FLEX_MODES: 'coach, practice' };
-    expect(MODES.map((m) => flexOf(m, env))).toEqual([12_000, undefined, undefined, 12_000]);
-    expect(MODES.map((m) => flexOf(m, { GEMINI_FLEX_MODES: 'ALL' }))).toEqual([12_000, 12_000, 12_000, 12_000]);
+    expect(MODES.map((m) => flexOf(m, env))).toEqual([8000, undefined, undefined, 8000]);
+    expect(MODES.map((m) => flexOf(m, { GEMINI_FLEX_MODES: 'ALL' }))).toEqual([8000, 8000, 8000, 8000]);
   });
 
   it('none·off·0 이면 모두 끈다 (문제가 생겼을 때 바로 끄는 스위치)', () => {
@@ -121,14 +133,14 @@ describe('Flex 먼저 스위치 (GEMINI_FLEX_MODES · GEMINI_FLEX_WAIT_MS)', () 
     expect(flexOf('coach', { GEMINI_FLEX_MODES: 'coach', GEMINI_FLEX_WAIT_MS: '8000' })).toBe(8000);
     for (const bad of ['500', '60000', '8.5', 'abc']) {
       const { flags, warnings } = resolveAiFlags('coach', { GEMINI_FLEX_MODES: 'coach', GEMINI_FLEX_WAIT_MS: bad });
-      expect(flags.flexFirstMs).toBe(12_000);
+      expect(flags.flexFirstMs).toBe(DEFAULT_FLEX_WAIT_MS);
       expect(warnings).toEqual([expect.stringContaining('GEMINI_FLEX_WAIT_MS 무시')]);
     }
   });
 
   it('모르는 모드 이름이 섞이면 통째로 무시하고 기본값 (오타로 엉뚱한 모드가 켜지지 않게)', () => {
-    const { flags, warnings } = resolveAiFlags('coach', { GEMINI_FLEX_MODES: 'coach,chat' });
-    expect(flags.flexFirstMs).toBeUndefined();
+    const { flags, warnings } = resolveAiFlags('mind', { GEMINI_FLEX_MODES: 'coach,chat' });
+    expect(flags.flexFirstMs).toBe(DEFAULT_FLEX_WAIT_MS);
     expect(warnings).toEqual([expect.stringContaining('GEMINI_FLEX_MODES 무시')]);
   });
 });
