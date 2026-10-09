@@ -63,6 +63,8 @@ export function toGeminiSchema(schema: JsonSchema): JsonSchema {
  * MEDIUM 에서도 캡처 글자 판독과 답장 품질이 유지되어 기본값으로 사용. 환경변수로 조정 가능.
  */
 export const GEMINI_MEDIA_RESOLUTION = process.env.GEMINI_MEDIA_RESOLUTION ?? process.env.EXPO_PUBLIC_GEMINI_MEDIA_RESOLUTION ?? 'MEDIA_RESOLUTION_MEDIUM';
+export const GEMINI_MEDIA_RESOLUTIONS = ['MEDIA_RESOLUTION_LOW', 'MEDIA_RESOLUTION_MEDIUM', 'MEDIA_RESOLUTION_HIGH'] as const;
+export type GeminiMediaResolution = (typeof GEMINI_MEDIA_RESOLUTIONS)[number];
 
 /** 요청 본문에서 바꿀 수 있는 것 — 비우면 지금 동작 그대로 (서버는 api/_ai-flags.ts 의 환경변수로 정한다) */
 export interface GeminiBodyOptions {
@@ -70,6 +72,13 @@ export interface GeminiBodyOptions {
   thinkingLevel?: GeminiThinkingLevel;
   /** true 면 temperature 를 보내지 않고 모델 기본값을 쓴다 (기본: 작업마다 정한 값을 보냄) */
   omitTemperature?: boolean;
+  /** 캡처 해상도 (기본: GEMINI_MEDIA_RESOLUTION 환경변수, 없으면 MEDIUM) — A/B 비교에서 요청마다 바꿀 때 */
+  mediaResolution?: GeminiMediaResolution;
+  /**
+   * 처리 등급. 'flex' 는 같은 모델을 반값에 쓰지만 느리고(공식 목표 1~15분) 붐비면 503·429 로 밀려난다.
+   * 비우면 일반 등급 — 지금 동작 그대로
+   */
+  serviceTier?: 'flex';
 }
 
 /** 어떤 모드의 작업이든 Gemini generateContent 본문으로 */
@@ -82,11 +91,12 @@ export function buildGeminiTaskBody(task: AiTask, options: GeminiBodyOptions = {
   return {
     systemInstruction: { parts: [{ text: task.system }] },
     contents: [{ role: 'user', parts }],
+    ...(options.serviceTier ? { service_tier: options.serviceTier } : {}),
     generationConfig: {
       ...(options.omitTemperature ? {} : { temperature: task.temperature }),
       // 상한을 낮춰 폭주 비용 방지 (생각 토큰까지 포함한 상한)
       maxOutputTokens: task.maxOutputTokens,
-      mediaResolution: GEMINI_MEDIA_RESOLUTION,
+      mediaResolution: options.mediaResolution ?? GEMINI_MEDIA_RESOLUTION,
       thinkingConfig: { thinkingLevel: options.thinkingLevel ?? GEMINI_DEFAULT_THINKING },
       responseMimeType: 'application/json',
       responseSchema: toGeminiSchema(jsonSchemaOf(task.schema)),
@@ -158,6 +168,8 @@ export interface CallGeminiOptions extends GeminiBodyOptions {
   fetchImpl?: typeof fetch;
   /** Retry-After 가 없을 때 같은 모델을 다시 부르기 전 대기 (테스트에서 0으로) */
   retryDelayMs?: number;
+  /** Google 에 알려 주는 서버 쪽 기다림 상한(초, X-Server-Timeout). Flex 는 기본 600초라 실시간 화면에는 짧게 준다. 보장되지는 않는다 */
+  serverTimeoutSec?: number;
   /** 부를 때마다 (모델, 몇 번째) — 서버 로그용 */
   onAttempt?: (model: string, attempt: number) => void;
 }
@@ -267,7 +279,11 @@ async function callGeminiOnce(
   const f = options.fetchImpl ?? fetch;
   const res = await f(`${GEMINI_API_BASE}/models/${encodeURIComponent(model)}:generateContent`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
+    headers: {
+      'content-type': 'application/json',
+      'x-goog-api-key': apiKey,
+      ...(options.serverTimeoutSec ? { 'x-server-timeout': String(Math.max(1, Math.round(options.serverTimeoutSec))) } : {}),
+    },
     body: JSON.stringify(requestBody),
     signal: options.signal,
   });
