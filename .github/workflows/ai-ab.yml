@@ -1,0 +1,48 @@
+name: AI 비용·품질 A/B 측정
+
+# 실제 Gemini 를 불러 돈이 든다(기본 설정 한 번에 약 $0.1~0.3). 그래서 ab/ 로 시작하는 브랜치에 push 할 때만 돈다.
+#   git push origin HEAD:ab/run-<날짜>
+# 인자는 scripts/ab-args.txt 가 있으면 그 내용, 없으면 아래 기본값. 예시 입력은 모두 지어낸 것이라 보고서가 공개 로그에 남아도 된다.
+# 결과는 실행 요약(Summary)과 산출물 ab-report 에 남는다. API 키는 출력하지 않는다.
+
+on:
+  push:
+    branches: ['ab/**']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-ab
+  cancel-in-progress: false
+
+jobs:
+  ab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: 측정
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          set -o pipefail
+          if [ -z "$GEMINI_API_KEY" ]; then echo '::error::시크릿 GEMINI_API_KEY 가 없습니다'; exit 1; fi
+          if [ -f scripts/ab-args.txt ]; then args=$(tr '\n' ' ' < scripts/ab-args.txt); else args='--image scripts/fixtures/fake-capture-kakao.jpg --repeat 2 --timeout 90'; fi
+          echo "인자: $args"
+          # shellcheck disable=SC2086
+          npx tsx scripts/ab-models.ts $args --out ab-report.md --yes 2>&1 | tee ab-log.txt
+          cat ab-report.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ab-report
+          path: |
+            ab-report.md
+            ab-log.txt
+          retention-days: 14
