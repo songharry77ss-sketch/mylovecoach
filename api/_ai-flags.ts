@@ -5,6 +5,9 @@
  *   GEMINI_THINKING_COACH · GEMINI_THINKING_REPORT · GEMINI_THINKING_MIND · GEMINI_THINKING_PRACTICE
  *                               모드별 생각 수준 minimal | low | medium | high (기본 low). 3.7·3.8 Flash 는 minimal 이 없다
  *   GEMINI_OMIT_TEMPERATURE=1   temperature 를 보내지 않고 모델 기본값을 쓴다 (기본: 모드마다 정한 값을 보냄)
+ *   GEMINI_FLEX_MODES           Flex(같은 모델 반값)를 먼저 부를 모드 — coach,report,mind,practice 중 쉼표로, 또는 all · none
+ *                               (기본: DEFAULT_FLEX_MODES). 문제가 생기면 none 으로 바로 끈다
+ *   GEMINI_FLEX_WAIT_MS         Flex 를 기다리는 최대 시간(ms, 2000~30000, 기본 DEFAULT_FLEX_WAIT_MS). 넘으면 일반 등급으로 다시 부른다
  * 잘못된 값은 무시하고 기본값을 쓰며, 인스턴스마다 한 번 경고를 남긴다 (값은 남기지 않는다 — 키를 잘못 넣었을 수 있어서).
  * 답이 달라질 수 있는 스위치라 scripts/ab-models.ts 로 품질·비용을 비교한 뒤에 켤 것 (docs/RELEASE_GUIDE.md)
  */
@@ -20,7 +23,18 @@ export interface AiModeFlags {
    * 속마음·연습이 이미 가벼운 모델이면 운영자가 고른 GEMINI_MODEL 로 넘어간다. 스위치가 없으면 지금과 같다
    */
   fallbackModels: string[];
+  /** Flex 먼저 부르고 기다릴 시간(ms). 이 모드가 Flex 대상이 아니면 비움 — src/lib/gemini.ts 의 CallGeminiOptions.flexFirstMs */
+  flexFirstMs?: number;
 }
+
+const ALL_MODES: readonly AiMode[] = ['coach', 'report', 'mind', 'practice'];
+/**
+ * GEMINI_FLEX_MODES 가 없을 때 Flex 를 먼저 부르는 모드. 근거: docs/AI_COST.md 의 2026-10-10 실측 —
+ * 짧은 요청(속마음·연습·보고서)은 3.6 Flash Flex 가 대부분 일반과 같은 몇 초 안에 답했고, 긴 코칭은 대부분 밀려나(503) 기다림만 늘어 뺐다
+ */
+export const DEFAULT_FLEX_MODES: readonly AiMode[] = ['report', 'mind', 'practice'];
+/** Flex 를 기다리는 기본 시간 — 이보다 늦으면 일반 등급으로 다시 부른다 (실측 Flex 응답은 이 모드들에서 6.4초 이하) */
+export const DEFAULT_FLEX_WAIT_MS = 8_000;
 
 type Env = Record<string, string | undefined>;
 
@@ -69,7 +83,27 @@ export function resolveAiFlags(mode: AiMode, env: Env = process.env): { flags: A
   }
 
   const fallbackModels = [...new Set([GEMINI_FALLBACK_MODELS[0], main, GEMINI_DEFAULT_MODEL])];
-  return { flags: { model, thinkingLevel, omitTemperature, fallbackModels }, warnings };
+
+  const flexValue = env.GEMINI_FLEX_MODES?.trim().toLowerCase();
+  let flexModes: readonly AiMode[] = DEFAULT_FLEX_MODES;
+  if (flexValue) {
+    if (flexValue === 'none' || flexValue === 'off' || flexValue === '0') flexModes = [];
+    else if (flexValue === 'all') flexModes = ALL_MODES;
+    else {
+      const list = flexValue.split(',').map((m) => m.trim()).filter(Boolean);
+      if (list.every((m) => (ALL_MODES as readonly string[]).includes(m))) flexModes = list as AiMode[];
+      else warnings.push(`${ignored('GEMINI_FLEX_MODES', flexValue)} — coach,report,mind,practice 중 쉼표로, 또는 all·none. 기본값으로 씁니다`);
+    }
+  }
+  const waitValue = env.GEMINI_FLEX_WAIT_MS?.trim();
+  let flexWaitMs = DEFAULT_FLEX_WAIT_MS;
+  if (waitValue) {
+    const n = Number(waitValue);
+    if (Number.isInteger(n) && n >= 2000 && n <= 30_000) flexWaitMs = n;
+    else warnings.push(`${ignored('GEMINI_FLEX_WAIT_MS', waitValue)} — 2000~30000 사이 정수(ms)여야 함. 기본값(${DEFAULT_FLEX_WAIT_MS})으로 씁니다`);
+  }
+  const flexFirstMs = flexModes.includes(mode) ? flexWaitMs : undefined;
+  return { flags: { model, thinkingLevel, omitTemperature, fallbackModels, ...(flexFirstMs ? { flexFirstMs } : {}) }, warnings };
 }
 
 const warned = new Set<string>();

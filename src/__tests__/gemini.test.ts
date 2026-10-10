@@ -299,3 +299,67 @@ describe('detectProvider', () => {
     expect(detectProvider('nope')).toBeNull();
   });
 });
+
+describe('callGemini — Flex 먼저 (flexFirstMs)', () => {
+  const tierOf = (init: RequestInit) => (JSON.parse(String(init.body)) as { service_tier?: string }).service_tier;
+  const headerOf = (init: RequestInit, name: string) => (init.headers as Record<string, string>)[name];
+
+  it('Flex 가 시간 안에 답하면 한 번만 부르고 반값 등급으로 처리됐다고 알린다', async () => {
+    const { fetchImpl, inits } = fakeFetch(() => json(OK_BODY));
+    const onFlex = jest.fn();
+    const result = await callGemini(req, 'k', { fetchImpl, flexFirstMs: 5000, onFlex });
+    expect(result).toEqual(expect.objectContaining({ ok: true, tier: 'flex', attempts: 1 }));
+    expect(inits).toHaveLength(1);
+    expect(tierOf(inits[0])).toBe('flex');
+    expect(headerOf(inits[0], 'x-server-timeout')).toBe('5');
+    expect(onFlex).toHaveBeenCalledWith(expect.objectContaining({ served: true }));
+  });
+
+  it('Flex 가 밀려나면(503) 같은 모델을 일반 등급으로 다시 부른다', async () => {
+    const { fetchImpl, inits, models } = fakeFetch((_m, call) => (call === 1 ? json({ error: { status: 'UNAVAILABLE' } }, 503) : json(OK_BODY)));
+    const onFlex = jest.fn();
+    const result = await callGemini(req, 'k', { fetchImpl, flexFirstMs: 5000, onFlex, model: 'gemini-3.6-flash' });
+    expect(result).toEqual(expect.objectContaining({ ok: true, attempts: 2 }));
+    expect(result.ok && result.tier).toBeFalsy();
+    expect(models).toEqual(['gemini-3.6-flash', 'gemini-3.6-flash']);
+    expect(inits.map(tierOf)).toEqual(['flex', undefined]);
+    expect(headerOf(inits[1], 'x-server-timeout')).toBeUndefined();
+    expect(onFlex).toHaveBeenCalledWith(expect.objectContaining({ served: false, reason: 'http 503' }));
+  });
+
+  it('Flex 가 정한 시간 안에 답하지 않으면 끊고 일반 등급으로 다시 부른다', async () => {
+    const fetchImpl = jest.fn((_url: string, init: RequestInit) =>
+      tierOf(init) === 'flex'
+        ? new Promise<Response>((_resolve, reject) => init.signal?.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' }))))
+        : Promise.resolve(json(OK_BODY)),
+    ) as unknown as typeof fetch;
+    const onFlex = jest.fn();
+    const result = await callGemini(req, 'k', { fetchImpl, flexFirstMs: 20, onFlex });
+    expect(result).toEqual(expect.objectContaining({ ok: true, attempts: 2 }));
+    expect(onFlex).toHaveBeenCalledWith(expect.objectContaining({ served: false, reason: 'timeout' }));
+  });
+
+  it('앱이 끊으면 일반 등급으로 다시 부르지 않고 그대로 끊는다', async () => {
+    const controller = new AbortController();
+    const fetchImpl = jest.fn((_url: string, init: RequestInit) => {
+      setTimeout(() => controller.abort(), 5);
+      return new Promise<Response>((_resolve, reject) => init.signal?.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' }))));
+    }) as unknown as typeof fetch;
+    await expect(callGemini(req, 'k', { fetchImpl, flexFirstMs: 5000, signal: controller.signal })).rejects.toMatchObject({ name: 'AbortError' });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it('Flex 가 거절하면 등급을 바꿔도 같으니 다시 부르지 않는다', async () => {
+    const { fetchImpl, inits } = fakeFetch(() => json({ candidates: [{ finishReason: 'SAFETY' }] }));
+    const result = await callGemini(req, 'k', { fetchImpl, flexFirstMs: 5000 });
+    expect(result).toEqual(expect.objectContaining({ ok: false, code: 'refused', tier: 'flex' }));
+    expect(inits).toHaveLength(1);
+  });
+
+  it('flexFirstMs 가 없으면 지금처럼 일반 등급만 (service_tier·x-server-timeout 없음)', async () => {
+    const { fetchImpl, inits } = fakeFetch(() => json(OK_BODY));
+    await callGemini(req, 'k', { fetchImpl });
+    expect(tierOf(inits[0])).toBeUndefined();
+    expect(headerOf(inits[0], 'x-server-timeout')).toBeUndefined();
+  });
+});
