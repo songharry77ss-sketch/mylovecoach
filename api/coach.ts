@@ -154,6 +154,10 @@ export interface UsageLine {
   /** 캡처를 붙인 코칭인지 (이미지 토큰이 더해진다) */
   image: boolean;
   ms: number;
+  /** Flex(반값)를 먼저 불렀을 때: served(flex 가 답함 — 반값) 또는 fallback:<이유>(timeout·http 503 등 → 일반 등급으로 다시) */
+  flex?: string;
+  /** Flex 를 기다린 시간 (ms) */
+  flexMs?: number;
 }
 
 /** 본문의 mode — 아는 값만 (모르는 글자를 로그에 그대로 남기지 않는다) */
@@ -295,6 +299,10 @@ async function handle(req: VercelRequest, res: VercelResponse, send: (status: nu
     const result = await callGeminiTask(task, apiKey, {
       ...aiFlagsFor(parsed.mode),
       signal: watch.signal,
+      onFlex: ({ served, ms, reason }) => {
+        line.flex = served ? 'served' : `fallback:${reason ?? '?'}`;
+        line.flexMs = ms;
+      },
       onAttempt: (model, attempt) => {
         line.model = model;
         line.attempts = attempt;
