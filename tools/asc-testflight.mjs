@@ -85,7 +85,8 @@ async function main() {
     const attrs = {
       ...contact,
       demoAccountRequired: false,
-      notes: '계정 생성·로그인이 없습니다. 첫 화면에서 대화 캡처(갤러리의 아무 채팅 스크린샷)를 올리면 바로 코칭 결과가 나옵니다. 무료 3회 + 이후 하루 1회이며, 그 뒤에는 인앱 구매 화면이 열립니다.',
+      // 1.0.2(가입 지원) 기준. 앱 단위 설정이라 실행할 때마다 덮어쓴다 — docs/STORE_LISTING.md 「심사 메모」와 맞출 것
+      notes: '가입은 선택입니다. 로그인 없이 첫 화면에서 대화 캡처(갤러리의 아무 채팅 스크린샷)를 올리거나 「캡처 없이 상황만 적을래요」로 글을 적고, AI 분석 동의 후 코칭 결과를 볼 수 있습니다(비회원 맛보기 1회). 마이 탭의 가입 카드에서 Apple·Google·카카오로 로그인하면 가입 보너스 3회와 이후 매일 1회가 주어지고, 그 뒤에는 인앱 구매 화면이 열립니다. 회원 탈퇴는 마이 → 회원 탈퇴에서 할 수 있습니다.',
     };
     if (cur?.data) await api('PATCH', `/v1/betaAppReviewDetails/${cur.data.id}`, { data: { type: 'betaAppReviewDetails', id: cur.data.id, attributes: attrs } });
     else
