@@ -3,6 +3,7 @@
 //   --listing  : 스토어 등록 정보(제목·설명), 아이콘·그래픽 이미지·휴대전화 스크린샷, 연락처
 //   --products : 인앱 상품 — 주간 구독 mylovecoach.premium.weekly(기본 요금제 weekly, ₩9,900) + 일회성 mylovecoach.premium.lifetime(₩29,800)
 //   --products --consumables : 위에 더해 하루 이용권 mylovecoach.pass.day(₩2,700) · 횟수권 mylovecoach.credits.10(₩4,900, 가안)
+//   --day-pass : 하루 이용권 하나만 만든다 (등록 정보·다른 상품은 건드리지 않음 — 2026-10-11 사용자 결정: 하루 이용권 ₩2,700 추가)
 //   옵션이 없으면 둘 다 실행. 여러 번 실행해도 안전하다. 서비스 계정에 이 앱 권한이 있어야 한다 (Play Console → 사용자 및 권한).
 // API 로 안 되는 것(화면 작업): 앱 만들기, 첫 AAB 업로드, 앱 콘텐츠 선언(개인정보처리방침·광고·콘텐츠 등급·타겟층·데이터 보안), 가격(무료)·국가.
 import { Buffer } from 'node:buffer';
@@ -128,10 +129,12 @@ async function products() {
   await oneTimeProduct({ productId: 'mylovecoach.premium.lifetime', optionId: 'lifetime', title: '평생 프리미엄', description: '한 번 결제로 횟수 제한 없는 AI 연애 코칭', price: 29800 });
   // 2026-10 회의 요금제 — 소모성(앱이 충전 후 consume). 상품 ID 는 다시 못 쓰니 가격 확정 뒤에 --consumables 로 만든다
   if (process.argv.includes('--consumables')) {
-    await oneTimeProduct({ productId: 'mylovecoach.pass.day', optionId: 'day', title: '하루 이용권', description: '결제 후 24시간 동안 AI 연애 코칭 무제한', price: 2700 });
+    await oneTimeProduct(DAY_PASS);
     await oneTimeProduct({ productId: 'mylovecoach.credits.10', optionId: 'credits10', title: '코칭 10회권', description: 'AI 연애 코칭 10회 (기간 제한 없음)', price: 4900 });
   }
 }
+
+const DAY_PASS = { productId: 'mylovecoach.pass.day', optionId: 'day', title: '하루 이용권', description: '결제 후 24시간 동안 AI 연애 코칭 무제한', price: 2700 };
 
 /** 일회성 상품 하나 (평생권·하루 이용권·횟수권) */
 async function oneTimeProduct({ productId: lifetime, optionId, title, description, price }) {
@@ -175,6 +178,10 @@ async function main() {
     return;
   }
   await call('DELETE', `${BASE}/edits/${probe.id}`).catch(() => {});
+  if (args.includes('--day-pass')) {
+    await oneTimeProduct(DAY_PASS);
+    return;
+  }
   if (doListing) await listing();
   if (doProducts) await products();
 }
