@@ -6,9 +6,12 @@
 import Constants from 'expo-constants';
 import { Linking, Platform } from 'react-native';
 
-import { ANDROID_PACKAGE } from '@/lib/billing/plans';
+import { ANDROID_PACKAGE, FREE_UNLIMITED } from '@/lib/billing/plans';
 import { APP_CONFIG } from '@/lib/config';
 import { isDemoMode } from '@/lib/demo';
+import { compareVersions } from '@/lib/version';
+
+export { compareVersions };
 
 const IOS_APP_ID = '6813404855';
 /** 「나중에」를 누르면 이만큼 지난 뒤 다시 권한다 */
@@ -27,17 +30,6 @@ export interface AppUpdate {
 }
 
 export const currentVersion = (): string => Constants.expoConfig?.version ?? '';
-
-/** 점으로 나눈 숫자끼리 비교한다 (1.0.10 > 1.0.9, 1.0 = 1.0.0). a 가 크면 양수 */
-export function compareVersions(a: string, b: string): number {
-  const parts = (v: string) => v.split('.').map((n) => Number.parseInt(n, 10) || 0);
-  const [x, y] = [parts(a), parts(b)];
-  for (let i = 0; i < Math.max(x.length, y.length); i += 1) {
-    const diff = (x[i] ?? 0) - (y[i] ?? 0);
-    if (diff !== 0) return diff;
-  }
-  return 0;
-}
 
 const versionOf = (value: unknown): string | null => (typeof value === 'string' && /^\d+(\.\d+)*$/.test(value) ? value : null);
 
@@ -65,7 +57,8 @@ export const resetUpdateCheckForTest = () => {
  * force 는 확인 간격을 건너뛴다 (서버가 「업데이트가 필요해요」로 거절했을 때).
  */
 export async function fetchAppUpdate(now = Date.now(), force = false): Promise<AppUpdate | null | undefined> {
-  if (Platform.OS === 'web' || isDemoMode || !APP_CONFIG.apiUrl) return undefined;
+  // 직접 설치 APK(무료 무제한 빌드)는 스토어에서 받은 앱이 아니라 스토어 업데이트로 덮어 설치되지 않는다 — 안내하지 않는다
+  if (Platform.OS === 'web' || isDemoMode || FREE_UNLIMITED || !APP_CONFIG.apiUrl) return undefined;
   if (!force && now - lastCheckedAt < CHECK_EVERY_MS) return undefined;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);

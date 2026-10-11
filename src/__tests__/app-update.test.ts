@@ -95,6 +95,11 @@ describe('서버에 묻기', () => {
     expect(await fetchAppUpdate(now + 2000)).toEqual({ latest: '1.0.3', required: false });
   });
 
+  it('서버가 확인하지 못했다고(503) 하면 알고 있던 안내를 그대로 두도록 undefined', async () => {
+    status = 503;
+    expect(await fetchAppUpdate(1_950_000_000_000)).toBeUndefined();
+  });
+
   it('웹은 늘 최신이라 묻지 않는다', async () => {
     Platform.OS = 'web';
     expect(await fetchAppUpdate(1_950_000_000_000)).toBeUndefined();

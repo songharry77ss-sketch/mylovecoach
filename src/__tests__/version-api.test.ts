@@ -2,7 +2,7 @@
  * api/version.ts — 앱의 「새 버전이 나왔어요」 안내에 쓰는 버전 정보.
  * iOS 최신 버전은 App Store 공개 조회에서 읽고, 출시 직후(6시간)에는 알리지 않는다.
  */
-import handler, { cleanVersion, iosLatestFromLookup, RELEASE_SETTLE_MS, resetVersionCacheForTest } from '../../api/version';
+import handler, { clampMin, cleanVersion, iosLatestFromLookup, RELEASE_SETTLE_MS, resetVersionCacheForTest } from '../../api/version';
 
 interface FakeRes {
   statusCode: number;
@@ -104,14 +104,31 @@ describe('GET /api/version', () => {
     expect(lookups).toBe(2);
   });
 
-  it('조회가 실패하면 앞서 읽은 값을 쓰고, 읽은 적이 없으면 모름(null)', async () => {
+  it('조회가 실패하고 읽은 적도 없으면 503 (「최신」으로 답하지 않는다), 1분 동안은 다시 조회하지 않는다', async () => {
     lookupFails = true;
-    expect((await get({ platform: 'ios' })).body).toEqual({ latest: null, min: null });
+    expect((await get({ platform: 'ios' })).statusCode).toBe(503);
+    expect((await get({ platform: 'ios' })).statusCode).toBe(503);
+    expect(lookups).toBe(1);
+    jest.setSystemTime(NOW + 61_000);
     lookupFails = false;
+    expect((await get({ platform: 'ios' })).body).toEqual({ latest: '1.0.3', min: null });
+    expect(lookups).toBe(2);
+  });
+
+  it('조회가 실패해도 앞서 읽은 값이 있으면 그 값을 쓴다', async () => {
     expect((await get({ platform: 'ios' })).body?.latest).toBe('1.0.3');
     jest.setSystemTime(NOW + 11 * 60_000);
     lookupFails = true;
-    expect((await get({ platform: 'ios' })).body?.latest).toBe('1.0.3');
+    const res = await get({ platform: 'ios' });
+    expect(res.statusCode).toBe(200);
+    expect(res.body?.latest).toBe('1.0.3');
+  });
+
+  it('출시 직후라 알릴 버전이 없으면 200 에 latest null (확인 못 함과 구분)', async () => {
+    lookupBody = lookup('1.0.3', 60_000);
+    const res = await get({ platform: 'ios' });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ latest: null, min: null });
   });
 
   it('IOS_LATEST_VERSION 을 적어 두면 조회하지 않고 그 값을 쓴다', async () => {
@@ -131,7 +148,21 @@ describe('GET /api/version', () => {
   it('최소 지원 버전은 플랫폼별 환경변수에서만 온다', async () => {
     process.env.IOS_MIN_VERSION = '1.0.1';
     process.env.ANDROID_MIN_VERSION = 'oops';
+    process.env.ANDROID_LATEST_VERSION = '1.0.3';
     expect((await get({ platform: 'ios' })).body?.min).toBe('1.0.1');
     expect((await get({ platform: 'android' })).body?.min).toBeNull();
+  });
+
+  it('받을 수 없는 버전으로 막지 않는다 — 최소 버전이 최신보다 높으면 최신으로 낮추고, 최신을 모르면 쓰지 않는다', async () => {
+    expect(clampMin('1.1.0', '1.0.3')).toBe('1.0.3');
+    expect(clampMin('1.0.2', '1.0.3')).toBe('1.0.2');
+    expect(clampMin('1.0.2', null)).toBeNull();
+    expect(clampMin(null, '1.0.3')).toBeNull();
+    // 안드로이드: 최신 버전을 적지 않고 최소 버전만 적으면 아무도 막지 않는다
+    process.env.ANDROID_MIN_VERSION = '1.0.3';
+    expect((await get({ platform: 'android' })).body).toEqual({ latest: null, min: null });
+    // iOS: 오타로 너무 높게 적어도 스토어의 최신 버전까지만 요구한다
+    process.env.IOS_MIN_VERSION = '2.0.0';
+    expect((await get({ platform: 'ios' })).body).toEqual({ latest: '1.0.3', min: '1.0.3' });
   });
 });

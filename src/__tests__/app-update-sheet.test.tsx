@@ -1,5 +1,5 @@
 import { act } from 'react';
-import { Linking, Platform, Text } from 'react-native';
+import { Keyboard, Linking, Platform, Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { create, type ReactTestRenderer } from 'react-test-renderer';
 
@@ -138,6 +138,18 @@ describe('새 버전 안내 시트', () => {
     useAppStore.setState({ updateSnooze: { version: '1.0.3', until: NOW + UPDATE_SNOOZE_MS } });
     server = { latest: '1.0.4', min: null };
     expect(texts(await mount())).toContain('새 버전 1.0.4');
+  });
+
+  it('미룬 버전보다 낮은 버전을 알려 와도(서버마다 잠깐 엇갈림) 다시 권하지 않는다', async () => {
+    useAppStore.setState({ updateSnooze: { version: '1.0.5', until: NOW + UPDATE_SNOOZE_MS } });
+    server = { latest: '1.0.4', min: null };
+    expect(texts(await mount())).toEqual([]);
+  });
+
+  it('뜰 때 키보드를 내린다 (아이폰은 시트가 키보드 아래에 깔려 버튼이 가려진다)', async () => {
+    const dismiss = jest.spyOn(Keyboard, 'dismiss').mockImplementation(() => {});
+    await mount();
+    expect(dismiss).toHaveBeenCalled();
   });
 
   it('「업데이트하기」는 스토어를 열고, 그대로 돌아오면 하루 뒤 다시 권한다', async () => {

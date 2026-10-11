@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { usePathname } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { AppState, Modal, Platform, StyleSheet, View } from 'react-native';
+import { AppState, Keyboard, Modal, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FullWindowOverlay } from 'react-native-screens';
 
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
-import { currentVersion, fetchAppUpdate, openStore, setUpdateRequestHandler, UPDATE_RETRY_MS, UPDATE_SNOOZE_MS, type AppUpdate } from '@/lib/app-update';
+import { compareVersions, currentVersion, fetchAppUpdate, openStore, setUpdateRequestHandler, UPDATE_RETRY_MS, UPDATE_SNOOZE_MS, type AppUpdate } from '@/lib/app-update';
 import { useAppStore } from '@/store/app-store';
 
 /** 권하는 안내는 탭 첫 화면에서만 띄운다 — 시작 화면·결제·가입·로그인 복귀·코칭 중인 화면을 가리지 않게 */
@@ -60,13 +60,17 @@ export function AppUpdateHost({ enabled }: { enabled: boolean }) {
     };
   }, [hydrated, check]);
 
-  const snoozed = update != null && snooze?.version === update.latest && now < snooze.until;
+  // 미룬 버전과 같거나 그보다 낮은 버전은 미룬 것으로 본다 (서버 인스턴스마다 최신 버전이 잠깐 엇갈려도 다시 뜨지 않게)
+  const snoozed = update != null && snooze != null && compareVersions(snooze.version, update.latest) >= 0 && now < snooze.until;
   const show = enabled && update != null && (update.required || asked || (!snoozed && onboarded && CALM_PATHS.has(pathname)));
 
   const latest = update?.latest;
   const required = update?.required;
   useEffect(() => {
-    if (show && latest) track('update_prompt', { latest, required });
+    if (!show || !latest) return;
+    // 아이폰의 창 덮개는 키보드 아래에 깔린다 — 입력하다 떴으면 키보드가 버튼을 가리지 않게 내린다
+    Keyboard.dismiss();
+    track('update_prompt', { latest, required });
   }, [show, latest, required]);
 
   if (!show || !update) return null;
