@@ -14,9 +14,11 @@ import {
   computeKkti,
   isSavedResult,
   kktiMatch,
+  kktiRole,
   matchChatText,
   matchShareText,
   parseShareCode,
+  retakeFriend,
   shareText,
   shareUrl,
   toSaved,
@@ -207,6 +209,45 @@ describe('공유 링크', () => {
 
   it('궁합 공유 문구는 모든 유형 조합에서 X 글자 수(280) 안에 들어간다', () => {
     for (const a of KKTI_CODES) for (const b of KKTI_CODES) expect(xLength(matchShareText(computeKkti(answersFor(a)), computeKkti(answersFor(b))))).toBeLessThanOrEqual(280);
+  });
+});
+
+describe('결과 화면을 보는 사람', () => {
+  const a = computeKkti(answersFor('선빠폭직'));
+  const b = computeKkti(answersFor('후느담밀', 1));
+  const c = computeKkti(answersFor('선느담직'));
+  const savedA = toSaved(a, 1);
+
+  it('주소의 결과가 내 것이면 mine, 주소의 상대가 나면 partner, 그 밖은 guest', () => {
+    expect(kktiRole(savedA, a, null)).toBe('mine');
+    expect(kktiRole(savedA, a, b)).toBe('mine');
+    // 친구 B 가 내 링크로 테스트를 끝내고 돌려보낸 궁합 링크 (/k/B-A)
+    expect(kktiRole(savedA, b, a)).toBe('partner');
+    // 친구가 보낸 링크, 남들의 궁합 링크
+    expect(kktiRole(savedA, b, null)).toBe('guest');
+    expect(kktiRole(savedA, b, c)).toBe('guest');
+    // 저장된 결과가 없는 사람 (처음 온 사람, 테스트한 곳과 다른 브라우저)
+    expect(kktiRole(null, a, null)).toBe('guest');
+    expect(kktiRole(undefined, b, a)).toBe('guest');
+    // 둘이 같은 답이어도 내 결과가 먼저
+    expect(kktiRole(savedA, a, a)).toBe('mine');
+  });
+
+  it('예전에 저장한 결과(답 코드 없음)도 내 결과·상대로 알아본다', () => {
+    const { a: _dropped, ...old } = savedA;
+    expect(kktiRole(old, a, null)).toBe('mine');
+    expect(kktiRole(old, b, a)).toBe('partner');
+    expect(kktiRole(old, b, null)).toBe('guest');
+  });
+
+  it('다시 테스트할 때는 상대를 들고 간다 — 끝나면 그 사람과의 궁합이 다시 나온다', () => {
+    // 내 결과 화면: 주소의 상대 (없으면 혼자 다시)
+    expect(retakeFriend('mine', a, b)).toBe(b);
+    expect(retakeFriend('mine', a, null)).toBeNull();
+    // 친구가 돌려보낸 궁합 화면·친구 결과 화면: 화면의 주인(친구)
+    expect(retakeFriend('partner', b, a)).toBe(b);
+    expect(retakeFriend('guest', b, null)).toBe(b);
+    expect(retakeFriend('guest', b, c)).toBe(b);
   });
 });
 

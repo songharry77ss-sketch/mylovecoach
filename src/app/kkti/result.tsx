@@ -25,16 +25,17 @@ import {
   chatShareText,
   codeLetters,
   hexToRgba,
-  isSavedResult,
   josa,
   kktiFromCode,
   kktiMatch,
+  kktiRole,
   legibleOn,
   matchChatText,
   matchReason,
   matchShareText,
   mixHex,
   readableTextOn,
+  retakeFriend,
   shareText,
   shareUrl,
   toSaved,
@@ -43,6 +44,7 @@ import {
   type KktiMatch,
   type KktiMatchAxis,
   type KktiResult,
+  type KktiRole,
 } from '@/lib/kkti';
 import { toneLabel } from '@/lib/labels';
 import { useAppStore } from '@/store/app-store';
@@ -55,7 +57,10 @@ import { useAppStore } from '@/store/app-store';
  * 보는 사람은 셋 중 하나: 내 결과(mine) · 내가 보낸 링크로 친구가 돌려보낸 궁합(partner, 주소의 w 가 나) · 그 밖(guest)
  */
 
-type Role = 'mine' | 'partner' | 'guest';
+type Role = KktiRole;
+
+/** 카톡·인스타 같은 앱 안의 브라우저 — 파일 내려받기가 조용히 무시된다 */
+const IN_APP_BROWSER = /KAKAOTALK|Instagram|FBAN|FBAV|FB_IAB|Line\/|NAVER\(inapp|DaumApps|everytimeApp|; wv\)/i;
 
 /** 공개 연출 시간표 (ms) */
 const T = {
@@ -125,17 +130,16 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
 
   const hydrated = useAppStore((s) => s.hydrated);
   const saved = useAppStore((s) => s.kkti);
-  const isSaved = saved?.code === result.code;
   // 내가 끝낸 테스트면 끝나는 순간 저장돼 있다 → 저장된 답과 같으면 「내 결과」, 아니면 친구가 보낸 링크로 본다
-  const mine = hydrated && isSavedResult(saved, result);
-  const partnerIsMe = hydrated && !mine && partner != null && isSavedResult(saved, partner);
-  const role: Role = mine ? 'mine' : partnerIsMe ? 'partner' : 'guest';
+  const role: Role = hydrated ? kktiRole(saved, result, partner) : 'guest';
+  const mine = role === 'mine';
   const match = useMemo(() => (partner ? kktiMatch(result, partner) : null), [result, partner]);
-  // 공유할 때는 내 결과가 앞에 오게 한다 — 링크를 받은 사람이 테스트를 끝내면 나와의 궁합이 나온다
-  const myResult = mine ? result : partnerIsMe ? partner : null;
-  const theirResult = mine ? partner : partnerIsMe ? result : null;
-  const link = myResult ? shareUrl(myResult.encoded, theirResult?.encoded) : shareUrl(result.encoded, partner?.encoded);
-  const sharingMatch = Boolean(match && (role === 'guest' || theirResult));
+  // 공유는 내 결과가 있는 사람(mine·partner)만 한다 — 남의 결과를 「나」라고 보내지 않게.
+  // 내 결과가 앞에 오게 해서, 링크를 받은 사람이 테스트를 끝내면 나와의 궁합이 나온다
+  const myResult = mine ? result : role === 'partner' ? partner : null;
+  const theirResult = mine ? partner : role === 'partner' ? result : null;
+  const link = shareUrl((myResult ?? result).encoded, theirResult?.encoded);
+  const sharingMatch = Boolean(myResult && theirResult);
 
   const { type, color, mbti, enneagram } = result;
   const ink = readableTextOn(color.hex);
@@ -150,8 +154,7 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
   const best = KKTI_TYPES[type.bestMatch];
   const worst = KKTI_TYPES[type.worstMatch];
   // SNS 에 올릴 긴 문구(해시태그 포함)와, 카톡·DM 으로 한 사람에게 보낼 짧은 문구
-  const text =
-    myResult && theirResult ? matchShareText(myResult, theirResult, link) : partner && role === 'guest' ? matchShareText(result, partner, link) : shareText(myResult ?? result, link);
+  const text = myResult && theirResult ? matchShareText(myResult, theirResult, link) : shareText(myResult ?? result, link);
   const chatText = myResult && theirResult ? matchChatText(myResult, theirResult, link) : chatShareText(link);
 
   // 화면을 물들이는 원 — 히어로 이모지 근처에서 시작해 화면 전체를 덮는다
@@ -203,13 +206,43 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
     if (match) track('kkti_match_view', { role, percent: match.percent });
   }, [hydrated, role, partner, match]);
 
+  // 예전에 저장한 결과에는 답 코드가 없다 → 내 결과를 다시 열었을 때 채워 둔다 (친구 링크에서 바로 궁합을 볼 수 있게)
+  useEffect(() => {
+    if (mine && saved && !saved.a) useAppStore.getState().setKkti({ ...saved, a: result.encoded });
+  }, [mine, saved, result.encoded]);
+
+  // 결과 카드 그림 주소. 웹은 지금 보고 있는 주소에서 받는다 (KKTI 전용 주소로 들어왔어도 같은 사이트)
+  const cardSite = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin : KKTI_SITE;
+  const storyUrl = cardUrl((myResult ?? result).encoded, theirResult?.encoded, 'story', cardSite);
+  const previewUrl = cardUrl((myResult ?? result).encoded, theirResult?.encoded, 'og', cardSite);
+  // 미리 받아 둔 스토리 카드 — 누르는 순간 바로 공유 시트를 띄우려면 그림이 이미 있어야 한다 (사파리는 기다린 뒤의 공유를 막는다)
+  const storyBlob = useRef<Blob | null>(null);
+  useEffect(() => {
+    if (role === 'guest') return;
+    let alive = true;
+    storyBlob.current = null;
+    // 링크 미리보기 그림을 미리 한 번 그려 둔다 — 처음 보낸 링크에도 그림이 바로 붙게
+    fetch(previewUrl).catch(() => {});
+    if (Platform.OS === 'web') {
+      fetch(storyUrl)
+        .then((res) => (res.ok ? res.blob() : null))
+        .then((blob) => {
+          if (alive && blob) storyBlob.current = blob;
+        })
+        .catch(() => {});
+    }
+    return () => {
+      alive = false;
+    };
+  }, [role, previewUrl, storyUrl]);
+
   const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
-  // 친구 결과를 보던 사람이 테스트를 시작하면, 끝났을 때 그 친구와의 궁합이 나오게 친구 코드를 들고 간다
+  // 테스트를 새로 시작할 때 상대 코드를 들고 간다 — 끝나면 그 사람과의 궁합이 (다시) 나온다
   const retake = () => {
     haptic.tap();
     track('kkti_cta', { to: 'retake', mine, role });
-    const friend = role === 'guest' ? result : role === 'mine' ? partner : null;
+    const friend = retakeFriend(role, result, partner);
     router.replace(friend ? { pathname: '/kkti', params: { w: friend.encoded } } : '/kkti');
   };
 
@@ -290,38 +323,52 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
     if (savingImage) return;
     haptic.tap();
     track('kkti_share', { channel: 'image', match: sharingMatch });
-    const first = myResult ?? result;
-    const second = myResult ? theirResult : partner;
     if (Platform.OS !== 'web') {
       toast.show('그림이 열리면 길게 눌러 저장해 주세요', 'success');
-      await Linking.openURL(cardUrl(first.encoded, second?.encoded, 'story')).catch(() => toast.show('그림을 열지 못했어요. 잠시 뒤 다시 해 주세요.', 'error'));
+      await Linking.openURL(storyUrl).catch(() => toast.show('그림을 열지 못했어요. 잠시 뒤 다시 해 주세요.', 'error'));
       return;
     }
-    // 웹은 지금 보고 있는 주소에서 받는다 (KKTI 전용 주소로 들어왔어도 같은 사이트)
-    const url = cardUrl(first.encoded, second?.encoded, 'story', typeof window !== 'undefined' ? window.location.origin : KKTI_SITE);
+    // 공유·내려받기가 안 되는 곳의 마지막 방법 — 그림 주소로 가서 길게 눌러 저장한다 (뒤로 가면 결과 화면)
+    const openImage = () => {
+      toast.show('그림을 길게 눌러 저장해 주세요', 'success');
+      window.location.assign(storyUrl);
+    };
+    // 앱 안의 브라우저는 내려받기가 조용히 무시돼 「저장했어요」가 거짓말이 된다 → 처음부터 그림을 연다
+    if (IN_APP_BROWSER.test(navigator.userAgent)) {
+      openImage();
+      return;
+    }
     setSavingImage(true);
     try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(String(res.status));
-      const blob = await res.blob();
+      let blob = storyBlob.current;
+      if (!blob) {
+        const res = await fetch(storyUrl);
+        if (!res.ok) throw new Error(String(res.status));
+        blob = await res.blob();
+        storyBlob.current = blob;
+      }
       const file = new File([blob], 'kkti.png', { type: 'image/png' });
       const nav = navigator as Navigator & { canShare?: (data: { files: File[] }) => boolean };
       if (typeof nav.share === 'function' && nav.canShare?.({ files: [file] })) {
-        await nav.share({ files: [file] } as ShareData).catch(() => {});
-      } else {
-        const href = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = href;
-        a.download = 'kkti.png';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(href), 10_000);
-        toast.show('그림을 저장했어요. 스토리에 올리고 링크를 붙여 보세요', 'success');
+        try {
+          await nav.share({ files: [file] } as ShareData);
+        } catch (e) {
+          // 공유 시트를 그냥 닫은 것(AbortError)은 실패가 아니다. 그 밖(기다리는 사이 누른 효력이 끝남 등)은 그림을 연다
+          if ((e as { name?: string } | null)?.name !== 'AbortError') openImage();
+        }
+        return;
       }
+      const href = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = href;
+      a.download = 'kkti.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(href), 10_000);
+      toast.show('그림을 내려받았어요. 스토리에 올리고 링크를 붙여 보세요', 'success');
     } catch {
-      // 카톡·인스타 안의 브라우저처럼 내려받기가 막힌 곳 → 그림을 새 창으로 열어 길게 눌러 저장하게 한다
-      if (typeof window !== 'undefined') window.open(url, '_blank');
+      openImage();
     } finally {
       setSavingImage(false);
     }
@@ -414,9 +461,13 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
         {/* 친구가 보낸 링크로 들어왔을 때 */}
         {hydrated && role === 'guest' ? (
           <FadeUp delay={T.rest + 30} style={[styles.friend, { backgroundColor: theme.surfaceElevated, borderColor: theme.accent }]}>
-            <AppText variant="bodyStrong">{savedCode ? '👀 친구가 보낸 결과네요!' : '👀 친구가 보낸 결과인가요?'}</AppText>
+            <AppText variant="bodyStrong">{partner ? '💞 두 사람의 궁합 결과예요' : savedCode ? '👀 친구가 보낸 결과네요!' : '👀 친구가 보낸 결과인가요?'}</AppText>
             <AppText variant="small" color="textSecondary">
-              {savedCode ? '내 결과와 얼마나 맞는지 바로 볼 수 있어요.' : '테스트를 끝내면 둘의 카톡 궁합이 나와요. 12문항, 1분이면 돼요.'}
+              {savedCode
+                ? `내 결과와 「${type.name}」${josa(type.name, '이', '가')} 얼마나 맞는지 바로 볼 수 있어요.`
+                : partner
+                  ? `나도 테스트하면 「${type.name}」${josa(type.name, '과', '와')}의 궁합을 볼 수 있어요. 12문항, 1분이면 돼요.`
+                  : '테스트를 끝내면 둘의 카톡 궁합이 나와요. 12문항, 1분이면 돼요.'}
             </AppText>
             {savedCode ? (
               <Button title="내 결과와 궁합 보기" variant="accent" size="md" haptic={false} onPress={matchWithSaved} />
@@ -435,21 +486,23 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
           </FadeUp>
         ) : null}
 
-        {/* 공유 */}
-        <Section emoji="📣" title={sharingMatch ? '궁합 결과 보내기' : '결과 공유하기'} delay={T.rest + 60}>
-          <AppText variant="small" color="textSecondary">
-            {sharingMatch
-              ? '링크를 받은 사람도 같은 궁합 화면을 봐요. 다른 친구가 테스트하면 그 친구와의 궁합도 나와요.'
-              : '링크를 받은 친구가 테스트를 끝내면 둘의 궁합이 나와요. 궁금한 그 사람에게 보내 봐요 👀'}
-          </AppText>
-          <View style={styles.shareRow}>
-            <ShareTile icon="share-social" label="보내기" sub="카톡 등" bg={theme.primarySoft} fg={theme.primary} onPress={shareSystem} />
-            <ShareTile icon="image" label="그림 저장" sub="스토리용" bg={theme.accentSoft} fg={theme.accent} onPress={saveImage} />
-            <ShareTile icon="link" label="링크 복사" sub="인스타·틱톡" bg={theme.accentSoft} fg={theme.accent} onPress={copyLink} />
-            <ShareTile icon="logo-x" label="X" sub="포스트" bg={inkBg(scheme)} fg={inkFg(scheme)} onPress={() => openIntent('x')} />
-            <ShareTile icon="logo-threads" label="스레드" sub="포스트" bg={inkBg(scheme)} fg={inkFg(scheme)} onPress={() => openIntent('threads')} />
-          </View>
-        </Section>
+        {/* 공유 — 내 결과가 있는 사람만. 친구 결과를 보는 사람은 먼저 테스트를 하거나 저장된 내 결과로 넘어간다 */}
+        {role !== 'guest' ? (
+          <Section emoji="📣" title={sharingMatch ? '궁합 결과 보내기' : '결과 공유하기'} delay={T.rest + 60}>
+            <AppText variant="small" color="textSecondary">
+              {sharingMatch
+                ? '링크를 받은 사람도 같은 궁합 화면을 봐요. 다른 친구가 테스트하면 그 친구와의 궁합도 나와요.'
+                : '링크를 받은 친구가 테스트를 끝내면 둘의 궁합이 나와요. 궁금한 그 사람에게 보내 봐요 👀'}
+            </AppText>
+            <View style={styles.shareRow}>
+              <ShareTile icon="share-social" label="보내기" sub="카톡 등" bg={theme.primarySoft} fg={theme.primary} onPress={shareSystem} />
+              <ShareTile icon="image" label="그림 저장" sub="스토리용" bg={theme.accentSoft} fg={theme.accent} onPress={saveImage} />
+              <ShareTile icon="link" label="링크 복사" sub="인스타·틱톡" bg={theme.accentSoft} fg={theme.accent} onPress={copyLink} />
+              <ShareTile icon="logo-x" label="X" sub="포스트" bg={inkBg(scheme)} fg={inkFg(scheme)} onPress={() => openIntent('x')} />
+              <ShareTile icon="logo-threads" label="스레드" sub="포스트" bg={inkBg(scheme)} fg={inkFg(scheme)} onPress={() => openIntent('threads')} />
+            </View>
+          </Section>
+        ) : null}
 
         {/* 유형 설명 */}
         <Section emoji={type.emoji} title={`${type.name}${josa(type.name, '은', '는')} 이런 사람`} delay={T.rest + 120}>
@@ -577,15 +630,15 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
         </Section>
 
         <View style={styles.actions}>
-          {mine || (isSaved && role === 'guest') ? (
+          {mine ? (
             <View style={styles.savedRow}>
               <Ionicons name="checkmark-circle" size={18} color={theme.success} />
               <AppText variant="smallStrong" color="success">
                 내 프로필에 저장됨
               </AppText>
             </View>
-          ) : role === 'guest' && !partner ? (
-            // 웹에서 끝낸 내 결과 링크를 앱에서 열었을 때 프로필에 담는 용도 (친구가 돌려보낸 궁합 화면에서는 숨긴다)
+          ) : hydrated && role === 'guest' && !partner && !saved ? (
+            // 웹에서 끝낸 내 결과 링크를 앱에서 열었을 때 프로필에 담는 용도. 이미 내 결과가 있으면 숨긴다 (친구 답으로 덮어쓰지 않게)
             <Button title="내 프로필에 저장" variant="secondary" haptic={false} onPress={save} icon={<Ionicons name="bookmark-outline" size={18} color={theme.text} />} />
           ) : null}
           <Button title={role === 'guest' ? '나도 테스트하고 궁합 보기' : '다시 하기'} variant={role === 'guest' ? 'accent' : 'ghost'} haptic={false} onPress={retake} />

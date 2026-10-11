@@ -6,15 +6,23 @@
  * 카톡·인스타·X·스레드는 화면을 그리지 않고 이 페이지의 og 태그만 읽어 미리보기를 만든다.
  * 앱 화면(/kkti/…)은 정적 파일 하나라 주소마다 다른 미리보기를 줄 수 없어서 이 페이지를 따로 둔다.
  * 광고·게시물 링크에 붙인 utm_* 은 넘어갈 때 그대로 싣는다 (앱이 유입 경로로 읽는다). 아무것도 저장하지 않는다.
+ * 넘어가기는 스크립트로만 한다 — meta refresh 를 두면 미리보기 수집기가 따라가 og 태그가 없는 앱 화면을 읽을 수 있다.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-import { cardUrl, kktiFromCode, kktiMatch, parseShareCode, type KktiResult } from '../src/lib/kkti';
+import { KKTI_SITE, cardUrl, kktiFromCode, kktiMatch, parseShareCode, type KktiResult } from '../src/lib/kkti';
 
 export const config = { maxDuration: 10 };
 
 const DEFAULT_HOST = 'mylovecoach.vercel.app';
-const HOST = /^[a-z0-9.-]{1,120}(:\d{1,5})?$/i;
+/**
+ * 미리보기 주소(og:url·og:image)에 써도 되는 호스트 — 운영 주소, KKTI 전용 주소(EXPO_PUBLIC_KKTI_SITE),
+ * 이 프로젝트의 배포별 주소, 로컬 확인. 그 밖의 값은 운영 주소로 바꿔 쓴다 (남의 주소가 찍힌 페이지가 CDN 에 남지 않게)
+ */
+export function allowedHost(host: string): boolean {
+  const h = host.toLowerCase();
+  return h === DEFAULT_HOST || h === new URL(KKTI_SITE).host || /^mylovecoach-[a-z0-9-]{1,80}\.vercel\.app$/.test(h) || /^localhost(:\d{1,5})?$/.test(h);
+}
 const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign'] as const;
 const UTM_VALUE = /^[A-Za-z0-9_.-]{1,80}$/;
 
@@ -98,7 +106,6 @@ export function shareHtml(page: SharePage): string {
 <meta name="twitter:description" content="${e(page.description)}">
 <meta name="twitter:image" content="${e(page.image)}">
 <script>location.replace(${jsTarget});</script>
-<noscript><meta http-equiv="refresh" content="0;url=${e(page.target)}"></noscript>
 <style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif;background:#FFF1F5;color:#191F28}a{color:#191F28;font-weight:700}</style>
 </head>
 <body>
@@ -114,8 +121,8 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     res.status(405).json({ error: 'GET만 지원합니다.' });
     return;
   }
-  const host = first(req.headers['x-forwarded-host']) || first(req.headers.host);
-  const site = `https://${HOST.test(host) ? host : DEFAULT_HOST}`;
+  const host = first(req.headers.host).toLowerCase();
+  const site = allowedHost(host) ? `${host.startsWith('localhost') ? 'http' : 'https'}://${host}` : `https://${DEFAULT_HOST}`;
   const utm: Record<string, string> = {};
   for (const key of UTM_KEYS) {
     const value = first(req.query[key]);

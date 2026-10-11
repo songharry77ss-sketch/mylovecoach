@@ -4,8 +4,9 @@
  */
 import { CARD_EXTRA_EMOJI, CARD_SIZE, cardTree, emojiImage, renderCard } from '../../api/_kkti-card';
 import cardHandler from '../../api/kkti-card';
-import shareHandler, { escapeHtml, shareHtml, sharePage } from '../../api/kkti-share';
-import { KKTI_AXES, KKTI_CODES, KKTI_MATCH_TIERS, KKTI_QUESTIONS, KKTI_TYPES, computeKkti, kktiMatch } from '@/lib/kkti';
+import shareHandler, { allowedHost, escapeHtml, shareHtml, sharePage } from '../../api/kkti-share';
+import vercelConfig from '../../vercel.json';
+import { KKTI_AXES, KKTI_CODES, KKTI_MATCH_TIERS, KKTI_QUESTIONS, KKTI_TYPES, computeKkti, kktiFromCode, kktiMatch } from '@/lib/kkti';
 
 function answersFor(code: string, strength: 1 | 2 = 2): number[] {
   const letters = Array.from(code);
@@ -111,8 +112,9 @@ describe('공유 페이지 HTML', () => {
     expect(meta(html, 'twitter:card')).toBe('summary_large_image');
     expect(meta(html, 'twitter:image')).toBe(page.image);
     expect(html).toContain(`location.replace(${JSON.stringify(page.target)});`);
-    // 스크립트를 끈 곳에서도 넘어간다
-    expect(html).toContain('http-equiv="refresh"');
+    // 미리보기 수집기가 따라가 og 태그 없는 앱 화면을 읽지 않게, 넘어가기는 스크립트로만 (스크립트를 끈 곳은 본문 링크로)
+    expect(html).not.toContain('http-equiv');
+    expect(html).toContain(`<a href="${page.target.replace(/&/g, '&amp;')}">`);
     expect(html).toContain('noindex');
   });
 
@@ -133,12 +135,18 @@ describe('GET /k/코드', () => {
     expect(meta(String(res.body), 'og:image')).toBe(`${SITE}/api/kkti-card?a=${me.encoded}`);
   });
 
-  it('들어온 주소(전용 주소 포함)를 그대로 미리보기 주소에 쓴다', () => {
-    const res = share({ c: me.encoded }, { host: 'internal', 'x-forwarded-host': 'kkti.example.com' });
-    expect(meta(String(res.body), 'og:image')).toBe(`https://kkti.example.com/api/kkti-card?a=${me.encoded}`);
-    // 주소 모양이 아니면 기본 주소로
-    const odd = share({ c: me.encoded }, { host: 'evil.com/"><script>' });
+  it('미리보기 주소에는 우리 주소만 쓴다 (배포별 주소·로컬은 그대로, 그 밖은 운영 주소로)', () => {
+    for (const host of ['mylovecoach.vercel.app', 'MyLoveCoach.vercel.app', 'mylovecoach-abc123-harrys-projects.vercel.app', 'localhost:8123']) expect(allowedHost(host)).toBe(true);
+    for (const host of ['', 'evil.com', 'mylovecoach.vercel.app.evil.com', 'xmylovecoach-a.vercel.app', 'evil.com/"><script>', 'localhost.evil.com']) expect(allowedHost(host)).toBe(false);
+
+    const preview = share({ c: me.encoded }, { host: 'mylovecoach-abc123.vercel.app' });
+    expect(meta(String(preview.body), 'og:image')).toBe(`https://mylovecoach-abc123.vercel.app/api/kkti-card?a=${me.encoded}`);
+    // 남이 넣은 전달 헤더는 믿지 않고, 모르는 호스트는 운영 주소로
+    const forwarded = share({ c: me.encoded }, { host: 'mylovecoach.vercel.app', 'x-forwarded-host': 'evil.com' });
+    expect(meta(String(forwarded.body), 'og:image')).toBe(`${SITE}/api/kkti-card?a=${me.encoded}`);
+    const odd = share({ c: me.encoded }, { host: 'evil.com' });
     expect(meta(String(odd.body), 'og:url')).toBe(`${SITE}/k/${me.encoded}`);
+    expect(meta(String(share({ c: me.encoded }, { host: 'localhost:8123' }).body), 'og:url')).toBe(`http://localhost:8123/k/${me.encoded}`);
   });
 
   it('유입 표시는 정해진 세 가지, 안전한 글자만 받는다', () => {
@@ -148,6 +156,26 @@ describe('GET /k/코드', () => {
 
   it('GET 이 아니면 405', () => {
     expect(share({ c: me.encoded }, { host: 'mylovecoach.vercel.app' }, 'POST').statusCode).toBe(405);
+  });
+});
+
+describe('배포 설정', () => {
+  it('공유 주소(/k)는 앱 화면으로 넘기는 규칙보다 먼저 서버 함수로 간다', () => {
+    const sources = vercelConfig.rewrites.map((r) => r.source);
+    const fallback = vercelConfig.rewrites.findIndex((r) => r.destination === '/index.html');
+    expect(sources.indexOf('/k')).toBeGreaterThanOrEqual(0);
+    expect(sources.indexOf('/k')).toBeLessThan(fallback);
+    expect(sources.indexOf('/k/:code')).toBeLessThan(fallback);
+    expect(vercelConfig.rewrites.find((r) => r.source === '/k/:code')?.destination).toBe('/api/kkti-share?c=:code');
+  });
+
+  it('카드 그림 함수에 글꼴·이모지 파일을 함께 싣는다', () => {
+    expect(vercelConfig.functions['api/kkti-card.ts'].includeFiles).toBe('api/_assets/**');
+  });
+
+  it('배포 확인(vercel.yml)이 쓰는 답 코드는 맞는 코드다 — 문항을 바꿔 코드가 달라지면 워크플로도 고친다', () => {
+    expect(kktiFromCode('000006')).not.toBeNull();
+    expect(kktiFromCode('9zldr5')).not.toBeNull();
   });
 });
 

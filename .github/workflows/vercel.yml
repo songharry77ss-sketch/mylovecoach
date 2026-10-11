@@ -105,4 +105,10 @@ jobs:
           card=$(curl -sS -o /tmp/card.png -w "%{http_code} %{content_type}" "$url/api/kkti-card")
           echo "api/kkti-card: $card"
           [ "$card" = "200 image/png" ] || { echo "::error::KKTI 카드 그림 API 응답 실패 ($card)"; head -c 300 /tmp/card.png; exit 1; }
+          # 둘의 궁합 주소 — 아래 두 답 코드가 맞는 코드인지는 테스트(kkti-share-api)가 지킨다
+          curl -sS -o /tmp/pair.html "$url/k/000006-9zldr5"
+          grep -q 'kkti-card?a=000006&amp;w=9zldr5' /tmp/pair.html || { echo "::error::KKTI 궁합 공유 페이지(/k/코드-코드)의 미리보기 그림 주소가 다릅니다"; exit 1; }
+          pair=$(curl -sS -o /tmp/pair.png -w "%{http_code} %{content_type}" "$url/api/kkti-card?a=000006&w=9zldr5&s=story")
+          echo "api/kkti-card (궁합·스토리): $pair"
+          [ "$pair" = "200 image/png" ] || { echo "::error::KKTI 궁합 카드 그림 응답 실패 ($pair)"; exit 1; }
           echo "다음 단계: node tools/set-ci-secrets.mjs --api-url $url (앱 빌드가 이 서버를 쓰도록)"

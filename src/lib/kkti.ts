@@ -1089,6 +1089,25 @@ export function isSavedResult(saved: KktiSaved | null | undefined, result: KktiR
   return saved.code === result.code && saved.color === result.color.hex;
 }
 
+export type KktiRole = 'mine' | 'partner' | 'guest';
+
+/**
+ * 결과 화면(/kkti/result?a=…&w=…)을 보는 사람이 누구인지.
+ *  - mine: 주소의 결과(a)가 내가 끝낸 테스트
+ *  - partner: 주소의 상대(w)가 나 — 내가 보낸 링크로 친구가 테스트를 끝내고 돌려보낸 궁합 링크
+ *  - guest: 그 밖 (친구가 보낸 링크를 열었거나, 테스트한 곳과 다른 브라우저라 저장된 결과가 없을 때)
+ */
+export function kktiRole(saved: KktiSaved | null | undefined, result: KktiResult, partner: KktiResult | null): KktiRole {
+  if (isSavedResult(saved, result)) return 'mine';
+  if (partner && isSavedResult(saved, partner)) return 'partner';
+  return 'guest';
+}
+
+/** 「다시 하기」로 테스트를 새로 할 때 들고 갈 상대 — 끝나면 그 사람과의 궁합이 다시 나온다 (내 결과 화면이면 주소의 상대, 아니면 화면의 주인) */
+export function retakeFriend(role: KktiRole, result: KktiResult, partner: KktiResult | null): KktiResult | null {
+  return role === 'mine' ? partner : result;
+}
+
 /** SNS 공유 문구 — X(280자, 한글 2자 계산)에도 들어가는 길이. 받는 사람이 테스트를 끝내면 둘의 궁합이 나온다 */
 export function shareText(result: KktiResult, url: string = shareUrl(result.encoded)): string {
   const { type, mbti, color } = result;

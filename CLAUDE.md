@@ -87,7 +87,7 @@ npx tsc --noEmit && npx eslint src --max-warnings=0 && npx jest
 - 내부 앱 공유(`play-share.yml`)는 앱이 「앱 초안」이면 `NOT_PUBLISHED` 로 거부된다. 앱 설정 체크리스트를 끝내면 쓸 수 있다.
 - `git push` 가 거부되면 다른 세션(휴대폰·클라우드)이 같은 브랜치에 올렸을 수 있다. diff 를 먼저 보고 rebase.
 - KKTI 문항·선택지 순서를 바꾸면 이미 퍼진 공유 링크의 결과가 달라진다(`CODE_SALT` 를 올려 「다시 하기」로 안내). 유형·궁합 등급·축 이모지를 바꾸면 `npx tsx scripts/make-kkti-emoji.ts` 로 카드용 이모지 그림을 다시 받는다(빠지면 테스트가 실패). 카드 그림은 satori 로 그리는데 상자 크기 기본값이 content-box 라 `box()` 도우미가 border-box·relative 를 깔아 둔다.
-- KKTI 공유 주소는 빌드 변수 `EXPO_PUBLIC_KKTI_SITE`(https 주소)로 바꿀 수 있다 — 썸 상대에게 보내도 연애 코치 앱인 게 드러나지 않는 전용 주소용. 그 주소를 같은 Vercel 프로젝트에 연결한 뒤에 넣는다. 앱(iOS·안드로이드) 쪽 KKTI 화면 변경은 다음 스토어 빌드부터, 웹은 배포 즉시 적용된다.
+- KKTI 공유 주소는 빌드 변수 `EXPO_PUBLIC_KKTI_SITE`(https 주소)로 바꿀 수 있다 — 썸 상대에게 보내도 연애 코치 앱인 게 드러나지 않는 전용 주소용. 그 주소를 같은 Vercel 프로젝트에 연결한 뒤에 넣는다. 저장값은 주소(출처)마다 따로라, 주소를 바꾸면 예전 주소에서 테스트한 사람은 새 주소에서 「내 결과」로 인식되지 않는다(친구 결과를 보는 사람으로 보임). 앱(iOS·안드로이드) 쪽 KKTI 화면 변경은 다음 스토어 빌드부터, 웹은 배포 즉시 적용된다.
 
 ## 현재 상태와 남은 일
 
