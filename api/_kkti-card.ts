@@ -32,19 +32,19 @@ const FIT_COLOR: Record<KktiFit, string> = { good: '#12B886', ok: '#F59F00', car
 
 // ───────────────────────── 그림 재료 ─────────────────────────
 
-type Style = Record<string, string | number>;
-interface Node {
+export type Style = Record<string, string | number>;
+export interface Node {
   type: string;
   props: { style?: Style; children?: Child | Child[]; src?: string; width?: number; height?: number };
 }
-type Child = Node | string | null | false;
+export type Child = Node | string | null | false;
 
 // 안쪽 여백을 크기에 포함하고(border-box), 겹쳐 놓는 자식(position: absolute)은 바로 위 상자를 기준으로 놓이게 한다
-const box = (style: Style, ...children: Child[]): Node => ({
+export const box = (style: Style, ...children: Child[]): Node => ({
   type: 'div',
   props: { style: { display: 'flex', boxSizing: 'border-box', position: 'relative', ...style }, children: children.filter(Boolean) as Child[] },
 });
-const text = (value: string, style: Style): Node => ({ type: 'div', props: { style: { display: 'flex', wordBreak: 'keep-all', ...style }, children: value } });
+export const text = (value: string, style: Style): Node => ({ type: 'div', props: { style: { display: 'flex', wordBreak: 'keep-all', ...style }, children: value } });
 
 function assetDir(): string {
   const candidates = [path.join(__dirname, '_assets'), path.join(process.cwd(), 'api', '_assets')];
@@ -68,13 +68,13 @@ export function emojiImage(emoji: string): string | null {
   return svg ? `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}` : null;
 }
 
-function emoji(value: string, size: number): Node | null {
+export function emoji(value: string, size: number): Node | null {
   const src = emojiImage(value);
   return src ? { type: 'img', props: { src, width: size, height: size, style: { width: size, height: size } } } : null;
 }
 
 /** 색 위에 얹는 은은한 빛 (위는 밝게, 아래는 살짝 어둡게) */
-const sheen = (): Node =>
+export const sheen = (): Node =>
   box({
     position: 'absolute',
     top: 0,
@@ -84,12 +84,12 @@ const sheen = (): Node =>
     backgroundImage: 'linear-gradient(160deg, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0) 45%, rgba(0,0,0,0.12) 100%)',
   });
 
-interface Tone {
+export interface Tone {
   ink: string;
   soft: string;
   glass: string;
 }
-function toneOn(hex: string): Tone {
+export function toneOn(hex: string): Tone {
   const ink = readableTextOn(hex);
   const light = ink === WHITE;
   return { ink, soft: light ? 'rgba(255,255,255,0.88)' : 'rgba(25,31,40,0.74)', glass: light ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.5)' };
@@ -97,7 +97,7 @@ function toneOn(hex: string): Tone {
 
 // ───────────────────────── 혼자 결과 ─────────────────────────
 
-function letterTiles(result: KktiResult, tone: Tone, size: number): Node {
+export function letterTiles(result: KktiResult, tone: Tone, size: number): Node {
   return box(
     { gap: Math.round(size * 0.1) },
     ...codeLetters(result.code).map((letter, i) =>
@@ -343,9 +343,9 @@ export function cardTree(shape: KktiCardShape, a: KktiResult | null, w: KktiResu
   return shape === 'story' ? soloStory(a) : shape === 'square' ? soloSquare(a) : soloOg(a);
 }
 
-export async function renderCard(shape: KktiCardShape, a: KktiResult | null, w: KktiResult | null = null): Promise<Buffer> {
-  const { width, height } = CARD_SIZE[shape];
-  const svg = await satori(cardTree(shape, a, w) as unknown as Parameters<typeof satori>[0], {
+/** 뼈대를 PNG 로 (게시용 그림을 만드는 scripts/make-channel-assets.ts 도 이걸 쓴다) */
+export async function renderTree(tree: Node, width: number, height: number): Promise<Buffer> {
+  const svg = await satori(tree as unknown as Parameters<typeof satori>[0], {
     width,
     height,
     fonts: loadFonts(),
@@ -353,4 +353,9 @@ export async function renderCard(shape: KktiCardShape, a: KktiResult | null, w: 
     loadAdditionalAsset: async (code, segment) => (code === 'emoji' ? (emojiImage(segment) ?? '') : ''),
   });
   return Buffer.from(new Resvg(svg, { fitTo: { mode: 'width', value: width } }).render().asPng());
+}
+
+export function renderCard(shape: KktiCardShape, a: KktiResult | null, w: KktiResult | null = null): Promise<Buffer> {
+  const { width, height } = CARD_SIZE[shape];
+  return renderTree(cardTree(shape, a, w), width, height);
 }
