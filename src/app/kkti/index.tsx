@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Stack, useRouter } from 'expo-router';
-import { useEffect, useRef, useState, type PropsWithChildren } from 'react';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 import { BackHandler, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, {
   Easing,
@@ -27,13 +27,14 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
-import { KKTI_AXES, KKTI_QUESTIONS, computeKkti, toSaved } from '@/lib/kkti';
+import { KKTI_AXES, KKTI_QUESTIONS, computeKkti, kktiFromCode, toSaved, type KktiResult } from '@/lib/kkti';
 import { useAppStore } from '@/store/app-store';
 
 /**
  * KKTI 테스트 — 인트로 → 한 문제씩 카드 → 「결과 분석 중…」 → 결과 화면.
  * 고르면 톡 진동과 함께 카드가 옆으로 날아가고, 다음 카드가 튕기듯 들어온다.
  * 마지막 문제를 고르면 결과를 내 프로필에 저장해 두고 결과 링크(/kkti/result?a=…)로 넘어간다.
+ * 친구 결과를 보다가 들어왔으면(/kkti?w=친구답코드) 끝났을 때 그 친구와의 궁합까지 보여 준다.
  */
 
 type Phase = 'intro' | 'quiz' | 'analyzing';
@@ -62,6 +63,10 @@ const PERKS = [
 export default function KktiTestScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const params = useLocalSearchParams<{ w?: string | string[] }>();
+  const friendCode = Array.isArray(params.w) ? params.w[0] : params.w;
+  // 링크를 보낸 친구의 결과 (코드가 잘못됐으면 혼자 하는 테스트로)
+  const friend = useMemo(() => kktiFromCode(friendCode), [friendCode]);
   const [phase, setPhase] = useState<Phase>('intro');
   const [finalColor, setFinalColor] = useState<string>(palette.pink400);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -73,7 +78,7 @@ export default function KktiTestScreen() {
 
   const start = () => {
     haptic.thud();
-    track('kkti_start');
+    track('kkti_start', { via: friend ? 'friend' : 'direct' });
     setPhase('quiz');
   };
 
@@ -83,12 +88,12 @@ export default function KktiTestScreen() {
     const result = computeKkti(answers);
     // 내가 직접 끝낸 결과는 바로 프로필에 저장 (친구가 보낸 링크를 열었을 때는 저장하지 않는다)
     useAppStore.getState().setKkti(toSaved(result));
-    track('kkti_complete', { code: result.code });
+    track('kkti_complete', { code: result.code, via: friend ? 'friend' : 'direct' });
     setFinalColor(result.color.hex);
     setPhase('analyzing');
     timers.current.push(
       setTimeout(() => {
-        router.replace({ pathname: '/kkti/result', params: { a: result.encoded } });
+        router.replace({ pathname: '/kkti/result', params: friend ? { a: result.encoded, w: friend.encoded } : { a: result.encoded } });
       }, ANALYZE_MS),
     );
   };
@@ -96,7 +101,7 @@ export default function KktiTestScreen() {
   return (
     <View style={[styles.flex, styles.clip, { backgroundColor: theme.background }]}>
       <Stack.Screen options={{ headerShown: false, title: 'KKTI · 카톡으로 보는 진짜 연애 MBTI' }} />
-      {phase === 'intro' ? <Intro onStart={start} onClose={close} /> : null}
+      {phase === 'intro' ? <Intro friend={friend} onStart={start} onClose={close} /> : null}
       {phase === 'quiz' ? <Quiz onExit={() => setPhase('intro')} onComplete={finish} /> : null}
       {phase === 'analyzing' ? <Analyzing color={finalColor} /> : null}
     </View>
@@ -105,7 +110,7 @@ export default function KktiTestScreen() {
 
 // ───────────────────────── 인트로 ─────────────────────────
 
-function Intro({ onStart, onClose }: { onStart: () => void; onClose: () => void }) {
+function Intro({ friend, onStart, onClose }: { friend: KktiResult | null; onStart: () => void; onClose: () => void }) {
   const theme = useTheme();
   const scheme = useColorScheme();
   const insets = useSafeAreaInsets();
@@ -128,6 +133,22 @@ function Intro({ onStart, onClose }: { onStart: () => void; onClose: () => void 
       <ScrollView contentContainerStyle={styles.introScroll} showsVerticalScrollIndicator={false}>
         <View style={styles.introInner}>
           <IntroHero />
+
+          {friend ? (
+            <PopIn delay={60}>
+              <View style={[styles.friendInvite, { backgroundColor: theme.surfaceElevated, borderColor: theme.accent }]}>
+                <View style={[styles.friendDot, { backgroundColor: friend.color.hex }]}>
+                  <AppText style={styles.friendEmoji}>{friend.type.emoji}</AppText>
+                </View>
+                <View style={styles.flexShrink}>
+                  <AppText variant="smallStrong">「{friend.type.name}」 친구가 기다리고 있어요</AppText>
+                  <AppText variant="caption" color="textSecondary">
+                    테스트를 끝내면 둘의 카톡 궁합이 나와요
+                  </AppText>
+                </View>
+              </View>
+            </PopIn>
+          ) : null}
 
           <PopIn delay={120}>
             <View style={[styles.badge, { backgroundColor: theme.surfaceElevated }]}>
@@ -176,9 +197,15 @@ function Intro({ onStart, onClose }: { onStart: () => void; onClose: () => void 
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.lg }]}>
-        <Button title="테스트 시작하기" variant="accent" haptic={false} onPress={onStart} icon={<Ionicons name="sparkles" size={18} color={palette.white} />} />
+        <Button
+          title={friend ? '테스트하고 궁합 보기' : '테스트 시작하기'}
+          variant="accent"
+          haptic={false}
+          onPress={onStart}
+          icon={<Ionicons name="sparkles" size={18} color={palette.white} />}
+        />
         <AppText variant="caption" color="textTertiary" align="center">
-          가입 없이 바로 · 결과는 링크로 친구에게 공유할 수 있어요
+          {friend ? '가입 없이 바로 · 1분이면 둘의 궁합이 나와요' : '가입 없이 바로 · 결과를 친구에게 보내면 둘의 궁합이 나와요'}
         </AppText>
       </View>
     </LinearGradient>
@@ -553,6 +580,9 @@ const styles = StyleSheet.create({
   perkEmoji: { fontSize: 22, lineHeight: 28 },
   lastResult: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radius.pill, maxWidth: '100%' },
   lastDot: { width: 14, height: 14, borderRadius: 7 },
+  friendInvite: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderWidth: 1.5, borderRadius: Radius.lg, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2, maxWidth: '100%' },
+  friendDot: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  friendEmoji: { fontSize: 24, lineHeight: 30 },
   footer: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm, gap: Spacing.sm, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
 
   quizHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingHorizontal: Spacing.lg, paddingBottom: Spacing.sm, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },

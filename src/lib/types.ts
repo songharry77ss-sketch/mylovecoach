@@ -34,6 +34,8 @@ export interface KktiSaved {
   mbti: string;
   /** 애니어그램 추정 (1~9) */
   enneagram: number;
+  /** 결과 링크의 답 코드 — 친구 결과와 궁합을 계산할 때 쓴다 (예전에 저장한 결과에는 없다) */
+  a?: string;
   at: number;
 }
 

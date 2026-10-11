@@ -9,9 +9,22 @@
       "maxDuration": 120,
       "memory": 1024,
       "supportsCancellation": true
+    },
+    "api/kkti-card.ts": {
+      "maxDuration": 20,
+      "memory": 1024,
+      "includeFiles": "api/_assets/**"
     }
   },
   "rewrites": [
+    {
+      "source": "/k",
+      "destination": "/api/kkti-share"
+    },
+    {
+      "source": "/k/:code",
+      "destination": "/api/kkti-share?c=:code"
+    },
     {
       "source": "/((?!api/).*)",
       "destination": "/index.html"

@@ -18,6 +18,7 @@ import {
   readableTextOn,
   resultUrl,
   shareText,
+  shareUrl,
   toSaved,
   type KktiAxisKey,
 } from '@/lib/kkti';
@@ -290,8 +291,10 @@ describe('답 코드 · 결과 링크', () => {
     const r = computeKkti(answersFor('후빠폭밀'));
     expect(resultUrl(r.encoded)).toBe(`https://mylovecoach.vercel.app/kkti/result?a=${r.encoded}`);
     expect(r.url).toBe(resultUrl(r.encoded));
-    const text = shareText(r, r.url);
-    expect(text).toContain(r.url);
+    // 공유 문구에는 미리보기 그림이 붙는 짧은 주소(/k/코드)가 들어간다
+    const text = shareText(r);
+    expect(text).toContain(shareUrl(r.encoded));
+    expect(shareText(r, r.url)).toContain(r.url);
     expect(text).toContain(r.code);
     expect(text).toContain(r.type.name);
     expect(text).toContain(r.mbti.type);
@@ -316,6 +319,7 @@ describe('답 코드 · 결과 링크', () => {
       colorName: r.color.name,
       mbti: 'ENTJ',
       enneagram: r.enneagram.number,
+      a: r.encoded,
       at: 123,
     });
   });

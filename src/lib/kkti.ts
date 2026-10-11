@@ -950,10 +950,52 @@ export interface KktiResult {
   url: string;
 }
 
-export const KKTI_SITE = 'https://mylovecoach.vercel.app';
+const DEFAULT_KKTI_SITE = 'https://mylovecoach.vercel.app';
+
+/** 빌드 변수로 받은 주소가 https 주소 모양일 때만 쓴다 (끝의 / 는 뗀다) */
+export function cleanSite(value: string | undefined): string | null {
+  const site = (value ?? '').trim().replace(/\/+$/, '');
+  return /^https:\/\/[a-z0-9.-]+$/i.test(site) ? site : null;
+}
+
+/**
+ * 공유 링크에 쓰는 주소. 썸 상대에게 보내도 연애 코치 앱인 게 드러나지 않는 KKTI 전용 주소를 쓰려면
+ * 빌드 변수 EXPO_PUBLIC_KKTI_SITE 에 적는다 (그 주소가 같은 Vercel 프로젝트에 연결돼 있어야 한다).
+ */
+export const KKTI_SITE = cleanSite(process.env.EXPO_PUBLIC_KKTI_SITE) ?? DEFAULT_KKTI_SITE;
 export const KKTI_TEST_URL = `${KKTI_SITE}/kkti`;
 
 export const resultUrl = (answersEncoded: string) => `${KKTI_SITE}/kkti/result?a=${encodeURIComponent(answersEncoded)}`;
+
+/** 한 주소에 답 코드 두 개를 실을 때 쓰는 구분 글자 (답 코드는 0-9a-z 뿐이라 겹치지 않는다) */
+const PAIR_SEPARATOR = '-';
+
+/**
+ * 공유 링크 — /k/내코드, 궁합이면 /k/내코드-상대코드.
+ * 이 주소는 서버(api/kkti-share)가 미리보기 그림이 붙은 페이지로 답한 뒤 결과 화면으로 넘긴다.
+ * 카톡·인스타 같은 곳에 붙이면 유형 카드가 미리보기로 뜬다.
+ */
+export function shareUrl(answersEncoded: string, withEncoded?: string | null): string {
+  return `${KKTI_SITE}/k/${answersEncoded}${withEncoded ? PAIR_SEPARATOR + withEncoded : ''}`;
+}
+
+export type KktiCardShape = 'og' | 'story' | 'square';
+
+/** 결과 카드 그림 주소 — og(링크 미리보기 1200×630) · story(인스타 스토리 1080×1920) · square(피드 1080×1080) */
+export function cardUrl(answersEncoded: string, withEncoded?: string | null, shape: KktiCardShape = 'og', site: string = KKTI_SITE): string {
+  const query = [`a=${answersEncoded}`, withEncoded ? `w=${withEncoded}` : '', shape === 'og' ? '' : `s=${shape}`].filter(Boolean).join('&');
+  return `${site}/api/kkti-card?${query}`;
+}
+
+/** 공유 링크의 코드 부분(「내코드」 또는 「내코드-상대코드」) → 답 코드. 내 코드가 잘못됐으면 null, 상대 코드만 잘못됐으면 상대 없이 */
+export function parseShareCode(value: string | null | undefined): { a: string; w: string | null } | null {
+  if (typeof value !== 'string') return null;
+  const [first, second] = value.trim().toLowerCase().split(PAIR_SEPARATOR);
+  const a = decodeAnswers(first);
+  if (!a) return null;
+  const w = second ? decodeAnswers(second) : null;
+  return { a: encodeAnswers(a), w: w ? encodeAnswers(w) : null };
+}
 
 const MAX_SCORE: Record<KktiAxisKey, number> = KKTI_QUESTIONS.reduce(
   (acc, q) => {
@@ -1035,18 +1077,173 @@ export function toSaved(result: KktiResult, at: number = Date.now()): KktiSaved 
     colorName: result.color.name,
     mbti: result.mbti.type,
     enneagram: result.enneagram.number,
+    a: result.encoded,
     at,
   };
 }
 
-/** SNS 공유 문구 — X(280자, 한글 2자 계산)에도 들어가는 길이 */
-export function shareText(result: KktiResult, url: string = result.url): string {
+/** 이 결과가 내가 끝낸 테스트의 결과인지 (예전에 저장한 결과에는 답 코드가 없어 유형·색으로 본다) */
+export function isSavedResult(saved: KktiSaved | null | undefined, result: KktiResult): boolean {
+  if (!saved) return false;
+  if (saved.a) return saved.a === result.encoded;
+  return saved.code === result.code && saved.color === result.color.hex;
+}
+
+/** SNS 공유 문구 — X(280자, 한글 2자 계산)에도 들어가는 길이. 받는 사람이 테스트를 끝내면 둘의 궁합이 나온다 */
+export function shareText(result: KktiResult, url: string = shareUrl(result.encoded)): string {
   const { type, mbti, color } = result;
   return [
     `나의 KKTI는 ${type.emoji} ${type.code} 「${type.name}」`,
     `"${type.oneLiner}"`,
     `카톡 속 진짜 MBTI ${mbti.type} · 연애 컬러 ${color.name}`,
-    `너도 1분 만에 해 봐 👉 ${url}`,
+    `너도 하면 나랑 궁합 나와 👉 ${url}`,
     '#KKTI #카톡MBTI #연애MBTI',
   ].join('\n');
+}
+
+/** 카톡·DM 으로 한 사람에게 보낼 때의 짧은 문구 (해시태그 없이, 말 걸듯이). 유형은 링크 미리보기 카드가 보여 준다 */
+export function chatShareText(url: string): string {
+  return `이거 해 봐 ㅋㅋ 1분이면 나랑 카톡 궁합 나온대 👉 ${url}`;
+}
+
+// ───────────────────────── 둘의 궁합 ─────────────────────────
+
+export type KktiFit = 'good' | 'ok' | 'care';
+export const KKTI_FIT_LABEL: Record<KktiFit, string> = { good: '잘 맞아요', ok: '무난해요', care: '맞춰 가요' };
+
+export interface KktiMatchAxis {
+  key: KktiAxisKey;
+  label: string;
+  emoji: string;
+  /** 이 축에서 둘이 맞는 정도 0~100 */
+  score: number;
+  fit: KktiFit;
+  /** 둘 중 누가 읽어도 같은 한 줄 */
+  line: string;
+}
+
+export interface KktiMatchTier {
+  /** 이 퍼센트 이상이면 이 등급 */
+  min: number;
+  label: string;
+  emoji: string;
+  line: string;
+}
+
+export interface KktiMatch {
+  /** 궁합 30~99 */
+  percent: number;
+  tier: KktiMatchTier;
+  axes: KktiMatchAxis[];
+  /** 가장 덜 맞는 축을 위한 한마디 */
+  tip: string;
+}
+
+/** 높은 등급부터 */
+export const KKTI_MATCH_TIERS: readonly KktiMatchTier[] = [
+  { min: 90, label: '천생연분', emoji: '💍', line: '카톡만 봐도 결이 같아요. 이런 조합 흔치 않아요!' },
+  { min: 78, label: '찰떡궁합', emoji: '💘', line: '말 안 해도 통하는 구석이 많은 사이예요.' },
+  { min: 64, label: '티키타카 케미', emoji: '💛', line: '맞춰 갈수록 점점 더 잘 맞는 조합이에요.' },
+  { min: 50, label: '반전 케미', emoji: '🌗', line: '다른 만큼 서로가 신기하고 끌리는 조합이에요.' },
+  { min: 0, label: '극과 극', emoji: '🔥', line: '정반대라서 오히려 불꽃이 튀는 조합이에요.' },
+];
+
+/** 연락 시작은 서로 달라야(한 명이 다가가고 한 명이 받아 줌), 나머지는 닮아야 편하다 — 유형의 「찰떡·상극」과 같은 기준 */
+const MATCH_WEIGHT: Record<KktiAxisKey, number> = { start: 0.22, speed: 0.3, express: 0.24, pace: 0.24 };
+const MATCH_MIN = 30;
+const MATCH_MAX = 99;
+/**
+ * 축 점수를 그대로 더하면 대부분의 조합이 0.5~0.85 에 몰려 누구와 해도 비슷한 숫자가 나온다.
+ * 이 구간을 30~99% 로 펼쳐 조합마다 숫자가 달라 보이게 한다 (구간 밖은 양 끝 값).
+ */
+const MATCH_RAW_LOW = 0.32;
+const MATCH_RAW_HIGH = 0.93;
+
+/** plus·minus: 둘 다 그쪽 / differ: 서로 다른 쪽 / close: 글자는 달라도 둘 다 가운데쯤이라 사실상 비슷할 때 */
+const MATCH_LINES: Record<KktiAxisKey, { plus: string; minus: string; differ: string; close?: string }> = {
+  start: {
+    plus: '둘 다 선톡파! 대화가 끊길 일은 없지만 주도권은 번갈아 잡아요',
+    minus: '둘 다 선톡을 기다리는 타입이라 먼저 보낼 사람을 정해야 해요',
+    differ: '한 명이 먼저 다가가고 한 명이 반갑게 받아 주는 조합이에요',
+  },
+  speed: {
+    plus: '둘 다 칼답이라 대화가 탁구처럼 오가요',
+    minus: '둘 다 느긋해서 답이 늦어도 서운할 일이 없어요',
+    differ: '답장 속도가 달라요. 빠른 쪽은 재촉 금지, 느린 쪽은 "이따 답할게" 한마디!',
+    close: '답장 속도가 엇비슷해서 서로 기다리다 지칠 일이 적어요',
+  },
+  express: {
+    plus: '리액션 부자끼리 만나 대화창이 축제예요',
+    minus: '담백한 사람끼리라 말이 적어도 편해요',
+    differ: '한쪽은 리액션 부자, 한쪽은 담백 — "ㅇㅇ"는 무심함이 아니라 말투예요',
+    close: '표현하는 정도가 엇비슷해서 온도 차로 서운할 일이 적어요',
+  },
+  pace: {
+    plus: '둘 다 직진이라 진도가 시원시원해요',
+    minus: '둘 다 신중해서 천천히 깊어져요. 대신 한 번은 누가 용기를 내야 해요',
+    differ: '직진과 신중의 만남 — 속도를 맞추는 게 이 조합의 숙제예요',
+    close: '진도 나가는 속도가 엇비슷해서 발맞추기 쉬워요',
+  },
+};
+
+const MATCH_TIPS: Record<KktiAxisKey, string> = {
+  start: '선톡은 번갈아! 오늘은 누가 먼저 보낼 차례인지 정해 보세요.',
+  speed: '답장 속도는 마음의 크기가 아니에요. 서로의 평소 속도부터 알려 주세요.',
+  express: '표현 방식이 다를 뿐이에요. 리액션은 조금 더, 넘겨짚기는 조금 덜!',
+  pace: '진도는 느린 쪽에 맞추는 게 정답이에요. 대신 마음은 숨기지 않기.',
+};
+const MATCH_TIP_ALL_GOOD = '이미 결이 같아요. 지금 리듬 그대로 가면 돼요.';
+
+/** 막대에 보이는 퍼센트 그대로 -1~1 로 (비긴 축도 기운 쪽으로 살짝 치우친 값이 된다) */
+const shownValue = (axis: KktiAxisResult) => (axis.plusPercent - 50) / 50;
+
+/**
+ * 두 사람의 궁합. 누구를 먼저 넣어도 같은 결과가 나온다 (둘이 같은 화면을 보게 된다).
+ * - 연락 시작: 서로 반대쪽일수록 높다
+ * - 답장 속도·표현·진도: 닮을수록 높다
+ */
+export function kktiMatch(a: KktiResult, b: KktiResult): KktiMatch {
+  let total = 0;
+  const axes: KktiMatchAxis[] = a.axes.map((mine, i) => {
+    const theirs = b.axes[i];
+    const va = shownValue(mine);
+    const vb = shownValue(theirs);
+    const raw = mine.key === 'start' ? 0.5 - 0.5 * va * vb : 1 - Math.abs(va - vb) / 2;
+    total += raw * MATCH_WEIGHT[mine.key];
+    const lines = MATCH_LINES[mine.key];
+    const same = mine.pole.letter === theirs.pole.letter;
+    const fit: KktiFit = raw >= 0.7 ? 'good' : raw >= 0.45 ? 'ok' : 'care';
+    // 글자는 달라도 잘 맞는 축에 「달라요」라고 쓰지 않는다
+    const differ = fit === 'good' && lines.close ? lines.close : lines.differ;
+    return {
+      key: mine.key,
+      label: mine.label,
+      emoji: mine.emoji,
+      score: Math.round(raw * 100),
+      fit,
+      line: !same ? differ : mine.pole.letter === mine.plus.letter ? lines.plus : lines.minus,
+    };
+  });
+  const spread = clamp((total - MATCH_RAW_LOW) / (MATCH_RAW_HIGH - MATCH_RAW_LOW), 0, 1);
+  const percent = Math.round(MATCH_MIN + spread * (MATCH_MAX - MATCH_MIN));
+  const tier = KKTI_MATCH_TIERS.find((t) => percent >= t.min) ?? KKTI_MATCH_TIERS[KKTI_MATCH_TIERS.length - 1];
+  const weakest = axes.reduce((low, axis) => (axis.score < low.score ? axis : low), axes[0]);
+  return { percent, tier, axes, tip: weakest.fit === 'good' ? MATCH_TIP_ALL_GOOD : MATCH_TIPS[weakest.key] };
+}
+
+/** 궁합 공유 문구 — 내 결과(mine)와 상대 결과(theirs). 링크를 연 상대는 같은 궁합 화면을 본다 */
+export function matchShareText(mine: KktiResult, theirs: KktiResult, url: string = shareUrl(mine.encoded, theirs.encoded)): string {
+  const match = kktiMatch(mine, theirs);
+  return [
+    `우리 KKTI 궁합 ${match.percent}% ${match.tier.emoji} 「${match.tier.label}」`,
+    `${mine.type.emoji} ${mine.type.name} × ${theirs.type.emoji} ${theirs.type.name}`,
+    `너도 1분 테스트 하고 나랑 궁합 봐 👉 ${url}`,
+    '#KKTI #카톡궁합 #연애MBTI',
+  ].join('\n');
+}
+
+/** 궁합 결과를 카톡·DM 으로 상대에게 돌려보낼 때의 짧은 문구 */
+export function matchChatText(mine: KktiResult, theirs: KktiResult, url: string = shareUrl(mine.encoded, theirs.encoded)): string {
+  const match = kktiMatch(mine, theirs);
+  return `우리 카톡 궁합 ${match.percent}% 나옴 ㅋㅋ ${match.tier.emoji} ${match.tier.label} 👉 ${url}`;
 }

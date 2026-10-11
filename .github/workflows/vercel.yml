@@ -98,4 +98,11 @@ jobs:
           code=$(curl -sS -o /dev/null -w "%{http_code}" "$url/api/report")
           echo "api/report (GET): $code"
           [ "$code" = "405" ] || { echo "::error::AI 답변 신고 API(/api/report)가 없습니다 (GET 이 405 가 아님: $code)"; exit 1; }
+          # KKTI 공유 링크(/k)의 미리보기 태그와 결과 카드 그림 — 그림은 글꼴·이모지 파일이 함수에 함께 실려야 그려진다
+          code=$(curl -sS -o /tmp/k.html -w "%{http_code}" "$url/k")
+          echo "k: $code"
+          grep -q 'og:image' /tmp/k.html || { echo "::error::KKTI 공유 페이지(/k)에 og:image 가 없습니다 ($code)"; exit 1; }
+          card=$(curl -sS -o /tmp/card.png -w "%{http_code} %{content_type}" "$url/api/kkti-card")
+          echo "api/kkti-card: $card"
+          [ "$card" = "200 image/png" ] || { echo "::error::KKTI 카드 그림 API 응답 실패 ($card)"; head -c 300 /tmp/card.png; exit 1; }
           echo "다음 단계: node tools/set-ci-secrets.mjs --api-url $url (앱 빌드가 이 서버를 쓰도록)"
