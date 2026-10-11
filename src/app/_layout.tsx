@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AiConsentHost } from '@/components/coach/ai-consent-sheet';
 import { CelebrationProvider } from '@/components/fx/celebration';
 import { IntroSplash } from '@/components/fx/intro-splash';
+import { AppUpdateHost } from '@/components/ui/app-update-sheet';
 import { ToastProvider } from '@/components/ui/toast';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -283,6 +284,8 @@ export default function RootLayout() {
             </View>
             {/* AI 로 대화를 보내기 전 동의 시트 — 어느 화면(모달 포함)에서 AI 를 부르든 여기서 하나만 뜬다 */}
             <AiConsentHost />
+            {/* 스토어에 새 버전이 나와 있으면 업데이트를 권한다 — 인트로가 끝난 뒤에만 */}
+            <AppUpdateHost enabled={introDone} />
             <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
           </ToastProvider>
           {introDone ? null : <IntroSplash ready={hydrated} onShown={hideNativeSplash} onBeat={introBeat} onDone={() => setIntroDone(true)} />}

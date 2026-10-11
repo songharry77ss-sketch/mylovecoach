@@ -4,6 +4,7 @@ import { persist } from 'zustand/middleware';
 import type { AiProvider } from '@/lib/ai-consent';
 import { freeRules, type ConsumablePlanKey } from '@/lib/billing/plans';
 import type { Acquisition } from '@/lib/analytics';
+import type { AppUpdate } from '@/lib/app-update';
 import { consumeOne, EMPTY_USAGE, EMPTY_WALLET, grantConsumable, grantSignupBonus, type PremiumState, type TeamState, type UsageState, type WalletState } from '@/lib/billing/quota';
 import type { CoachRequest } from '@/lib/coach-schema';
 import { createId } from '@/lib/id';
@@ -81,6 +82,10 @@ export interface AppState {
   resetEpoch: number;
   /** 채팅 하단의 프리미엄 안내 카드를 닫았는지 */
   upsellDismissed: boolean;
+  /** 스토어에 나와 있는 새 버전 (저장하지 않음 — 켤 때마다 서버에 다시 묻는다). 없으면 null */
+  appUpdate: AppUpdate | null;
+  /** 새 버전 안내를 미룬 기록 — 그 버전은 until 까지 다시 권하지 않는다 */
+  updateSnooze: { version: string; until: number } | null;
   /** 기기 구분용 무작위 ID (광고 ID 아님, 이용 기록 수집에만 사용) */
   deviceId: string;
   /** 서비스 개선을 위한 이용 기록 수집 동의 (선택) — null 이면 아직 묻지 않음 */
@@ -156,6 +161,9 @@ export interface AppState {
   /** 예전 이름 — consumeQuota 와 같다 */
   consumeFreeCredit: () => void;
   dismissUpsell: () => void;
+  setAppUpdate: (update: AppUpdate | null) => void;
+  /** 새 버전 안내를 until 까지 미룬다. null 이면 미룬 기록을 지워 바로 다시 권한다 */
+  snoozeUpdate: (snooze: { version: string; until: number } | null) => void;
   setHapticsOn: (on: boolean) => void;
   setHidePreviews: (on: boolean) => void;
   setKkti: (kkti: KktiSaved | null) => void;
@@ -233,6 +241,8 @@ export const useAppStore = create<AppState>()(
       legacyServerRecords: false,
       resetEpoch: 0,
       upsellDismissed: false,
+      appUpdate: null,
+      updateSnooze: null,
       deviceId: createId('d_'),
       analyticsConsent: null,
       analyticsConsentVersion: null,
@@ -410,6 +420,8 @@ export const useAppStore = create<AppState>()(
         }),
       consumeFreeCredit: () => get().consumeQuota(),
       dismissUpsell: () => set({ upsellDismissed: true }),
+      setAppUpdate: (appUpdate) => set({ appUpdate }),
+      snoozeUpdate: (updateSnooze) => set({ updateSnooze }),
       setHapticsOn: (hapticsOn) => set({ hapticsOn }),
       setHidePreviews: (hidePreviews) => set({ hidePreviews }),
       setKkti: (kkti) => set({ kkti }),
@@ -534,6 +546,7 @@ export const useAppStore = create<AppState>()(
           legacyDeletionChecked: s.legacyDeletionChecked,
           legacyServerRecords: s.legacyServerRecords,
           upsellDismissed: s.upsellDismissed,
+          updateSnooze: s.updateSnooze,
           deviceId: s.deviceId,
           analyticsConsent: s.analyticsConsent,
           analyticsConsentVersion: s.analyticsConsentVersion,

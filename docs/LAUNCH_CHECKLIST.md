@@ -2,6 +2,11 @@
 
 ## 확인된 상태 (2026-10-09 최신 조회)
 
+> **2026-10-11 하루 이용권·새 버전 안내 (1.0.3 준비):**
+> - **하루 이용권 ₩2,700 추가(사용자 결정)**: App Store `mylovecoach.pass.day` 소모성 `READY_TO_SUBMIT`(심사용 캡처 `docs/store-assets/iap-review-paywall-day.png`), Play 일회성 상품 활성.
+> - 1.0.3(새 버전 안내 포함)과 함께 심사에 올린다 — 순서: ① `vercel.yml`(`/api/version`·약관) ② `ios.yml`·`android.yml` 로 1.0.3 빌드 ③ `app-store.yml -f build=<번호>` 로 버전 1.0.3 생성·빌드 연결 ④ **웹 화면 버전 페이지 「앱 내 구입 및 구독」에서 하루 이용권 선택**(처음 내는 소모성 상품은 API 로 못 넣음) ⑤ 제출.
+> - 새 버전 안내는 `GET /api/version` 을 쓴다. 안드로이드는 Vercel `ANDROID_LATEST_VERSION` 을 출시 때마다 적어야 뜬다(iOS 는 자동).
+
 App Store 버전·최신 빌드와 Play 번들·트랙은 2026-10-09 API로 다시 확인했습니다. 그 밖의 항목은 10월 8일의 확인 기록을 유지합니다. 코드 병합, 버전 초안 생성, 빌드 업로드, 심사, 출시, 테스터 설치 가능 여부를 구분합니다.
 
 | 대상 | 확인 결과 | 남은 확인 |

@@ -1,10 +1,11 @@
-// PC 에서 실행: node tools/asc-iap.mjs [--secrets <폴더>] [--consumables]
+// PC 에서 실행: node tools/asc-iap.mjs [--secrets <폴더>] [--consumables | --day-pass]
 // App Store Connect 에 인앱결제 상품을 만든다 (앱 레코드가 먼저 있어야 함). 여러 번 실행해도 안전하다.
 //   mylovecoach.premium.weekly   — 자동 갱신 구독 1주, ₩9,900  (구독 그룹 「프리미엄」)
 //   mylovecoach.premium.lifetime — 비소모성, ₩29,800
 //   --consumables 를 주면 2026-10 회의에서 정한 소모성 상품 2개도 만든다 (상품 ID 는 한 번 만들면 다시 못 쓰니 가격 확정 뒤에):
 //   mylovecoach.pass.day         — 소모성, 하루(24시간) 이용권 ₩2,700
 //   mylovecoach.credits.10       — 소모성, 코칭 10회 횟수권 ₩4,900 (가안)
+//   --day-pass 를 주면 하루 이용권 하나만 만든다 — 이미 승인된 주간·평생권은 건드리지 않는다 (2026-10-11 사용자 결정: 하루 이용권 ₩2,700 추가)
 // 각 상품: 한국어 표시 이름·설명, 가격(대한민국 기준), 판매 지역(대한민국), 심사용 스크린샷·메모.
 // ※ 첫 인앱결제는 앱 버전과 함께 심사에 올라가야 한다 → 버전 페이지의 「앱 내 구입 및 구독」에서 두 상품을 선택 (화면 작업).
 import { readFileSync } from 'node:fs';
@@ -26,9 +27,24 @@ const reviewNote = (what) =>
 const WEEKLY = { productId: 'mylovecoach.premium.weekly', reference: '주간 프리미엄', name: '주간 프리미엄', description: '횟수 제한 없는 AI 연애 코칭 (매주 자동 갱신)', price: 9900, note: reviewNote('주간 구독은 1주마다 자동 갱신되며, 구독 기간 동안 코칭 횟수 제한이 없어집니다.') };
 const LIFETIME = { productId: 'mylovecoach.premium.lifetime', reference: '평생 프리미엄', name: '평생 프리미엄', description: '한 번 결제로 횟수 제한 없는 AI 연애 코칭', price: 29800, type: 'NON_CONSUMABLE', label: '평생권', note: reviewNote('평생권은 1회 결제로 코칭 횟수 제한이 계속 없어집니다.') };
 // 앱 코드의 src/lib/billing/plans.ts 와 같은 상품 ID·가격이어야 한다
-const DAY_PASS = { productId: 'mylovecoach.pass.day', reference: '하루 이용권', name: '하루 이용권', description: '결제 후 24시간 동안 AI 연애 코칭 무제한', price: 2700, type: 'CONSUMABLE', label: '하루 이용권', note: reviewNote('하루 이용권은 결제한 때부터 24시간 동안 코칭 횟수 제한이 없어집니다.') };
+// 하루 이용권 심사 메모·스크린샷은 가입 지원 빌드(1.0.2~) 기준 — 무료 규칙이 바뀌었고, 결제 화면에 하루 이용권이 보이는 캡처를 쓴다
+const DAY_PASS = {
+  productId: 'mylovecoach.pass.day',
+  reference: '하루 이용권',
+  name: '하루 이용권',
+  description: '결제 후 24시간 동안 AI 연애 코칭 무제한',
+  price: 2700,
+  type: 'CONSUMABLE',
+  label: '하루 이용권',
+  shot: join(repo, 'docs', 'store-assets', 'iap-review-paywall-day.png'),
+  note:
+    '무료 코칭(비회원 맛보기 1회, 가입하면 보너스 3회 + 이후 매일 1회)을 다 쓰거나, 마이 탭 → 「이용권 보기」를 누르면 구매 화면이 열립니다. ' +
+    '하루 이용권은 결제한 때부터 24시간 동안 코칭 횟수 제한이 없어지는 소모성 상품이며 자동 결제가 없습니다. 이용 중에 다시 사면 24시간이 이어서 늘어납니다. ' +
+    '같은 화면에 구매 복원, 이용약관, 개인정보 처리방침 링크가 있습니다.',
+};
 const CREDITS = { productId: 'mylovecoach.credits.10', reference: '코칭 10회권', name: '코칭 10회권', description: 'AI 연애 코칭 10회 (기간 제한 없음)', price: 4900, type: 'CONSUMABLE', label: '횟수권', note: reviewNote('횟수권은 코칭 10회가 충전되고 기간 제한이 없습니다.') };
 const withConsumables = process.argv.includes('--consumables');
+const onlyDayPass = process.argv.includes('--day-pass');
 const GROUP = { reference: '프리미엄', name: '프리미엄' };
 
 const rel = (type, id) => ({ data: { type, id } });
@@ -176,7 +192,7 @@ async function ensureInApp(app, LIFETIME) {
   await step(`${LIFETIME.label}: 심사용 스크린샷`, async () => {
     const cur = await api('GET', `/v2/inAppPurchases/${iap.id}/appStoreReviewScreenshot`).catch(() => null);
     if (cur?.data) return '이미 있음';
-    const buf = readFileSync(REVIEW_SHOT);
+    const buf = readFileSync(LIFETIME.shot ?? REVIEW_SHOT);
     const created = (await api('POST', '/v1/inAppPurchaseAppStoreReviewScreenshots', { data: { type: 'inAppPurchaseAppStoreReviewScreenshots', attributes: { fileName: 'paywall.png', fileSize: buf.length }, relationships: { inAppPurchaseV2: rel('inAppPurchases', iap.id) } } })).data;
     await uploadAsset('inAppPurchaseAppStoreReviewScreenshots', created, buf);
     return '';
@@ -191,6 +207,12 @@ async function main() {
     return;
   }
   console.log(`앱: ${app.attributes.name} (id ${app.id})`);
+  if (onlyDayPass) {
+    await ensureInApp(app, DAY_PASS);
+    for (const n of notes) console.log(`· ${n}`);
+    console.log('\n다음: 처음 내는 소모성 상품은 새 앱 버전과 함께 심사에 올려야 합니다 → App Store Connect 웹의 새 버전 페이지 「앱 내 구입 및 구독」에서 하루 이용권을 선택해 제출 (API 로는 못 넣음).');
+    return;
+  }
   await ensureSubscription(app);
   await ensureInApp(app, LIFETIME);
   if (withConsumables) {

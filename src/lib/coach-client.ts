@@ -11,6 +11,7 @@ import {
   type ReportRequestInput,
 } from '@/lib/ai-tasks';
 import { analyticsEnabled, currentConsentVersion, currentSessionId } from '@/lib/analytics';
+import { requestUpdatePrompt } from '@/lib/app-update';
 import { COACH_MODEL, CoachAnalysisReadSchema, CoachRequestSchema, IMAGE_TOO_LARGE_MESSAGE, isImageTooLarge, normalizeAnalysis, type CoachRequestInput } from '@/lib/coach-schema';
 import { APP_CONFIG } from '@/lib/config';
 import { demoAnalysis, demoMind, demoPractice, demoReport, isDemoMode } from '@/lib/demo';
@@ -180,6 +181,8 @@ async function postToServer(feature: AiFeature, body: unknown, extraHeaders: Rec
   }
   const json = await safeJson(res);
   if (!res.ok) {
+    // 서버가 「앱을 업데이트해 주세요」로 거절함 — 새 버전 안내를 바로 띄운다 (오류 문구는 서버가 준 것을 그대로 보여 준다)
+    if (res.status === 426) requestUpdatePrompt();
     const code = res.status === 401 || res.status === 403 ? 'auth' : res.status === 429 ? 'rate_limit' : res.status === 422 ? 'refused' : res.status === 413 ? 'too_large' : 'server';
     throw new CoachError((json as { error?: string })?.error ?? `서버 오류 (${res.status})`, code);
   }
