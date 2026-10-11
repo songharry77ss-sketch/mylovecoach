@@ -11,7 +11,8 @@
 > - **하루 이용권 ₩2,700**: App Store `mylovecoach.pass.day` 소모성 `READY_TO_SUBMIT`(심사용 캡처 `docs/store-assets/iap-review-paywall-day.png`), Play 일회성 상품 활성.
 > - **새 버전 안내**: `GET /api/version` + 앱의 「새 버전이 나왔어요」 시트(1.0.3 부터). 운영 배포(PR #14 `6d8712f`, run 38116991986) 뒤 `/api/version?platform=ios` 가 `{"latest":"1.0.2","min":null}` 로 답하는 것을 확인했다. 안드로이드는 Vercel `ANDROID_LATEST_VERSION` 을 **다음 출시(1.0.4~)부터** 출시 때마다 적어야 1.0.3 사용자에게 안내가 뜬다.
 > - 진행: ✅ `vercel.yml` · ✅ iOS 빌드 **123**(run 38117002741)·Android **118**(run 38117004489) · ✅ `app-store.yml -f build=123`(run 38118199466) — 버전 1.0.3 `PREPARE_FOR_SUBMISSION`·`AFTER_APPROVAL`·빌드 123 연결, 설명·심사 메모·새 소식 반영 · ✅ Play 비공개 테스트 118 반영(`play-closed-test.mjs --version-code 118 --send-for-review`, 출시 노트 포함)
-> - **남은 것(🙋 App Store Connect 웹 로그인 필요)**: 버전 1.0.3 페이지 「앱 내 구입 및 구독」에서 **하루 이용권 선택** → 심사 제출(화면의 「심사에 추가」→「제출」 또는 `gh workflow run app-store.yml -f build=123 -f submit=true`). 처음 내는 소모성 상품은 API 로 못 넣고, 상품이 묶음에 없으면 `asc-listing.mjs --submit` 이 멈춘다.
+> - ✅ **10-11 15:42 KST 심사 제출**: App Store Connect 웹의 하루 이용권 페이지에서 「심사에 추가」(안내: 「첫 번째 소모성 앱 내 구입은 새로운 앱 버전으로 제출해야 합니다」) → `node tools/asc-listing.mjs --build 123 --submit` 로 같은 초안에 버전 1.0.3 을 넣어 제출. 심사 묶음 `9ae88774` 에 상품 1·버전 1, 버전·하루 이용권 모두 `WAITING_FOR_REVIEW`, 출시 방식 `AFTER_APPROVAL`(승인되면 자동 출시).
+> - 알아둘 것: 버전 페이지에는 「앱 내 구입 및 구독」 영역이 따로 없었고, **상품 페이지의 「심사에 추가」** 로 초안에 넣는다. 윈도우 PC 에서 `asc-listing.mjs` 를 돌리면 문서의 줄바꿈(CRLF)이 그대로 설명에 들어가 글자 수가 늘었다(1669→1711자, 표시에는 문제 없음) — 도구가 줄바꿈을 LF 로 맞추도록 고쳤다.
 
 App Store 버전·최신 빌드와 Play 번들·트랙은 2026-10-09 API로 다시 확인했습니다. 그 밖의 항목은 10월 8일의 확인 기록을 유지합니다. 코드 병합, 버전 초안 생성, 빌드 업로드, 심사, 출시, 테스터 설치 가능 여부를 구분합니다.
 
