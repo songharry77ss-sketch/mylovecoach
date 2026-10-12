@@ -105,6 +105,10 @@ jobs:
           card=$(curl -sS -o /tmp/card.png -w "%{http_code} %{content_type}" "$url/api/kkti-card")
           echo "api/kkti-card: $card"
           [ "$card" = "200 image/png" ] || { echo "::error::KKTI 카드 그림 API 응답 실패 ($card)"; head -c 300 /tmp/card.png; exit 1; }
+          # 앱 화면 머리말의 기본 미리보기, 그리고 주소창에서 복사한 KKTI 주소를 미리보기 수집기가 열 때의 카드
+          curl -sS "$url/" | grep -q 'og:image' || { echo "::error::앱 화면(index.html)에 og:image 가 없습니다 (tools/copy-site.mjs)"; exit 1; }
+          curl -sS -A 'facebookexternalhit/1.1; kakaotalk-scrap/1.0' "$url/kkti/result?a=000006" | grep -q 'kkti-card?a=000006' || { echo "::error::미리보기 수집기가 /kkti/result 를 열 때 유형 카드가 나오지 않습니다 (vercel.json has 규칙)"; exit 1; }
+          curl -sS "$url/kkti/result?a=000006" | grep -q 'id="root"' || { echo "::error::사람이 /kkti/result 를 열 때 앱 화면이 나오지 않습니다"; exit 1; }
           # 둘의 궁합 주소 — 아래 두 답 코드가 맞는 코드인지는 테스트(kkti-share-api)가 지킨다
           curl -sS -o /tmp/pair.html "$url/k/000006-9zldr5"
           grep -q 'kkti-card?a=000006&amp;w=9zldr5' /tmp/pair.html || { echo "::error::KKTI 궁합 공유 페이지(/k/코드-코드)의 미리보기 그림 주소가 다릅니다"; exit 1; }

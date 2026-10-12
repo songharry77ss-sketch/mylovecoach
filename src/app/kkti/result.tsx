@@ -74,6 +74,9 @@ const T = {
 };
 
 const X_INTENT = 'https://x.com/intent/post?text=';
+const APP_STORE_URL = 'https://apps.apple.com/kr/app/id6813404855';
+/** 아이폰·아이패드의 웹 브라우저로 보고 있는지 (앱스토어 버튼을 보여 줄지) */
+const onIosWeb = () => Platform.OS === 'web' && typeof navigator !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent);
 const THREADS_INTENT = 'https://www.threads.net/intent/post?text=';
 
 export default function KktiResultScreen() {
@@ -267,6 +270,12 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
     haptic.thud();
     track('kkti_cta', { to: 'coach', code: result.code });
     router.replace(useAppStore.getState().user ? '/(tabs)' : '/start');
+  };
+
+  const openStore = () => {
+    haptic.tap();
+    track('kkti_cta', { to: 'appstore', role });
+    Linking.openURL(APP_STORE_URL).catch(() => toast.show('App Store 를 열지 못했어요.', 'error'));
   };
 
   const save = () => {
@@ -624,6 +633,7 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
             추천 답장 톤 {tone.emoji} {tone.label} · {tone.description}
           </AppText>
           <Button title="이 유형에 맞춘 답장 코칭 받기" haptic={false} onPress={goCoach} icon={<Ionicons name="chatbubble-ellipses" size={18} color={palette.white} />} />
+          {onIosWeb() ? <Button title="아이폰 앱으로 받기 (App Store)" variant="secondary" haptic={false} onPress={openStore} icon={<Ionicons name="logo-apple" size={18} color={theme.text} />} /> : null}
           <AppText variant="caption" color="textTertiary" align="center">
             대화 캡처 한 장이면 답장 3개와 호감 온도를 바로 알려 드려요
           </AppText>

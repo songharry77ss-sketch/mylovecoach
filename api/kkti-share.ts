@@ -3,6 +3,8 @@
  *  - /k/내코드          → 내 유형 카드가 미리보기로 뜨고, 결과 화면(/kkti/result?a=…)으로 넘어간다
  *  - /k/내코드-상대코드 → 둘의 궁합 카드가 미리보기로 뜨고, 궁합 화면(/kkti/result?a=…&w=…)으로 넘어간다
  *  - /k (코드 없음·잘못됨) → 테스트 소개 카드가 미리보기로 뜨고, 테스트 첫 화면(/kkti)으로 넘어간다
+ * 주소창에서 복사한 앱 화면 주소(/kkti, /kkti/result?a=…&w=…)도 미리보기 수집기가 열면 vercel.json 이 여기로 넘긴다
+ *  (user-agent 로 가린다. 사람과 검색 엔진은 앱 화면을 그대로 받는다). 그때는 답 코드가 a·w 쿼리로 온다.
  * 카톡·인스타·X·스레드는 화면을 그리지 않고 이 페이지의 og 태그만 읽어 미리보기를 만든다.
  * 앱 화면(/kkti/…)은 정적 파일 하나라 주소마다 다른 미리보기를 줄 수 없어서 이 페이지를 따로 둔다.
  * 광고·게시물 링크에 붙인 utm_* 은 넘어갈 때 그대로 싣는다 (앱이 유입 경로로 읽는다). 아무것도 저장하지 않는다.
@@ -82,7 +84,8 @@ export function sharePage(code: string, site: string, utm: Record<string, string
 
 export function shareHtml(page: SharePage): string {
   const e = escapeHtml;
-  // 스크립트 안에 넣는 주소는 JSON 으로 감싸고, 태그를 닫는 글자(<)는 한 번 더 숨긴다
+  // 스크립트 안에 넣는 주소는 JSON 으로 감싸고, 태그를 닫는 글자(<)는 한 번 더 숨긴다.
+  // 공유 주소(/k…)에서만 넘어간다 — 이 페이지가 앱 화면 주소(/kkti…)로 사람에게 잘못 나가도 같은 주소로 끝없이 넘어가지 않게
   const jsTarget = JSON.stringify(page.target).replace(/</g, '\\u003c');
   return `<!doctype html>
 <html lang="ko">
@@ -105,7 +108,7 @@ export function shareHtml(page: SharePage): string {
 <meta name="twitter:title" content="${e(page.title)}">
 <meta name="twitter:description" content="${e(page.description)}">
 <meta name="twitter:image" content="${e(page.image)}">
-<script>location.replace(${jsTarget});</script>
+<script>if(location.pathname==='/k'||location.pathname.indexOf('/k/')===0)location.replace(${jsTarget});</script>
 <style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif;background:#FFF1F5;color:#191F28}a{color:#191F28;font-weight:700}</style>
 </head>
 <body>
@@ -129,7 +132,12 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     if (UTM_VALUE.test(value)) utm[key] = value;
   }
   res.setHeader('content-type', 'text/html; charset=utf-8');
-  // 같은 주소는 같은 내용 — CDN 에 잠깐 두고, 브라우저는 매번 새로 받는다
-  res.setHeader('cache-control', 'public, max-age=0, s-maxage=3600');
-  res.status(200).send(shareHtml(sharePage(first(req.query.c), site, utm)));
+  // 같은 주소는 같은 내용 — CDN 에 잠깐 두고, 브라우저는 매번 새로 받는다.
+  // 단 앱 화면 주소에서 넘어온 요청(via=app)은 같은 주소를 사람이 열면 앱 화면이 나가야 하므로 어디에도 남기지 않는다
+  res.setHeader('cache-control', first(req.query.via) === 'app' ? 'no-store' : 'public, max-age=0, s-maxage=3600');
+  // /k/코드 는 c 로, 앱 화면 주소(/kkti/result?a=…&w=…)는 a·w 로 온다
+  const a = first(req.query.a);
+  const w = first(req.query.w);
+  const code = first(req.query.c) || (a && w ? `${a}-${w}` : a);
+  res.status(200).send(shareHtml(sharePage(code, site, utm)));
 }

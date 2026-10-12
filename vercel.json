@@ -26,6 +26,28 @@
       "destination": "/api/kkti-share?c=:code"
     },
     {
+      "source": "/kkti/result",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(facebookexternalhit|Facebot|meta-externalagent|kakaotalk-scrap|Twitterbot|Slackbot|Discordbot|TelegramBot|WhatsApp|LinkedInBot|line-poker).*"
+        }
+      ],
+      "destination": "/api/kkti-share?via=app"
+    },
+    {
+      "source": "/kkti",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(facebookexternalhit|Facebot|meta-externalagent|kakaotalk-scrap|Twitterbot|Slackbot|Discordbot|TelegramBot|WhatsApp|LinkedInBot|line-poker).*"
+        }
+      ],
+      "destination": "/api/kkti-share?via=app"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }

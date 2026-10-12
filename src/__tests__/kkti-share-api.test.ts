@@ -112,6 +112,11 @@ describe('공유 페이지 HTML', () => {
     expect(meta(html, 'twitter:card')).toBe('summary_large_image');
     expect(meta(html, 'twitter:image')).toBe(page.image);
     expect(html).toContain(`location.replace(${JSON.stringify(page.target)});`);
+    // 공유 주소(/k…)에서만 넘어간다 (앱 화면 주소에서 같은 주소로 끝없이 넘어가지 않게)
+    const guard = /<script>if\((.+?)\)location\.replace/.exec(html)?.[1] ?? '';
+    const runs = (pathname: string) => Function('location', `return ${guard}`)({ pathname }) as boolean;
+    expect(['/k', '/k/abc123', '/k/abc123-def456'].every(runs)).toBe(true);
+    expect(['/kkti', '/kkti/result', '/', '/kk'].some(runs)).toBe(false);
     // 미리보기 수집기가 따라가 og 태그 없는 앱 화면을 읽지 않게, 넘어가기는 스크립트로만 (스크립트를 끈 곳은 본문 링크로)
     expect(html).not.toContain('http-equiv');
     expect(html).toContain(`<a href="${page.target.replace(/&/g, '&amp;')}">`);
@@ -154,6 +159,19 @@ describe('GET /k/코드', () => {
     expect(String(res.body)).toContain('location.replace("/kkti?utm_source=tiktok&utm_campaign=w1");');
   });
 
+  it('앱 화면 주소에서 넘어온 요청은 a·w 쿼리로 받는다 (/kkti/result?a=…&w=…)', () => {
+    const solo = share({ a: me.encoded });
+    expect(meta(String(solo.body), 'og:image')).toBe(`${SITE}/api/kkti-card?a=${me.encoded}`);
+    const pair = share({ a: me.encoded, w: friend.encoded });
+    expect(meta(String(pair.body), 'og:image')).toBe(`${SITE}/api/kkti-card?a=${me.encoded}&w=${friend.encoded}`);
+    expect(meta(String(pair.body), 'og:title')).toContain('궁합');
+    // 친구 코드만 들고 온 테스트 첫 화면(/kkti?w=…)은 소개 카드
+    expect(meta(String(share({ w: friend.encoded }).body), 'og:image')).toBe(`${SITE}/api/kkti-card`);
+    // 이 응답은 어디에도 남기지 않는다 — 같은 주소를 사람이 열면 앱 화면이 나가야 한다
+    expect(share({ a: me.encoded, via: 'app' }).headers['cache-control']).toBe('no-store');
+    expect(share({ c: me.encoded }).headers['cache-control']).toContain('s-maxage');
+  });
+
   it('GET 이 아니면 405', () => {
     expect(share({ c: me.encoded }, { host: 'mylovecoach.vercel.app' }, 'POST').statusCode).toBe(405);
   });
@@ -167,6 +185,40 @@ describe('배포 설정', () => {
     expect(sources.indexOf('/k')).toBeLessThan(fallback);
     expect(sources.indexOf('/k/:code')).toBeLessThan(fallback);
     expect(vercelConfig.rewrites.find((r) => r.source === '/k/:code')?.destination).toBe('/api/kkti-share?c=:code');
+  });
+
+  it('주소창에서 복사한 KKTI 주소는 미리보기 수집기에게만 공유 페이지로 넘긴다', () => {
+    const fallback = vercelConfig.rewrites.findIndex((r) => r.destination === '/index.html');
+    for (const source of ['/kkti/result', '/kkti']) {
+      const index = vercelConfig.rewrites.findIndex((r) => r.source === source);
+      expect(index).toBeGreaterThanOrEqual(0);
+      expect(index).toBeLessThan(fallback);
+      const rule = vercelConfig.rewrites[index] as { destination: string; has?: { type: string; key: string; value: string }[] };
+      expect(rule.destination).toBe('/api/kkti-share?via=app');
+      expect(rule.has).toHaveLength(1);
+      expect(rule.has?.[0]).toMatchObject({ type: 'header', key: 'user-agent' });
+      // Vercel 은 이 값을 헤더 전체와 맞춰 본다
+      const bots = new RegExp(`^${rule.has?.[0].value}$`);
+      for (const ua of [
+        'facebookexternalhit/1.1; kakaotalk-scrap/1.0; +https://devtalk.kakao.com/t/scrap/33984',
+        'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+        'meta-externalagent/1.1 (+https://developers.facebook.com/docs/sharing/webmasters/crawler)',
+        'Twitterbot/1.0',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_1) AppleWebKit/601.2.4 (KHTML, like Gecko) Version/9.0.1 Safari/601.2.4 facebookexternalhit/1.1 Facebot Twitterbot/1.0',
+        'Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)',
+      ])
+        expect(bots.test(ua)).toBe(true);
+      // 사람과 검색 엔진은 앱 화면을 그대로 받는다 (공유 페이지는 noindex 라 검색에 잡히면 안 된다)
+      for (const ua of [
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
+        'Mozilla/5.0 (Linux; Android 14; SM-S921N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36 KAKAOTALK 11.0.0',
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 350.0.0.0',
+        'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+        'Mozilla/5.0 (compatible; Yeti/1.1; +https://naver.me/spd)',
+        '',
+      ])
+        expect(bots.test(ua)).toBe(false);
+    }
   });
 
   it('카드 그림 함수에 글꼴·이모지 파일을 함께 싣는다', () => {
