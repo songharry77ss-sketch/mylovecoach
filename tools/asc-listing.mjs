@@ -24,7 +24,8 @@ const SITE = (argOf('--site') ?? (existsSync(join(root, 'mylovecoach-api-url.txt
 const { api, getAll, uploadAsset, findApp } = createAscClient(root);
 
 // ---- 등록 문구: docs/STORE_LISTING.md 에서 읽는다 (문서가 원본)
-const listingMd = readFileSync(join(repo, 'docs', 'STORE_LISTING.md'), 'utf8');
+// 윈도우에서 체크아웃하면 줄바꿈이 CRLF 라 설명·심사 메모에 CR 이 섞여 들어간다 — LF 로 맞춘다
+const listingMd = readFileSync(join(repo, 'docs', 'STORE_LISTING.md'), 'utf8').replace(/\r\n/g, '\n');
 const WHATS_NEW = readWhatsNew(listingMd, VERSION);
 const field = (label) => (listingMd.match(new RegExp(`\\*\\*${label}[^*]*\\*\\*:\\s*(.+)`)) ?? [])[1]?.trim();
 const section = (title) => (listingMd.match(new RegExp(`## ${title}[^\\n]*\\n([\\s\\S]*?)(?=\\n## |$)`)) ?? [])[1]?.trim() ?? '';
