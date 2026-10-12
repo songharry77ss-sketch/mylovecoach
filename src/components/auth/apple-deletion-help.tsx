@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { AppleRevocationError, AuthCancelled, deleteAccount, SessionMissing } from '@/lib/auth';
+import { subscriptionStoreName } from '@/lib/billing/plans';
 
 const APPLE_HELP_URL = 'https://support.apple.com/102571';
 const MANUAL_NOTICE = 'Apple 연결은 자동 해제되지 않으며 안내대로 직접 해제해야 해요.';
@@ -95,7 +96,7 @@ function AppleDeletionHelp({ busy, onCancel, onRetry, onManualDelete }: { busy: 
               <>
                 <AppText variant="body">회원 정보와 서버 이용 기록을 삭제하며 되돌릴 수 없어요. 이 기기의 채팅방은 남아 있어요.</AppText>
                 <AppText variant="bodyStrong">{MANUAL_NOTICE}</AppText>
-                <AppText variant="small" color="textSecondary">스토어 구독도 취소되지 않아요. App Store 또는 Google Play에서 구독을 별도로 취소해 주세요.</AppText>
+                <AppText variant="small" color="textSecondary">{`스토어 구독도 취소되지 않아요. ${subscriptionStoreName(Platform.OS)}에서 구독을 별도로 취소해 주세요.`}</AppText>
                 <Button title="회원 정보 삭제" variant="danger" disabled={!acknowledged || busy} loading={busy} onPress={() => { if (acknowledged && !busy) onManualDelete(); }} />
                 <Button title="안내로 돌아가기" variant="soft" disabled={busy} onPress={() => setConfirming(false)} />
               </>

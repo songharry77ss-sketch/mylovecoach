@@ -23,7 +23,7 @@ import { billingSupported, openSubscriptionManagement, restorePremium } from '@/
 import { quotaLabel } from '@/lib/billing/quota';
 import { refreshTeam } from '@/lib/billing/team';
 import { providerLabel, signOut } from '@/lib/auth';
-import { SIGNUP_BONUS } from '@/lib/billing/plans';
+import { SIGNUP_BONUS, subscriptionStoreName } from '@/lib/billing/plans';
 import { authAvailable } from '@/lib/supabase';
 import { aiRouteOf } from '@/lib/coach-client';
 import { APP_CONFIG } from '@/lib/config';
@@ -167,7 +167,7 @@ export default function MyScreen() {
 
   const withdrawMessage =
     '회원 정보와 서버에 저장된 이용 기록을 모두 지워요. 이 기기의 채팅방은 남아 있어요. 되돌릴 수 없어요.' +
-    '\n\n회원 탈퇴로 스토어 구독이 취소되지는 않아요. App Store 또는 Google Play에서 구독을 별도로 취소해 주세요.' +
+    `\n\n회원 탈퇴로 스토어 구독이 취소되지는 않아요. ${subscriptionStoreName(Platform.OS)}에서 구독을 별도로 취소해 주세요.` +
     (member?.provider === 'apple' && Platform.OS === 'ios' ? '\n\nApple 과의 연결을 끊기 위해 Apple 확인 창이 한 번 더 떠요.' : '') +
     (member?.provider === 'google' ? '\n\nGoogle 계정의 로그인 연결은 자동 해제되지 않아요. Google 계정의 연결된 앱에서 별도로 해제할 수 있어요.' : '');
 
