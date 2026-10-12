@@ -70,6 +70,13 @@ export const freeRules = (authAvailable: boolean, member: boolean): FreeRules =>
 
 export const isConsumablePlan = (plan: PlanKey): plan is ConsumablePlanKey => plan === 'day' || plan === 'credits';
 
+/**
+ * 구독을 따로 취소할 스토어 이름. 아이폰 앱에는 Google Play 를 적지 않는다 — App Store 심사 2.3.10(다른 플랫폼 언급)으로 1.0.3 이 거절됐다.
+ * 웹은 어느 스토어에서 샀는지 모르므로 둘 다 적는다
+ */
+export const subscriptionStoreName = (os: string): string =>
+  os === 'ios' ? 'App Store' : os === 'android' ? 'Google Play' : 'App Store 또는 Google Play';
+
 export const planOfProduct = (productId: string): PlanKey | null =>
   (Object.keys(PRODUCT_IDS) as PlanKey[]).find((k) => PRODUCT_IDS[k] === productId) ?? null;
 
