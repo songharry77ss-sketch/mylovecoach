@@ -17,12 +17,13 @@ import { Spacing } from '@/constants/theme';
 import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
 import { AI_PROVIDER_LABEL, ensureAiConsent, withdrawAiConsent } from '@/lib/ai-consent';
 import { setConsent as setAnalyticsConsentFlag, track } from '@/lib/analytics';
+import { openStore } from '@/lib/app-update';
 import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { billingSupported, openSubscriptionManagement, restorePremium } from '@/lib/billing/iap';
 import { quotaLabel } from '@/lib/billing/quota';
 import { refreshTeam } from '@/lib/billing/team';
 import { providerLabel, signOut } from '@/lib/auth';
-import { SIGNUP_BONUS } from '@/lib/billing/plans';
+import { SIGNUP_BONUS, subscriptionStoreName } from '@/lib/billing/plans';
 import { authAvailable } from '@/lib/supabase';
 import { aiRouteOf } from '@/lib/coach-client';
 import { APP_CONFIG } from '@/lib/config';
@@ -53,6 +54,7 @@ export default function MyScreen() {
   const member = useAppStore((s) => s.member);
   const setPremium = useAppStore((s) => s.setPremium);
   const analyticsConsent = useAppStore((s) => s.analyticsConsent);
+  const appUpdate = useAppStore((s) => s.appUpdate);
   const legacyServerRecords = useAppStore((s) => s.legacyServerRecords);
   const setAnalyticsConsent = useAppStore((s) => s.setAnalyticsConsent);
   const aiConsent = useAppStore((s) => s.aiConsent);
@@ -165,7 +167,7 @@ export default function MyScreen() {
 
   const withdrawMessage =
     '회원 정보와 서버에 저장된 이용 기록을 모두 지워요. 이 기기의 채팅방은 남아 있어요. 되돌릴 수 없어요.' +
-    '\n\n회원 탈퇴로 스토어 구독이 취소되지는 않아요. App Store 또는 Google Play에서 구독을 별도로 취소해 주세요.' +
+    `\n\n회원 탈퇴로 스토어 구독이 취소되지는 않아요. ${subscriptionStoreName(Platform.OS)}에서 구독을 별도로 취소해 주세요.` +
     (member?.provider === 'apple' && Platform.OS === 'ios' ? '\n\nApple 과의 연결을 끊기 위해 Apple 확인 창이 한 번 더 떠요.' : '') +
     (member?.provider === 'google' ? '\n\nGoogle 계정의 로그인 연결은 자동 해제되지 않아요. Google 계정의 연결된 앱에서 별도로 해제할 수 있어요.' : '');
 
@@ -419,7 +421,17 @@ export default function MyScreen() {
       <ListRow icon="shield-checkmark-outline" title="개인정보 처리방침" onPress={() => Linking.openURL(APP_CONFIG.privacyUrl)} />
       <ListRow icon="document-text-outline" title="이용약관" onPress={() => Linking.openURL(APP_CONFIG.termsUrl)} />
       <ListRow icon="mail-outline" title="문의하기" subtitle={APP_CONFIG.supportEmail} onPress={() => Linking.openURL(`mailto:${APP_CONFIG.supportEmail}`)} />
-      <ListRow icon="information-circle-outline" title="앱 버전" value={Constants.expoConfig?.version ?? '1.0.0'} />
+      {appUpdate ? (
+        <ListRow
+          icon="arrow-up-circle-outline"
+          title="앱 버전"
+          subtitle="새 버전이 나왔어요 · 눌러서 업데이트"
+          value={`${Constants.expoConfig?.version ?? '1.0.0'} → ${appUpdate.latest}`}
+          onPress={() => openStore().catch(() => toast.show('스토어를 열지 못했어요. 스토어에서 「나만의 연애코치」를 검색해 주세요.', 'error'))}
+        />
+      ) : (
+        <ListRow icon="information-circle-outline" title="앱 버전" value={Constants.expoConfig?.version ?? '1.0.0'} />
+      )}
       <ListRow icon="finger-print-outline" title="내 기기 ID" subtitle="문의·팀원 등록용 · 눌러서 복사" value={deviceId} onPress={copyDeviceId} />
 
       <SectionHeader
