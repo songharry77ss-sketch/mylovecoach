@@ -4,6 +4,7 @@
  * - types-square/01-esfj.png … : 16유형 소개 카드 (1080×1080 — 인스타 캐러셀·X·스레드). 번호는 KKTI_CODES 순서
  * - types-story/… : 같은 카드의 세로판 (1080×1920 — 인스타 스토리·틱톡 포토)
  * - cover-*.png : 캐러셀 표지 / cta-*.png : 마지막 장 (테스트 하러 가기)
+ * - tiers-square/1.png … 5.png : 궁합 등급 다섯 가지 (천생연분 → 극과 극)
  * - sample-*.png : 결과 카드·궁합 카드 견본 (앱이 실제로 만들어 주는 그림과 같다)
  * 유형 이름·한 줄 설명을 바꿨으면 다시 돌린다. 실제 이용자 결과가 아니라 유형 소개용 그림이다.
  */
@@ -11,7 +12,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { box, emoji, letterTiles, renderCard, renderTree, sheen, text, toneOn, type Node } from '../api/_kkti-card';
-import { KKTI_AXES, KKTI_CODES, KKTI_QUESTIONS, KKTI_TYPES, computeKkti, type KktiResult } from '../src/lib/kkti';
+import { KKTI_AXES, KKTI_CODES, KKTI_MATCH_TIERS, KKTI_QUESTIONS, KKTI_TYPES, computeKkti, type KktiResult } from '../src/lib/kkti';
 
 const OUT = path.join(__dirname, '..', 'docs', 'channel-assets');
 const INK = '#191F28';
@@ -104,6 +105,18 @@ async function main() {
     await save('', `match-teaser-${shape}`, await renderTree(wordCard(match, '💞', shape === 'story'), width, height));
   }
 
+  // 궁합 등급 다섯 가지 — 높은 등급부터. 구간은 등급 기준(min)에서 계산한다
+  for (const [i, tier] of KKTI_MATCH_TIERS.entries()) {
+    const top = i === 0 ? 99 : KKTI_MATCH_TIERS[i - 1].min - 1;
+    const range = `궁합 ${Math.max(tier.min, 30)}~${top}%`;
+    const lines = [
+      { value: range, size: 44, weight: 500 as const, color: INK_SOFT },
+      { value: tier.label, size: tier.label.length > 5 ? 120 : 150 },
+      { value: tier.line, size: 40, weight: 500 as const, color: INK_SOFT },
+    ];
+    await save('tiers-square', String(i + 1), await renderTree(wordCard(lines, tier.emoji, false), 1080, 1080));
+  }
+
   // 앱이 이용자에게 만들어 주는 그림 견본 (게시물에서 「이런 카드가 나와요」로 쓴다)
   const a = results[KKTI_CODES.indexOf('후빠폭밀')];
   const b = results[KKTI_CODES.indexOf('선빠폭밀')];
@@ -113,7 +126,7 @@ async function main() {
   await save('', 'sample-match-square', await renderCard('square', a, b));
   await save('', 'sample-match-low-square', await renderCard('square', a, c));
   await save('', 'sample-link-preview', await renderCard('og', a));
-  console.log(`그림 ${results.length * 2 + 11}장 → ${OUT}`);
+  console.log(`그림 ${results.length * 2 + 11 + KKTI_MATCH_TIERS.length}장 → ${OUT}`);
   // 색이 밝은 유형에서 글자가 흰 바탕에 묻히지 않는지 눈으로 볼 것
   console.log(results.map((r) => `${r.code} ${r.color.hex} ${toneOn(r.color.hex).ink === WHITE ? '흰 글자' : '검은 글자'}`).join('\n'));
 }
