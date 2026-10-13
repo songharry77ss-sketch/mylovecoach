@@ -17,6 +17,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
+import { countKkti } from '@/lib/kkti-stat';
 import {
   KKTI_FIT_LABEL,
   KKTI_SITE,
@@ -205,8 +206,14 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
   // 공유 링크가 얼마나 다음 사람을 데려오는지 보기 위한 기록 (이용 기록에 동의한 사람만 남는다)
   useEffect(() => {
     if (!hydrated) return;
-    if (role === 'guest') track('kkti_open_shared', { pair: Boolean(partner) });
-    if (match) track('kkti_match_view', { role, percent: match.percent });
+    if (role === 'guest') {
+      track('kkti_open_shared', { pair: Boolean(partner) });
+      countKkti('open_shared');
+    }
+    if (match) {
+      track('kkti_match_view', { role, percent: match.percent });
+      countKkti('match_view');
+    }
   }, [hydrated, role, partner, match]);
 
   // 예전에 저장한 결과에는 답 코드가 없다 → 내 결과를 다시 열었을 때 채워 둔다 (친구 링크에서 바로 궁합을 볼 수 있게)
@@ -287,6 +294,7 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
 
   const copy = async (value: string, message: string, channel: string) => {
     track('kkti_share', { channel, match: sharingMatch });
+    countKkti('share');
     try {
       await Clipboard.setStringAsync(value);
       haptic.success();
@@ -302,6 +310,7 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
   const openIntent = async (channel: 'x' | 'threads') => {
     haptic.tap();
     track('kkti_share', { channel, match: sharingMatch });
+    countKkti('share');
     const url = (channel === 'x' ? X_INTENT : THREADS_INTENT) + encodeURIComponent(text);
     try {
       await Linking.openURL(url);
@@ -316,6 +325,7 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
     if (Platform.OS === 'web') {
       if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
         track('kkti_share', { channel: 'web_share', match: sharingMatch });
+        countKkti('share');
         await navigator.share({ title: 'KKTI · 카톡으로 보는 진짜 연애 MBTI', text: chatText }).catch(() => {});
         return;
       }
@@ -323,6 +333,7 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
       return;
     }
     track('kkti_share', { channel: 'system', match: sharingMatch });
+    countKkti('share');
     await Share.share({ message: chatText }).catch(() => {});
   };
 
@@ -332,6 +343,7 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
     if (savingImage) return;
     haptic.tap();
     track('kkti_share', { channel: 'image', match: sharingMatch });
+    countKkti('share');
     if (Platform.OS !== 'web') {
       toast.show('그림이 열리면 길게 눌러 저장해 주세요', 'success');
       await Linking.openURL(storyUrl).catch(() => toast.show('그림을 열지 못했어요. 잠시 뒤 다시 해 주세요.', 'error'));

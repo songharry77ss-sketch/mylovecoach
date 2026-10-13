@@ -193,13 +193,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const [stats, logs, team, reports] = await Promise.all([
+  const [stats, logs, team, kkti, reports] = await Promise.all([
     rpc<Record<string, unknown>>('admin_stats', { p_days: days }),
     select<CoachRow>(
       'coach_log',
       `select=created_at,crush_alias,crush_mbti,relationship,tone,question,has_image,temperature,interest_score,summary,device_id&order=created_at.desc&limit=${limit}`,
     ),
     listTeam(),
+    // KKTI 횟수 집계 (api/kkti-stat) — 날짜·이벤트별 숫자. 표가 7일치만 들고 있다
+    select<{ day: string; kind: string; units: number }>('usage_quota', 'select=day,kind,units&kind=like.kkti:*&order=day.desc&limit=200'),
     // 신고는 기간과 상관없이 최근 것부터. 못 읽으면 null — ai_report 표가 아직 없으면 앱 신고가 모두 실패하므로 화면에 알린다
     query<ReportRow>('ai_report', `select=id,created_at,mode,reason,note,content,model,platform,app_version,status&order=created_at.desc&limit=${REPORT_LIMIT}`),
   ]);
@@ -213,6 +215,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     stats,
     logs,
     team,
+    kkti: kkti.map((row) => ({ day: row.day, event: row.kind.slice('kkti:'.length), count: Number(row.units) || 0 })),
     reports: reports ?? [],
     reportsReady: reports !== null,
     analytics: analyticsEnabled(),

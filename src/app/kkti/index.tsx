@@ -27,6 +27,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
+import { countKkti } from '@/lib/kkti-stat';
 import { KKTI_AXES, KKTI_QUESTIONS, computeKkti, kktiFromCode, toSaved, type KktiResult } from '@/lib/kkti';
 import { useAppStore } from '@/store/app-store';
 
@@ -79,6 +80,7 @@ export default function KktiTestScreen() {
   const start = () => {
     haptic.thud();
     track('kkti_start', { via: friend ? 'friend' : 'direct' });
+    countKkti(friend ? 'start_friend' : 'start');
     setPhase('quiz');
   };
 
@@ -89,6 +91,7 @@ export default function KktiTestScreen() {
     // 내가 직접 끝낸 결과는 바로 프로필에 저장 (친구가 보낸 링크를 열었을 때는 저장하지 않는다)
     useAppStore.getState().setKkti(toSaved(result));
     track('kkti_complete', { code: result.code, via: friend ? 'friend' : 'direct' });
+    countKkti(friend ? 'complete_friend' : 'complete');
     setFinalColor(result.color.hex);
     setPhase('analyzing');
     timers.current.push(
