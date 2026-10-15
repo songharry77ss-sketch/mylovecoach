@@ -77,7 +77,7 @@ npx tsc --noEmit && npx eslint src --max-warnings=0 && npx jest
 - 내부 테스트 **참여 링크**(`play.google.com/apps/internaltest/숫자`)도 API 로 조회되지 않는다. Console 의 테스터 탭에서 복사.
 - 무료 무제한 스위치 `FREE_UNLIMITED` 는 빌드 환경변수 `EXPO_PUBLIC_FREE_UNLIMITED=1` 일 때만 켜진다. **스토어 빌드(ios.yml·android.yml)와 웹은 유료 판매**다. 가입 지원 빌드는 비회원 맛보기 1회, 가입 보너스 3회 + 매일 1회이며 가입 설정이 없는 기존 빌드는 체험 3회 + 매일 1회다. **직접 설치 APK(android-apk.yml)만 무료 무제한**이다 (APK 는 스토어 결제가 안 되므로). 스토어 문구(`docs/STORE_LISTING.md`)·지원 페이지도 유료 기준이다.
 - 평생권 가격은 Play ₩29,800, App Store ₩29,900 (애플에 ₩29,800 가격대가 없음). 그래서 공용 설명에는 평생권 금액을 적지 않는다. 앱은 스토어가 주는 실제 가격을 표시한다.
-- 하루 이용권(`mylovecoach.pass.day`, ₩2,700)은 **2026-10-11 두 스토어에 등록**했다 (사용자 결정). Play 는 바로 활성, App Store 는 `READY_TO_SUBMIT` — 처음 내는 소모성 상품이라 **새 앱 버전(1.0.3)과 함께** 심사에 올려야 하고, App Store Connect 웹의 버전 페이지 「앱 내 구입 및 구독」에서 골라야 한다(API 불가, `asc-listing.mjs --submit` 은 상품이 묶음에 없으면 멈춘다). 횟수권(`mylovecoach.credits.10`)은 아직 없다 — `tools/asc-iap.mjs --consumables`, `tools/play-setup.mjs --products --consumables` (상품 ID 는 한 번 만들면 재사용 불가 → 가격 확정 뒤). 스토어에 없는 상품은 결제 화면에서 자동으로 숨는다.
+- 하루 이용권(`mylovecoach.pass.day`, ₩2,700)은 **2026-10-11 두 스토어에 등록**했다 (사용자 결정). Play 는 바로 활성, App Store 는 **1.0.3 과 함께 승인**(10-14 출시). 처음 내는 소모성 상품은 **새 앱 버전과 함께** 심사에 올려야 하고, App Store Connect 웹의 버전 페이지 「앱 내 구입 및 구독」에서 골라야 한다(API 불가, `asc-listing.mjs --submit` 은 상품이 묶음에 없으면 멈춘다). 횟수권(`mylovecoach.credits.10`)은 아직 없다 — `tools/asc-iap.mjs --consumables`, `tools/play-setup.mjs --products --consumables` (상품 ID 는 한 번 만들면 재사용 불가 → 가격 확정 뒤). 스토어에 없는 상품은 결제 화면에서 자동으로 숨는다.
 - 새 버전 안내(1.0.3~): 앱이 `GET /api/version?platform=ios|android` 로 스토어 최신 버전을 묻고(`src/lib/app-update.ts`), 더 새 버전이 있으면 탭 첫 화면에서 `components/ui/app-update-sheet.tsx` 시트로 업데이트를 권한다(「나중에」 3일). iOS 최신 버전은 서버가 App Store 공개 조회에서 읽어(출시 6시간 뒤부터) 손댈 것이 없다. **안드로이드는 Play 에 공개 조회가 없어 Vercel `ANDROID_LATEST_VERSION` 을 출시 때마다 직접 적어야** 안내가 뜬다. `IOS_MIN_VERSION`·`ANDROID_MIN_VERSION` 을 적으면 그보다 낮은 앱은 닫을 수 없는 「업데이트가 필요해요」가 뜬다(꼭 필요할 때만). 받을 수 없는 버전으로 막히지 않게 서버가 최소 버전을 최신 버전까지만 인정하고, 최신 버전을 모르면(안드로이드에 `ANDROID_LATEST_VERSION` 이 없음·iOS 출시 6시간 이내) 무시한다. 직접 설치 APK(무료 무제한 빌드)와 웹에는 안내가 뜨지 않고, 1.0.2 이하 앱에는 이 안내 코드가 없다.
 - 소모성 상품은 복원이 안 된다(기기 지갑). 같은 결제가 두 번 충전되지 않게 거래 ID 를 `wallet.granted` 에 남긴다.
 - 플로팅 버블은 **스토어 빌드(`android.yml`)에서 기본으로 뺀다** (Play 포그라운드 서비스 신고 전). CI 사본에서만 autolinking 에서 `floating-bubble` 을 빼고 `SYSTEM_ALERT_WINDOW` 를 막으며, AAB 병합 매니페스트에 `FOREGROUND_SERVICE`·`foregroundServiceType`·`SYSTEM_ALERT_WINDOW` 가 남으면 실패한다. 저장소 설정과 직접 설치 APK(`android-apk.yml`)·로컬 빌드에는 버블이 그대로 있다. 스토어 빌드에 넣으려면 Play Console 에 포그라운드 서비스(specialUse) 신고(설명·시연 영상)를 먼저 하고 `-f floating_bubble=true`.
@@ -90,6 +90,14 @@ npx tsc --noEmit && npx eslint src --max-warnings=0 && npx jest
 - KKTI 공유 주소는 빌드 변수 `EXPO_PUBLIC_KKTI_SITE`(https 주소)로 바꿀 수 있다 — 썸 상대에게 보내도 연애 코치 앱인 게 드러나지 않는 전용 주소용. 그 주소를 같은 Vercel 프로젝트에 연결한 뒤에 넣는다. 저장값은 주소(출처)마다 따로라, 주소를 바꾸면 예전 주소에서 테스트한 사람은 새 주소에서 「내 결과」로 인식되지 않는다(친구 결과를 보는 사람으로 보임). 앱(iOS·안드로이드) 쪽 KKTI 화면 변경은 다음 스토어 빌드부터, 웹은 배포 즉시 적용된다.
 
 ## 현재 상태와 남은 일
+
+**2026-10-15 확인 (아래 기록보다 우선):**
+- App Store **1.0.3(빌드 124)** 출시 — 공개 조회(iTunes 한국) 버전 1.0.3, 출시 2026-10-14T01:13:52Z(10-14 10:13 KST). 심사 묶음 `9ae88774` 은 10-13 09:56 KST 재제출 → 「심사 완료됨」, 버전 1.0.3·**하루 이용권 모두 「승인됨」**(App Store Connect 웹, 10-15 확인).
+- 경위: 10-12 1.0.3(빌드 123) 거절 — 가이드라인 2.3.10(아이폰 앱 탈퇴 안내에 「Google Play」 표시). 기기별 스토어 이름(`subscriptionStoreName`)과 문구 검사 테스트(`store-wording.test.ts`)로 고쳐 빌드 124(run 38209171293). 재제출은 API 409 로 막혔다가 거절 항목을 「해결됨」으로 표시해 통과했다(도구 수정은 `fix/asc-resubmit-rejected-20261013`).
+- KKTI 「둘의 궁합」 운영 배포(Vercel run 38209503855). 운영 웹 index·privacy·terms·support 200, `/api/coach` 토큰 없음 401(10-15).
+- Play: 내부 테스트·비공개 테스트(알파) 모두 **118** 배포됨, 프로덕션·베타 없음(10-15 `status.yml` run 38659603515).
+- TestFlight 외부 그룹 「테스터」(17명)에서 설치 가능한 빌드는 아직 119 — 120~124 는 그룹에 넣지 않았다. 아이폰은 App Store 출시판을 쓰면 되므로 급하지 않다.
+- 남은 일: 실제 휴대폰 QA(가입·재로그인·탈퇴·하루 이용권 구매) · Google 로그인 브랜딩(Search Console 확인 태그) · Vercel Pro 여부 · `AI_CONSENT_REQUIRED` · 조직 계정 전환(D-U-N-S) 뒤 Play 정식 출시.
 
 **2026-10-10 새벽 결과:**
 - App Store 1.0.2(122) 승인·자동 출시 — 공개 조회 버전 1.0.2, 출시 2026-10-09T20:45:36Z. 실제 휴대폰으로 가입·로그인·탈퇴·구매 복원 검증은 아직이다.
