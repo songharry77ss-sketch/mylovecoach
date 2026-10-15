@@ -282,6 +282,11 @@ async function main() {
         const already = items.some((it) => it.relationships?.appStoreVersion?.data?.id === version.id);
         if (!already) throw new Error(`버전을 심사 묶음에 넣지 못했습니다 — ${e.message}`);
       });
+      // 거절된 묶음(UNRESOLVED_ISSUES)을 다시 낼 때는 거절된 항목을 「해결됨」으로 표시해야 한다 —
+      // 그대로 내면 409 「Version is not ready to be submitted yet」 (2026-10-13 1.0.3 재제출에서 확인)
+      for (const item of await getAll(`/v1/reviewSubmissions/${sub.id}/items?limit=50`).catch(() => [])) {
+        if (item.attributes.state === 'REJECTED') await api('PATCH', `/v1/reviewSubmissionItems/${item.id}`, { data: { type: 'reviewSubmissionItems', id: item.id, attributes: { resolved: true } } });
+      }
       const missing = args.includes('--without-products') ? [] : await missingProducts({ getAll, appId: app.id, submissionId: sub.id });
       if (missing.length) throw new Error(`심사 묶음에 상품이 빠져 있어 제출하지 않았습니다 (${missing.join(', ')}). ${MISSING_PRODUCTS_HELP}`);
       await assertReleaseTarget(releaseTarget);
