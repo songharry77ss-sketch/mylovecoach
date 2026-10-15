@@ -97,7 +97,11 @@ npx tsc --noEmit && npx eslint src --max-warnings=0 && npx jest
 - KKTI 「둘의 궁합」 운영 배포(Vercel run 38209503855). 운영 웹 index·privacy·terms·support 200, `/api/coach` 토큰 없음 401(10-15).
 - Play: 내부 테스트·비공개 테스트(알파) 모두 **118** 배포됨, 프로덕션·베타 없음(10-15 `status.yml` run 38659603515).
 - TestFlight 외부 그룹 「테스터」(17명)에서 설치 가능한 빌드는 아직 119 — 120~124 는 그룹에 넣지 않았다. 아이폰은 App Store 출시판을 쓰면 되므로 급하지 않다.
-- 남은 일: 실제 휴대폰 QA(가입·재로그인·탈퇴·하루 이용권 구매) · Google 로그인 브랜딩(Search Console 확인 태그) · Vercel Pro 여부 · `AI_CONSENT_REQUIRED` · 조직 계정 전환(D-U-N-S) 뒤 Play 정식 출시.
+- **옛 버전 차단 켬(10-15 사용자 결정):** Vercel `AI_CONSENT_REQUIRED=1`. AI 동의 기능이 없는 옛 앱(App Store 1.0·1.0.1, Play 116, TestFlight 119 이하, 직접 설치 APK 105 이하)은 AI 요청 때 「앱을 최신 버전으로 업데이트해 주세요」(426)를 받는다. 옛 앱은 서버 문구를 그대로 보여준다. 먼저 직접 설치 APK **106**(동의 기능 포함, run 38665528884)을 새로 올린 뒤 켰다. 재배포 run 38667048146 점검: Google 동의 헤더 200·헤더 없음 426.
+- **Vercel 계정(Harry's projects, Hobby) 무료 한도 초과(9/14~10/14):** Fast Origin Transfer 24.8GB/10GB(거의 전부 월하), Fluid Active CPU 7h24m/4h. 같은 계정이라 무료 한도 초과가 이어지거나 상업적 이용(결제받는 앱 서버)으로 정지되면 연애코치 서버도 같이 멈춘다. 연애코치 자체 사용량은 함수 1.3천 회·CPU 2분·전송 153MB로 작다. Pro($20/월, 사용량 크레딧 $20 포함)는 사용자 결정 대기.
+- Vercel 환경변수 중 `KAKAO_ADMIN_KEY`·`APPLE_PRIVATE_KEY`·`SUPABASE_SERVICE_ROLE_KEY` 는 「화면에서 보이는 형태」로 저장돼 Vercel 이 Needs Attention 표시를 한다. 원본에서 키를 다시 발급해 Secret(Sensitive) 형태로 바꾸는 정리는 아직 안 했다.
+- D-U-N-S: 10-15 10:35 KST Gmail 재조회에서도 D&B 새 메일 없음(마지막은 10-10 Case 34917392 접수 확인). 국제 신청 7~14영업일 기준 예상 대략 10-20~10-30. Play 계정은 개인, Apple 은 개인사업자라 조직 전환 대상 아님(`docs/DEVELOPER_ACCOUNT_CONVERSION.md`).
+- 남은 일: 실제 휴대폰 QA(가입·재로그인·탈퇴·하루 이용권 구매) · Google 로그인 브랜딩(Search Console 확인 태그) · Vercel Pro 여부 · 조직 계정 전환(D-U-N-S) 뒤 Play 정식 출시.
 
 **2026-10-10 새벽 결과:**
 - App Store 1.0.2(122) 승인·자동 출시 — 공개 조회 버전 1.0.2, 출시 2026-10-09T20:45:36Z. 실제 휴대폰으로 가입·로그인·탈퇴·구매 복원 검증은 아직이다.
