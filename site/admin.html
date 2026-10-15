@@ -85,6 +85,9 @@
     <button id="loginBtn">들어가기</button>
     <div class="err" id="loginErr"></div>
     <p class="muted" id="deviceNote" style="margin:10px 0 0"></p>
+    <hr style="border:0; border-top:1px solid var(--line); margin:16px 0" />
+    <button id="memberBtn" class="ghost">회원 계정으로 들어가기</button>
+    <p class="muted" id="memberNote" style="margin:10px 0 0">웹 앱의 <a href="/my" target="_blank" rel="noopener">「마이」</a>에서 Google·카카오·Apple 로 로그인한 계정 중 관리자로 허용한 계정만 들어갈 수 있어요. 이 브라우저에서 로그인해 두면 다음부터는 이 페이지를 열기만 하면 돼요.</p>
   </div>
 
   <div id="app" class="hide">
@@ -197,6 +200,39 @@
     history.replaceState(null, '', location.pathname + location.search);
   })();
   const deviceKey = () => store.get(DEVICE_KEY) || '';
+
+  // 회원 계정으로 들어가기 — 웹 앱에서 로그인한 회원 중 서버의 ADMIN_MEMBER_IDS 에 적은 회원만 통과한다
+  const MEMBER_KEY = 'mylovecoach.admin.member';
+  const memberMode = () => sessionStorage.getItem(MEMBER_KEY) === '1';
+  const authError = (message) => Object.assign(new Error(message), { status: 401, code: 'member' });
+  let authConfig = null;
+  async function memberToken(forceRefresh = false) {
+    if (!authConfig) {
+      const r = await fetch('/api/admin?view=auth-config');
+      authConfig = await r.json().catch(() => ({}));
+    }
+    const { supabaseUrl, anonKey } = authConfig;
+    if (!supabaseUrl || !anonKey) throw authError('이 서버에는 회원 로그인이 설정돼 있지 않아요.');
+    // 웹 앱과 같은 저장 칸 (supabase-js 기본 이름: sb-<프로젝트>-auth-token)
+    const storageKey = `sb-${new URL(supabaseUrl).hostname.split('.')[0]}-auth-token`;
+    let session = null;
+    try { session = JSON.parse(localStorage.getItem(storageKey) || 'null'); } catch { session = null; }
+    if (!session || !session.access_token) throw authError('이 브라우저에서 로그인한 회원이 없어요. 웹 앱의 「마이」에서 먼저 로그인해 주세요.');
+    if (forceRefresh || !session.expires_at || session.expires_at * 1000 < Date.now() + 60_000) {
+      const r = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=refresh_token`, {
+        method: 'POST',
+        headers: { apikey: anonKey, 'content-type': 'application/json' },
+        body: JSON.stringify({ refresh_token: session.refresh_token }),
+      });
+      const next = await r.json().catch(() => null);
+      if (!r.ok || !next || !next.access_token) throw authError('로그인이 만료됐어요. 웹 앱의 「마이」에서 다시 로그인해 주세요.');
+      if (!next.expires_at && next.expires_in) next.expires_at = Math.round(Date.now() / 1000) + next.expires_in;
+      // 갱신 토큰은 한 번 쓰면 바뀌므로 웹 앱과 같은 칸·같은 모양으로 다시 저장해야 앱 쪽 로그인도 이어진다
+      try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* 저장 못 해도 이번 요청은 진행 */ }
+      session = next;
+    }
+    return session.access_token;
+  }
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const num = (n) => Number(n ?? 0).toLocaleString('ko-KR');
 
@@ -352,19 +388,25 @@
       : '<p class="muted">아직 들어온 신고가 없어요.</p>';
   }
 
-  async function api(path, body) {
+  async function api(path, body, retried = false) {
+    const member = memberMode();
+    const auth = member
+      ? { 'x-admin-member': await memberToken(retried) }
+      : { Authorization: `Bearer ${sessionStorage.getItem(KEY)}`, 'x-admin-device': deviceKey() };
     const res = await fetch(path, {
       method: body ? 'POST' : 'GET',
       headers: {
-        Authorization: `Bearer ${sessionStorage.getItem(KEY)}`,
-        'x-admin-device': deviceKey(),
+        ...auth,
         ...(body ? { 'content-type': 'application/json' } : {}),
       },
       body: body ? JSON.stringify(body) : undefined,
     });
     const data = await res.json().catch(() => ({}));
+    if (member && !retried && res.status === 401 && data.code === 'member') return api(path, body, true);
     if (!res.ok) {
-      const err = new Error(data.error || '불러오지 못했어요.');
+      const err = new Error(data.code === 'member_denied'
+        ? `${data.error} (${data.email || '이메일 없음'} · 회원 ID ${data.memberId}) — 이 회원 ID 를 Vercel 환경변수 ADMIN_MEMBER_IDS 에 넣고 다시 배포하면 들어갈 수 있어요.`
+        : data.error || '불러오지 못했어요.');
       err.status = res.status;
       err.code = data.code;
       throw err;
@@ -373,10 +415,11 @@
   }
 
   // 비밀번호·잠금 문제(401·429)일 때만 로그인 화면으로 돌아간다. 그 밖의 오류는 해당 칸에만 보여 준다
-  const isAuthError = (e) => e.status === 401 || e.status === 429;
+  const isAuthError = (e) => e.status === 401 || e.status === 429 || (e.status === 403 && e.code === 'member_denied');
 
   function logout(message) {
     sessionStorage.removeItem(KEY);
+    sessionStorage.removeItem(MEMBER_KEY);
     $('app').classList.add('hide');
     $('login').classList.remove('hide');
     $('loginErr').textContent = message;
@@ -516,7 +559,7 @@
 
   let loadSeq = 0;
   async function load() {
-    if (!sessionStorage.getItem(KEY)) return;
+    if (!sessionStorage.getItem(KEY) && !memberMode()) return;
     const seq = ++loadSeq;
     $('reload').disabled = true;
     $('days').disabled = true;
@@ -658,7 +701,14 @@
   $('loginBtn').onclick = () => {
     const v = $('token').value.trim();
     if (!v) return;
+    sessionStorage.removeItem(MEMBER_KEY);
     sessionStorage.setItem(KEY, v);
+    $('loginErr').textContent = '';
+    load();
+  };
+  $('memberBtn').onclick = () => {
+    sessionStorage.removeItem(KEY);
+    sessionStorage.setItem(MEMBER_KEY, '1');
     $('loginErr').textContent = '';
     load();
   };

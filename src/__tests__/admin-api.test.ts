@@ -156,3 +156,77 @@ describe('/api/admin', () => {
     expect(res.statusCode).toBe(500);
   });
 });
+
+describe('/api/admin 회원 계정으로 들어가기 (ADMIN_MEMBER_IDS)', () => {
+  const BOSS = '11111111-2222-3333-4444-555555555555';
+  const OTHER = '99999999-0000-0000-0000-000000000000';
+  let sessionValid = true;
+
+  beforeEach(() => {
+    sessionValid = true;
+    process.env.ADMIN_MEMBER_IDS = ` ${BOSS} , `;
+    const db = global.fetch;
+    global.fetch = jest.fn(async (url: string, init: { method?: string; headers?: Record<string, string> } = {}) => {
+      if (!String(url).endsWith('/auth/v1/user')) return db(url, init);
+      calls.push({ url: String(url), method: 'GET' });
+      const token = (init.headers?.Authorization ?? '').replace(/^Bearer /, '');
+      if (!sessionValid || !token) return { ok: false, status: 401, json: async () => ({}), text: async () => '' };
+      const user = token === 'boss-token' ? { id: BOSS, email: 'boss@example.com' } : { id: OTHER, email: 'other@example.com' };
+      return { ok: true, status: 200, json: async () => user, text: async () => JSON.stringify(user) };
+    }) as unknown as typeof fetch;
+  });
+
+  afterEach(() => {
+    delete process.env.ADMIN_MEMBER_IDS;
+    delete process.env.EXPO_PUBLIC_SUPABASE_URL;
+    delete process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+  });
+
+  it('허용한 회원은 기기 열쇠·비밀번호 없이 집계를 받는다', async () => {
+    const res = fakeRes();
+    await handler(fakeReq({ 'x-admin-member': 'boss-token' }), res as never);
+    expect(res.statusCode).toBe(200);
+    expect(calls.some((c) => c.url.includes('/rpc/admin_stats'))).toBe(true);
+  });
+
+  it('허용하지 않은 회원은 403 과 함께 목록에 넣을 그 회원 ID 를 받는다 (집계는 읽지 않음)', async () => {
+    const res = fakeRes();
+    await handler(fakeReq({ 'x-admin-member': 'other-token' }), res as never);
+    expect(res.statusCode).toBe(403);
+    expect(res.body).toMatchObject({ code: 'member_denied', memberId: OTHER, email: 'other@example.com' });
+    expect(calls.some((c) => c.url.includes('/rpc/'))).toBe(false);
+  });
+
+  it('목록이 비어 있으면 어떤 회원도 들어가지 못한다', async () => {
+    delete process.env.ADMIN_MEMBER_IDS;
+    const res = fakeRes();
+    await handler(fakeReq({ 'x-admin-member': 'boss-token' }), res as never);
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('만료되거나 가짜인 로그인 토큰은 401(member)', async () => {
+    sessionValid = false;
+    const res = fakeRes();
+    await handler(fakeReq({ 'x-admin-member': 'boss-token' }), res as never);
+    expect(res.statusCode).toBe(401);
+    expect(res.body?.code).toBe('member');
+  });
+
+  it('회원 경로에서 기기 열쇠·비밀번호를 같이 보내도 회원 확인을 건너뛰지 않는다', async () => {
+    sessionValid = false;
+    const res = fakeRes();
+    await handler(fakeReq({ 'x-admin-member': 'boss-token', 'x-admin-device': DEVICE, authorization: 'Bearer 0729' }), res as never);
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('auth-config 는 웹 번들에 이미 있는 공개 주소·공개 키만 준다', async () => {
+    process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://abcd.supabase.co/';
+    process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = 'public-anon';
+    const res = fakeRes();
+    await handler(fakeReq({}, { view: 'auth-config' }), res as never);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ supabaseUrl: 'https://abcd.supabase.co', anonKey: 'public-anon' });
+    expect(JSON.stringify(res.body)).not.toContain('service-key');
+    expect(calls).toHaveLength(0);
+  });
+});
