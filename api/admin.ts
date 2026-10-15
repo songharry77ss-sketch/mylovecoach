@@ -11,19 +11,31 @@
  *      이 값이 없으면 데이터베이스를 건드리지 않고 바로 401 (익명 요청으로 관리자를 잠그거나 비밀번호를 맞춰 볼 수 없음)
  *   ② Authorization: Bearer <ADMIN_TOKEN> — 사장님이 정한 짧은 비밀번호. 등록된 브라우저에서도 같은 IP 15분 10번 틀리면 잠시 막음
  *      (맞는 비밀번호로 들어오면 그 IP 의 기록은 지움).
- * 환경변수: ADMIN_TOKEN, ADMIN_DEVICE_SECRET, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ANALYTICS_ENABLED(표시용)
+ *   또는 ③ x-admin-member: <Supabase 로그인 토큰> — 웹 앱에서 로그인한 회원 중 ADMIN_MEMBER_IDS 에 적은 회원만 (①② 대신).
+ *      회원 확인은 Supabase Auth 가 하고, 목록에 없으면 403 과 함께 그 회원의 ID 를 알려 준다(목록에 넣을 값).
+ *   GET /api/admin?view=auth-config — 관리자 화면이 로그인을 새로 고칠 때 쓰는 Supabase 공개 주소·공개 키 (웹 번들에 이미 있는 값)
+ * 환경변수: ADMIN_TOKEN, ADMIN_DEVICE_SECRET, ADMIN_MEMBER_IDS(선택), SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ANALYTICS_ENABLED(표시용)
  */
 import { createHash, timingSafeEqual } from 'node:crypto';
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-import { clientIp } from './_limits';
-import { analyticsEnabled, DEVICE_ID, insert, query, remove, rpc, select, supabaseReady } from './_supabase';
+import { clientIp, rateLimited } from './_limits';
+import { analyticsEnabled, authUser, DEVICE_ID, insert, query, remove, rpc, select, supabaseReady } from './_supabase';
 
 export const config = { maxDuration: 30 };
 
 const IP_WINDOW_MS = 15 * 60 * 1000;
 const IP_MAX_FAILS = 10;
+/** 회원 경로는 Supabase 에 묻기 전에 같은 IP 15분 30번까지만 받는다 */
+const MEMBER_MAX_TRIES = 30;
+
+/** 관리자로 허용한 회원 ID (Supabase 회원 ID, 쉼표로 구분). 누가 관리자인지만 적은 값이라 비밀은 아니다 */
+const adminMemberIds = (): string[] =>
+  (process.env.ADMIN_MEMBER_IDS ?? '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean);
 
 interface CoachRow {
   created_at: string;
@@ -115,36 +127,35 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
   res.status(200).json({ team: await listTeam() });
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('cache-control', 'no-store');
-
+/** ①② 등록한 브라우저 + 비밀번호 */
+async function passwordGate(req: VercelRequest, res: VercelResponse): Promise<boolean> {
   const expected = process.env.ADMIN_TOKEN;
   const deviceSecret = process.env.ADMIN_DEVICE_SECRET;
   if (!expected || !deviceSecret) {
     res.status(500).json({ error: 'ADMIN_TOKEN · ADMIN_DEVICE_SECRET 환경변수가 설정되지 않았어요.' });
-    return;
+    return false;
   }
   // ① 등록된 브라우저인지 먼저 본다 — 데이터베이스를 건드리기 전에 걸러서, 익명 요청이 잠금 기록을 쌓지 못하게 한다
   const device = req.headers['x-admin-device'];
   if (typeof device !== 'string' || !sameSecret(device, deviceSecret)) {
     res.status(401).json({ error: '이 브라우저는 관리자 기기로 등록되지 않았어요. 컴퓨터에서 `node tools/admin-enroll.mjs` 로 등록 링크를 한 번 열어 주세요.', code: 'device' });
-    return;
+    return false;
   }
   // 틀린 시도를 세려면 데이터베이스가 있어야 하므로, 연결 전에는 비밀번호 확인 자체를 하지 않는다
   if (!supabaseReady()) {
     res.status(503).json({ error: 'Supabase 가 아직 연결되지 않았어요. SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 를 설정해주세요.' });
-    return;
+    return false;
   }
 
   const ip = clientIp(req);
   const gate = await loginGate(ip, Date.now());
   if (gate === 'unavailable') {
     res.status(503).json({ error: '로그인 기록 표를 읽지 못했어요. supabase/schema.sql 을 다시 실행해주세요.' });
-    return;
+    return false;
   }
   if (gate === 'locked') {
     res.status(429).json({ error: '비밀번호를 여러 번 틀려 잠시 잠겼어요. 15분 뒤에 다시 시도해주세요.' });
-    return;
+    return false;
   }
 
   // ② 비밀번호 — 주소(?token=)로는 받지 않는다 (방문 기록·로그에 남지 않게)
@@ -152,9 +163,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const provided = header.startsWith('Bearer ') ? header.slice(7) : '';
   if (!sameSecret(provided, expected)) {
     res.status(401).json({ error: '관리자 비밀번호가 올바르지 않아요.' });
-    return;
+    return false;
   }
   await remove('admin_auth_fail', `ip=eq.${encodeURIComponent(ip)}`);
+  return true;
+}
+
+/** ③ 웹 앱에서 로그인한 회원 중 ADMIN_MEMBER_IDS 에 적은 회원 */
+async function memberGate(req: VercelRequest, res: VercelResponse, token: string): Promise<boolean> {
+  if (!supabaseReady()) {
+    res.status(503).json({ error: 'Supabase 가 아직 연결되지 않았어요. SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 를 설정해주세요.' });
+    return false;
+  }
+  if (rateLimited('admin-member', clientIp(req), MEMBER_MAX_TRIES, IP_WINDOW_MS)) {
+    res.status(429).json({ error: '요청이 많아 잠시 막았어요. 15분 뒤에 다시 시도해주세요.' });
+    return false;
+  }
+  const user = await authUser(token);
+  if (!user) {
+    res.status(401).json({ error: '로그인이 만료됐어요. 웹 앱의 「마이」에서 다시 로그인해 주세요.', code: 'member' });
+    return false;
+  }
+  if (!adminMemberIds().includes(user.id)) {
+    res.status(403).json({ error: '이 계정은 아직 관리자로 허용되지 않았어요.', code: 'member_denied', memberId: user.id, email: user.email ?? null });
+    return false;
+  }
+  return true;
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('cache-control', 'no-store');
+
+  // 관리자 화면이 회원 로그인을 새로 고칠 때 쓰는 값 — 웹 번들에 이미 들어 있는 공개 주소·공개 키만 준다
+  if (req.method === 'GET' && req.query.view === 'auth-config') {
+    res.status(200).json({
+      supabaseUrl: (process.env.EXPO_PUBLIC_SUPABASE_URL ?? '').replace(/\/+$/, ''),
+      anonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '',
+    });
+    return;
+  }
+
+  const member = req.headers['x-admin-member'];
+  const allowed = typeof member === 'string' && member ? await memberGate(req, res, member) : await passwordGate(req, res);
+  if (!allowed) return;
 
   if (req.method === 'POST') {
     await handleAction(req, res);
