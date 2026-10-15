@@ -120,6 +120,12 @@
       <div id="teamList"></div>
     </div>
 
+    <div class="card" style="margin-bottom:20px">
+      <h2>KKTI 퍼짐 <span class="muted">최근 7일 · 누가 했는지 없이 횟수만 · 웹은 동의와 상관없이 · 앱은 이용 기록 동의자만</span></h2>
+      <div id="kktiSummary" class="muted" style="margin-bottom:8px"></div>
+      <div id="kktiStats" style="overflow-x:auto"></div>
+    </div>
+
     <div class="notice hide" id="analyticsNote">이용 기록 저장이 꺼져 있어요. 아래 통계는 Vercel 환경변수 <b>ANALYTICS_ENABLED=1</b> 을 켠 뒤부터 쌓여요 (스토어 개인정보 신고를 먼저 바꿔 주세요).</div>
 
     <div class="grid stats" id="stats"></div>
@@ -270,8 +276,31 @@
       : '<p class="muted">아직 등록한 팀원이 없어요.</p>';
   }
 
+  // KKTI 횟수 — 날짜별 표와, 한 명이 데려오는 사람 수(친구 링크로 완료 ÷ 전체 완료)
+  const KKTI_COLS = [['start', '시작'], ['start_friend', '친구 링크로 시작'], ['complete', '완료'], ['complete_friend', '친구 링크로 완료'], ['share', '공유'], ['open_shared', '받은 링크 열람'], ['match_view', '궁합 봄']];
+  function renderKkti(rows) {
+    if (!rows || !rows.length) {
+      $('kktiSummary').textContent = '';
+      $('kktiStats').innerHTML = '<p class="muted">아직 기록이 없어요.</p>';
+      return;
+    }
+    const byDay = {};
+    const total = {};
+    for (const r of rows) {
+      (byDay[r.day] = byDay[r.day] || {})[r.event] = r.count;
+      total[r.event] = (total[r.event] || 0) + r.count;
+    }
+    const done = (total.complete || 0) + (total.complete_friend || 0);
+    const started = (total.start || 0) + (total.start_friend || 0);
+    const k = done ? (total.complete_friend || 0) / done : 0;
+    $('kktiSummary').textContent = `완료 ${num(done)}명 (시작 ${num(started)}명 중 ${started ? Math.round((done / started) * 100) : 0}%) · 친구 링크로 온 완료 ${num(total.complete_friend || 0)}명 → 완료한 사람 중 ${(k * 100).toFixed(0)}%가 친구가 데려온 사람 · 공유 ${num(total.share || 0)}번`;
+    const days = Object.keys(byDay).sort().reverse();
+    $('kktiStats').innerHTML = `<table><thead><tr><th>날짜</th>${KKTI_COLS.map((c) => `<th class="num">${c[1]}</th>`).join('')}</tr></thead><tbody>${days.map((d) => `<tr><td>${esc(d)}</td>${KKTI_COLS.map((c) => `<td class="num">${num(byDay[d][c[0]] || 0)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  }
+
   function render(data) {
     renderTeam(data.team);
+    renderKkti(data.kkti);
     $('analyticsNote').classList.toggle('hide', data.analytics !== false);
     const s = data.stats;
     $('updated').textContent = `${new Date(data.generatedAt).toLocaleString('ko-KR')} 기준 · 최근 ${s.days}일`;

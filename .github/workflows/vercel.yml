@@ -115,4 +115,8 @@ jobs:
           pair=$(curl -sS -o /tmp/pair.png -w "%{http_code} %{content_type}" "$url/api/kkti-card?a=000006&w=9zldr5&s=story")
           echo "api/kkti-card (궁합·스토리): $pair"
           [ "$pair" = "200 image/png" ] || { echo "::error::KKTI 궁합 카드 그림 응답 실패 ($pair)"; exit 1; }
+          # KKTI 횟수 집계 함수가 배포됐는지 — GET 은 405 (POST 만 받음)
+          code=$(curl -sS -o /dev/null -w "%{http_code}" "$url/api/kkti-stat")
+          echo "api/kkti-stat (GET): $code"
+          [ "$code" = "405" ] || { echo "::error::KKTI 횟수 집계 API(/api/kkti-stat)가 없습니다 (GET 이 405 가 아님: $code)"; exit 1; }
           echo "다음 단계: node tools/set-ci-secrets.mjs --api-url $url (앱 빌드가 이 서버를 쓰도록)"
