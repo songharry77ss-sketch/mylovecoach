@@ -1,7 +1,8 @@
 /**
  * POST /api/kkti-stat { event } — KKTI 가 얼마나 퍼지는지 보는 횟수 집계.
  * 누가 했는지는 남기지 않는다: 받는 것은 정해진 이벤트 이름 하나뿐이고(기기 ID·답 코드·IP 를 저장하지 않음),
- * 날짜별 횟수 표(usage_quota, kind = 'kkti:이벤트')의 숫자만 1 올린다. 그래서 이용 기록 동의와 관계없이 센다.
+ * 날짜별 횟수 표(usage_quota, kind = 'kkti:이벤트')의 숫자만 1 올린다. 그래서 웹은 이용 기록 동의와 관계없이 센다
+ * (앱은 스토어 개인정보 신고에 맞춰 동의한 사람만 보낸다 — src/lib/kkti-stat.ts).
  * 이 표는 7일이 지나면 지워진다(purge_old_records) — 관리자 화면에서 최근 7일을 본다.
  *
  * 이벤트: start(테스트 시작) · start_friend(친구 링크로 시작) · complete(완료) · complete_friend(친구 링크로 완료)
