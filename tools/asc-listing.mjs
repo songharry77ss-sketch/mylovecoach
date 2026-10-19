@@ -121,7 +121,7 @@ async function main() {
 
   // 3) 버전(app.json) + 한국어 설명
   // 출시 방식(releaseType)은 현재 설정을 보존한다. 따로 확인·결정하지 않고 바꾸지 않는다.
-  await api('PATCH', `/v1/appStoreVersions/${version.id}`, { data: { type: 'appStoreVersions', id: version.id, attributes: { copyright: `${new Date().getFullYear()} mylovecoach` } } });
+  await api('PATCH', `/v1/appStoreVersions/${version.id}`, { data: { type: 'appStoreVersions', id: version.id, attributes: { copyright: `${new Date().getFullYear()} CRAVING` } } });
 
   let vloc;
   await step('설명·키워드·지원 URL', async () => {
