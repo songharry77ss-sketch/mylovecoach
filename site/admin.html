@@ -133,9 +133,40 @@
 
     <div class="grid stats" id="stats"></div>
 
+    <div class="card" style="margin-bottom:20px">
+      <h2>결제 흐름 <span class="muted">이 기간 · 이용 기록 수집에 동의한 사람만 · 단계마다 한 번이라도 거친 기기 수</span></h2>
+      <div class="notice hide" id="funnelNote">결제 흐름·가입자 목록을 읽지 못했어요. Supabase SQL Editor 에 <b>supabase/admin_funnel.sql</b> 을 한 번 실행해 주세요 (표는 만들지 않고 집계 함수만 추가해요).</div>
+      <div id="funnelSteps"></div>
+      <div class="grid cols" style="margin:16px 0 0">
+        <div><h2>결제 화면을 연 이유 <span class="muted">연 횟수 · 그 뒤 같은 실행에서 결제창 · 결제</span></h2><div id="funnelReasons"></div></div>
+        <div><h2>상품별 결과 <span class="muted">고름 · 결제창 · 완료 · 취소 · 오류</span></h2><div id="funnelPlans"></div></div>
+      </div>
+      <div class="grid cols" style="margin:16px 0 0">
+        <div><h2>결제 화면 직전 화면</h2><div id="funnelBefore"></div></div>
+        <div><h2>결제 화면 다음 화면</h2><div id="funnelAfter"></div></div>
+      </div>
+      <div class="grid cols" style="margin:16px 0 0">
+        <div><h2>결제 화면에서</h2><div id="funnelTime"></div></div>
+        <div><h2>결제 오류 <span class="muted">스토어가 알려 준 내용</span></h2><div id="funnelErrors"></div></div>
+      </div>
+      <div class="grid cols" style="margin:16px 0 0">
+        <div><h2>많이 다닌 길 <span class="muted">화면 → 다음 화면</span></h2><div id="funnelFlows"></div></div>
+        <div><h2>앱을 떠난 화면 <span class="muted">실행이 끝나기 직전에 보던 화면</span></h2><div id="funnelExits"></div></div>
+      </div>
+    </div>
+
     <div class="grid cols">
       <div class="card"><h2>날짜별 회원가입 <span class="muted">카카오·Google·Apple 가입</span></h2><div id="membersByDay"></div></div>
       <div class="card"><h2>가입 방법</h2><div id="membersByProvider"></div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px">
+      <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between">
+        <h2 style="margin:0">가입자 <span class="muted" id="membersCount"></span></h2>
+        <input id="memberSearch" placeholder="닉네임·이메일·가입 방법 검색" autocomplete="off" style="flex:0 1 240px" />
+      </div>
+      <p class="muted" style="margin:6px 0 10px">기간과 상관없이 최근 가입 순 · 이용 기록 동의와 상관없이 모든 회원 · 이메일은 앞 두 글자만. 「기록 보기」는 이용 기록에 동의한 회원만 있어요.</p>
+      <div id="members" style="overflow-x:auto"></div>
     </div>
 
     <div class="grid cols">
@@ -252,10 +283,17 @@
   };
   const EVENT = {
     app_open: '앱 실행', start: '첫 화면에서 시작', coach_success: '코칭 받음', coach_error: '코칭 오류', coach_blocked: '무료 횟수 소진으로 막힘',
-    ai_blocked: '무료 횟수 소진으로 막힘', paywall_open: '결제 화면 열림', purchase_start: '결제 시작', analytics_opt_in: '이용 기록 수집 켬',
+    ai_blocked: '무료 횟수 소진으로 막힘', paywall_open: '결제 화면 열림', purchase_start: '결제창 열기(스토어)', analytics_opt_in: '이용 기록 수집 켬',
+    paywall_plan: '결제 화면에서 상품 고름', paywall_close: '결제 화면 닫음', restore_start: '구매 복원 누름', restore_result: '구매 복원 결과',
+    purchase_purchased: '결제 완료 (구독·평생권)', purchase_granted: '결제 완료 (이용권)', purchase_cancelled: '결제 취소', purchase_pending: '결제 승인 대기', purchase_error: '결제 오류',
     analytics_opt_out: '이용 기록 수집 끔', signup: '회원가입', login: '로그인', logout: '로그아웃', signup_open: '가입 화면 열림', kkti_start: 'KKTI 시작', kkti_complete: 'KKTI 완료', kkti_share: 'KKTI 공유', kkti_cta: 'KKTI → 코칭',
   };
   const PROVIDER = { kakao: '카카오', google: 'Google', apple: 'Apple' };
+  // 결제 화면 (src/app/paywall.tsx 의 reason · PlanKey 와 같은 값)
+  const PAYWALL_REASON = { quota: '무료 횟수를 다 씀', regenerate: '다른 답장 더 보기', my: '마이 탭', banner: '홈 배너', report: '상대 분석 보고서', practice: '연애 연습', mind: '속마음 풀이' };
+  const PLAN = { day: '하루 이용권', weekly: '주간 구독', lifetime: '평생권', credits: '횟수권' };
+  const RESTORE = { restored: '복원됨', none: '복원할 내역 없음', error: '스토어 연결 실패' };
+  const pct = (a, b) => (b ? `${Math.round((Number(a) / Number(b)) * 100)}%` : '-');
   const START = { image: '캡처로 시작', text: '글로 시작', secret: '비밀 상담으로 시작' };
   const CHANNEL = { ios: 'App Store 앱', android: 'Play 스토어 앱', apk: 'APK 직접 설치', web: '웹 직접 방문' };
   const GENDER = { male: '남', female: '여', other: '기타' };
@@ -334,9 +372,97 @@
     $('kktiStats').innerHTML = `<table><thead><tr><th>날짜</th>${KKTI_COLS.map((c) => `<th class="num">${c[1]}</th>`).join('')}</tr></thead><tbody>${days.map((d) => `<tr><td>${esc(d)}</td>${KKTI_COLS.map((c) => `<td class="num">${num(byDay[d][c[0]] || 0)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
   }
 
+  // 결제 흐름 — 단계별 기기 수와 앞 단계·첫 단계 대비 비율
+  function renderFunnel(f, ready) {
+    $('funnelNote').classList.toggle('hide', ready !== false);
+    const ids = ['funnelSteps', 'funnelReasons', 'funnelPlans', 'funnelBefore', 'funnelAfter', 'funnelTime', 'funnelErrors', 'funnelFlows', 'funnelExits'];
+    if (!f) {
+      ids.forEach((id) => { $(id).innerHTML = '<p class="muted">-</p>'; });
+      return;
+    }
+    const steps = f.steps || [];
+    const first = Number(steps[0]?.users) || 0;
+    const max = Math.max(...steps.map((s) => Number(s.users) || 0), 1);
+    $('funnelSteps').innerHTML = `<table>
+        <thead><tr><th>단계</th><th></th><th class="num">기기</th><th class="num">앞 단계에서</th><th class="num">처음부터</th></tr></thead>
+        <tbody>${steps.map((s, i) => `<tr>
+          <td style="white-space:nowrap">${esc(s.label)}</td>
+          <td style="width:40%"><div class="bar" style="width:${Math.max(((Number(s.users) || 0) / max) * 100, 2)}%"></div></td>
+          <td class="num"><b>${num(s.users)}</b></td>
+          <td class="num">${i ? pct(s.users, steps[i - 1].users) : ''}</td>
+          <td class="num">${i ? pct(s.users, first) : ''}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+      <p class="muted" style="margin:8px 0 0">가입: 가입 화면을 연 기기 ${num(f.signup?.opened)} → 가입한 기기 ${num(f.signup?.joined)} · 단계마다 따로 센 숫자라 앞 단계를 건너뛴 사람도 들어가요(예: 웹 결제 화면).</p>`;
+
+    const reasons = f.reasons || [];
+    $('funnelReasons').innerHTML = reasons.length
+      ? `<table><thead><tr><th>이유</th><th class="num">열람</th><th class="num">결제창</th><th class="num">결제</th></tr></thead><tbody>${reasons.map((r) => `<tr>
+          <td>${esc(PAYWALL_REASON[r.reason] ?? r.reason)} <span class="muted">${num(r.users)}명</span></td>
+          <td class="num">${num(r.opens)}</td>
+          <td class="num">${num(r.tried)} <span class="muted">${pct(r.tried, r.opens)}</span></td>
+          <td class="num">${num(r.bought)} <span class="muted">${pct(r.bought, r.opens)}</span></td>
+        </tr>`).join('')}</tbody></table>`
+      : '<p class="muted">아직 기록이 없어요.</p>';
+
+    const plans = f.plans || [];
+    $('funnelPlans').innerHTML = plans.length
+      ? `<table><thead><tr><th>상품</th><th class="num">고름</th><th class="num">결제창</th><th class="num">완료</th><th class="num">취소</th><th class="num">오류</th></tr></thead><tbody>${plans.map((p) => `<tr>
+          <td>${esc(PLAN[p.plan] ?? p.plan)}</td>
+          <td class="num">${num(p.picks)}</td>
+          <td class="num">${num(p.starts)}</td>
+          <td class="num"><b>${num(p.paid)}</b> <span class="muted">${pct(p.paid, p.starts)}</span></td>
+          <td class="num">${num(p.cancelled)}</td>
+          <td class="num">${num(Number(p.errors) || 0)}${Number(p.pending) ? ` <span class="muted">대기 ${num(p.pending)}</span>` : ''}</td>
+        </tr>`).join('')}</tbody></table>
+        <p class="muted" style="margin:8px 0 0">「고름」은 1.0.4 앱부터 쌓여요 (그 전 앱은 결제창부터).</p>`
+      : '<p class="muted">아직 기록이 없어요.</p>';
+
+    const screenRows = (rows) => (rows || []).map((r) => ({ ...r, label: screenLabel(r.screen) }));
+    $('funnelBefore').innerHTML = barTable(screenRows(f.before_paywall), 'label', 'count', (r) => `${num(r.count)}번`);
+    $('funnelAfter').innerHTML = barTable(screenRows(f.after_paywall), 'label', 'count', (r) => `${num(r.count)}번`);
+
+    const t = f.paywall_time || {};
+    const c = f.closes || {};
+    const restores = (f.restores || []).map((r) => `${RESTORE[r.result] ?? r.result} ${num(r.count)}번`).join(' · ');
+    $('funnelTime').innerHTML = `<dl class="kv">
+        <dt>머문 시간</dt><dd>${num(t.visits)}번 방문 · 평균 ${secs(t.avg_sec)} · 가운데값 ${secs(t.median_sec)}</dd>
+        <dt>결제 없이 닫음</dt><dd>${num(c.count)}번${Number(c.count) ? ` · 닫기 전 평균 ${secs(c.avg_sec)} · 상품을 고른 뒤 닫음 ${num(c.after_pick)}번` : ''} <span class="muted">(1.0.4 앱부터)</span></dd>
+        <dt>구매 복원</dt><dd>${restores || '-'}</dd>
+      </dl>`;
+    $('funnelErrors').innerHTML = barTable(f.errors, 'message', 'count', (r) => `${num(r.count)}번`);
+    $('funnelFlows').innerHTML = barTable((f.flows || []).map((r) => ({ ...r, label: `${screenLabel(r.from)} → ${screenLabel(r.to)}` })), 'label', 'count', (r) => `${num(r.count)}번`);
+    $('funnelExits').innerHTML = barTable(screenRows(f.exits), 'label', 'count', (r) => `${num(r.count)}번`);
+  }
+
+  // 가입자 목록 — 검색은 화면 안에서만
+  let members = [];
+  function renderMembers() {
+    const q = $('memberSearch').value.trim().toLowerCase();
+    const rows = q
+      ? members.filter((m) => [m.nickname, m.email, PROVIDER[m.provider] ?? m.provider].some((v) => String(v ?? '').toLowerCase().includes(q)))
+      : members;
+    $('membersCount').textContent = members.length ? `${num(members.length)}명${q ? ` 중 ${num(rows.length)}명` : ''}` : '';
+    $('members').innerHTML = rows.length
+      ? `<table>
+          <thead><tr><th>닉네임</th><th>가입 방법 · 이메일</th><th>가입 → 최근 로그인</th><th class="num">기기</th><th></th></tr></thead>
+          <tbody>${rows.map((m) => `<tr>
+            <td><b>${esc(m.nickname || '(닉네임 없음)')}</b> ${m.bonus ? '<span class="pill">가입 보너스 받음</span>' : ''}</td>
+            <td>${esc(PROVIDER[m.provider] ?? m.provider)}<div class="muted">${esc(m.email || '-')}</div></td>
+            <td class="muted" style="white-space:nowrap">${when(m.created_at)}<br>→ ${when(m.last_login_at)}</td>
+            <td class="num">${num(m.devices)}</td>
+            <td class="num">${m.has_records && m.device_id ? `<button class="ghost" data-user="${esc(m.device_id)}">기록 보기</button>` : '<span class="muted">기록 없음</span>'}</td>
+          </tr>`).join('')}</tbody>
+        </table>`
+      : `<p class="muted">${members.length ? '검색 결과가 없어요.' : '아직 가입한 회원이 없어요.'}</p>`;
+  }
+
   function render(data) {
     renderTeam(data.team);
     renderKkti(data.kkti);
+    renderFunnel(data.funnel, data.funnelReady);
+    members = data.members || [];
+    renderMembers();
     $('analyticsNote').classList.toggle('hide', data.analytics !== false);
     const s = data.stats;
     $('updated').textContent = `${new Date(data.generatedAt).toLocaleString('ko-KR')} 기준 · 최근 ${s.days}일`;
@@ -604,6 +730,7 @@
     openUser(id);
   };
   $('openDeviceId').onkeydown = (e) => { if (e.key === 'Enter') $('openDeviceBtn').click(); };
+  $('memberSearch').oninput = renderMembers;
 
   async function teamAction(body, okMessage) {
     $('teamErr').textContent = '';

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -80,6 +80,9 @@ export default function Paywall() {
   // 그래서 결제·복원 결과는 버튼 바로 아래에 직접 보여 준다.
   const [notice, setNotice] = useState<{ kind: 'error' | 'info'; text: string } | null>(null);
 
+  // 결제 없이 닫았을 때 남길 것 — 머문 시간, 상품을 직접 골랐는지, 마지막 결제 결과 (이용 기록 동의자만 전송)
+  const visit = useRef({ openedAt: Date.now(), picked: false, result: 'none', done: false, plan: '' as PlanKey | '' });
+
   useEffect(() => {
     track('paywall_open', { reason });
   }, [reason]);
@@ -97,6 +100,18 @@ export default function Paywall() {
   // 비회원이면 결제보다 가입(무료 보너스)을 먼저 권한다
   const offerSignup = authAvailable && !isMember && !active && status.kind !== 'team';
   const storeName = Platform.OS === 'ios' || previewStore === 'ios' ? 'App Store' : 'Google Play';
+  visit.current.plan = chosen;
+
+  // 이미 이용 중인 사람이 확인만 하고 닫는 건 세지 않는다
+  const activeAtOpen = useRef(active);
+  useEffect(() => {
+    const v = visit.current;
+    const wasActive = activeAtOpen.current;
+    return () => {
+      if (v.done || wasActive) return;
+      track('paywall_close', { reason, plan: v.plan, sec: Math.round((Date.now() - v.openedAt) / 100) / 10, picked: v.picked, result: v.result });
+    };
+  }, [reason]);
 
   const buy = async () => {
     const product = products?.find((p) => p.plan === chosen);
@@ -108,6 +123,8 @@ export default function Paywall() {
     const outcome = await purchasePlan(product);
     setBusy(null);
     track(`purchase_${outcome.status}`, { plan: chosen, ...(outcome.status === 'error' ? { message: outcome.message } : {}) });
+    visit.current.result = outcome.status;
+    if (outcome.status === 'purchased' || outcome.status === 'granted') visit.current.done = true;
     if (outcome.status === 'purchased') {
       setPremium(outcome.premium);
       haptic.celebrate();
@@ -130,9 +147,12 @@ export default function Paywall() {
     if (busy) return;
     setBusy('restore');
     setNotice(null);
+    track('restore_start');
     const result = await restorePremium();
     setBusy(null);
+    track('restore_result', { result: result ? 'restored' : result === null ? 'none' : 'error' });
     if (result) {
+      visit.current.done = true;
       setPremium(result);
       toast.show('구매 내역을 복원했어요.', 'success');
       close();
@@ -217,6 +237,8 @@ export default function Paywall() {
                   selected={chosen === p.plan}
                   onPress={() => {
                     haptic.select();
+                    if (p.plan !== chosen) track('paywall_plan', { plan: p.plan, reason });
+                    visit.current.picked = true;
                     setSelected(p.plan);
                   }}
                   title={PLAN_TEXT[p.plan].title}

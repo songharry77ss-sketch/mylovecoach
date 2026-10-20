@@ -61,6 +61,12 @@ node tools/set-analytics-env.mjs --deploy
   처음 한 번은 버튼을 누르면 「아직 관리자로 허용되지 않았어요 (이메일 · 회원 ID …)」가 뜨니, 그 회원 ID 를 `ADMIN_MEMBER_IDS` 에 넣고 다시 배포(`gh workflow run vercel.yml`)하면 됩니다.
   회원 확인은 Supabase Auth 가 하고(같은 IP 15분 30번까지), 로그인이 만료됐으면 관리자 페이지가 웹 앱과 같은 저장 칸에서 새로 고칩니다.
   보안은 그 회원 계정(Google 계정 등)의 보안에 달려 있으니 관리자 계정은 2단계 인증을 켜 둡니다.
+- **결제 흐름 · 가입자 목록 (2026-10-20~):** 이미 schema.sql 을 실행한 DB 에는 SQL Editor 에서 [`supabase/admin_funnel.sql`](../supabase/admin_funnel.sql) 을 한 번 실행합니다
+  (표는 만들지 않고 집계 함수 `admin_funnel`·`admin_members` 만 추가). 실행 전에는 관리자 페이지가 「admin_funnel.sql 을 실행해 주세요」를 띄우고 나머지는 그대로 보여 줍니다.
+  - 결제 흐름: 앱 실행 → 첫 화면 통과 → 코칭 → 결제 화면 → 결제창(스토어) → 결제 완료 단계별 기기 수, 결제 화면을 연 이유별·상품별 결과, 결제 화면 앞뒤 화면·머문 시간, 많이 다닌 길, 앱을 떠난 화면.
+    **이용 기록 수집에 동의한 기기만** 들어 있어 전체 이용자 수가 아니다 — 전체 매출·구매 수는 App Store Connect·Play Console 에서 본다.
+  - 상품 고름(`paywall_plan`)·결제 없이 닫음(`paywall_close`)·구매 복원(`restore_start`·`restore_result`)은 1.0.4 앱부터 쌓인다.
+  - 가입자 목록: 이용 기록 동의와 상관없이 모든 회원(가입 방법·닉네임·앞 두 글자만 보이는 이메일·가입일·최근 로그인·기기 수). 전체 이메일은 「기록 보기」 상세에서만.
 
 ## 3-1. 팀원 무제한
 
