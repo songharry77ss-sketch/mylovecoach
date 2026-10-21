@@ -4,7 +4,7 @@
  */
 import { generateKeyPairSync, verify } from 'node:crypto';
 
-import handler from '../../api/member';
+import handler, { signupPlatform, sourceText } from '../../api/member';
 import { APPLE_REVOKE_TIMEOUT_MS, appleClientSecret, appleUserId, kakaoUserId, revokeApple } from '../../api/_unlink';
 
 interface FakeRes {
@@ -79,6 +79,8 @@ beforeEach(() => {
   delete process.env.APPLE_KEY_ID;
   delete process.env.APPLE_PRIVATE_KEY;
   delete process.env.APPLE_CLIENT_ID;
+  delete process.env.TELEGRAM_BOT_TOKEN;
+  delete process.env.TELEGRAM_CHAT_ID;
   global.fetch = jest.fn(async (url: string, init: { method?: string; body?: string; headers?: Record<string, string> } = {}) => {
     const u = String(url);
     const method = init.method ?? 'GET';
@@ -113,6 +115,126 @@ it('POST /api/member는 Google의 기본 프로필·이메일로 회원을 연�
   const linked = calls.find((c) => c.url.endsWith('/rest/v1/rpc/member_link'));
   expect(JSON.parse(linked?.body ?? '{}')).toMatchObject({ p_user: USER_ID, p_provider: 'google', p_nickname: '테스트 회원', p_email: 'member@example.test' });
   expect(res.body).toMatchObject({ bonus: true, member: { provider: 'google', nickname: '테스트 회원' } });
+});
+
+describe('가입 알림 (운영자 텔레그램)', () => {
+  let linkNew = true;
+  let sourceRows: unknown[] | null = [];
+  const telegramTexts = () => calls.filter((c) => c.url.startsWith('https://api.telegram.org/')).map((c) => String(JSON.parse(c.body ?? '{}').text));
+
+  beforeEach(() => {
+    linkNew = true;
+    sourceRows = [{ source: 'instagram', source_detail: { medium: 'social', campaign: 'launch<1021>' }, platform: 'ios' }];
+    process.env.TELEGRAM_BOT_TOKEN = 'bot-token';
+    process.env.TELEGRAM_CHAT_ID = '777';
+    const base = global.fetch as jest.Mock;
+    const original = base.getMockImplementation()!;
+    base.mockImplementation(async (url: string, init: { method?: string; body?: string; headers?: Record<string, string> } = {}) => {
+      const u = String(url);
+      if (u.endsWith('/rest/v1/rpc/member_link')) {
+        calls.push({ url: u, method: 'POST', body: init.body });
+        return { ok: true, status: 200, text: async () => JSON.stringify({ new: linkNew, bonus: linkNew, provider: 'kakao', nickname: '<민수>', created_at: '2026-10-21T00:00:00Z' }) };
+      }
+      if (u.includes('/rest/v1/app_user?')) {
+        calls.push({ url: u, method: 'GET' });
+        return sourceRows ? { ok: true, status: 200, json: async () => sourceRows } : { ok: false, status: 500, text: async () => 'boom' };
+      }
+      if (u.includes('/rest/v1/member?')) {
+        calls.push({ url: u, method: 'GET', headers: init.headers });
+        const total = u.includes('created_at=gte.') ? 3 : 120;
+        return { ok: true, status: 206, headers: { get: (k: string) => (k === 'content-range' ? `0-0/${total}` : null) }, json: async () => [] };
+      }
+      if (u.startsWith('https://api.telegram.org/')) {
+        calls.push({ url: u, method: 'POST', body: init.body });
+        return { ok: true, status: 200, json: async () => ({ ok: true }) };
+      }
+      return original(url, init);
+    });
+  });
+
+  afterEach(() => {
+    delete process.env.TELEGRAM_BOT_TOKEN;
+    delete process.env.TELEGRAM_CHAT_ID;
+  });
+
+  const signup = async (headers: Record<string, string> = {}, body: Record<string, unknown> = { deviceId: 'd_signup_1' }) => {
+    user = { ...kakaoUser, email: 'minsu@example.com', user_metadata: { nickname: '<민수>' } };
+    const res = fakeRes();
+    await handler({ method: 'POST', body, query: {}, headers: { authorization: 'Bearer user-token', ...headers } } as never, res as never);
+    return res;
+  };
+
+  it('처음 가입하면 닉네임·이메일·가입 방법·기기·유입 경로·보너스·오늘/누적 수를 알린다 (이용자 값은 escape)', async () => {
+    const res = await signup({ 'user-agent': 'mylovecoach/124 CFNetwork/1568.100.1 Darwin/24.0.0' });
+    expect(res.statusCode).toBe(200);
+    const texts = telegramTexts();
+    expect(texts).toHaveLength(1);
+    expect(texts[0]).toBe(
+      [
+        '🎉 새 회원가입 (오늘 3번째 · 누적 120명)',
+        '👤 &lt;민수&gt; · minsu@example.com',
+        '🔑 카카오 · 📱 iOS 앱',
+        '🧭 유입: instagram · social · launch&lt;1021&gt;',
+        '🎁 가입 보너스 지급',
+      ].join('\n'),
+    );
+    // 유입 경로는 이 기기의 이용 기록에서, 회원 수는 count=exact 로 센다
+    expect(calls.some((c) => c.url.includes('/rest/v1/app_user?select=source,source_detail,platform&device_id=eq.d_signup_1'))).toBe(true);
+    const count = calls.find((c) => c.url.includes('/rest/v1/member?') && !c.url.includes('created_at'));
+    expect(count?.headers).toMatchObject({ Prefer: 'count=exact', Range: '0-0' });
+    expect(count?.url).toContain('provider=not.is.null');
+  });
+
+  it('이용 기록에 동의하지 않은 기기는 유입 경로를 「미동의」로, 기기 종류는 user-agent 로 짐작한다', async () => {
+    sourceRows = [];
+    await signup({ 'user-agent': 'okhttp/4.12.0' });
+    expect(telegramTexts()[0]).toContain('📱 Android 앱');
+    expect(telegramTexts()[0]).toContain('🧭 유입: 알 수 없음 (이용 기록 미동의)');
+  });
+
+  it('이미 가입한 회원의 로그인은 알리지 않고, 알림을 위한 조회도 하지 않는다', async () => {
+    linkNew = false;
+    const res = await signup();
+    expect(res.statusCode).toBe(200);
+    expect(telegramTexts()).toHaveLength(0);
+    expect(calls.some((c) => c.url.includes('/rest/v1/app_user?') || c.url.includes('/rest/v1/member?'))).toBe(false);
+  });
+
+  it('텔레그램을 설정하지 않았으면 유입 경로를 읽지도 않는다', async () => {
+    delete process.env.TELEGRAM_BOT_TOKEN;
+    await signup();
+    expect(calls.some((c) => c.url.includes('/rest/v1/app_user?') || c.url.startsWith('https://api.telegram.org/'))).toBe(false);
+  });
+
+  it('텔레그램이 실패해도 가입 응답은 그대로 200', async () => {
+    const base = global.fetch as jest.Mock;
+    const original = base.getMockImplementation()!;
+    base.mockImplementation(async (url: string, init: never) => {
+      if (String(url).startsWith('https://api.telegram.org/')) throw new Error('network');
+      return original(url, init);
+    });
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const res = await signup();
+    warn.mockRestore();
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({ new: true, bonus: true });
+  });
+
+  it('기기 종류: 앱이 보낸 platform 이 먼저, 브라우저는 웹', () => {
+    expect(signupPlatform('okhttp/4.12.0', 'ios')).toBe('ios');
+    expect(signupPlatform('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15')).toBe('web');
+    expect(signupPlatform('Mozilla/5.0 (Linux; Android 14) Chrome/130.0')).toBe('web');
+    expect(signupPlatform('mylovecoach/124 CFNetwork/1568 Darwin/24.0.0')).toBe('ios');
+    expect(signupPlatform('okhttp/4.12.0')).toBe('android');
+    expect(signupPlatform(undefined)).toBeNull();
+  });
+
+  it('유입 경로 문구', () => {
+    expect(sourceText(null, 'no-device')).toBe('알 수 없음 (기기 정보 없음)');
+    expect(sourceText(null, 'failed')).toBe('알 수 없음 (조회 실패)');
+    expect(sourceText({ source: null, source_detail: null, platform: 'web' }, 'ok')).toBe('알 수 없음 (경로 기록 없음)');
+    expect(sourceText({ source: 'ios', source_detail: { channel: 'ios' }, platform: 'ios' }, 'ok')).toBe('ios');
+  });
 });
 
 describe('DELETE /api/member (회원 탈퇴)', () => {

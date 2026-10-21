@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -13,6 +13,7 @@ import { Radius, Spacing } from '@/constants/theme';
 import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
+import { STORE_LABEL, STORE_URL, downloadDevice, type DownloadStore } from '@/lib/app-download';
 import { billingSupported, purchasePlan, restorePremium, type PlanProduct } from '@/lib/billing/iap';
 import { CREDITS_PER_PACK, FALLBACK_PRICES, PRODUCT_IDS, SIGNUP_BONUS, freeRules, isConsumablePlan, type PlanKey } from '@/lib/billing/plans';
 import { isPremiumActive, quotaLabel, quotaStatus } from '@/lib/billing/quota';
@@ -80,6 +81,9 @@ export default function Paywall() {
   // 그래서 결제·복원 결과는 버튼 바로 아래에 직접 보여 준다.
   const [notice, setNotice] = useState<{ kind: 'error' | 'info'; text: string } | null>(null);
 
+  // 결제 없이 닫았을 때 남길 것 — 머문 시간, 상품을 직접 골랐는지, 마지막 결제 결과 (이용 기록 동의자만 전송)
+  const visit = useRef({ openedAt: Date.now(), picked: false, result: 'none', done: false, plan: '' as PlanKey | '' });
+
   useEffect(() => {
     track('paywall_open', { reason });
   }, [reason]);
@@ -97,6 +101,18 @@ export default function Paywall() {
   // 비회원이면 결제보다 가입(무료 보너스)을 먼저 권한다
   const offerSignup = authAvailable && !isMember && !active && status.kind !== 'team';
   const storeName = Platform.OS === 'ios' || previewStore === 'ios' ? 'App Store' : 'Google Play';
+  visit.current.plan = chosen;
+
+  // 이미 이용 중인 사람이 확인만 하고 닫는 건 세지 않는다
+  const activeAtOpen = useRef(active);
+  useEffect(() => {
+    const v = visit.current;
+    const wasActive = activeAtOpen.current;
+    return () => {
+      if (v.done || wasActive) return;
+      track('paywall_close', { reason, plan: v.plan, sec: Math.round((Date.now() - v.openedAt) / 100) / 10, picked: v.picked, result: v.result });
+    };
+  }, [reason]);
 
   const buy = async () => {
     const product = products?.find((p) => p.plan === chosen);
@@ -108,6 +124,8 @@ export default function Paywall() {
     const outcome = await purchasePlan(product);
     setBusy(null);
     track(`purchase_${outcome.status}`, { plan: chosen, ...(outcome.status === 'error' ? { message: outcome.message } : {}) });
+    visit.current.result = outcome.status;
+    if (outcome.status === 'purchased' || outcome.status === 'granted') visit.current.done = true;
     if (outcome.status === 'purchased') {
       setPremium(outcome.premium);
       haptic.celebrate();
@@ -130,9 +148,12 @@ export default function Paywall() {
     if (busy) return;
     setBusy('restore');
     setNotice(null);
+    track('restore_start');
     const result = await restorePremium();
     setBusy(null);
+    track('restore_result', { result: result ? 'restored' : result === null ? 'none' : 'error' });
     if (result) {
+      visit.current.done = true;
       setPremium(result);
       toast.show('구매 내역을 복원했어요.', 'success');
       close();
@@ -176,6 +197,8 @@ export default function Paywall() {
       {offerSignup ? (
         <SignupCard
           onDone={(result) => {
+            // 결제 없이 닫히지만 가입으로 끝났다는 걸 남긴다
+            visit.current.result = 'signup';
             haptic.celebrate();
             close();
             toast.show(result.bonus ? `가입 완료! 무료 코칭 ${SIGNUP_BONUS}회를 받았어요 🎁` : '로그인했어요.', 'success');
@@ -217,6 +240,8 @@ export default function Paywall() {
                   selected={chosen === p.plan}
                   onPress={() => {
                     haptic.select();
+                    if (p.plan !== chosen) track('paywall_plan', { plan: p.plan, reason });
+                    visit.current.picked = true;
                     setSelected(p.plan);
                   }}
                   title={PLAN_TEXT[p.plan].title}
@@ -243,14 +268,7 @@ export default function Paywall() {
           </AppText>
         </>
       ) : (
-        <View style={[styles.webNotice, { backgroundColor: theme.primarySoft }]}>
-          <AppText variant="smallStrong" align="center">
-            프리미엄은 앱에서 시작할 수 있어요
-          </AppText>
-          <AppText variant="caption" color="textSecondary" align="center">
-            iPhone · Android 앱에서 이용권을 결제하면 횟수 제한 없이 코칭받을 수 있어요. 웹에서는 {authAvailable ? '가입하면 ' : ''}매일 무료 코칭이 충전돼요.
-          </AppText>
-        </View>
+        <AppDownload reason={reason} />
       )}
 
       <View style={styles.links}>
@@ -296,6 +314,57 @@ function fineText(plan: PlanKey, price: string, storeName: string): string {
   const common = '자동으로 다시 결제되지 않고, 결제한 이 기기에서 쓸 수 있어요 (다른 기기로 옮기거나 복원되지 않아요).';
   if (plan === 'day') return `하루 이용권은 ${price} 1회 결제로 결제한 때부터 24시간 동안 무제한이에요. 이미 이용 중이면 24시간이 이어서 늘어나요. ${common}`;
   return `횟수권은 ${price} 1회 결제로 코칭 ${CREDITS_PER_PACK}회가 충전되고 기간 제한이 없어요. 무료 횟수를 먼저 쓰고 그다음 횟수권이 차감돼요. ${common}`;
+}
+
+/**
+ * 웹에는 결제가 없으니 보고 있는 기기에 맞는 스토어로 앱 받기를 권한다.
+ * 아이폰·아이패드는 App Store, 안드로이드는 Google Play 버튼 하나, 컴퓨터는 둘을 나란히.
+ */
+function AppDownload({ reason }: { reason: Reason }) {
+  const theme = useTheme();
+  const toast = useToast();
+  const [device] = useState(downloadDevice);
+  const desktop = device === 'desktop';
+  const stores: DownloadStore[] = desktop ? ['ios', 'android'] : [device];
+
+  const open = (store: DownloadStore) => {
+    track('app_download_click', { store, reason });
+    Linking.openURL(STORE_URL[store]).catch(() => toast.show(`${STORE_LABEL[store]}를 열지 못했어요.`, 'error'));
+  };
+
+  return (
+    <View style={styles.download}>
+      <View style={[styles.webNotice, { backgroundColor: theme.primarySoft }]}>
+        <AppText variant="smallStrong" align="center">
+          이용권은 앱에서 결제할 수 있어요
+        </AppText>
+        <AppText variant="caption" color="textSecondary" align="center">
+          {desktop ? '휴대폰에 앱을 받아' : `${STORE_LABEL[device]}에서 앱을 받아`} 결제하면 횟수 제한 없이 바로 이어서 코칭받을 수 있어요.
+        </AppText>
+      </View>
+      <View style={desktop ? styles.storeRow : null}>
+        {stores.map((store) => (
+          <Button
+            key={store}
+            title={desktop ? STORE_LABEL[store] : `${STORE_LABEL[store]}에서 앱 받기`}
+            icon={<Ionicons name={store === 'ios' ? 'logo-apple' : 'logo-google-playstore'} size={18} color={theme.primaryText} />}
+            onPress={() => open(store)}
+            style={desktop ? styles.storeButton : undefined}
+          />
+        ))}
+      </View>
+      {desktop ? (
+        <AppText variant="caption" color="textSecondary" align="center">
+          휴대폰에서 이 페이지를 열면 기기에 맞는 스토어로 바로 안내해 드려요.
+        </AppText>
+      ) : null}
+      {Platform.OS === 'web' ? (
+        <AppText variant="caption" color="textTertiary" align="center">
+          웹에서도 {authAvailable ? '가입하면 ' : ''}매일 무료 코칭이 충전돼요.
+        </AppText>
+      ) : null}
+    </View>
+  );
 }
 
 interface PlanCardProps {
@@ -357,7 +426,10 @@ const styles = StyleSheet.create({
   badge: { paddingHorizontal: Spacing.sm, paddingVertical: 2, borderRadius: Radius.pill },
   fine: { marginTop: -Spacing.sm },
   notice: { borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
+  download: { gap: Spacing.md },
   webNotice: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.xs },
+  storeRow: { flexDirection: 'row', gap: Spacing.sm },
+  storeButton: { flex: 1 },
   links: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.lg, flexWrap: 'wrap' },
   statusPill: { paddingHorizontal: Spacing.md, paddingVertical: 4, borderRadius: Radius.pill, marginTop: Spacing.xs },
 });

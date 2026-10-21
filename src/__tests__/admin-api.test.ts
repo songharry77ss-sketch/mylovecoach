@@ -33,6 +33,13 @@ const calls: { url: string; method: string }[] = [];
 let failRows = 0;
 /** ai_report 표가 아직 없는 DB 흉내 (스키마 조각을 실행하기 전) */
 let reportTableMissing = false;
+/** 결제 흐름 함수(admin_funnel.sql)를 아직 실행하지 않은 DB 흉내 */
+let funnelMissing = false;
+const FUNNEL = { days: 7, steps: [{ key: 'open', label: '앱 실행', users: 3 }] };
+// 운영자 전용 목록이라 이메일은 전체 주소, 이용 현황은 이용 기록 동의 기기 합계 (admin_members)
+const MEMBERS = [
+  { provider: 'kakao', nickname: '민수', email: 'minsu@kakao.com', devices: 1, device_id: 'd_abcdef', has_records: true, sessions: 3, total_sec: 125, coach_count: 2, source: 'instagram' },
+];
 const REPORTS = [{ id: 1, created_at: '2026-10-07T10:00:00Z', mode: 'practice', reason: 'sexual', note: null, content: '연습 상대 「민준」: …', model: 'google/relay', platform: 'android', app_version: '1.0.0', status: 'new' }];
 
 function fakeReq(headers: Record<string, string>, query: Record<string, string> = {}, method = 'GET') {
@@ -43,6 +50,7 @@ beforeEach(() => {
   calls.length = 0;
   failRows = 0;
   reportTableMissing = false;
+  funnelMissing = false;
   process.env.SUPABASE_URL = 'https://db.example';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
   process.env.ADMIN_TOKEN = '0729';
@@ -53,10 +61,15 @@ beforeEach(() => {
     const u = String(url);
     if (u.includes('/rest/v1/admin_auth_fail') && method === 'POST') failRows += 1;
     if (u.includes('/rest/v1/ai_report') && reportTableMissing) return { ok: false, status: 404, text: async () => 'relation "ai_report" does not exist', json: async () => ({}) };
+    if (/\/rpc\/admin_(funnel|members)/.test(u) && funnelMissing) return { ok: false, status: 404, text: async () => 'Could not find the function public.admin_funnel', json: async () => ({}) };
     const json = u.includes('/rest/v1/admin_auth_fail')
       ? Array.from({ length: failRows }, (_, i) => ({ id: i }))
       : u.includes('/rpc/admin_stats')
         ? { days: 7 }
+        : u.includes('/rpc/admin_funnel')
+          ? FUNNEL
+          : u.includes('/rpc/admin_members')
+            ? MEMBERS
         : u.includes('/rest/v1/ai_report')
           ? REPORTS
           : [];
@@ -118,6 +131,29 @@ describe('/api/admin', () => {
     expect(res.body?.reports).toEqual([]);
     // 관리자 페이지는 「아직 신고가 없어요」 대신 ai_report.sql 을 실행하라고 알린다
     expect(res.body?.reportsReady).toBe(false);
+  });
+
+  it('기본 응답에 결제 흐름과 가입자 목록을 함께 돌려준다 (기간은 집계와 같게)', async () => {
+    const res = fakeRes();
+    await handler(fakeReq({ 'x-admin-device': DEVICE, authorization: 'Bearer 0729' }, { days: '30' }), res as never);
+    expect(res.statusCode).toBe(200);
+    expect(res.body?.funnel).toEqual(FUNNEL);
+    expect(res.body?.members).toEqual(MEMBERS);
+    expect(res.body?.funnelReady).toBe(true);
+    expect(calls.some((c) => c.url.includes('/rpc/admin_funnel'))).toBe(true);
+    expect(calls.some((c) => c.url.includes('/rpc/admin_members'))).toBe(true);
+  });
+
+  it('결제 흐름 함수를 아직 실행하지 않은 DB 여도 나머지 화면은 열리고, 실행하라는 표시를 준다', async () => {
+    funnelMissing = true;
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const res = fakeRes();
+    await handler(fakeReq({ 'x-admin-device': DEVICE, authorization: 'Bearer 0729' }), res as never);
+    warn.mockRestore();
+    expect(res.statusCode).toBe(200);
+    expect(res.body?.funnel).toBeNull();
+    expect(res.body?.members).toEqual([]);
+    expect(res.body?.funnelReady).toBe(false);
   });
 
   it('「기록 삭제」는 void 함수의 본문 없는 204 응답에도 성공한다 (예전에는 지우고도 502)', async () => {

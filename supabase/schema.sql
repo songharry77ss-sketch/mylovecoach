@@ -535,6 +535,7 @@ comment on function delete_device is '기기 ID 하나의 이용 기록 삭제 (
 
 -- ── 1년 지난 이용 기록 파기 (처리방침 4번 「1년이 지나면 파기」) ─
 -- AI 답변 신고는 아래 purge_ai_report() 가 따로 지운다 — 이 함수는 브랜치마다 본문이 달라 다시 만들 때 줄이 사라질 수 있어서
+-- (스토어 결제 알림 store_event 도 같은 이유로 파일 끝의 purge_store_event() 가 따로 지운다)
 create or replace function purge_old_records()
 returns void
 language sql
@@ -604,13 +605,247 @@ begin
   perform cron.schedule('mylovecoach-purge-report', '35 18 * * *', 'select public.purge_ai_report()');
 end $$;
 
+-- ── 결제 흐름: 앱 실행 → 시작 → 코칭 → 결제 화면 → 결제창(스토어) → 결제 완료 ─
+-- 이용 기록에 동의한 기기만 들어 있다 (전체 이용자가 아님)
+create or replace function admin_funnel(p_days int default 7)
+returns json
+language sql
+security definer
+set search_path = public
+as $$
+  -- 「오늘」(1일)은 한국 시간 자정부터, 그 밖은 지금부터 N일 전부터 (admin_stats 와 같은 기준)
+  with span as (
+    select case when p_days <= 1 then date_trunc('day', now() at time zone 'Asia/Seoul') at time zone 'Asia/Seoul'
+                else now() - make_interval(days => p_days) end as since
+  ), ev as (
+    select e.device_id, e.session_id, e.name, e.props, e.created_at
+    from app_event e, span where e.created_at >= span.since
+  ), sv as (
+    select v.id, v.device_id, v.session_id, screen_name(v.screen) as screen, v.duration_ms, v.created_at,
+           lag(screen_name(v.screen)) over (partition by v.device_id, v.session_id order by v.created_at, v.id) as before
+    from screen_view v, span where v.created_at >= span.since
+  ), runs as (
+    -- 앱을 잠깐 내렸다 올리면 같은 화면이 연달아 기록된다 → 한 번 머문 것으로 묶어 앞뒤 화면을 본다
+    select device_id, session_id, screen, created_at,
+           lag(screen)  over w as prev_screen,
+           lead(screen) over w as next_screen
+    from sv where before is distinct from screen
+    window w as (partition by device_id, session_id order by created_at, id)
+  ), open_rows as (
+    select o.device_id, o.session_id, o.created_at, o.props,
+           lead(o.created_at) over (partition by o.device_id, o.session_id order by o.created_at) as next_open
+    from ev o where o.name = 'paywall_open'
+  ), opens as (
+    -- 결제 화면을 연 한 번 한 번 — 같은 세션에서 그 뒤(다음에 다시 열기 전까지) 결제창을 열었는지·결제했는지
+    select o.device_id, coalesce(nullif(o.props->>'reason', ''), '(모름)') as reason,
+           exists (select 1 from ev p where p.device_id = o.device_id and p.session_id is not distinct from o.session_id
+                   and p.name = 'purchase_start' and p.created_at >= o.created_at
+                   and (o.next_open is null or p.created_at < o.next_open)) as tried,
+           exists (select 1 from ev p where p.device_id = o.device_id and p.session_id is not distinct from o.session_id
+                   and p.name in ('purchase_purchased', 'purchase_granted') and p.created_at >= o.created_at
+                   and (o.next_open is null or p.created_at < o.next_open)) as bought
+    from open_rows o
+  ), visits as (
+    -- 결제 화면에 머문 시간 (실행(세션)마다 합침 — 결제 시트가 떠 있는 동안 기록이 나뉘어도 한 번으로)
+    select device_id, session_id, sum(coalesce(duration_ms, 0)) as ms
+    from sv where screen = '/paywall' group by 1, 2
+  )
+  select json_build_object(
+    'days', p_days,
+    'steps', json_build_array(
+      json_build_object('key', 'open',    'label', '앱 실행',            'users', (select count(distinct s.device_id) from app_session s, span where s.started_at >= span.since)),
+      json_build_object('key', 'start',   'label', '첫 화면 통과',       'users', (select count(distinct device_id) from ev where name = 'start')),
+      json_build_object('key', 'coach',   'label', '코칭 1회 이상',      'users', (select count(distinct c.device_id) from coach_log c, span where c.created_at >= span.since)),
+      json_build_object('key', 'paywall', 'label', '결제 화면 열람',     'users', (select count(distinct device_id) from ev where name = 'paywall_open')),
+      json_build_object('key', 'try',     'label', '결제창 진입(스토어)', 'users', (select count(distinct device_id) from ev where name = 'purchase_start')),
+      json_build_object('key', 'paid',    'label', '결제 완료',          'users', (select count(distinct device_id) from ev where name in ('purchase_purchased', 'purchase_granted')))
+    ),
+    'signup', json_build_object(
+      'opened', (select count(distinct device_id) from ev where name = 'signup_open'),
+      'joined', (select count(distinct device_id) from ev where name = 'signup')
+    ),
+    'reasons', (
+      select coalesce(json_agg(row_to_json(r) order by r.opens desc), '[]'::json) from (
+        select reason, count(*) as opens, count(distinct device_id) as users,
+               count(*) filter (where tried) as tried, count(*) filter (where bought) as bought
+        from opens group by 1
+      ) r
+    ),
+    'plans', (
+      select coalesce(json_agg(row_to_json(p) order by p.starts desc, p.picks desc), '[]'::json) from (
+        select coalesce(nullif(props->>'plan', ''), '(모름)') as plan,
+               count(*) filter (where name = 'paywall_plan')                                    as picks,
+               count(*) filter (where name = 'purchase_start')                                  as starts,
+               count(*) filter (where name in ('purchase_purchased', 'purchase_granted'))       as paid,
+               count(*) filter (where name = 'purchase_cancelled')                              as cancelled,
+               count(*) filter (where name = 'purchase_pending')                                as pending,
+               count(*) filter (where name = 'purchase_error')                                  as errors
+        from ev where name = 'paywall_plan' or name like 'purchase\_%'
+        group by 1
+      ) p
+    ),
+    'errors', (
+      select coalesce(json_agg(row_to_json(x) order by x.count desc), '[]'::json) from (
+        select coalesce(nullif(props->>'message', ''), '(내용 없음)') as message, count(*) as count
+        from ev where name = 'purchase_error' group by 1 order by 2 desc limit 10
+      ) x
+    ),
+    'paywall_time', (
+      select json_build_object(
+        'visits', count(*),
+        'avg_sec', round(coalesce(avg(ms), 0) / 1000.0, 1),
+        'median_sec', round(coalesce(percentile_cont(0.5) within group (order by ms), 0)::numeric / 1000.0, 1)
+      ) from visits
+    ),
+    'closes', (
+      select json_build_object(
+        'count', count(*),
+        'avg_sec', round(coalesce(avg(case when props->>'sec' ~ '^[0-9]+(\.[0-9]+)?$' then (props->>'sec')::numeric end), 0), 1),
+        'after_pick', count(*) filter (where props->>'picked' = 'true')
+      ) from ev where name = 'paywall_close'
+    ),
+    'restores', (
+      select coalesce(json_agg(row_to_json(x) order by x.count desc), '[]'::json) from (
+        select coalesce(nullif(props->>'result', ''), '(모름)') as result, count(*) as count
+        from ev where name = 'restore_result' group by 1
+      ) x
+    ),
+    'before_paywall', (
+      select coalesce(json_agg(row_to_json(x) order by x.count desc), '[]'::json) from (
+        select coalesce(prev_screen, '(앱 시작)') as screen, count(*) as count
+        from runs where screen = '/paywall' group by 1 order by 2 desc limit 8
+      ) x
+    ),
+    'after_paywall', (
+      select coalesce(json_agg(row_to_json(x) order by x.count desc), '[]'::json) from (
+        select coalesce(next_screen, '(앱을 떠남)') as screen, count(*) as count
+        from runs where screen = '/paywall' group by 1 order by 2 desc limit 8
+      ) x
+    ),
+    'exits', (
+      select coalesce(json_agg(row_to_json(x) order by x.count desc), '[]'::json) from (
+        select screen, count(*) as count from runs where next_screen is null group by 1 order by 2 desc limit 10
+      ) x
+    ),
+    'flows', (
+      select coalesce(json_agg(row_to_json(x) order by x.count desc), '[]'::json) from (
+        select prev_screen as "from", screen as "to", count(*) as count
+        from runs where prev_screen is not null group by 1, 2 order by 3 desc limit 15
+      ) x
+    )
+  );
+$$;
+
+comment on function admin_funnel is '관리자 결제 흐름 — 단계별 기기 수·결제 화면 진입 이유·상품별 결과·체류·앞뒤 화면·이탈 화면 (이용 기록 동의자만)';
+
+-- ── 가입자 목록 (카카오·Google·Apple 로 가입한 회원, 최근 가입 순) ─────────
+-- 운영자(사업자)만 보는 목록이라 이메일은 가리지 않고 전체 주소를 내보낸다.
+-- 이 함수는 서버(service_role)만 부를 수 있다 (맨 아래 revoke) — 앱·웹의 공개 키로는 부르지 못한다.
+-- 이용 현황(실행·체류·코칭·최근 이용·유입)은 이 회원과 이어진(app_user.user_id) 이용 기록 동의 기기를 모두 합친 값
+create or replace function admin_members(p_limit int default 500)
+returns json
+language sql
+security definer
+set search_path = public
+as $$
+  select coalesce(json_agg(row_to_json(r) order by r.created_at desc), '[]'::json) from (
+    select m.provider, m.nickname,
+           m.email,   -- 운영자 전용 · 전체 주소 (Apple 은 가린 주소일 수 있음)
+           m.created_at, m.last_login_at, m.bonus_at is not null as bonus,
+           (select count(*) from member_device d where d.user_id = m.user_id) as devices,
+           latest.device_id,
+           latest.device_id is not null as has_records,
+           latest.last_seen_at,
+           latest.premium_plan,
+           origin.source, origin.source_detail, origin.platform,
+           (select count(*) from app_session s join app_user a on a.device_id = s.device_id where a.user_id = m.user_id)              as sessions,
+           (select round(coalesce(sum(v.duration_ms), 0) / 1000.0) from screen_view v join app_user a on a.device_id = v.device_id
+             where a.user_id = m.user_id)                                                                                           as total_sec,
+           (select count(*) from coach_log c join app_user a on a.device_id = c.device_id where a.user_id = m.user_id)                as coach_count
+    from member m
+    -- 이 회원과 이어진 이용 기록(동의한 기기) 중 가장 최근 것 — 없으면 기기 ID 를 내보내지 않는다 (「기록 보기」는 이 기기)
+    left join lateral (
+      select a.device_id, a.last_seen_at, a.premium_plan from app_user a where a.user_id = m.user_id order by a.last_seen_at desc limit 1
+    ) latest on true
+    -- 처음 기록된 기기의 유입 경로 (utm·이전 사이트·설치 경로)
+    left join lateral (
+      select a.source, a.source_detail, a.platform from app_user a where a.user_id = m.user_id order by a.first_seen_at limit 1
+    ) origin on true
+    where m.provider is not null
+    order by m.created_at desc
+    limit greatest(least(p_limit, 2000), 1)
+  ) r;
+$$;
+
+comment on function admin_members is '관리자 가입자 목록 (가입 방법·닉네임·전체 이메일·가입일·최근 로그인·기기 수·유입·실행/체류/코칭 — 운영자 전용, service_role 만)';
+
 -- ── 관리자 함수는 서버(service_role)만 부를 수 있게 ──────────────────
 do $$
 begin
-  revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text), delete_device(text), purge_old_records(),
+  revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text), admin_funnel(int), admin_members(int), delete_device(text), purge_old_records(),
     take_quota(text, int, bigint), member_link(uuid, text, text, text, text), member_delete(uuid), app_user_member() from public;
   if exists (select 1 from pg_roles where rolname = 'anon') then
-    revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text), delete_device(text), purge_old_records(),
+    revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text), admin_funnel(int), admin_members(int), delete_device(text), purge_old_records(),
       take_quota(text, int, bigint), member_link(uuid, text, text, text, text), member_delete(uuid), app_user_member() from anon, authenticated;
   end if;
+end $$;
+
+-- ── 스토어 결제 알림 기록 (App Store 서버 알림·Google Play 실시간 알림 — supabase/store_event.sql 과 같음) ─
+-- 이름·이메일·기기 ID 는 없고 Google 구매 토큰은 바꾼 값(해시)만. 1년 지나면 purge_store_event() 가 지운다
+create table if not exists store_event (
+  id                      bigserial primary key,
+  store                   text not null,     -- apple | google
+  environment             text,              -- Production | Sandbox | test (Google 연결 확인)
+  kind                    text not null,     -- purchase | renewal | refund | cancel | expire | fail | test | other
+  notification            text,              -- 스토어가 붙인 알림 이름 (예: DID_RENEW, SUBSCRIPTION_RENEWED)
+  product_id              text,
+  plan                    text,              -- day | weekly | lifetime | credits
+  amount                  numeric,           -- 결제 금액 (Apple 은 알림에 든 가격, Google 은 요금제 정가)
+  currency                text,              -- KRW …
+  transaction_id          text,              -- Apple 거래 ID · Google 구매 토큰 해시(갱신 등은 + 알림 시각) · 연결 확인은 메시지 ID
+  original_transaction_id text,              -- 같은 구매·구독을 묶는 ID (Apple 원거래 ID · Google 구매 토큰 해시)
+  raw                     jsonb,             -- 고른 항목만 (알림 ID·서명 시각·거래 종류·구매/만료 시각 등)
+  created_at              timestamptz not null default now()
+);
+
+-- 스토어가 같은 알림을 다시 보내도(응답이 늦거나 실패하면 다시 보냄) 한 번만 남긴다.
+-- 거래 ID 가 없는 행(null)은 고유 색인에서 서로 다른 값으로 보므로 「transaction_id is not null 일 때만」과 같은 효과다.
+-- 부분 색인(where …)으로 만들면 PostgREST 의 on_conflict 가 대상으로 삼지 못해 중복 무시가 오류가 되므로 일반 고유 색인으로 둔다
+create unique index if not exists store_event_dedupe_idx on store_event (store, transaction_id, kind);
+create index if not exists store_event_created_idx  on store_event (created_at desc);
+create index if not exists store_event_original_idx on store_event (original_transaction_id) where original_transaction_id is not null;
+
+-- 공개 키(anon)로는 읽기·쓰기 불가 — 서버(service_role)만
+alter table store_event enable row level security;
+
+-- ── 스토어 결제 알림 1년 파기 (처리방침 3번 「스토어 결제 알림」) — 매일 03:40 KST ─
+create or replace function purge_store_event()
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  delete from store_event where created_at < now() - interval '1 year';
+$$;
+
+comment on function purge_store_event is '스토어 결제 알림 기록 1년 파기 (pg_cron mylovecoach-purge-store 매일 03:40 KST — purge_old_records 와 따로 둔다)';
+
+do $$
+begin
+  revoke execute on function purge_store_event() from public;
+  if exists (select 1 from pg_roles where rolname = 'anon') then
+    revoke execute on function purge_store_event() from anon, authenticated;
+  end if;
+end $$;
+
+do $$
+begin
+  begin
+    create extension if not exists pg_cron;
+  exception when others then
+    raise notice 'pg_cron 을 켤 수 없어 스토어 결제 알림 1년 파기 예약을 건너뜁니다: %', sqlerrm;
+    return;
+  end;
+  perform cron.unschedule(jobid) from cron.job where jobname = 'mylovecoach-purge-store';
+  perform cron.schedule('mylovecoach-purge-store', '40 18 * * *', 'select public.purge_store_event()');
 end $$;

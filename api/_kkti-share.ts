@@ -1,5 +1,6 @@
 /**
- * GET /k/코드 (vercel.json 이 /api/kkti-share?c=코드 로 넘긴다) — KKTI 공유 링크가 닿는 곳.
+ * GET /k/코드 (vercel.json 이 /api/kkti-card?route=share&c=코드 로 넘긴다) — KKTI 공유 링크가 닿는 곳.
+ * 함수 개수 한도(Vercel Hobby 12개) 때문에 따로 함수로 두지 않고 api/kkti-card.ts 가 route=share 일 때 부른다.
  *  - /k/내코드          → 내 유형 카드가 미리보기로 뜨고, 결과 화면(/kkti/result?a=…)으로 넘어간다
  *  - /k/내코드-상대코드 → 둘의 궁합 카드가 미리보기로 뜨고, 궁합 화면(/kkti/result?a=…&w=…)으로 넘어간다
  *  - /k (코드 없음·잘못됨) → 테스트 소개 카드가 미리보기로 뜨고, 테스트 첫 화면(/kkti)으로 넘어간다
@@ -13,8 +14,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 import { KKTI_SITE, cardUrl, kktiFromCode, kktiMatch, parseShareCode, type KktiResult } from '../src/lib/kkti';
-
-export const config = { maxDuration: 10 };
 
 const DEFAULT_HOST = 'mylovecoach.vercel.app';
 /**
