@@ -36,6 +36,12 @@ jobs:
         run: |
           [ -n "$VERCEL_TOKEN" ] || { echo "::error::VERCEL_TOKEN 시크릿이 없습니다 (vercel.com/account/tokens 에서 발급 → wolha-secrets/vercel-token.txt 에 VERCEL_TOKEN=… → node tools/set-ci-secrets.mjs)"; exit 1; }
           [ -n "$GEMINI_API_KEY" ] || { echo "::error::GEMINI_API_KEY 시크릿이 없습니다 (중계 서버는 Gemini 로만 보냅니다 — 앱 동의 시트·처리방침이 Google 로 안내)"; exit 1; }
+      - name: 서버 함수 개수 확인 (Hobby 12개)
+        run: |
+          # api/ 아래 밑줄(_)로 시작하지 않는 파일 하나가 함수 하나다. 12개를 넘으면 배포가 ERROR 로 끝나고 운영은 예전 판에 머문다.
+          count=$(find api -type f \( -name '*.ts' -o -name '*.js' -o -name '*.mjs' -o -name '*.cjs' \) ! -name '*.d.ts' | grep -Ev '(^|/)[_.]' | tee /dev/stderr | wc -l)
+          echo "함수 $count 개"
+          [ "$count" -le 12 ] || { echo "::error::서버 함수가 $count 개입니다. Vercel Hobby 는 12개까지라 배포가 실패합니다 — 기존 함수에 합치고 rewrites 로 주소를 유지하세요 (api/kkti-card.ts 참고)"; exit 1; }
       - name: Vercel CLI
         run: npm i -g vercel@latest
       - name: 프로젝트 연결 (없으면 생성)
