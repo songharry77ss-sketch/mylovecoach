@@ -14,6 +14,7 @@ const ALLOWED: [string, string][] = [
   ['app/paywall.tsx', "Platform.OS === 'ios'"], // 아이폰이면 App Store
   ['app/(tabs)/my.tsx', 'Google Play 구독 관리'], // 웹에서만 보이는 줄 (Platform.OS === 'web' 안)
   ['lib/billing/plans.ts', "os === 'android'"], // subscriptionStoreName
+  ['lib/app-download.ts', "android: 'Google Play'"], // 웹 결제 화면의 앱 받기 버튼 (앱에서는 그 기기의 스토어만 고른다)
 ];
 
 function sourceFiles(dir: string): string[] {

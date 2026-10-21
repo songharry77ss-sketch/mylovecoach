@@ -36,7 +36,10 @@ let reportTableMissing = false;
 /** 결제 흐름 함수(admin_funnel.sql)를 아직 실행하지 않은 DB 흉내 */
 let funnelMissing = false;
 const FUNNEL = { days: 7, steps: [{ key: 'open', label: '앱 실행', users: 3 }] };
-const MEMBERS = [{ provider: 'kakao', nickname: '민수', email: 'mi***@kakao.com', devices: 1, device_id: 'd_abcdef', has_records: true }];
+// 운영자 전용 목록이라 이메일은 전체 주소, 이용 현황은 이용 기록 동의 기기 합계 (admin_members)
+const MEMBERS = [
+  { provider: 'kakao', nickname: '민수', email: 'minsu@kakao.com', devices: 1, device_id: 'd_abcdef', has_records: true, sessions: 3, total_sec: 125, coach_count: 2, source: 'instagram' },
+];
 const REPORTS = [{ id: 1, created_at: '2026-10-07T10:00:00Z', mode: 'practice', reason: 'sexual', note: null, content: '연습 상대 「민준」: …', model: 'google/relay', platform: 'android', app_version: '1.0.0', status: 'new' }];
 
 function fakeReq(headers: Record<string, string>, query: Record<string, string> = {}, method = 'GET') {
