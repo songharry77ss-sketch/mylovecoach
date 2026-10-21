@@ -1,8 +1,8 @@
 /**
- * api/kkti-stat.ts — KKTI 횟수 집계. 누가 했는지는 남기지 않고 날짜별 숫자만 올리는지가 핵심이다.
+ * api/_kkti-stat.ts (바깥 주소 /api/kkti-stat) — KKTI 횟수 집계. 누가 했는지는 남기지 않고 날짜별 숫자만 올리는지가 핵심이다.
  * Supabase 는 fetch 를 가짜로 바꿔 어떤 요청이 나가는지만 본다.
  */
-import handler, { KKTI_STAT_EVENTS, KKTI_STAT_PREFIX } from '../../api/kkti-stat';
+import handler, { KKTI_STAT_EVENTS, KKTI_STAT_PREFIX } from '../../api/_kkti-stat';
 
 interface FakeRes {
   statusCode: number;

@@ -1,10 +1,10 @@
 /**
- * api/kkti-share.ts · api/kkti-card.ts — KKTI 공유 링크(/k/코드)의 미리보기 페이지와 결과 카드 그림.
+ * api/_kkti-share.ts · api/kkti-card.ts — KKTI 공유 링크(/k/코드)의 미리보기 페이지와 결과 카드 그림.
  * 카톡·인스타는 이 페이지의 og 태그만 읽어 미리보기를 만든다.
  */
 import { CARD_EXTRA_EMOJI, CARD_SIZE, cardTree, emojiImage, renderCard } from '../../api/_kkti-card';
 import cardHandler from '../../api/kkti-card';
-import shareHandler, { allowedHost, escapeHtml, shareHtml, sharePage } from '../../api/kkti-share';
+import shareHandler, { allowedHost, escapeHtml, shareHtml, sharePage } from '../../api/_kkti-share';
 import vercelConfig from '../../vercel.json';
 import { KKTI_AXES, KKTI_CODES, KKTI_MATCH_TIERS, KKTI_QUESTIONS, KKTI_TYPES, computeKkti, kktiFromCode, kktiMatch } from '@/lib/kkti';
 
@@ -184,7 +184,7 @@ describe('배포 설정', () => {
     expect(sources.indexOf('/k')).toBeGreaterThanOrEqual(0);
     expect(sources.indexOf('/k')).toBeLessThan(fallback);
     expect(sources.indexOf('/k/:code')).toBeLessThan(fallback);
-    expect(vercelConfig.rewrites.find((r) => r.source === '/k/:code')?.destination).toBe('/api/kkti-share?c=:code');
+    expect(vercelConfig.rewrites.find((r) => r.source === '/k/:code')?.destination).toBe('/api/kkti-card?route=share&c=:code');
   });
 
   it('주소창에서 복사한 KKTI 주소는 미리보기 수집기에게만 공유 페이지로 넘긴다', () => {
@@ -194,7 +194,7 @@ describe('배포 설정', () => {
       expect(index).toBeGreaterThanOrEqual(0);
       expect(index).toBeLessThan(fallback);
       const rule = vercelConfig.rewrites[index] as { destination: string; has?: { type: string; key: string; value: string }[] };
-      expect(rule.destination).toBe('/api/kkti-share?via=app');
+      expect(rule.destination).toBe('/api/kkti-card?route=share&via=app');
       expect(rule.has).toHaveLength(1);
       expect(rule.has?.[0]).toMatchObject({ type: 'header', key: 'user-agent' });
       // Vercel 은 이 값을 헤더 전체와 맞춰 본다

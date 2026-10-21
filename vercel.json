@@ -25,11 +25,11 @@
   "rewrites": [
     {
       "source": "/k",
-      "destination": "/api/kkti-share"
+      "destination": "/api/kkti-card?route=share"
     },
     {
       "source": "/k/:code",
-      "destination": "/api/kkti-share?c=:code"
+      "destination": "/api/kkti-card?route=share&c=:code"
     },
     {
       "source": "/kkti/result",
@@ -40,7 +40,7 @@
           "value": ".*(facebookexternalhit|Facebot|meta-externalagent|kakaotalk-scrap|Twitterbot|Slackbot|Discordbot|TelegramBot|WhatsApp|LinkedInBot|line-poker).*"
         }
       ],
-      "destination": "/api/kkti-share?via=app"
+      "destination": "/api/kkti-card?route=share&via=app"
     },
     {
       "source": "/kkti",
@@ -51,7 +51,15 @@
           "value": ".*(facebookexternalhit|Facebot|meta-externalagent|kakaotalk-scrap|Twitterbot|Slackbot|Discordbot|TelegramBot|WhatsApp|LinkedInBot|line-poker).*"
         }
       ],
-      "destination": "/api/kkti-share?via=app"
+      "destination": "/api/kkti-card?route=share&via=app"
+    },
+    {
+      "source": "/api/kkti-stat",
+      "destination": "/api/kkti-card?route=stat"
+    },
+    {
+      "source": "/api/kkti-share",
+      "destination": "/api/kkti-card?route=share"
     },
     {
       "source": "/((?!api/).*)",

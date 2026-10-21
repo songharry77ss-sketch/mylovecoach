@@ -1,5 +1,6 @@
 /**
  * POST /api/kkti-stat { event } — KKTI 가 얼마나 퍼지는지 보는 횟수 집계.
+ * 함수 개수 한도(Vercel Hobby 12개) 때문에 vercel.json 이 /api/kkti-card?route=stat 으로 넘기고, api/kkti-card.ts 가 부른다.
  * 누가 했는지는 남기지 않는다: 받는 것은 정해진 이벤트 이름 하나뿐이고(기기 ID·답 코드·IP 를 저장하지 않음),
  * 날짜별 횟수 표(usage_quota, kind = 'kkti:이벤트')의 숫자만 1 올린다. 그래서 웹은 이용 기록 동의와 관계없이 센다
  * (앱은 스토어 개인정보 신고에 맞춰 동의한 사람만 보낸다 — src/lib/kkti-stat.ts).
@@ -14,8 +15,6 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 import { bodyTooLarge, clientIp, rateLimited } from './_limits';
 import { rpc, supabaseReady } from './_supabase';
-
-export const config = { maxDuration: 10 };
 
 export const KKTI_STAT_EVENTS = ['start', 'start_friend', 'complete', 'complete_friend', 'share', 'open_shared', 'match_view'] as const;
 export type KktiStatEvent = (typeof KKTI_STAT_EVENTS)[number];

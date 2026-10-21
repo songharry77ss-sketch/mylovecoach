@@ -61,7 +61,7 @@ npx tsc --noEmit && npx eslint src --max-warnings=0 && npx jest
 - `src/lib/billing/` — 요금제 4종: 주간·평생(스토어 구매 내역으로 판정) + 하루 이용권·횟수권(소모성, 기기 지갑 `wallet` 에 충전)
 - `modules/floating-bubble/` — 안드로이드 플로팅 버블 로컬 Expo 모듈 (iOS·웹은 아무것도 안 함, 스토어 빌드에서는 빠짐 — 아래 「알아둘 함정」)
 - `api/` — Vercel 서버리스 (`coach.ts` 가 Gemini 호출, `track.ts`·`admin.ts` 는 이용 기록, `team.ts` 는 관리자가 허용한 팀원 무제한 확인 — `docs/ANALYTICS_SETUP.md`, `report.ts` 는 AI 답변 신고 — 앱의 `components/coach/ai-report-sheet.tsx`, 플레이 생성형 AI 정책상 필수)
-- KKTI 공유·궁합: `src/lib/kkti.ts` 의 `kktiMatch`(둘의 궁합 — 누구를 먼저 넣어도 같은 결과), 공유 링크 `/k/내코드[-상대코드]` → `api/kkti-share.ts`(카톡·인스타가 읽는 미리보기 태그를 준 뒤 결과 화면으로 넘김), 결과 카드 그림 `api/kkti-card.ts`·`api/_kkti-card.ts`(og·story·square, 글꼴·이모지는 `api/_assets/`). 주소창에서 복사한 앱 화면 주소(`/kkti`, `/kkti/result?a=…`)는 미리보기 수집기(user-agent)가 열 때만 `vercel.json` 의 `has` 규칙이 같은 함수로 넘긴다(`via=app`, 캐시 안 함 — 사람과 검색 엔진은 앱 화면). 앱 화면 머리말의 기본 미리보기(og)와 아이폰 앱 설치 배너는 `tools/copy-site.mjs` 가 빌드 뒤 `dist/index.html` 에 넣는다(KKTI 화면에서는 배너를 띄우지 않음). 채널별 실행안은 `docs/CHANNEL_PLAYBOOK.md`
+- KKTI 공유·궁합: `src/lib/kkti.ts` 의 `kktiMatch`(둘의 궁합 — 누구를 먼저 넣어도 같은 결과), 공유 링크 `/k/내코드[-상대코드]` → `api/_kkti-share.ts`(카톡·인스타가 읽는 미리보기 태그를 준 뒤 결과 화면으로 넘김), 결과 카드 그림 `api/kkti-card.ts`·`api/_kkti-card.ts`(og·story·square, 글꼴·이모지는 `api/_assets/`). 주소창에서 복사한 앱 화면 주소(`/kkti`, `/kkti/result?a=…`)는 미리보기 수집기(user-agent)가 열 때만 `vercel.json` 의 `has` 규칙이 같은 함수로 넘긴다(`via=app`, 캐시 안 함 — 사람과 검색 엔진은 앱 화면). 앱 화면 머리말의 기본 미리보기(og)와 아이폰 앱 설치 배너는 `tools/copy-site.mjs` 가 빌드 뒤 `dist/index.html` 에 넣는다(KKTI 화면에서는 배너를 띄우지 않음). 채널별 실행안은 `docs/CHANNEL_PLAYBOOK.md`
 - `tools/` — 스토어 자동화 스크립트. 워크플로가 이걸 불러 쓴다
 - `docs/TESTER_GUIDE.md` — 테스터에게 보낼 안내문과 설치 링크, `docs/MARKETING.md` — 틱톡·X·스레드 마케팅 실행안
 
@@ -70,6 +70,7 @@ npx tsc --noEmit && npx eslint src --max-warnings=0 && npx jest
 - 기본 브랜치는 `main` 이 아니라 **`claude/jolly-pascal-tr47bw`**.
 - 열쇠 값은 절대 출력하거나 커밋하지 않는다.
 - Vercel CLI 는 `EXPO_PUBLIC_` 접두사 값을 secret 으로 등록하면 거부한다 → `--type config`.
+- **Vercel Hobby 는 배포 하나에 서버 함수 12개까지**(`api/` 아래 밑줄로 시작하지 않는 파일 하나 = 함수 하나). 넘으면 배포가 ERROR(`exceeded_serverless_functions_per_deployment`)로 끝나고 운영은 예전 판에 머문다(10-21 PR #30 으로 13개 → 실패). 그래서 KKTI 서버 일(카드·공유 미리보기·횟수 집계)은 `api/kkti-card.ts` 하나가 `route` 로 나눠 맡고(`_kkti-share.ts`·`_kkti-stat.ts`), `/k`·`/k/:code`·`/api/kkti-stat`·`/api/kkti-share` 바깥 주소는 `vercel.json` rewrites 로 유지한다. 새 함수가 필요하면 먼저 기존 함수에 합칠 수 있는지 본다 — `src/__tests__/vercel-functions.test.ts` 와 `vercel.yml` 「서버 함수 개수 확인」이 막는다.
 - expo-router 57 에는 `@react-navigation/*` 이 없다. `useHeaderHeight` 대신 루트 View 를 `measureInWindow` 로 잰다.
 - 안드로이드 릴리스 번들은 Hermes 바이트코드라, 한글 문자열은 UTF-16 으로 찾아야 잡힌다.
 - 같은 버전(train)의 이전 빌드가 베타 심사 중이면 새 빌드는 제출이 422 로 막힌다. 앞 빌드가 승인되면 같이 풀린다.
