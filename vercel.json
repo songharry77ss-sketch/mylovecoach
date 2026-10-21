@@ -16,6 +16,12 @@
       "includeFiles": "api/_assets/**"
     }
   },
+  "crons": [
+    {
+      "path": "/api/daily-report",
+      "schedule": "5 0 * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/k",
