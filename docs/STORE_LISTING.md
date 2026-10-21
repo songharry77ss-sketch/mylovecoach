@@ -48,7 +48,7 @@
 "이번 주말에 가볍게 약속 잡아보세요"처럼 대화 다음에 뭘 하면 좋을지도 알려드려요. 밀어붙이면 안 되는 순간엔 솔직하게 말해줘요.
 
 🔒 선택 가입, 내 기록은 내가 관리
-가입하지 않고도 맛보기 코칭과 이용권을 쓸 수 있어요. Google·카카오로 가입할 수 있고, 아이폰에서는 Apple 로그인도 지원해요. 채팅방과 캡처는 내 기기에 보관해요. 이용 기록 수집에 따로 동의하면 코칭 질문·답 등의 기록은 서버에도 보관되고 회원과 연결돼요. 마이 탭에서 동의를 철회하거나 회원 탈퇴를 요청할 수 있어요. 「비밀 상담」은 기기 기록에 남지 않아요.
+가입하지 않고도 맛보기 코칭과 이용권을 쓸 수 있어요. Google·카카오로 가입할 수 있고, 아이폰에서는 Apple 로그인도 지원해요. 채팅방과 캡처는 내 기기에 보관해요. 서비스 개선을 위해 화면·버튼 이용 기록을 수집하고(만 14세 이상), 「코칭 내용 저장」에 따로 동의하면 코칭 질문·답도 서버에 보관되고 회원과 연결돼요. 마이 탭의 개인정보 설정에서 동의를 철회할 수 있고, 마이 탭에서 회원 탈퇴를 요청할 수 있어요. 「비밀 상담」은 기기 기록에 남지 않아요.
 
 💎 이용권 (선택)
 가입 전에는 맛보기 1회, 가입하면 무료 코칭 3회를 더 받고 이후 매일 1회가 충전돼요. 더 쓰고 싶다면 필요한 만큼 골라보세요.
@@ -83,24 +83,25 @@
 ## 심사 메모 (Review Notes)
 
 - 가입은 선택입니다. 비회원 맛보기 1회와 이용권 결제를 지원하고, 마이 탭 또는 결제 화면의 가입 카드에서 Google·카카오, iOS의 Apple로 로그인할 수 있습니다. 앱 비밀번호 가입은 제공하지 않습니다. 회원 보너스는 회원당·기기당 한 번입니다.
-- 로그인하지 않고 확인하는 경로: 첫 화면에서 「캡처 없이 상황만 적을래요」를 선택하고 「소개팅 후 다음 약속을 자연스럽게 제안하는 답장을 알려 주세요」를 입력합니다. AI 동의 시트에서 Google로 보내는 정보·목적을 확인하고 동의하면 첫 코칭 결과를 볼 수 있습니다. 이용 기록 선택 체크박스는 켜지 않아도 됩니다. 비회원 무료 AI 분석은 1회로 제한됩니다.
-- 계정 기능 경로: 마이 → 가입 카드 → Google·카카오 또는 지원 iOS의 Apple로 로그인 → 마이의 가입 상태 확인. 회원 탈퇴는 같은 화면에서 진행하며, 공급자 로그인 화면에 도달한 것과 앱 안에서 회원 연결을 마친 것은 구분합니다.
+- 로그인하지 않고 확인하는 경로: 첫 화면에서 「캡처 없이 상황만 적을래요」를 선택하고 「소개팅 후 다음 약속을 자연스럽게 제안하는 답장을 알려 주세요」를 입력합니다. 시작 버튼을 처음 누르면 약관 확인 창이 뜹니다 — 「모두 동의하고 시작」을 누르거나, 필수 2개(이용약관 동의·개인정보 처리방침 확인)만 체크하고 「선택한 항목으로 시작」을 누르면 됩니다(선택 항목 「코칭 내용 저장」은 꺼 둬도 됩니다). 이어서 AI 동의 시트에서 Google로 보내는 정보·목적을 확인하고 동의하면 첫 코칭 결과를 볼 수 있습니다. 비회원 무료 AI 분석은 1회로 제한됩니다.
+- 계정 기능 경로: 마이 → 가입 카드 → Google·카카오 또는 지원 iOS의 Apple로 로그인 → 마이의 가입 상태 확인. 회원 탈퇴는 같은 마이 화면 맨 아래의 「회원 탈퇴」에서 진행하며, 공급자 로그인 화면에 도달한 것과 앱 안에서 회원 연결을 마친 것은 구분합니다.
 - 앱을 열면 바로 첫 화면이 나옵니다. 「대화 캡처 올리기」를 누르고 갤러리에서 아무 채팅 스크린샷이나 고르면, 필요한 AI 분석 동의 후 코칭 결과(상황 요약 · 호감 온도 · 추천 답장 3개)를 확인할 수 있습니다. 캡처가 없으면 「캡처 없이 상황만 적을래요」로 글만 적어도 됩니다.
 - 상대의 이름·MBTI·관계 단계는 첫 결과를 본 뒤에 선택적으로 입력하는 항목이며, 입력하지 않아도 모든 기능을 쓸 수 있습니다.
 - AI 처리는 자사 중계 서버(Vercel)를 거쳐 Google Gemini API 를 사용하며, 업로드한 이미지는 분석에만 사용되고 자사 서버에 저장되지 않습니다.
 - AI 로 보내기 전에 동의 시트에서 받는 곳(Google)·보내는 내용(캡처·입력·프로필·같은 채팅방의 이전 대화와 코칭 요청 맥락)·목적을 안내하고, 「동의하고 계속」을 눌러야만 보냅니다. 동의하지 않으면 AI 기능만 꺼지고 나머지는 그대로 쓸 수 있으며, 마이 탭 「AI 분석 동의」에서 언제든 철회할 수 있습니다.
 - 이 앱은 사용자가 직접 선택한 이미지만 접근하며 백그라운드 접근이 없습니다.
-- (선택) 첫 화면의 체크박스(기본은 꺼져 있음)를 직접 체크한 경우에만 이용 기록(화면 체류 시간, 입력한 상황 글, 코치 답변 요약)을 서비스 개선용으로 저장합니다. 업로드한 이미지 자체는 저장하지 않으며, 마이 탭에서 언제든 끌 수 있고 끄면 서버 기록도 지웁니다.
-- 이 선택 이용 기록과 별도로, AI 서버는 모드·모델·상태/오류 코드·토큰 수·시도 수·캡처 첨부 여부·처리 시간을 운영 진단에 기록합니다. 구조화 진단 로그에 대화 본문·이미지·이름·이메일·회원/기기 ID·IP는 넣지 않습니다.
+- 서비스 이용 기록(화면 이동·체류 시간, 버튼·결제 흐름 이벤트, 유입 경로, 무작위 기기 ID, 성별·나이·MBTI)은 개인정보 처리방침에 알리고 만 14세 이상 이용자에게 수집하며, 광고·추적에 쓰지 않습니다. 이름과 대화 내용은 담지 않습니다. 처리 정지·삭제는 마이 → 개인정보 설정에서 메일로 요청할 수 있습니다.
+- (선택) 「코칭 내용 저장」에 동의한 경우에만(약관 확인 창의 체크는 기본으로 꺼져 있음) 입력한 상황 글과 코치 답변을 서비스 개선용으로 저장합니다. 업로드한 이미지 자체는 저장하지 않으며, 마이 → 개인정보 설정에서 언제든 끌 수 있고 끄면 저장된 코칭 내용도 지웁니다.
+- 이 이용 기록과 별도로, AI 서버는 모드·모델·상태/오류 코드·토큰 수·시도 수·캡처 첨부 여부·처리 시간을 운영 진단에 기록합니다. 구조화 진단 로그에 대화 본문·이미지·이름·이메일·회원/기기 ID·IP는 넣지 않습니다.
 - AI 답변 신고는 답장 카드의 깃발, 연습 화면 상단 깃발·상대 말풍선 길게 누르기·피드백 깃발, 상대 분석 보고서·속마음 풀이 아래 신고, 마이 → AI 답변 신고하기에서 앱을 떠나지 않고 할 수 있습니다. 연습 화면의 「끝내기」는 신고와 별도입니다.
-- 회원 탈퇴는 마이 → 회원 탈퇴에서 시작합니다. 회원·연결 기기의 이용 기록·로그인 계정을 지우며, Google·카카오 제공사 연결과 스토어 구독 취소는 별도입니다. Apple 자동 연결 해제가 완료되지 않으면 재시도하거나 수동 연결 해제 안내를 확인한 뒤 별도 최종 확인으로 회원 삭제를 요청할 수 있습니다. 이 수동 경로를 Apple 자동 해제 성공으로 표시하지 않습니다. 기기의 채팅방 삭제는 별도이고, 외부에서 삭제를 요청하는 주소는 https://mylovecoach.vercel.app/delete-data.html 입니다.
-- Google 로그인은 openid·email·profile만 요청합니다. 계정 식별자·이메일·제공되는 이름과 프로필 사진 주소는 인증에 사용·보관될 수 있으나 앱이 비밀번호를 받거나 사진 파일을 별도로 저장하지 않습니다. 이용 기록 수집 동의와 회원가입은 별개입니다.
+- 회원 탈퇴는 마이 화면 맨 아래의 「회원 탈퇴」에서 시작합니다(「모든 데이터 삭제」도 같은 줄에 있습니다). 회원·연결 기기의 이용 기록·로그인 계정을 지우며, Google·카카오 제공사 연결과 스토어 구독 취소는 별도입니다. Apple 자동 연결 해제가 완료되지 않으면 재시도하거나 수동 연결 해제 안내를 확인한 뒤 별도 최종 확인으로 회원 삭제를 요청할 수 있습니다. 이 수동 경로를 Apple 자동 해제 성공으로 표시하지 않습니다. 기기의 채팅방 삭제는 별도이고, 외부에서 삭제를 요청하는 주소는 https://mylovecoach.vercel.app/delete-data.html 입니다.
+- Google 로그인은 openid·email·profile만 요청합니다. 계정 식별자·이메일·제공되는 이름과 프로필 사진 주소는 인증에 사용·보관될 수 있으나 앱이 비밀번호를 받거나 사진 파일을 별도로 저장하지 않습니다. 코칭 내용 저장 동의와 회원가입은 별개입니다.
 - 인앱결제: 무료 코칭(비회원 맛보기 1회, 가입 시 보너스 3회 + 이후 매일 1회)을 다 쓰면 결제 안내 화면이 나타납니다. 마이 탭 → 「이용권 보기」에서도 언제든 열 수 있습니다. 상품은 소모성 하루 이용권(mylovecoach.pass.day — 결제한 때부터 24시간 무제한, 자동 결제 없음, 이번 버전에 새로 추가), 주간 자동 갱신 구독(mylovecoach.premium.weekly), 비소모성 평생권(mylovecoach.premium.lifetime) 세 가지이며, 같은 화면에 가격, 자동 갱신 안내, 구매 복원, 이용약관, 개인정보 처리방침 링크가 있습니다. 하루 이용권은 소모성이라 구매 복원 대상이 아니고 결제한 기기에 24시간이 충전됩니다. 스토어의 테스트 구매 환경에서 해당 경로로 구매·복원을 확인합니다.
 - 새 버전 안내: 스토어에 더 새 버전이 나와 있으면 탭 첫 화면에서 「새 버전이 나왔어요」 시트로 업데이트를 권합니다(「나중에」로 닫을 수 있고 3일 뒤 다시 권함). 심사 중인 빌드는 스토어 버전보다 높으므로 이 시트가 뜨지 않습니다. 마이 탭 「앱 버전」 줄에서도 새 버전이 있으면 스토어로 이동할 수 있습니다.
 
 ## Play App access — 영어 안내 초안
 
-Some features are accessible without an account, but account management requires sign-in. From the first screen, select “캡처 없이 상황만 적을래요”, enter a short dating situation, and accept the AI processing notice to try one coaching request. Optional usage analytics may remain off. To review sign-in, open “마이”, select the sign-up card, and use Google or Kakao. Account deletion is under “마이 → 회원 탈퇴”. AI access without an account is limited to one request; a new account receives three bonus requests once per account and device, then one daily request. Subscription management and purchase restoration are in “마이”. Report AI content using the flag beside a response or the report link on each AI result screen.
+Some features are accessible without an account, but account management requires sign-in. From the first screen, select “캡처 없이 상황만 적을래요”, enter a short dating situation, and accept the AI processing notice to try one coaching request. On first start, a terms sheet appears: tap “모두 동의하고 시작”, or check the two required items and tap “선택한 항목으로 시작” (the optional “코칭 내용 저장” item may stay off). To review sign-in, open “마이”, select the sign-up card, and use Google or Kakao. Account deletion is the “회원 탈퇴” link at the bottom of “마이” (next to “모든 데이터 삭제”). AI access without an account is limited to one request; a new account receives three bonus requests once per account and device, then one daily request. Subscription management and purchase restoration are in “마이”. Report AI content using the flag beside a response or the report link on each AI result screen.
 
 이 안내만으로 모든 제한 영역에 접근 가능한 것은 아닙니다. 제출 전에 반복 가능한 실제 심사 접근 정보와 결제 테스트 방법을 보안 입력란에 완성해야 합니다. 준비되지 않은 계정·OTP 우회·무제한 데모가 있다고 적지 않습니다.
 

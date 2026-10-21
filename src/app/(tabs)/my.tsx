@@ -2,7 +2,7 @@ import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, AppState, Linking, Platform, StyleSheet, Switch, View } from 'react-native';
+import { Alert, AppState, Linking, Platform, Pressable, StyleSheet, Switch, View } from 'react-native';
 
 import { useAccountDeletion } from '@/components/auth/apple-deletion-help';
 import { useAiReport } from '@/components/coach/ai-report-sheet';
@@ -16,7 +16,6 @@ import { useToast } from '@/components/ui/toast';
 import { Spacing } from '@/constants/theme';
 import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
 import { AI_PROVIDER_LABEL, ensureAiConsent, withdrawAiConsent } from '@/lib/ai-consent';
-import { setConsent as setAnalyticsConsentFlag, track } from '@/lib/analytics';
 import { openStore } from '@/lib/app-update';
 import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { billingSupported, openSubscriptionManagement, restorePremium } from '@/lib/billing/iap';
@@ -36,8 +35,7 @@ import { genderLabel, toneLabel } from '@/lib/labels';
 import { useAppStore } from '@/store/app-store';
 import { loadApiKey, saveApiKey } from '@/store/storage';
 
-const RESET_MESSAGE = '채팅방, 캡처, 프로필, 연습 기록과 서버에 남은 이용 기록을 모두 삭제할까요? AI 분석·이용 기록 동의도 처음 상태로 돌아가요. 되돌릴 수 없어요.';
-const LEGACY_DELETE_MESSAGE = '예전 버전에서 보낸 이 기기의 이용 기록을 서버에서 지울까요? 앱 안의 채팅방·프로필은 그대로 남아요.';
+const RESET_MESSAGE = '채팅방, 캡처, 프로필, 연습 기록과 서버에 남은 이 기기의 이용 기록·코칭 내용을 모두 삭제할까요? AI 분석·코칭 내용 저장 동의도 처음 상태로 돌아가요. 되돌릴 수 없어요.';
 
 export default function MyScreen() {
   const router = useRouter();
@@ -53,10 +51,7 @@ export default function MyScreen() {
   const deviceId = useAppStore((s) => s.deviceId);
   const member = useAppStore((s) => s.member);
   const setPremium = useAppStore((s) => s.setPremium);
-  const analyticsConsent = useAppStore((s) => s.analyticsConsent);
   const appUpdate = useAppStore((s) => s.appUpdate);
-  const legacyServerRecords = useAppStore((s) => s.legacyServerRecords);
-  const setAnalyticsConsent = useAppStore((s) => s.setAnalyticsConsent);
   const aiConsent = useAppStore((s) => s.aiConsent);
   const aiConsentProvider = useAppStore((s) => s.aiConsentProvider);
   const aiConsentAt = useAppStore((s) => s.aiConsentAt);
@@ -198,7 +193,7 @@ export default function MyScreen() {
   const confirmReset = () => {
     const run = async () => {
       await saveApiKey(null);
-      // 서버에 남은 이용 기록 삭제도 함께 요청된다 (store.resetAll → pendingDeletion)
+      // 서버에 남은 이 기기의 기록 삭제도 함께 요청된다 (store.resetAll → pendingDeletion)
       resetAll();
       // 캡처·상대 사진 파일을 바로 지운다 (평소 정리는 다음 실행 때 10분 지난 파일만)
       cleanupOrphanImages(new Set(), Date.now(), 0);
@@ -214,23 +209,6 @@ export default function MyScreen() {
     Alert.alert('모든 데이터 삭제', RESET_MESSAGE, [
       { text: '취소', style: 'cancel' },
       { text: '삭제', style: 'destructive', onPress: run },
-    ]);
-  };
-
-  // 예전 첫 화면(미리 체크된 동의)으로 보낸 기록 — 지금은 동의가 꺼져 있어 스위치로는 지울 수 없으므로 따로 지우게 한다
-  const confirmLegacyDelete = () => {
-    const run = () => {
-      useAppStore.getState().requestServerDeletion();
-      haptic.tap();
-      toast.show('서버에 남은 이용 기록을 지울게요.');
-    };
-    if (Platform.OS === 'web') {
-      if (globalThis.confirm?.(LEGACY_DELETE_MESSAGE)) run();
-      return;
-    }
-    Alert.alert('서버 기록 지우기', LEGACY_DELETE_MESSAGE, [
-      { text: '취소', style: 'cancel' },
-      { text: '지우기', style: 'destructive', onPress: run },
     ]);
   };
 
@@ -298,7 +276,6 @@ export default function MyScreen() {
                   <ListRow icon="card-outline" title="Google Play 구독 관리" onPress={() => Linking.openURL('https://play.google.com/store/account/subscriptions').catch(() => toast.show('구독 관리 페이지를 열지 못했어요.', 'error'))} />
                 </>
               ) : null}
-              <ListRow icon="person-remove-outline" title={deletion.busy ? '탈퇴 처리 중…' : '회원 탈퇴'} destructive onPress={deletion.busy ? undefined : withdraw} />
             </>
           ) : (
             <ListRow icon="gift-outline" title={`가입하고 무료 코칭 ${SIGNUP_BONUS}회 받기`} subtitle="카카오 · Google · Apple로 바로 가입" onPress={() => router.push('/signup')} />
@@ -377,38 +354,11 @@ export default function MyScreen() {
         />
       ) : null}
       <ListRow
-        icon="bar-chart-outline"
-        title="이용 기록 수집 (선택)"
-        subtitle="켜면 기기 ID·내 프로필(이름·성별·나이·MBTI)·화면 이용 기록과 코칭 요청 글(붙여 넣은 대화·상대 정보 포함)·답변을 서비스 개선을 위해 보관해요. 기록은 1년, 기기 ID·프로필은 마지막 이용 후 1년 보관하고, 미국 회사 Vercel(중계)·Supabase(보관, 서울 리전)가 처리해요(국외 이전). 끄면 서버 기록도 지워요. 캡처 이미지는 저장하지 않아요."
-        right={
-          <Switch
-            accessibilityLabel="이용 기록 수집 (선택)"
-            value={analyticsConsent === true}
-            onValueChange={(v) => {
-              if (v) {
-                setAnalyticsConsent(true);
-                setAnalyticsConsentFlag(true);
-                track('analytics_opt_in');
-              } else {
-                // 끄면 더 보내지 않고(대기 중인 기록도 버림), 서버에 남은 이 기기의 기록 삭제를 요청한다.
-                // 요청은 store 에 남아 서버가 지웠다고 답할 때까지 다시 보내진다 (lib/server-deletion)
-                setAnalyticsConsentFlag(false);
-                setAnalyticsConsent(false);
-              }
-              toast.show(v ? '이용 기록 수집을 켰어요.' : '이용 기록 수집을 껐어요. 서버에 남은 기록도 지울게요.');
-            }}
-          />
-        }
+        icon="shield-checkmark-outline"
+        title="개인정보 설정"
+        subtitle="이용 기록 안내 · 코칭 내용 저장(선택) · 처리 정지·삭제 요청"
+        onPress={() => router.push('/settings/privacy')}
       />
-
-      {legacyServerRecords && analyticsConsent !== true ? (
-        <ListRow
-          icon="cloud-offline-outline"
-          title="예전에 보낸 이용 기록 지우기"
-          subtitle="예전 버전 첫 화면에 미리 체크돼 있던 동의로 보낸 이용 기록이 서버에 남아 있을 수 있어요. 지금은 보내지 않아요. 누르면 서버에 남은 이 기기의 기록을 지워요."
-          onPress={confirmLegacyDelete}
-        />
-      ) : null}
 
       <SectionHeader title="AI 코치" />
       <ListRow icon="sparkles-outline" title="AI 코치 연결" value={connection} onPress={() => router.push('/settings/api-key')} />
@@ -434,25 +384,46 @@ export default function MyScreen() {
       )}
       <ListRow icon="finger-print-outline" title="내 기기 ID" subtitle="문의·팀원 등록용 · 눌러서 복사" value={deviceId} onPress={copyDeviceId} />
 
-      <SectionHeader
-        title="데이터"
-        subtitle={
-          analyticsConsent === true
-            ? '채팅방·캡처·프로필은 이 기기에 저장돼요 (이용 기록은 서버에도 보관)'
-            : legacyServerRecords
-              ? '채팅방·캡처·프로필은 이 기기에 저장돼요 (예전에 보낸 이용 기록이 서버에 남아 있을 수 있어요)'
-              : '채팅방·캡처·프로필은 이 기기에만 저장돼요'
-        }
-      />
-      <ListRow icon="trash-outline" title="모든 데이터 삭제" destructive onPress={confirmReset} />
+      {/* 회원 탈퇴·모든 데이터 삭제는 맨 아래 작은 글자 버튼으로 둔다 (마이에서 바로 찾을 수 있게 — 스토어 계정 삭제 정책) */}
+      <View style={styles.footer}>
+        <AppText variant="caption" color="textTertiary" align="center">
+          채팅방·캡처·프로필은 이 기기에 저장돼요
+        </AppText>
+        <View style={styles.footerLinks}>
+          {authAvailable && member ? (
+            <>
+              <FooterLink title={deletion.busy ? '탈퇴 처리 중…' : '회원 탈퇴'} onPress={deletion.busy ? undefined : withdraw} />
+              <AppText variant="caption" color="textTertiary">
+                ·
+              </AppText>
+            </>
+          ) : null}
+          <FooterLink title="모든 데이터 삭제" onPress={confirmReset} />
+        </View>
+      </View>
       {aiReport.sheet}
       {deletion.sheet}
     </Screen>
   );
 }
 
+/** 맨 아래 작은 글자 버튼 — 눈에 덜 띄지만 누르기 쉽게(높이 44) 둔다 */
+function FooterLink({ title, onPress }: { title: string; onPress?: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={title} accessibilityState={{ disabled: !onPress }} onPress={onPress} disabled={!onPress} hitSlop={8} style={styles.footerLink}>
+      <AppText variant="caption" color="textSecondary" style={styles.footerLinkText}>
+        {title}
+      </AppText>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   title: { marginTop: Spacing.sm, marginBottom: Spacing.lg },
+  footer: { marginTop: Spacing.xxl, gap: Spacing.xs, alignItems: 'center' },
+  footerLinks: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  footerLink: { minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.xs },
+  footerLinkText: { textDecorationLine: 'underline' },
   profile: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   profileTexts: { flex: 1, gap: 2 },
 });

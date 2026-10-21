@@ -10,7 +10,7 @@ import {
   type PracticeRequestInput,
   type ReportRequestInput,
 } from '@/lib/ai-tasks';
-import { analyticsEnabled, currentConsentVersion, currentSessionId } from '@/lib/analytics';
+import { BASIC_LOG_VERSION, contentLoggingEnabled, currentSessionId } from '@/lib/analytics';
 import { requestUpdatePrompt } from '@/lib/app-update';
 import { COACH_MODEL, CoachAnalysisReadSchema, CoachRequestSchema, IMAGE_TOO_LARGE_MESSAGE, isImageTooLarge, normalizeAnalysis, type CoachRequestInput } from '@/lib/coach-schema';
 import { APP_CONFIG } from '@/lib/config';
@@ -29,19 +29,18 @@ export class CoachError extends Error {
 }
 
 /**
- * 이용 기록 수집에 동의한 경우에만 기기·세션 ID 와 동의 판을 헤더로 보냅니다.
- * 서버는 이 헤더가 있고 직접 체크해 받은 동의(판 2 이상)일 때만 코칭 내용을 기록합니다.
+ * 「코칭 내용 저장」(선택)에 동의한 경우에만 기기·세션 ID 와 동의 표시를 헤더로 보냅니다 (lib/analytics 의 contentLoggingEnabled —
+ * 만 14세 미만·삭제 요청 중·데모는 빠짐). 서버는 이 헤더가 있을 때만 코칭 질문·답을 기록합니다 (api/coach 의 logCoach).
  */
-function consentHeaders(deviceId?: string): Record<string, string> {
-  if (!analyticsEnabled() || !deviceId) return {};
-  const version = currentConsentVersion();
-  return { 'x-device-id': deviceId, 'x-session-id': currentSessionId(), ...(version != null ? { 'x-consent-version': String(version) } : {}) };
+function contentLogHeaders(deviceId?: string): Record<string, string> {
+  if (!contentLoggingEnabled() || !deviceId) return {};
+  return { 'x-device-id': deviceId, 'x-session-id': currentSessionId(), 'x-consent-version': String(BASIC_LOG_VERSION), 'x-content-consent': '1' };
 }
 
 export interface CoachClientOptions {
   /** 설정 화면에서 입력한 개인 API 키 (직접 호출 모드) */
   directApiKey?: string | null;
-  /** 이용 기록 수집에 동의한 경우에만 전달하는 기기 ID. 비밀 상담이면 넘기지 않는다 */
+  /** 코칭 내용 저장에 쓰는 기기 ID (동의한 경우에만 헤더로 보낸다). 비밀 상담이면 넘기지 않는다 */
   deviceId?: string;
   signal?: AbortSignal;
 }
@@ -131,7 +130,7 @@ export async function requestCoaching(input: CoachRequestInput, options: CoachCl
   const req = parsed.data;
   if (isDemoMode) return demoAnalysis(req);
   if (viaServer()) {
-    const body = await postToServer('coach', req, { ...consentHeaders(options.deviceId) }, options.signal);
+    const body = await postToServer('coach', req, { ...contentLogHeaders(options.deviceId) }, options.signal);
     return parseCoach((body as { analysis?: unknown })?.analysis);
   }
   const text = await runDirect('coach', buildCoachTask(req) as AiTask, options);

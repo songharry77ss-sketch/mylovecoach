@@ -36,12 +36,20 @@ export interface MemberState {
   joinedAt: number;
 }
 
-/** 서버 이용 기록 삭제 요청 — 어느 기기의 기록을, 언제(철회 시각) 기준으로 지울지 */
+/**
+ * 서버 기록 삭제 요청 — 어느 기기의 기록을, 언제(요청 시각) 기준으로 지울지.
+ * scope 가 'content' 면 코칭 내용(coach_log)만 지운다 (「코칭 내용 저장」 동의 철회). 없으면 그 기기의 서버 기록 전체
+ * (모든 데이터 삭제·만 14세 미만·예전 기록 지우기 — 예전 판에서 저장된 요청도 scope 가 없어 전체로 읽는다)
+ */
 export interface PendingDeletion {
   deviceId: string;
   at: number;
   sent: number;
+  scope?: 'content';
 }
+
+/** 전체 삭제 요청인지 (코칭 내용만 지우는 요청이 아닌지) */
+export const isFullDeletion = (pending: PendingDeletion | null | undefined): boolean => pending != null && pending.scope !== 'content';
 
 export interface AppState {
   hydrated: boolean;
@@ -67,15 +75,15 @@ export interface AppState {
   /** 팀원 확인을 켠 시각 (0 이면 예전 판에서 켠 것 — 처음 확인할 때 지금으로 채운다) */
   teamCheckAt: number;
   /**
-   * 서버에 남은 이 기기의 이용 기록 삭제 요청 (동의 철회·모든 데이터 삭제·만 14세 미만).
-   * 서버가 지웠다고 답할 때까지 남아 있다가 앱을 켤 때·돌아올 때 다시 보낸다. sent 는 성공한 횟수(철회 직후 1번 + 2분 30초 뒤 1번)
+   * 서버에 남은 이 기기의 기록 삭제 요청 (코칭 내용 저장 철회·모든 데이터 삭제·만 14세 미만·예전 기록 지우기).
+   * 서버가 지웠다고 답할 때까지 남아 있다가 앱을 켤 때·돌아올 때 다시 보낸다. sent 는 성공한 횟수(요청 직후 1번 + 2분 30초 뒤 1번)
    */
   pendingDeletion: PendingDeletion | null;
   /** 예전 판 정리(동의를 꺼 둔 기기·만 14세 미만 기기의 서버 기록 삭제 요청)를 한 번 했는지 — 저장값을 읽을 때(merge) 쓴다 */
   legacyDeletionChecked: boolean;
   /**
    * 예전 첫 화면(미리 체크된 체크박스)의 「동의」로 이용 기록을 보냈던 기기 — 그 동의는 「아직 묻지 않음」으로 읽지만
-   * 서버에 기록이 남아 있을 수 있어, 마이 탭에서 지울 수 있게 표시한다. 서버 기록 삭제를 요청하면(requestServerDeletion·동의 철회) 내린다
+   * 서버에 기록이 남아 있을 수 있어, 마이 → 개인정보 설정에서 지울 수 있게 표시한다. 서버 기록 전체 삭제를 요청하면(requestServerDeletion) 내린다
    */
   legacyServerRecords: boolean;
   /** 「모든 데이터 삭제」 횟수 (저장하지 않음) — 삭제 전에 보낸 AI 요청의 늦은 결과를 다시 저장하지 않으려고 쓴다 */
@@ -86,19 +94,26 @@ export interface AppState {
   appUpdate: AppUpdate | null;
   /** 새 버전 안내를 미룬 기록 — 그 버전은 until 까지 다시 권하지 않는다 */
   updateSnooze: { version: string; until: number } | null;
-  /** 기기 구분용 무작위 ID (광고 ID 아님, 이용 기록 수집에만 사용) */
+  /** 기기 구분용 무작위 ID (광고 ID 아님 — 이용 기록·코칭 내용 저장·팀원 확인·삭제 요청에 사용) */
   deviceId: string;
-  /** 서비스 개선을 위한 이용 기록 수집 동의 (선택) — null 이면 아직 묻지 않음 */
-  analyticsConsent: boolean | null;
-  /** 이용 기록 동의를 받은 방식의 판 (ANALYTICS_CONSENT_VERSION). 이 표시 없이 저장된 예전 「동의」는 다시 묻는다 */
-  analyticsConsentVersion: number | null;
+  /** 첫 화면에서 필수 항목(이용약관 동의·개인정보 처리방침 확인)에 답한 시각. null 이면 아직 — 시작 버튼을 누르면 동의 창을 띄운다 */
+  termsAgreedAt: number | null;
+  /**
+   * 「코칭 내용 저장」(선택) 동의 — 질문·답변을 서버에 보관해도 되는지. null 이면 아직 묻지 않음.
+   * 예전 판의 「이용 기록 수집」 동의(직접 체크한 판 2)는 코칭 내용까지 포함한 동의였으므로 그대로 이어 읽는다 (merge)
+   */
+  contentConsent: boolean | null;
+  /** 코칭 내용 저장 동의에 마지막으로 답한(동의·동의 안 함·철회) 시각 */
+  contentConsentAt: number | null;
+  /** 이용자가 본 개인정보 안내의 판 (PRIVACY_NOTICE_VERSION). 낮으면 기존 이용자에게 홈에서 바뀐 내용을 한 번 알린다 */
+  privacyNoticeSeen: number;
   /** AI 분석 동의 (대화 캡처·글·프로필을 외부 AI 로 보내기) — null 이면 아직 묻지 않음, false 면 동의 안 함·철회 */
   aiConsent: boolean | null;
   /** 동의할 때 안내한 AI 회사. 개인 키로 다른 회사에 보내게 되면 다시 묻는다 */
   aiConsentProvider: AiProvider | null;
   /** AI 분석 동의에 마지막으로 답한(동의·동의 안 함·철회) 시각 */
   aiConsentAt: number | null;
-  /** 처음 앱을 연 곳 (동의한 경우에만 이용 기록과 함께 전송) */
+  /** 처음 앱을 연 곳 (이용 기록과 함께 전송) */
   acquisition: Acquisition | null;
   /** 진동 효과 */
   hapticsOn: boolean;
@@ -139,7 +154,12 @@ export interface AppState {
   /** since 를 주면 그 시각보다 먼저 만든 결과는 쓰지 않는다 (그 뒤 사용자가 새 요청을 했으면 다시 답해야 하므로) */
   getCachedAnalysis: (key: string, since?: number | null) => CoachAnalysis | null;
   putCachedAnalysis: (key: string, analysis: CoachAnalysis) => void;
-  setAnalyticsConsent: (consent: boolean) => void;
+  /** 첫 화면 동의 창의 답 — 필수 항목에 답한 시각과 「코칭 내용 저장」(선택) 답을 함께 남긴다 */
+  agreeToStart: (contentConsent: boolean) => void;
+  /** 「코칭 내용 저장」(선택) 동의·철회. 켜져 있다가 끄면 서버에 저장된 코칭 내용 삭제를 요청한다 */
+  setContentConsent: (consent: boolean) => void;
+  /** 바뀐 개인정보 안내를 봤다고 표시 (홈 안내 카드를 닫음) */
+  dismissPrivacyNotice: () => void;
   /** AI 분석 동의 기록 — 동의한 AI 회사, 동의 안 함·철회면 null */
   setAiConsent: (provider: AiProvider | null) => void;
   setAcquisition: (acquisition: Acquisition) => void;
@@ -150,7 +170,7 @@ export interface AppState {
   grantSignupBonus: (userId: string) => boolean;
   enableTeamCheck: () => void;
   disableTeamCheck: () => void;
-  /** 서버에 남은 이 기기의 이용 기록을 지워 달라고 요청해 둔다 (실제 전송은 lib/server-deletion) */
+  /** 서버에 남은 이 기기의 기록을 모두 지워 달라고 요청해 둔다 (실제 전송은 lib/server-deletion) */
   requestServerDeletion: () => void;
   markDeletionSent: () => void;
   clearPendingDeletion: () => void;
@@ -196,18 +216,37 @@ export const clampHeat = (v: number) => Math.max(HEAT_MIN, Math.min(HEAT_MAX, Ma
 const FALLBACK_DELTA: Record<Temperature, number> = { hot: 10, warm: 5, neutral: 0, cold: -6, unknown: 0 };
 
 /**
- * 이용 기록 동의를 받는 방식의 판. 2 = 첫 화면 체크박스를 직접 눌러야 켜지는 방식.
- * 예전 첫 화면은 체크박스가 미리 체크돼 있어서, 그때 저장된 동의(판 표시 없음)는 유효한 선택 동의로 보지 않는다
+ * 예전 판(1.0.3 까지)의 「이용 기록 수집」 동의를 받은 방식의 판. 2 = 첫 화면 체크박스를 직접 눌러야 켜지는 방식.
+ * 그 전 첫 화면은 체크박스가 미리 체크돼 있어서, 그때 저장된 동의(판 표시 없음)는 유효한 선택 동의로 보지 않는다
  */
-const ANALYTICS_CONSENT_VERSION = 2;
+const LEGACY_CONSENT_VERSION = 2;
+
+/**
+ * 개인정보 안내의 판. 3 = 서비스 이용 기록 기본 수집·「코칭 내용 저장」 선택 동의로 바뀐 안내 (2026-10-21 처리방침).
+ * 새 이용자는 첫 화면 동의 창에서, 기존 이용자는 홈의 안내 카드로 한 번 본다
+ */
+export const PRIVACY_NOTICE_VERSION = 3;
 
 /** 「분석 중」인 채로 저장돼 있던 코치 말풍선을 앱을 다시 켤 때 바꿔 읽는 안내 (「다시 시도」 버튼이 뜬다) */
 const STALLED_ERROR = '분석이 중간에 멈췄어요. 다시 시도해주세요.';
 
-/** 저장된 이용 기록 동의 — 판 표시 없이 저장된 「동의」는 미리 체크된 체크박스로 받은 것이라 「아직 묻지 않음」으로 읽는다 */
-function savedAnalyticsConsent(saved: Partial<AppState>): boolean | null {
+/** 예전 판의 저장값 (지금은 쓰지 않는 칸 — 읽어서 옮기기만 한다) */
+interface LegacySaved {
+  /** 「이용 기록 수집」(선택) 동의 — 화면·버튼 기록과 코칭 질문·답 저장을 함께 묻던 동의 */
+  analyticsConsent?: boolean | null;
+  /** 그 동의를 받은 방식의 판 (LEGACY_CONSENT_VERSION) */
+  analyticsConsentVersion?: number | null;
+}
+
+/**
+ * 저장된 「코칭 내용 저장」 동의. 새 칸이 없으면 예전 「이용 기록 수집」 동의에서 옮긴다 —
+ * 직접 체크한 판 2 의 동의는 코칭 질문·답 저장까지 포함했으므로 동의로, 동의 안 함은 동의 안 함으로,
+ * 판 표시 없이 저장된 「동의」(미리 체크된 체크박스)는 유효한 동의가 아니라 「아직 묻지 않음」으로 읽는다
+ */
+function savedContentConsent(saved: Partial<AppState> & LegacySaved): boolean | null {
+  if ('contentConsent' in saved) return typeof saved.contentConsent === 'boolean' ? saved.contentConsent : null;
   if (saved.analyticsConsent === false) return false;
-  return saved.analyticsConsent === true && saved.analyticsConsentVersion === ANALYTICS_CONSENT_VERSION ? true : null;
+  return saved.analyticsConsent === true && saved.analyticsConsentVersion === LEGACY_CONSENT_VERSION ? true : null;
 }
 
 /** 「분석 중」인 채로 저장된 코치 말풍선을 「다시 시도」할 수 있는 실패로 바꾼다 */
@@ -244,8 +283,10 @@ export const useAppStore = create<AppState>()(
       appUpdate: null,
       updateSnooze: null,
       deviceId: createId('d_'),
-      analyticsConsent: null,
-      analyticsConsentVersion: null,
+      termsAgreedAt: null,
+      contentConsent: null,
+      contentConsentAt: null,
+      privacyNoticeSeen: 0,
       aiConsent: null,
       aiConsentProvider: null,
       aiConsentAt: null,
@@ -383,13 +424,21 @@ export const useAppStore = create<AppState>()(
             .slice(0, CACHE_MAX - 1);
           return { analysisCache: { ...Object.fromEntries(entries), [key]: { analysis, at: Date.now() } } };
         }),
-      // 동의를 껐으면(켜져 있다가 꺼짐) 어느 화면에서 껐든 서버 기록 삭제를 요청한다. 판 표시는 이용자가 직접 고른 답이라는 뜻
-      setAnalyticsConsent: (analyticsConsent) =>
-        set((s) =>
-          s.analyticsConsent === true && analyticsConsent === false
-            ? { analyticsConsent, analyticsConsentVersion: ANALYTICS_CONSENT_VERSION, pendingDeletion: { deviceId: s.deviceId, at: Date.now(), sent: 0 }, legacyServerRecords: false }
-            : { analyticsConsent, analyticsConsentVersion: ANALYTICS_CONSENT_VERSION },
-        ),
+      // 첫 화면 동의 창 — 필수 항목에 답한 시각을 남기고, 선택 항목은 아래 setContentConsent 와 같이 처리한다. 새 이용자는 바뀐 안내를 여기서 본다
+      agreeToStart: (contentConsent) => {
+        set({ termsAgreedAt: Date.now(), privacyNoticeSeen: PRIVACY_NOTICE_VERSION });
+        get().setContentConsent(contentConsent);
+      },
+      // 켜져 있다가 끄면(철회) 어느 화면에서 껐든 서버에 저장된 코칭 내용 삭제를 요청한다.
+      // 이미 전체 삭제 요청이 남아 있으면 그것이 코칭 내용까지 지우므로 그대로 둔다
+      setContentConsent: (contentConsent) =>
+        set((s) => {
+          const withdrawn = s.contentConsent === true && !contentConsent;
+          const pendingDeletion: PendingDeletion | null =
+            withdrawn && !isFullDeletion(s.pendingDeletion) ? { deviceId: s.deviceId, at: Date.now(), sent: 0, scope: 'content' } : s.pendingDeletion;
+          return { contentConsent, contentConsentAt: Date.now(), pendingDeletion };
+        }),
+      dismissPrivacyNotice: () => set({ privacyNoticeSeen: PRIVACY_NOTICE_VERSION }),
       setAiConsent: (provider) => set({ aiConsent: provider !== null, aiConsentProvider: provider, aiConsentAt: Date.now() }),
       setAcquisition: (acquisition) => set({ acquisition }),
       setPremium: (premium) => set({ premium }),
@@ -403,7 +452,7 @@ export const useAppStore = create<AppState>()(
       },
       enableTeamCheck: () => set({ teamCheck: true, teamCheckAt: Date.now() }),
       disableTeamCheck: () => set({ teamCheck: false, teamCheckAt: 0 }),
-      // 기기의 서버 기록을 모두 지우므로 예전 기록 표시도 내린다
+      // 기기의 서버 기록을 모두 지우므로(코칭 내용만 지우는 요청이 남아 있어도 이것으로 바꾼다) 예전 기록 표시도 내린다
       requestServerDeletion: () => set((s) => ({ pendingDeletion: { deviceId: s.deviceId, at: Date.now(), sent: 0 }, legacyServerRecords: false })),
       markDeletionSent: () => set((s) => (s.pendingDeletion ? { pendingDeletion: { ...s.pendingDeletion, sent: s.pendingDeletion.sent + 1 } } : {})),
       clearPendingDeletion: () => set({ pendingDeletion: null }),
@@ -491,12 +540,13 @@ export const useAppStore = create<AppState>()(
           return { mindCache: { ...Object.fromEntries(entries), [key]: { reading, at: Date.now() } } };
         }),
       // 구매 상태·이용권·무료 사용량·팀원·회원 여부는 「모든 데이터 삭제」로 지우지 않는다 (회원은 마이 → 로그아웃·탈퇴로)
-      // (구매는 스토어 계정에 묶여 있고, 삭제로 무료 횟수가 초기화되면 안 됨). 서버에 남은 이 기기의 이용 기록도 지워 달라고 요청하고,
-      // AI 분석·이용 기록 동의는 처음 상태로 돌려 다시 묻는다 (첫 화면 체크박스는 꺼진 채로 보이므로, 저장된 동의도 지워야 화면과 실제가 맞는다)
+      // (구매는 스토어 계정에 묶여 있고, 삭제로 무료 횟수가 초기화되면 안 됨). 서버에 남은 이 기기의 기록도 모두 지워 달라고 요청하고,
+      // 첫 화면 동의·코칭 내용 저장·AI 분석 동의는 처음 상태로 돌려 다시 묻는다 (첫 화면 동의 창은 체크가 꺼진 채로 뜨므로, 저장된 동의도 지워야 화면과 실제가 맞는다)
       resetAll: () =>
         set((s) => ({
-          analyticsConsent: null,
-          analyticsConsentVersion: null,
+          termsAgreedAt: null,
+          contentConsent: null,
+          contentConsentAt: null,
           legacyServerRecords: false,
           resetEpoch: s.resetEpoch + 1,
           user: null,
@@ -548,8 +598,10 @@ export const useAppStore = create<AppState>()(
           upsellDismissed: s.upsellDismissed,
           updateSnooze: s.updateSnooze,
           deviceId: s.deviceId,
-          analyticsConsent: s.analyticsConsent,
-          analyticsConsentVersion: s.analyticsConsentVersion,
+          termsAgreedAt: s.termsAgreedAt,
+          contentConsent: s.contentConsent,
+          contentConsentAt: s.contentConsentAt,
+          privacyNoticeSeen: s.privacyNoticeSeen,
           aiConsent: s.aiConsent,
           aiConsentProvider: s.aiConsentProvider,
           aiConsentAt: s.aiConsentAt,
@@ -564,43 +616,50 @@ export const useAppStore = create<AppState>()(
       },
       // 저장값은 읽을 때 바로잡는다. version 을 올리면 이전 버전 앱(되돌린 웹 배포 등)이 저장값을 통째로 버리므로 올리지 않는다
       // - 예전 버전에서 올라온 기기에는 AI 분석 동의 기록이 없다 → 「아직 묻지 않음」(null)으로 읽어 처음 AI 를 쓸 때 묻는다
-      // - 저장소를 늦게 다 읽었으면(루트 레이아웃의 2.5초 안전장치로 먼저 시작) 그사이 시트에서 고른 답이 더 새롭다 → 그 답을 남긴다
-      // - 미리 체크된 첫 화면에서 받은 이용 기록 동의(판 표시 없음)는 「아직 묻지 않음」으로 읽는다. 동의 안 함은 그대로
+      // - 저장소를 늦게 다 읽었으면(루트 레이아웃의 2.5초 안전장치로 먼저 시작) 그사이 첫 화면 동의 창·시트에서 고른 답이 더 새롭다 → 그 답을 남긴다
+      // - 예전 판의 「이용 기록 수집」 동의는 「코칭 내용 저장」 동의로 옮긴다 (savedContentConsent — 미리 체크된 예전 동의는 「아직 묻지 않음」).
+      //   화면·버튼 같은 기본 이용 기록은 이제 동의와 상관없이 보낸다 (lib/analytics)
       // - 「분석 중」인 채로 저장된 코치 말풍선은 답을 받기 전에 앱이 닫힌 것 → 「다시 시도」할 수 있는 실패로 읽는다 (막 켠 앱에는 진행 중인 요청이 없다)
       // - 예전 판 정리(한 번, legacyDeletionChecked): 서버 기록 삭제 요청(pendingDeletion)이 생기기 전에 동의를 직접 꺼 뒀거나
       //   만 14세 미만 나이로 저장된 기기는 서버 기록 삭제를 한 번 요청한다. 미리 체크된 예전 「동의」는 「아직 묻지 않음」으로 읽을 뿐
       //   그 기록은 지우지 않는다 (사용자 결정 10-07 「새 동의만 저장, 예전 기록은 둔다」)
       merge: (persisted, current) => {
-        const saved = (persisted ?? {}) as Partial<AppState>;
+        const saved = (persisted ?? {}) as Partial<AppState> & LegacySaved;
         const provider = saved.aiConsentProvider === 'google' || saved.aiConsentProvider === 'anthropic' ? saved.aiConsentProvider : null;
         const savedAiAt = typeof saved.aiConsentAt === 'number' ? saved.aiConsentAt : null;
         // 저장소를 늦게 다 읽었고(2.5초 안전장치로 먼저 시작) 그사이 이번 실행에서 동의를 새로 골랐으면 그 답이 더 새롭다 —
         // 기기 시계와 상관없이 지금 고른 답을 남긴다 (저장소를 다시 읽는 곳은 없으므로 current 의 답은 이번 실행의 것)
         const answeredMeanwhile = current.aiConsentAt != null;
-        const analyticsMeanwhile = current.analyticsConsentVersion != null;
+        const contentMeanwhile = current.contentConsentAt != null;
+        const savedContent = savedContentConsent(saved);
         const underAge = saved.user?.age != null && saved.user.age < 14;
         const legacyDeletion =
           !saved.legacyDeletionChecked && !saved.pendingDeletion && saved.deviceId && (saved.analyticsConsent === false || (saved.analyticsConsent === true && underAge))
             ? { pendingDeletion: { deviceId: saved.deviceId, at: Date.now(), sent: 0 } }
             : {};
-        // 저장돼 있던 동의를 그사이 「동의 안 함」으로 바꾼 셈이면 서버 기록도 지운다
+        // 저장돼 있던 코칭 내용 저장 동의를 그사이 「동의 안 함」으로 바꾼 셈이면 저장된 기기 ID 의 코칭 내용을 지운다
+        // (전체 삭제 요청이 이미 있으면 그것이 코칭 내용까지 지운다)
         const withdrawnMeanwhile =
-          analyticsMeanwhile && current.analyticsConsent !== true && saved.analyticsConsent === true && !saved.pendingDeletion && saved.deviceId
-            ? { pendingDeletion: { deviceId: saved.deviceId, at: Date.now(), sent: 0 } }
+          contentMeanwhile && current.contentConsent !== true && savedContent === true && !saved.pendingDeletion && !('pendingDeletion' in legacyDeletion) && saved.deviceId
+            ? { pendingDeletion: { deviceId: saved.deviceId, at: Date.now(), sent: 0, scope: 'content' as const } }
             : {};
-        // 판 표시 없는 「동의」(미리 체크된 예전 첫 화면) → 서버에 기록이 남아 있을 수 있다는 표시 (지우지는 않음, 마이 탭에서 지울 수 있게)
-        const prechecked = saved.analyticsConsent === true && saved.analyticsConsentVersion == null && !underAge && !('pendingDeletion' in withdrawnMeanwhile);
+        // 판 표시 없는 「동의」(미리 체크된 예전 첫 화면) → 서버에 기록이 남아 있을 수 있다는 표시 (지우지는 않음, 개인정보 설정에서 지울 수 있게)
+        const prechecked = saved.analyticsConsent === true && saved.analyticsConsentVersion == null && !underAge;
+        // 예전 판의 칸은 옮겨 읽은 뒤 버린다 (저장하지 않는다)
+        const rest = { ...saved };
+        delete rest.analyticsConsent;
+        delete rest.analyticsConsentVersion;
         return {
           ...current,
-          ...saved,
+          ...rest,
           ...(answeredMeanwhile
             ? { aiConsent: current.aiConsent, aiConsentProvider: current.aiConsentProvider, aiConsentAt: current.aiConsentAt }
             : { aiConsent: saved.aiConsent === false ? false : saved.aiConsent === true && provider ? true : null, aiConsentProvider: provider, aiConsentAt: savedAiAt }),
-          ...(analyticsMeanwhile
-            ? { analyticsConsent: current.analyticsConsent, analyticsConsentVersion: current.analyticsConsentVersion }
-            : 'analyticsConsent' in saved
-              ? { analyticsConsent: savedAnalyticsConsent(saved), analyticsConsentVersion: typeof saved.analyticsConsentVersion === 'number' ? saved.analyticsConsentVersion : null }
-              : {}),
+          ...(contentMeanwhile
+            ? { contentConsent: current.contentConsent, contentConsentAt: current.contentConsentAt }
+            : { contentConsent: savedContent, contentConsentAt: typeof saved.contentConsentAt === 'number' ? saved.contentConsentAt : null }),
+          termsAgreedAt: current.termsAgreedAt ?? (typeof saved.termsAgreedAt === 'number' ? saved.termsAgreedAt : null),
+          privacyNoticeSeen: Math.max(current.privacyNoticeSeen, typeof saved.privacyNoticeSeen === 'number' ? saved.privacyNoticeSeen : 0),
           ...(saved.messages ? { messages: settlePending(saved.messages) } : {}),
           ...legacyDeletion,
           ...withdrawnMeanwhile,

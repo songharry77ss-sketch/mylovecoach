@@ -40,7 +40,7 @@ let lastCheckedAt = 0;
 /**
  * 팀원 여부를 다시 확인해 저장한다 (무료 횟수 제한이 걸린 빌드에서만).
  * 기기 ID 를 서버로 보내는 일이라, 이미 팀원인 기기와 「내 기기 ID」를 눌러 팀원 등록을 하려는 기기(누른 뒤 14일 동안)에서만 묻는다
- * (이용 기록에 동의하지 않은 일반 이용자의 기기 ID 는 보내지 않는다).
+ * (그 밖의 이용자는 팀원 확인 때문에 기기 ID 를 보내지 않는다).
  */
 export async function refreshTeam(options: { force?: boolean } = {}): Promise<void> {
   if (!quotaEnforced) return;

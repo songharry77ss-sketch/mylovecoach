@@ -14,10 +14,11 @@ import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section-header';
 import { Radius, Spacing, palette } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { track } from '@/lib/analytics';
 import { APP_CONFIG } from '@/lib/config';
 import { isDemoMode } from '@/lib/demo';
 import { haptic } from '@/lib/haptics';
-import { sortCrushes, useAppStore } from '@/store/app-store';
+import { PRIVACY_NOTICE_VERSION, sortCrushes, useAppStore } from '@/store/app-store';
 
 const TILES: { key: string; emoji: string; title: string; body: string; colors: [string, string]; href: '/(tabs)/practice' | '/(tabs)/tips' | '/kkti' | 'secret' }[] = [
   { key: 'practice', emoji: '🎮', title: '연애 연습', body: 'AI 상대와 카톡 리허설', colors: [palette.lavender100, palette.sky100], href: '/(tabs)/practice' },
@@ -36,6 +37,9 @@ export default function HomeScreen() {
   const hasApiKey = useAppStore((s) => s.hasApiKey);
   const hidePreviews = useAppStore((s) => s.hidePreviews);
   const createSecretChat = useAppStore((s) => s.createSecretChat);
+  // 바뀐 개인정보 안내를 아직 못 본 기존 이용자 (새 이용자는 첫 화면 동의 창에서 본다). 코치 서버가 없는 데모·개인 키 빌드는 이용 기록을 보내지 않아 띄우지 않는다
+  const privacyNoticeDue = useAppStore((s) => s.privacyNoticeSeen < PRIVACY_NOTICE_VERSION) && !isDemoMode && Boolean(APP_CONFIG.apiSameOrigin || APP_CONFIG.apiUrl);
+  const dismissPrivacyNotice = useAppStore((s) => s.dismissPrivacyNotice);
   const profileThin = !user?.about?.trim() && !user?.vibes?.length && !user?.goal;
   const hottest = crushes.reduce<number>((m, c) => Math.max(m, c.heat ?? 0), 0);
 
@@ -55,6 +59,12 @@ export default function HomeScreen() {
       if (m.role === 'user' && m.imageUri) return '나: 📸 대화 캡처';
     }
     return undefined;
+  };
+
+  const closePrivacyNotice = (open: boolean) => {
+    track('privacy_notice', { action: open ? 'open' : 'dismiss' });
+    dismissPrivacyNotice();
+    if (open) router.push('/settings/privacy');
   };
 
   const openTile = (href: (typeof TILES)[number]['href']) => {
@@ -88,6 +98,24 @@ export default function HomeScreen() {
           </Pressable>
         </Animated.View>
       </View>
+
+      {privacyNoticeDue ? (
+        <View style={[styles.privacyNotice, { backgroundColor: theme.surface }]}>
+          <Ionicons name="shield-checkmark-outline" size={20} color={theme.primary} style={styles.privacyIcon} />
+          <View style={styles.flex}>
+            <AppText variant="smallStrong">개인정보 처리방침이 바뀌었어요</AppText>
+            <AppText variant="caption" color="textSecondary">
+              앱 이용 기록(화면·버튼 이용)은 서비스 제공·개선을 위해 자동으로 수집돼요(만 14세 미만 제외). 질문·답변 같은 코칭 내용 저장은 계속 선택이에요.
+            </AppText>
+            <AppText variant="caption" color="primary" accessibilityRole="link" onPress={() => closePrivacyNotice(true)} style={styles.privacyMore}>
+              자세히 보기 · 설정 바꾸기 ›
+            </AppText>
+          </View>
+          <Pressable accessibilityRole="button" accessibilityLabel="개인정보 안내 닫기" onPress={() => closePrivacyNotice(false)} hitSlop={12}>
+            <Ionicons name="close" size={18} color={theme.textTertiary} />
+          </Pressable>
+        </View>
+      ) : null}
 
       <View style={styles.tiles}>
         {TILES.map((t, i) => (
@@ -169,4 +197,7 @@ const styles = StyleSheet.create({
   list: { gap: Spacing.md },
   bottomBtn: { marginTop: Spacing.xl },
   notice: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.lg, borderRadius: Radius.md, marginTop: Spacing.xl },
+  privacyNotice: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md, padding: Spacing.lg, borderRadius: Radius.lg, marginBottom: Spacing.md },
+  privacyIcon: { marginTop: 1 },
+  privacyMore: { marginTop: Spacing.xs },
 });

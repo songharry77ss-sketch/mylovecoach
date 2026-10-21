@@ -19,12 +19,33 @@ export const analyticsEnabled = (): boolean => supabaseReady() && process.env.AN
 export const DEVICE_ID = /^[A-Za-z0-9_-]{6,64}$/;
 
 /**
- * 이용 기록을 저장해도 되는 동의의 판. 2 = 첫 화면 체크박스를 이용자가 직접 눌러야 켜지는 방식.
+ * 이용 기록을 저장해도 되는 수집 기준의 판 (앱의 src/lib/analytics.ts 와 같은 값).
+ * 2 = 예전 앱(1.0.3 까지)의 선택 동의 — 첫 화면 체크박스를 이용자가 직접 눌러야 켜지는 방식. 화면·버튼 기록과 코칭 내용을 함께 동의받았다.
+ * 3 = 기본 이용 기록 (1.0.4~) — 처리방침에 알리고 만 14세 이상에게 수집. 코칭 내용은 x-content-consent: 1 로 따로 동의를 알린다.
  * 판 표시가 없는 예전 동의는 미리 체크된 체크박스로 받은 것이라 저장하지 않는다 (개인정보 선택 동의는 미리 체크 금지).
  */
 export const MIN_ANALYTICS_CONSENT_VERSION = 2;
+export const BASIC_LOG_VERSION = 3;
 
 export const consentVersionOk = (value: unknown): boolean => Number(value) >= MIN_ANALYTICS_CONSENT_VERSION;
+
+/**
+ * 코칭 내용(질문·답변) 저장 동의 — 판 2(예전 앱의 선택 동의는 코칭 내용까지 포함) 이거나,
+ * 판 3 이상이면서 앱이 「코칭 내용 저장」(선택) 동의를 x-content-consent: 1 로 알린 경우만
+ */
+export function contentConsentOk(version: unknown, contentHeader: unknown): boolean {
+  if (!consentVersionOk(version)) return false;
+  return Number(version) < BASIC_LOG_VERSION || contentHeader === '1';
+}
+
+/**
+ * 메일로 처리 정지를 요청한 기기 — Vercel 환경변수 ANALYTICS_OPTOUT_DEVICES 에 기기 ID 를 쉼표·공백으로 나눠 적는다.
+ * 이 기기의 이용 기록·코칭 내용은 받기만 하고 저장하지 않는다 (이미 쌓인 기록은 관리자 페이지의 「기록 삭제」로 지운다)
+ */
+export function optedOutDevice(deviceId: string): boolean {
+  const list = (process.env.ANALYTICS_OPTOUT_DEVICES ?? '').split(/[\s,]+/).filter(Boolean);
+  return list.includes(deviceId);
+}
 
 function headers(extra: Record<string, string> = {}): Record<string, string> {
   return {

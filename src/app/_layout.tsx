@@ -13,7 +13,7 @@ import { AppUpdateHost } from '@/components/ui/app-update-sheet';
 import { ToastProvider } from '@/components/ui/toast';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { flushAnalytics, initAnalytics, launchAcquisition, pauseAnalytics, resumeAnalytics, setConsent, trackScreen, updateIdentity } from '@/lib/analytics';
+import { flushAnalytics, initAnalytics, launchAcquisition, pauseAnalytics, resumeAnalytics, trackScreen, updateIdentity } from '@/lib/analytics';
 import { endBilling, initBilling } from '@/lib/billing/iap';
 import { refreshTeam } from '@/lib/billing/team';
 import { linkMember } from '@/lib/auth';
@@ -22,7 +22,7 @@ import { haptic, setHapticsEnabled } from '@/lib/haptics';
 import { isDemoMode } from '@/lib/demo';
 import { cleanupOrphanImages, clearImageCaches } from '@/lib/images';
 import { processPendingDeletion } from '@/lib/server-deletion';
-import { useAppStore } from '@/store/app-store';
+import { isFullDeletion, useAppStore, type AppState as StoreState } from '@/store/app-store';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 // 같은 로고의 인트로로 이어지므로 네이티브 페이드와 로고 움직임이 겹치지 않게 한다.
@@ -43,13 +43,20 @@ const introBeat = () => {
 };
 
 /**
- * 이용 기록 동의를 받은 방식의 판. 동의 수정판은 store 에 analyticsConsentVersion(직접 체크 = 2)을 둔다.
- * 그 값이 없으면 예전 미리 체크된 동의라 null — 서버는 이 기록을 저장하지 않는다.
+ * 이용 기록에 실을 이용자 상태 (lib/analytics 의 Identity). ready 는 저장소를 실제로 다 읽었는지 —
+ * 그 전(2.5초 안전장치로 먼저 시작)에는 기기 ID 가 임시 값이라 보내지 않는다 (임시 ID 로 쌓인 기록은 삭제 요청으로 지울 수 없다)
  */
-const consentVersionOf = (s: object): number | null => {
-  const v = (s as { analyticsConsentVersion?: unknown }).analyticsConsentVersion;
-  return typeof v === 'number' ? v : null;
-};
+const analyticsIdentity = (s: StoreState, ready: boolean) => ({
+  deviceId: s.deviceId,
+  ready,
+  user: s.user,
+  premiumPlan: s.premium?.plan ?? null,
+  crushCount: Object.keys(s.crushes).length,
+  acquisition: s.acquisition,
+  contentConsent: s.contentConsent === true,
+  deletionPending: isFullDeletion(s.pendingDeletion),
+  contentDeletionPending: s.pendingDeletion != null,
+});
 
 // 데모 웹 빌드가 임의의 경로(예: 호스팅 페이지 하위 경로)에서 열려도 라우터가 '/'에서 시작하도록 합니다.
 if (Platform.OS === 'web' && process.env.EXPO_PUBLIC_DEMO_MODE === '1' && typeof window !== 'undefined') {
@@ -119,39 +126,20 @@ export default function RootLayout() {
     return () => clearTimeout(t);
   }, [hydrated]);
 
-  // 이용 기록 수집 (동의한 경우에만 실제로 전송됨)
+  // 서비스 이용 기록 (만 14세 이상 기본 수집 — 저장소를 다 읽은 뒤부터 전송)
   useEffect(() => {
     if (!hydrated) return;
-    // 처음 실행이면 어디서 들어왔는지 기기에 적어 둔다 (동의한 경우에만 이용 기록과 함께 전송)
+    // 처음 실행이면 어디서 들어왔는지 기기에 적어 둔다 (이용 기록과 함께 전송)
     if (!useAppStore.getState().acquisition) useAppStore.getState().setAcquisition(launchAcquisition());
-    const s = useAppStore.getState();
-    // 저장소를 실제로 다 읽기 전(2.5초 안전장치로 먼저 시작)에는 기기 ID·동의가 임시 값이라 보내지 않는다 —
-    // 임시 ID 로 쌓인 기록은 철회·삭제로 지울 수 없기 때문. 다 읽으면 아래 onFinishHydration 이 이어서 켠다
+    // 저장소를 실제로 다 읽기 전(2.5초 안전장치로 먼저 시작)에는 기기 ID 가 임시 값이라 보내지 않는다 —
+    // 임시 ID 로 쌓인 기록은 삭제 요청으로 지울 수 없기 때문. 다 읽으면 아래 onFinishHydration 이 이어서 켠다
     const loaded = () => useAppStore.persist.hasHydrated();
-    initAnalytics({
-      deviceId: s.deviceId,
-      consent: s.analyticsConsent === true && loaded(),
-      user: s.user,
-      premiumPlan: s.premium?.plan ?? null,
-      crushCount: Object.keys(s.crushes).length,
-      acquisition: s.acquisition,
-      consentVersion: consentVersionOf(s),
-      deletionPending: s.pendingDeletion != null,
-    });
+    initAnalytics(analyticsIdentity(useAppStore.getState(), loaded()));
     // 서버에 남은 기록 삭제 요청이 있으면(지난번에 못 보냈거나 방금 생김) 보낸다
     processPendingDeletion().catch(() => {});
     const unsubscribe = useAppStore.subscribe((next, prev) => {
-      setConsent(next.analyticsConsent === true && loaded());
-      updateIdentity({
-        deviceId: next.deviceId,
-        user: next.user,
-        premiumPlan: next.premium?.plan ?? null,
-        crushCount: Object.keys(next.crushes).length,
-        acquisition: next.acquisition,
-        consentVersion: consentVersionOf(next),
-        deletionPending: next.pendingDeletion != null,
-      });
-      // 나이를 만 14세 미만으로 바꾸면 동의 상태와 상관없이 서버에 남은 기록도 지운다 (법정대리인 동의를 받지 않으므로).
+      updateIdentity(analyticsIdentity(next, loaded()));
+      // 나이를 만 14세 미만으로 바꾸면 서버에 남은 기록도 모두 지운다 (법정대리인 동의를 받지 않으므로).
       // 저장소를 읽어 들이는 순간(빈 상태 → 저장된 프로필)은 바꾼 것이 아니므로 건너뛴다
       const under = (u: typeof next.user) => u?.age != null && u.age < 14;
       if (loaded() && under(next.user) && !under(prev.user)) next.requestServerDeletion();
@@ -159,8 +147,7 @@ export default function RootLayout() {
     });
     // 저장소를 늦게 다 읽었으면 그때 실제 기기 ID·동의로 이어서 켠다
     const unsubLoaded = useAppStore.persist.onFinishHydration((st) => {
-      updateIdentity({ deviceId: st.deviceId, user: st.user, acquisition: st.acquisition, consentVersion: consentVersionOf(st), deletionPending: st.pendingDeletion != null });
-      setConsent(st.analyticsConsent === true);
+      updateIdentity(analyticsIdentity(st, true));
       processPendingDeletion().catch(() => {});
     });
     // 떠날 때 남은 기록과 세션 끝을 보낸다. 30분 안에 돌아오면 같은 세션을 이어 쓰고, 떠나 있던 시간은 세지 않는다
@@ -275,6 +262,7 @@ export default function RootLayout() {
               <Stack.Screen name="kkti/result" options={{ headerShown: false }} />
               <Stack.Screen name="settings/profile" options={{ title: '내 프로필' }} />
               <Stack.Screen name="settings/api-key" options={{ title: 'AI 코치 연결' }} />
+              <Stack.Screen name="settings/privacy" options={{ title: '개인정보 설정' }} />
               <Stack.Screen name="paywall" options={{ headerShown: false, presentation: 'modal' }} />
               <Stack.Screen name="signup" options={{ headerShown: false, presentation: 'modal' }} />
               <Stack.Screen name="auth/callback" options={{ headerShown: false }} />

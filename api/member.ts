@@ -6,7 +6,7 @@
  *             Apple 자동 취소를 확인하거나, 수동 연결 해제 안내를 확인한 본인의 명시적 요청일 때만 데이터를 지운다.
  *             카카오는 연결 해제를 시도한다. Google 외부 연결은 자동 해제하지 않는다.
  *   처음 가입하면 운영자 텔레그램으로 알린다 (닉네임·이메일·가입 방법·기기 종류·유입 경로·보너스 — 처리방침 2번·5번 「운영자 알림」).
- *   유입 경로는 이용 기록에 동의한 기기(app_user)에만 있다. 알림이 실패해도 가입은 그대로 마친다.
+ *   유입 경로는 이용 기록이 있는 기기(app_user)에만 있다 (만 14세 미만·처리 정지 기기, 1.0.3 까지 앱의 미동의 기기는 없음). 알림이 실패해도 가입은 그대로 마친다.
  * 환경변수: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, COACH_APP_TOKEN(선택, 앱 토큰 검사),
  *          KAKAO_ADMIN_KEY · APPLE_TEAM_ID · APPLE_KEY_ID · APPLE_PRIVATE_KEY (선택, 탈퇴 때 연결 끊기 — _unlink.ts),
  *          TELEGRAM_BOT_TOKEN · TELEGRAM_CHAT_ID (선택, 가입 알림 — _telegram.ts)
@@ -62,7 +62,7 @@ interface SourceRow {
 export function sourceText(row: SourceRow | null | undefined, state: 'ok' | 'no-device' | 'failed'): string {
   if (state === 'no-device') return '알 수 없음 (기기 정보 없음)';
   if (state === 'failed') return '알 수 없음 (조회 실패)';
-  if (!row) return '알 수 없음 (이용 기록 미동의)';
+  if (!row) return '알 수 없음 (이용 기록 없음)';
   if (!row.source) return '알 수 없음 (경로 기록 없음)';
   const detail = row.source_detail ?? {};
   const extra = [detail.medium, detail.campaign].filter((v): v is string => typeof v === 'string' && Boolean(v.trim()) && v !== row.source);

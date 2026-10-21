@@ -1,10 +1,10 @@
 /**
- * 동의 철회·「모든 데이터 삭제」의 서버 기록 삭제 요청(store.pendingDeletion + lib/server-deletion)과
- * 팀원 확인 14일 만료(lib/billing/team).
+ * 「코칭 내용 저장」 철회·「모든 데이터 삭제」의 서버 기록 삭제 요청(store.pendingDeletion + lib/server-deletion),
+ * 첫 화면 동의 창의 답, 예전 판 저장값 옮겨 읽기, 팀원 확인 14일 만료(lib/billing/team).
  */
 import { refreshTeam } from '@/lib/billing/team';
 import { processPendingDeletion, resetDeletionStateForTest, SETTLE_MS } from '@/lib/server-deletion';
-import { useAppStore, type AppState } from '@/store/app-store';
+import { PRIVACY_NOTICE_VERSION, useAppStore, type AppState } from '@/store/app-store';
 
 jest.mock('@/lib/config', () => ({
   APP_CONFIG: { apiUrl: 'https://api.example', apiSameOrigin: false, apiToken: 'tok', supportEmail: '', privacyUrl: '', termsUrl: '' },
@@ -32,8 +32,10 @@ beforeEach(() => {
   fail = false;
   resetDeletionStateForTest();
   useAppStore.setState({
-    analyticsConsent: null,
-    analyticsConsentVersion: null,
+    termsAgreedAt: null,
+    contentConsent: null,
+    contentConsentAt: null,
+    privacyNoticeSeen: 0,
     aiConsent: null,
     aiConsentProvider: null,
     aiConsentAt: null,
@@ -56,41 +58,77 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
+describe('첫 화면 동의 창의 답 (store.agreeToStart)', () => {
+  it('「모두 동의하고 시작」이면 필수 항목에 답한 시각과 코칭 내용 저장 동의를 함께 남기고, 바뀐 안내도 본 것으로 둔다', () => {
+    useAppStore.getState().agreeToStart(true);
+    const s = useAppStore.getState();
+    expect(s.termsAgreedAt).toBe(Date.now());
+    expect(s.contentConsent).toBe(true);
+    expect(s.contentConsentAt).toBe(Date.now());
+    expect(s.privacyNoticeSeen).toBe(PRIVACY_NOTICE_VERSION);
+    expect(s.pendingDeletion).toBeNull();
+  });
+
+  it('선택 항목을 끈 채 시작하면 코칭 내용 저장은 동의 안 함으로 남고, 지울 것이 없어 삭제 요청도 없다', () => {
+    useAppStore.getState().agreeToStart(false);
+    const s = useAppStore.getState();
+    expect(s.termsAgreedAt).toBe(Date.now());
+    expect(s.contentConsent).toBe(false);
+    expect(s.pendingDeletion).toBeNull();
+  });
+});
+
 describe('삭제 요청 남기기 (store)', () => {
-  it('켜져 있던 동의를 끄면 그 기기 기록 삭제가 요청된다 — 마이 탭이든 첫 화면이든', () => {
-    useAppStore.getState().setAnalyticsConsent(true);
+  it('켜져 있던 코칭 내용 저장을 끄면 그 기기의 코칭 내용만 지우는 요청이 남는다 — 어느 화면에서 끄든', () => {
+    useAppStore.getState().setContentConsent(true);
     expect(useAppStore.getState().pendingDeletion).toBeNull();
-    useAppStore.getState().setAnalyticsConsent(false);
-    expect(useAppStore.getState().pendingDeletion).toEqual({ deviceId: 'd_consent_test', at: Date.now(), sent: 0 });
+    useAppStore.getState().setContentConsent(false);
+    expect(useAppStore.getState().pendingDeletion).toEqual({ deviceId: 'd_consent_test', at: Date.now(), sent: 0, scope: 'content' });
   });
 
   it('처음 묻는 자리에서 동의하지 않은 것(null → false)은 지울 것이 없어 요청하지 않는다', () => {
-    useAppStore.getState().setAnalyticsConsent(false);
+    useAppStore.getState().setContentConsent(false);
     expect(useAppStore.getState().pendingDeletion).toBeNull();
   });
 
-  it('「모든 데이터 삭제」도 서버 기록 삭제를 요청하고 팀원 확인을 끈다', () => {
+  it('전체 삭제 요청이 남아 있으면 철회해도 그대로 둔다 (전체 삭제가 코칭 내용까지 지운다)', () => {
+    useAppStore.getState().setContentConsent(true);
+    useAppStore.getState().requestServerDeletion();
+    useAppStore.getState().setContentConsent(false);
+    expect(useAppStore.getState().pendingDeletion).toEqual({ deviceId: 'd_consent_test', at: Date.now(), sent: 0 });
+  });
+
+  it('코칭 내용 삭제 요청 중에 전체 삭제를 요청하면 전체 삭제로 바꾼다', () => {
+    useAppStore.getState().setContentConsent(true);
+    useAppStore.getState().setContentConsent(false);
+    useAppStore.getState().requestServerDeletion();
+    expect(useAppStore.getState().pendingDeletion).toEqual({ deviceId: 'd_consent_test', at: Date.now(), sent: 0 });
+  });
+
+  it('「모든 데이터 삭제」도 서버 기록 전체 삭제를 요청하고 팀원 확인을 끈다', () => {
     useAppStore.setState({ teamCheck: true, teamCheckAt: Date.now() });
     useAppStore.getState().resetAll();
     const s = useAppStore.getState();
     expect(s.pendingDeletion).toMatchObject({ deviceId: 'd_consent_test', sent: 0 });
+    expect(s.pendingDeletion?.scope).toBeUndefined();
     expect(s.teamCheck).toBe(false);
   });
 
-  it('「모든 데이터 삭제」 뒤에는 이용 기록 동의도 처음 상태라 첫 화면에서 다시 묻고, 진행 중이던 AI 결과는 버린다', () => {
-    useAppStore.getState().setAnalyticsConsent(true);
+  it('「모든 데이터 삭제」 뒤에는 첫 화면 동의·코칭 내용 저장도 처음 상태라 다시 묻고, 진행 중이던 AI 결과는 버린다', () => {
+    useAppStore.getState().agreeToStart(true);
     useAppStore.setState({ legacyServerRecords: true });
     const epoch = useAppStore.getState().resetEpoch;
     useAppStore.getState().resetAll();
     const s = useAppStore.getState();
-    // 첫 화면 체크박스는 꺼진 채로 보이므로, 저장된 동의도 지워야 삭제가 끝난 뒤 다시 수집되지 않는다
-    expect(s.analyticsConsent).toBeNull();
-    expect(s.analyticsConsentVersion).toBeNull();
+    // 첫 화면 동의 창은 체크가 꺼진 채로 뜨므로, 저장된 동의도 지워야 삭제가 끝난 뒤 코칭 내용이 다시 저장되지 않는다
+    expect(s.termsAgreedAt).toBeNull();
+    expect(s.contentConsent).toBeNull();
+    expect(s.contentConsentAt).toBeNull();
     expect(s.legacyServerRecords).toBe(false);
     expect(s.resetEpoch).toBe(epoch + 1);
   });
 
-  it('서버 기록 삭제를 요청하면(마이 탭 「예전에 보낸 이용 기록 지우기」·나이 변경) 예전 기록 표시도 내린다', () => {
+  it('서버 기록 전체 삭제를 요청하면(개인정보 설정 「예전에 보낸 이용 기록 지우기」·나이 변경) 예전 기록 표시도 내린다', () => {
     useAppStore.setState({ legacyServerRecords: true });
     useAppStore.getState().requestServerDeletion();
     expect(useAppStore.getState().legacyServerRecords).toBe(false);
@@ -99,7 +137,7 @@ describe('삭제 요청 남기기 (store)', () => {
 });
 
 describe('삭제 요청 보내기 (lib/server-deletion)', () => {
-  it('철회 시각과 함께 보내고, 2분 30초 뒤 한 번 더 지운 다음 요청을 지운다', async () => {
+  it('전체 삭제는 기기 ID 만 보내고, 2분 30초 뒤 한 번 더 지운 다음 요청을 지운다', async () => {
     useAppStore.getState().requestServerDeletion();
     const at = useAppStore.getState().pendingDeletion!.at;
     await processPendingDeletion();
@@ -112,6 +150,20 @@ describe('삭제 요청 보내기 (lib/server-deletion)', () => {
 
     await jest.advanceTimersByTimeAsync(SETTLE_MS + 2000);
     expect(calls).toHaveLength(2);
+    expect(useAppStore.getState().pendingDeletion).toBeNull();
+  });
+
+  it('코칭 내용 저장을 철회하면 코칭 내용만 지우라고 보내고, 늦게 저장될 수 있는 요청까지 2분 30초 뒤 한 번 더 지운다', async () => {
+    useAppStore.getState().setContentConsent(true);
+    useAppStore.getState().setContentConsent(false);
+    await processPendingDeletion();
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({ url: 'https://api.example/api/track', method: 'DELETE' });
+    expect(JSON.parse(calls[0].body!)).toEqual({ deviceId: 'd_consent_test', scope: 'content' });
+
+    await jest.advanceTimersByTimeAsync(SETTLE_MS + 2000);
+    expect(calls).toHaveLength(2);
+    expect(JSON.parse(calls[1].body!)).toEqual({ deviceId: 'd_consent_test', scope: 'content' });
     expect(useAppStore.getState().pendingDeletion).toBeNull();
   });
 
@@ -158,7 +210,7 @@ describe('삭제 요청 보내기 (lib/server-deletion)', () => {
 
 describe('예전 판 저장 데이터 정리 (저장값을 읽을 때 한 번)', () => {
   const options = () => useAppStore.persist.getOptions();
-  const merge = (saved: object) => options().merge!(saved, useAppStore.getState()) as AppState;
+  const merge = (saved: object) => options().merge!(saved, useAppStore.getState()) as AppState & { analyticsConsent?: unknown };
 
   it('예전 판에서 동의를 직접 꺼 둔 기기는 처음 열 때 한 번 삭제를 요청한다', () => {
     const s = merge({ deviceId: 'd_old_off', analyticsConsent: false });
@@ -170,11 +222,22 @@ describe('예전 판 저장 데이터 정리 (저장값을 읽을 때 한 번)',
     expect(merge({ deviceId: 'd_old_kid', analyticsConsent: true, analyticsConsentVersion: 2, user: { age: 13 } }).pendingDeletion).toMatchObject({ deviceId: 'd_old_kid' });
   });
 
+  it('예전 「이용 기록 수집」 동의(판 2)는 코칭 내용까지 포함한 동의라 「코칭 내용 저장」 동의로, 동의 안 함은 동의 안 함으로 옮긴다', () => {
+    const on = merge({ deviceId: 'd_v2_on', analyticsConsent: true, analyticsConsentVersion: 2, legacyDeletionChecked: true });
+    expect(on.contentConsent).toBe(true);
+    expect(on.pendingDeletion).toBeNull();
+    // 예전 칸은 옮긴 뒤 버린다
+    expect(on.analyticsConsent).toBeUndefined();
+    const off = merge({ deviceId: 'd_v2_off', analyticsConsent: false, analyticsConsentVersion: 2, legacyDeletionChecked: true });
+    expect(off.contentConsent).toBe(false);
+    expect(off.pendingDeletion).toBeNull();
+  });
+
   it('미리 체크된 예전 동의(판 표시 없음)는 「아직 묻지 않음」으로 읽고, 그 기록은 지우지 않는다 (사용자 결정)', () => {
     const s = merge({ deviceId: 'd_prechecked', analyticsConsent: true, user: { age: 25 } });
-    expect(s.analyticsConsent).toBeNull();
+    expect(s.contentConsent).toBeNull();
     expect(s.pendingDeletion).toBeNull();
-    // 대신 서버에 기록이 남아 있을 수 있다고 표시해 마이 탭에서 지울 수 있게 한다
+    // 대신 서버에 기록이 남아 있을 수 있다고 표시해 개인정보 설정에서 지울 수 있게 한다
     expect(s.legacyServerRecords).toBe(true);
   });
 
@@ -185,19 +248,25 @@ describe('예전 판 저장 데이터 정리 (저장값을 읽을 때 한 번)',
     expect(kid.pendingDeletion).toMatchObject({ deviceId: 'd_kid_pre' });
   });
 
-  it('저장소를 늦게 읽었고 그사이 첫 화면에서 고른 이용 기록 답이 있으면 그 답을 남긴다', () => {
-    useAppStore.getState().setAnalyticsConsent(true);
-    const s = merge({ deviceId: 'd_late', analyticsConsent: null });
-    expect(s.analyticsConsent).toBe(true);
-    expect(s.analyticsConsentVersion).toBe(2);
+  it('새 칸으로 저장된 답은 그대로 읽는다', () => {
+    const s = merge({ deviceId: 'd_new', contentConsent: false, contentConsentAt: 5, termsAgreedAt: 4, privacyNoticeSeen: 3, legacyDeletionChecked: true });
+    expect(s).toMatchObject({ contentConsent: false, contentConsentAt: 5, termsAgreedAt: 4, privacyNoticeSeen: 3 });
+  });
+
+  it('저장소를 늦게 읽었고 그사이 첫 화면 동의 창에서 답했으면 그 답을 남긴다', () => {
+    useAppStore.getState().agreeToStart(true);
+    const s = merge({ deviceId: 'd_late', contentConsent: null, termsAgreedAt: null, privacyNoticeSeen: 0 });
+    expect(s.contentConsent).toBe(true);
+    expect(s.termsAgreedAt).toBe(Date.now());
+    expect(s.privacyNoticeSeen).toBe(PRIVACY_NOTICE_VERSION);
     expect(s.deviceId).toBe('d_late');
   });
 
-  it('저장된 동의를 그사이 「동의 안 함」으로 바꿨으면 저장된 기기 ID 의 서버 기록 삭제를 요청한다', () => {
-    useAppStore.getState().setAnalyticsConsent(false);
+  it('저장된 코칭 내용 저장 동의를 그사이 「동의 안 함」으로 바꿨으면 저장된 기기 ID 의 코칭 내용 삭제를 요청한다', () => {
+    useAppStore.getState().agreeToStart(false);
     const s = merge({ deviceId: 'd_late_off', analyticsConsent: true, analyticsConsentVersion: 2, legacyDeletionChecked: true });
-    expect(s.analyticsConsent).toBe(false);
-    expect(s.pendingDeletion).toMatchObject({ deviceId: 'd_late_off', sent: 0 });
+    expect(s.contentConsent).toBe(false);
+    expect(s.pendingDeletion).toMatchObject({ deviceId: 'd_late_off', sent: 0, scope: 'content' });
   });
 
   it('그사이 고른 AI 분석 답은 기기 시계가 뒤로 가 저장값보다 시각이 앞서도 남긴다', () => {
@@ -209,6 +278,11 @@ describe('예전 판 저장 데이터 정리 (저장값을 읽을 때 한 번)',
 
   it('한 번 정리한 기기는 다시 요청하지 않는다', () => {
     expect(merge({ deviceId: 'd_done', analyticsConsent: false, legacyDeletionChecked: true }).pendingDeletion).toBeNull();
+  });
+
+  it('예전 판에서 저장된 삭제 요청(scope 없음)은 전체 삭제로 그대로 읽는다', () => {
+    const s = merge({ deviceId: 'd_pending', pendingDeletion: { deviceId: 'd_pending', at: 1, sent: 1 }, legacyDeletionChecked: true });
+    expect(s.pendingDeletion).toEqual({ deviceId: 'd_pending', at: 1, sent: 1 });
   });
 
   it('판 2 로 저장된 웹 데이터(10-07 배포 하나)도 버리지 않고 그대로 읽는다', () => {

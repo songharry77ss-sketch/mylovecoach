@@ -65,7 +65,7 @@ beforeEach(() => {
     if (u.includes('/rest/v1/member?select=*')) return rows([], u.includes('created_at=gte.') ? 12 : 340);
     if (u.includes('/rest/v1/member?select=nickname')) return rows(NEW_MEMBERS);
     if (u.includes('/rest/v1/store_event?')) return rows(SALES);
-    if (u.includes('/rest/v1/coach_log?')) return rows([], 57);
+    if (u.includes('/rest/v1/app_event?') && u.includes('coach_success')) return rows([], 57);
     if (u.includes('/rest/v1/app_session?')) return rows([{ device_id: 'd_1' }, { device_id: 'd_1' }, { device_id: 'd_2' }, { device_id: 'd_3' }]);
     if (u.includes('/rest/v1/app_event?') && u.includes('paywall_open')) return rows([{ device_id: 'd_1' }, { device_id: 'd_2' }]);
     if (u.includes('/rest/v1/app_event?') && u.includes('purchase_start')) return rows([{ device_id: 'd_1' }]);
@@ -129,9 +129,9 @@ describe('/api/daily-report', () => {
         ' · Android 주간 구독 ₩9,900 (1건)',
         ' · ↩️ 환불 1건 · ⚠️ 해지 예약 1건',
         '',
-        '📱 이용 (이용 기록 동의자만)',
+        '📱 이용 (이용 기록이 있는 기기)',
         ' · 앱 실행 기기 3대',
-        ' · 코칭 요청 57건',
+        ' · 코칭 결과 57건',
         ' · 결제 화면 열람 2대 → 결제창 진입 1대',
       ].join('\n'),
     );
@@ -149,7 +149,7 @@ describe('/api/daily-report', () => {
     const text = reportMessage({ day: '10/20', newMembers: null, members: null, totalMembers: null, sales: null, launches: null, coaching: 0, paywall: null, checkout: null });
     expect(text).toContain('👥 신규 회원 확인 못 함 · 누적 확인 못 함');
     expect(text).toContain('💰 매출 확인 못 함');
-    expect(text).toContain(' · 코칭 요청 0건');
+    expect(text).toContain(' · 코칭 결과 0건');
   });
 });
 

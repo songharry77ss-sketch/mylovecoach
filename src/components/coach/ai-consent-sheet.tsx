@@ -106,7 +106,7 @@ function consentCopy(route: AiRoute) {
       icon: 'server-outline',
       label: '보관',
       text: relay
-        ? '중계 서버는 저장하지 않고 전달만 해요(이용 기록에 따로 동의했다면 캡처를 뺀 코칭 질문·답은 1년 보관). Google에서는 Gemini API 약관에 따라 보관·처리돼요.'
+        ? '중계 서버는 저장하지 않고 전달만 해요(코칭 내용 저장에 따로 동의했다면 캡처를 뺀 코칭 질문·답은 1년 보관). Google에서는 Gemini API 약관에 따라 보관·처리돼요.'
         : `우리 서버를 거치지 않아 우리 쪽엔 남지 않아요. ${company}에서는 그 회사의 약관과 개인정보 정책에 따라 보관·처리돼요.`,
     },
     {

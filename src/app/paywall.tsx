@@ -81,7 +81,7 @@ export default function Paywall() {
   // 그래서 결제·복원 결과는 버튼 바로 아래에 직접 보여 준다.
   const [notice, setNotice] = useState<{ kind: 'error' | 'info'; text: string } | null>(null);
 
-  // 결제 없이 닫았을 때 남길 것 — 머문 시간, 상품을 직접 골랐는지, 마지막 결제 결과 (이용 기록 동의자만 전송)
+  // 결제 없이 닫았을 때 남길 것 — 머문 시간, 상품을 직접 골랐는지, 마지막 결제 결과 (서비스 이용 기록 — 결제 흐름 분석)
   const visit = useRef({ openedAt: Date.now(), picked: false, result: 'none', done: false, plan: '' as PlanKey | '' });
 
   useEffect(() => {
