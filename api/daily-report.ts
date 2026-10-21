@@ -120,7 +120,7 @@ export async function collectReport(now = Date.now()): Promise<ReportData> {
     countRows('member', `${joined}&${between('created_at')}`),
     query<MemberRow>('member', `select=nickname,provider,email&${joined}&${between('created_at')}&order=created_at.asc&limit=${MEMBER_LIST_MAX}`),
     countRows('member', joined),
-    query<SaleRow>('store_event', `select=store,kind,plan,product_id,amount,currency&environment=eq.Production&kind=in.(purchase,renewal,refund,cancel)&${between('created_at')}&limit=5000`),
+    query<SaleRow>('store_event', `select=store,kind,plan,product_id,amount,currency&environment=eq.Production&kind=in.(purchase,renewal,refund,cancel)&${between('created_at')}&limit=1000`), // Supabase 한 번에 최대 1000행 — 하루 결제가 그보다 많아지면 집계 함수로 바꿀 것
     distinctDevices('app_session', between('started_at')),
     countRows('coach_log', between('created_at')),
     distinctDevices('app_event', `name=eq.paywall_open&${between('created_at')}`),

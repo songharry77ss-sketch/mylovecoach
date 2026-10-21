@@ -58,7 +58,6 @@ export async function notifyTelegram(text: string): Promise<boolean> {
             chat_id: chatId,
             text: body,
             parse_mode: 'HTML',
-            disable_web_page_preview: true,
             link_preview_options: { is_disabled: true },
           }),
           signal: controller.signal,

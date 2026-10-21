@@ -201,9 +201,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(502).json({ error: '가입을 마치지 못했어요. 잠시 후 다시 시도해주세요.' });
     return;
   }
-  // 서버리스는 응답 뒤 작업이 멈출 수 있어 기다린다 (텔레그램은 4초 안에 포기)
+  // 서버리스는 응답 뒤 작업이 멈출 수 있어 기다리되, DB 조회·텔레그램이 늦어도 가입 응답은 5초 안에 돌려준다
   if (linked.new) {
-    await alertSignup(req, body, deviceId, { nickname: linked.nickname ?? nickname, email: clean(user.email, 120), provider: linked.provider ?? provider, bonus: linked.bonus });
+    const alert = alertSignup(req, body, deviceId, { nickname: linked.nickname ?? nickname, email: clean(user.email, 120), provider: linked.provider ?? provider, bonus: linked.bonus }).catch(() => {});
+    await Promise.race([alert, new Promise((resolve) => setTimeout(resolve, 5000))]);
   }
   res.status(200).json({
     new: linked.new,

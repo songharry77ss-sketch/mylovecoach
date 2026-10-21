@@ -182,11 +182,27 @@ describe('/api/store-google 처리', () => {
     expect(telegramTexts()).toEqual(['↩️ 환불 · 평생권 ₩29,800 · Android']);
   });
 
-  it('구독 복구처럼 알리지 않는 종류는 기록만 한다', async () => {
+  it('구독 재시작처럼 알리지 않는 종류는 기록만 한다', async () => {
     const res = fakeRes();
-    await handler(req(push({ packageName: 'app.mylovecoach.android', eventTimeMillis: '5', subscriptionNotification: { notificationType: 1, purchaseToken: 'sub-token', subscriptionId: 'mylovecoach.premium.weekly' } })), res as never);
+    await handler(req(push({ packageName: 'app.mylovecoach.android', eventTimeMillis: '5', subscriptionNotification: { notificationType: 7, purchaseToken: 'sub-token', subscriptionId: 'mylovecoach.premium.weekly' } })), res as never);
     expect(res.statusCode).toBe(200);
-    expect(JSON.parse(inserts()[0].body ?? '[]')[0]).toMatchObject({ kind: 'other', notification: 'SUBSCRIPTION_RECOVERED' });
+    expect(JSON.parse(inserts()[0].body ?? '[]')[0]).toMatchObject({ kind: 'other', notification: 'SUBSCRIPTION_RESTARTED' });
+    expect(telegramTexts()).toHaveLength(0);
+  });
+
+  it('계정 보류에서 결제가 복구되면 갱신으로 세고 알린다', async () => {
+    const res = fakeRes();
+    await handler(req(push({ packageName: 'app.mylovecoach.android', eventTimeMillis: '6', subscriptionNotification: { notificationType: 1, purchaseToken: 'sub-token', subscriptionId: 'mylovecoach.premium.weekly' } })), res as never);
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(inserts()[0].body ?? '[]')[0]).toMatchObject({ kind: 'renewal', notification: 'SUBSCRIPTION_RECOVERED', amount: 9900 });
+    expect(telegramTexts()).toHaveLength(1);
+  });
+
+  it('대기 중이던 일회성 결제 취소는 「해지 예약」으로 세지 않는다', async () => {
+    const res = fakeRes();
+    await handler(req(push({ packageName: 'app.mylovecoach.android', eventTimeMillis: '8', oneTimeProductNotification: { notificationType: 2, purchaseToken: 'pending-token', sku: 'mylovecoach.pass.day' } })), res as never);
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(inserts()[0].body ?? '[]')[0]).toMatchObject({ kind: 'other', notification: 'ONE_TIME_PRODUCT_CANCELED' });
     expect(telegramTexts()).toHaveLength(0);
   });
 
@@ -201,7 +217,7 @@ describe('/api/store-google 처리', () => {
 
 describe('알림 해석', () => {
   it('구독 알림 종류', () => {
-    expect([4, 2, 3, 12, 13, 6, 1, 7].map(subscriptionKind)).toEqual(['purchase', 'renewal', 'cancel', 'refund', 'expire', 'fail', 'other', 'other']);
+    expect([4, 2, 3, 12, 13, 6, 1, 7].map(subscriptionKind)).toEqual(['purchase', 'renewal', 'cancel', 'refund', 'expire', 'fail', 'renewal', 'other']);
   });
 
   it('구독 상품 ID 가 비어 오면 주간 구독으로 본다', () => {

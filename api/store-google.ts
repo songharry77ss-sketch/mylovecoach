@@ -58,12 +58,13 @@ const SUBSCRIPTION_TYPES: Record<number, string> = {
   20: 'SUBSCRIPTION_PENDING_PURCHASE_CANCELED',
 };
 
-/** 구독 알림 종류 → 기록 종류 (복구·재시작 등은 알리지 않는 other) */
+/** 구독 알림 종류 → 기록 종류 (재시작 등은 알리지 않는 other) */
 export function subscriptionKind(type: number | undefined): StoreKind {
   switch (type) {
     case 4:
       return 'purchase';
     case 2:
+    case 1: // 계정 보류에서 결제가 복구됨 — 실제 결제라 갱신으로 센다 (Apple 의 BILLING_RECOVERY 와 같게)
       return 'renewal';
     case 3:
       return 'cancel';
@@ -79,8 +80,8 @@ export function subscriptionKind(type: number | undefined): StoreKind {
   }
 }
 
-/** 일회성 상품 알림 종류 → 기록 종류 (2 = 대기 중이던 결제가 취소됨) */
-export const oneTimeKind = (type: number | undefined): StoreKind => (type === 1 ? 'purchase' : type === 2 ? 'cancel' : 'other');
+/** 일회성 상품 알림 종류 → 기록 종류 (2 = 대기 중이던 결제가 취소됨 — 구독 「해지 예약」과 섞이지 않게 알리지 않는 other) */
+export const oneTimeKind = (type: number | undefined): StoreKind => (type === 1 ? 'purchase' : 'other');
 
 /** 구독 상품 ID 가 비어 오면 하나뿐인 구독(주간)으로 본다 */
 const subscriptionPlan = (subscriptionId: string | undefined): PlanKey | null => planOf(subscriptionId) ?? (subscriptionId ? null : 'weekly');
@@ -145,7 +146,8 @@ export function googleEventRow(n: DeveloperNotification, messageId: string | nul
       // 구독 취소(REVOKED)와 같은 환불이 함께 오므로 같은 토큰의 환불은 한 번만 센다
       transaction_id: hash,
       original_transaction_id: hash,
-      raw: { eventTimeMillis: at || null, orderId: voided.orderId ?? null, productType: voided.productType ?? null, refundType: voided.refundType ?? null },
+      // 주문 ID 는 처리방침대로 원문 대신 바꾼 값(해시)만 남긴다
+      raw: { eventTimeMillis: at || null, orderIdHash: voided.orderId ? tokenHash(voided.orderId) : null, productType: voided.productType ?? null, refundType: voided.refundType ?? null },
     };
   }
   return null;

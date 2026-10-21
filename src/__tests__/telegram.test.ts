@@ -35,7 +35,7 @@ describe('notifyTelegram', () => {
     await expect(notifyTelegram('<b>안녕</b>')).resolves.toBe(true);
     expect(calls.map((c) => c.url)).toEqual(['https://api.telegram.org/botbot-token/sendMessage', 'https://api.telegram.org/botbot-token/sendMessage']);
     expect(calls.map((c) => c.body.chat_id)).toEqual(['123', '-100456']);
-    expect(calls[0].body).toMatchObject({ text: '<b>안녕</b>', parse_mode: 'HTML', disable_web_page_preview: true });
+    expect(calls[0].body).toMatchObject({ text: '<b>안녕</b>', parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
   });
 
   it('네트워크 오류·실패 응답이면 예외 없이 false', async () => {
