@@ -630,16 +630,22 @@ as $$
            lead(screen) over w as next_screen
     from sv where before is distinct from screen
     window w as (partition by device_id, session_id order by created_at, id)
+  ), open_rows as (
+    select o.device_id, o.session_id, o.created_at, o.props,
+           lead(o.created_at) over (partition by o.device_id, o.session_id order by o.created_at) as next_open
+    from ev o where o.name = 'paywall_open'
   ), opens as (
-    -- 결제 화면을 연 한 번 한 번 — 같은 세션에서 그 뒤에 결제창을 열었는지·결제했는지
+    -- 결제 화면을 연 한 번 한 번 — 같은 세션에서 그 뒤(다음에 다시 열기 전까지) 결제창을 열었는지·결제했는지
     select o.device_id, coalesce(nullif(o.props->>'reason', ''), '(모름)') as reason,
            exists (select 1 from ev p where p.device_id = o.device_id and p.session_id is not distinct from o.session_id
-                   and p.name = 'purchase_start' and p.created_at >= o.created_at) as tried,
+                   and p.name = 'purchase_start' and p.created_at >= o.created_at
+                   and (o.next_open is null or p.created_at < o.next_open)) as tried,
            exists (select 1 from ev p where p.device_id = o.device_id and p.session_id is not distinct from o.session_id
-                   and p.name in ('purchase_purchased', 'purchase_granted') and p.created_at >= o.created_at) as bought
-    from ev o where o.name = 'paywall_open'
+                   and p.name in ('purchase_purchased', 'purchase_granted') and p.created_at >= o.created_at
+                   and (o.next_open is null or p.created_at < o.next_open)) as bought
+    from open_rows o
   ), visits as (
-    -- 결제 화면에 머문 시간 (세션마다 합침 — 결제 시트가 떠 있는 동안 기록이 나뉘어도 한 번으로)
+    -- 결제 화면에 머문 시간 (실행(세션)마다 합침 — 결제 시트가 떠 있는 동안 기록이 나뉘어도 한 번으로)
     select device_id, session_id, sum(coalesce(duration_ms, 0)) as ms
     from sv where screen = '/paywall' group by 1, 2
   )
@@ -742,12 +748,16 @@ as $$
   select coalesce(json_agg(row_to_json(r) order by r.created_at desc), '[]'::json) from (
     select m.provider, m.nickname,
            case when m.email is null or position('@' in m.email) = 0 then null
-                else left(split_part(m.email, '@', 1), 2) || '***@' || split_part(m.email, '@', 2) end as email,
+                else left(split_part(m.email, '@', 1), least(2, length(split_part(m.email, '@', 1)) - 1)) || '***@' || split_part(m.email, '@', 2) end as email,
            m.created_at, m.last_login_at, m.bonus_at is not null as bonus,
            (select count(*) from member_device d where d.user_id = m.user_id) as devices,
-           m.device_id,
-           exists (select 1 from app_user a where a.device_id = m.device_id) as has_records
+           r.device_id,
+           r.device_id is not null as has_records
     from member m
+    -- 이 회원과 이어진 이용 기록(동의한 기기) 중 가장 최근 것 — 없으면 기기 ID 를 내보내지 않는다
+    left join lateral (
+      select a.device_id from app_user a where a.user_id = m.user_id order by a.last_seen_at desc limit 1
+    ) r on true
     where m.provider is not null
     order by m.created_at desc
     limit greatest(least(p_limit, 2000), 1)

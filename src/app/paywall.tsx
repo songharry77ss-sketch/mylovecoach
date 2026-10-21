@@ -196,6 +196,8 @@ export default function Paywall() {
       {offerSignup ? (
         <SignupCard
           onDone={(result) => {
+            // 결제 없이 닫히지만 가입으로 끝났다는 걸 남긴다
+            visit.current.result = 'signup';
             haptic.celebrate();
             close();
             toast.show(result.bonus ? `가입 완료! 무료 코칭 ${SIGNUP_BONUS}회를 받았어요 🎁` : '로그인했어요.', 'success');

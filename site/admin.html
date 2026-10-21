@@ -424,9 +424,9 @@
 
     const t = f.paywall_time || {};
     const c = f.closes || {};
-    const restores = (f.restores || []).map((r) => `${RESTORE[r.result] ?? r.result} ${num(r.count)}번`).join(' · ');
+    const restores = (f.restores || []).map((r) => `${esc(RESTORE[r.result] ?? r.result)} ${num(r.count)}번`).join(' · ');
     $('funnelTime').innerHTML = `<dl class="kv">
-        <dt>머문 시간</dt><dd>${num(t.visits)}번 방문 · 평균 ${secs(t.avg_sec)} · 가운데값 ${secs(t.median_sec)}</dd>
+        <dt>머문 시간</dt><dd>결제 화면을 본 실행 ${num(t.visits)}번 · 실행마다 평균 ${secs(t.avg_sec)} · 가운데값 ${secs(t.median_sec)}</dd>
         <dt>결제 없이 닫음</dt><dd>${num(c.count)}번${Number(c.count) ? ` · 닫기 전 평균 ${secs(c.avg_sec)} · 상품을 고른 뒤 닫음 ${num(c.after_pick)}번` : ''} <span class="muted">(1.0.4 앱부터)</span></dd>
         <dt>구매 복원</dt><dd>${restores || '-'}</dd>
       </dl>`;
