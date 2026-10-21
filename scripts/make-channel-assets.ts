@@ -11,6 +11,7 @@
  * - tiers-square/1.png … 5.png : 궁합 등급 다섯 가지 (천생연분 → 극과 극)
  * - cover-* · cta-* · match-teaser-* : 캐러셀 표지 · 마지막 장 · 「둘 다 해야 열리는 궁합」
  * - sample-* : 결과·궁합 카드 견본 (유형 소개용, 실제 이용자 결과가 아님)
+ * 영상은 scripts/make-channel-videos.ts
  */
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -22,32 +23,32 @@ import { KKTI_AXES, KKTI_CODES, KKTI_MATCH_TIERS, KKTI_QUESTIONS, KKTI_TYPES, co
 import { fluentFile } from './fetch-fluent-emoji';
 
 const OUT = path.join(__dirname, '..', 'docs', 'channel-assets');
-const INK = '#0E0E12';
-const PAPER = '#FFFDF7';
-const PINK = '#FF3D7F';
-const LIME = '#C6FF3D';
-const LILAC = '#B9A2FF';
-const SKY = '#7FD8FF';
-const SUN = '#FFD43D';
+export const INK = '#0E0E12';
+export const PAPER = '#FFFDF7';
+export const PINK = '#FF3D7F';
+export const LIME = '#C6FF3D';
+export const LILAC = '#B9A2FF';
+export const SKY = '#7FD8FF';
+export const SUN = '#FFD43D';
 
 // ───────────────────────── 그리기 재료 ─────────────────────────
 
-type Style = Record<string, string | number>;
-interface Node {
+export type Style = Record<string, string | number>;
+export interface Node {
   type: string;
   props: { style?: Style; children?: Child | Child[]; src?: string; width?: number; height?: number };
 }
-type Child = Node | string | null | false;
+export type Child = Node | string | null | false;
 
-const box = (style: Style, ...children: Child[]): Node => ({
+export const box = (style: Style, ...children: Child[]): Node => ({
   type: 'div',
   props: { style: { display: 'flex', boxSizing: 'border-box', position: 'relative', ...style }, children: children.filter(Boolean) as Child[] },
 });
-const text = (value: string, style: Style): Node => ({ type: 'div', props: { style: { display: 'flex', wordBreak: 'keep-all', ...style }, children: value } });
+export const text = (value: string, style: Style): Node => ({ type: 'div', props: { style: { display: 'flex', wordBreak: 'keep-all', ...style }, children: value } });
 
 const fontDirs = [path.join(__dirname, 'assets', 'fonts'), path.join(__dirname, '..', 'api', '_assets', 'fonts')];
 const font = (file: string) => readFileSync(fontDirs.map((d) => path.join(d, file)).find((p) => existsSync(p))!);
-const FONTS = (
+export const FONTS = (
   [
     ['Pretendard-Medium.otf', 500],
     ['Pretendard-SemiBold.otf', 600],
@@ -65,17 +66,17 @@ function emojiUri(emoji: string): string {
   }
   return emojiCache.get(emoji)!;
 }
-const emoji = (value: string, size: number, style: Style = {}): Node | null => {
+export const emoji = (value: string, size: number, style: Style = {}): Node | null => {
   const src = emojiUri(value);
   if (!src) throw new Error(`3D 이모지 없음: ${value} — scripts/fetch-fluent-emoji.ts 에 추가하고 다시 받으세요`);
   return { type: 'img', props: { src, width: size, height: size, style: { width: size, height: size, ...style } } };
 };
 
 /** 검은 테두리 + 딱 떨어지는 그림자 */
-const sticker = (px: number, shadow = 10): Style => ({ border: `${px}px solid ${INK}`, boxShadow: `${shadow}px ${shadow}px 0 0 ${INK}` });
+export const sticker = (px: number, shadow = 10): Style => ({ border: `${px}px solid ${INK}`, boxShadow: `${shadow}px ${shadow}px 0 0 ${INK}` });
 
 /** 둥근 스티커 안의 3D 이모지 */
-function emojiSticker(value: string, size: number, rotate = -6, bg = PAPER): Node {
+export function emojiSticker(value: string, size: number, rotate = -6, bg = PAPER): Node {
   return box(
     { width: size, height: size, flexShrink: 0, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', transform: `rotate(${rotate}deg)`, ...sticker(Math.max(4, Math.round(size / 48)), Math.round(size / 22)) },
     emoji(value, Math.round(size * 0.74)),
@@ -83,25 +84,25 @@ function emojiSticker(value: string, size: number, rotate = -6, bg = PAPER): Nod
 }
 
 /** 카톡 말풍선 (왼쪽 아래 모서리만 뾰족) */
-function bubble(value: string, fontSize: number, style: Style = {}, bg = PAPER, color = INK): Node {
+export function bubble(value: string, fontSize: number, style: Style = {}, bg = PAPER, color = INK): Node {
   return box(
     { padding: `${Math.round(fontSize * 0.62)}px ${Math.round(fontSize * 0.9)}px`, borderRadius: Math.round(fontSize * 1.1), borderBottomLeftRadius: Math.round(fontSize * 0.25), backgroundColor: bg, ...sticker(Math.max(3, Math.round(fontSize / 9)), Math.round(fontSize / 5)), ...style },
     text(value, { fontSize, fontWeight: 700, color, lineHeight: 1.35, letterSpacing: -0.5 }),
   );
 }
 
-const pill = (value: string, fontSize: number, bg: string, color: string, style: Style = {}): Node =>
+export const pill = (value: string, fontSize: number, bg: string, color: string, style: Style = {}): Node =>
   box({ padding: `${Math.round(fontSize * 0.42)}px ${Math.round(fontSize * 0.85)}px`, borderRadius: 999, backgroundColor: bg, alignItems: 'center', gap: Math.round(fontSize * 0.3), ...sticker(Math.max(3, Math.round(fontSize / 10)), Math.round(fontSize / 6)), ...style }, text(value, { fontSize, fontWeight: 800, color, letterSpacing: -0.3 }));
 
 /** 유형 이름 — 두 단어 이상이면 줄을 나눠 아주 크게 */
-function nameLines(name: string): string[] {
+export function nameLines(name: string): string[] {
   const words = name.split(' ');
   if (words.length === 1) return [name];
   return [words[0], words.slice(1).join(' ')];
 }
 
 /** 이름 크기: 가장 긴 줄이 width 안에 들어가게 (한글 한 글자 ≈ 0.94em) */
-const fitSize = (lines: string[], width: number, max: number) => Math.min(max, Math.floor(width / (Math.max(...lines.map((l) => l.length)) * 0.94)));
+export const fitSize = (lines: string[], width: number, max: number) => Math.min(max, Math.floor(width / (Math.max(...lines.map((l) => l.length)) * 0.94)));
 
 function bigName(name: string, width: number, max: number, color: string, shadow: string): Node {
   const lines = nameLines(name);
@@ -112,7 +113,7 @@ function bigName(name: string, width: number, max: number, color: string, shadow
   );
 }
 
-function letterTiles(result: KktiResult, size: number): Node {
+export function letterTiles(result: KktiResult, size: number): Node {
   return box(
     { gap: Math.round(size * 0.14) },
     ...codeLetters(result.code).map((letter, i) =>
@@ -132,7 +133,7 @@ const ghost = (value: string, size: number, color: string, style: Style): Node =
 // ───────────────────────── 16유형 카드 ─────────────────────────
 
 /** 그 유형이 가장 뚜렷하게 나오는 답 (축마다 같은 쪽 끝) */
-function typical(code: string): KktiResult {
+export function typical(code: string): KktiResult {
   const letters = Array.from(code);
   return computeKkti(
     KKTI_QUESTIONS.map((q) => {
@@ -148,7 +149,7 @@ interface Ink {
   shadow: string;
   ghost: string;
 }
-function inkOn(hex: string): Ink {
+export function inkOn(hex: string): Ink {
   const light = readableTextOn(hex) === '#FFFFFF';
   return light ? { ink: PAPER, shadow: INK, ghost: 'rgba(255,255,255,0.10)' } : { ink: INK, shadow: PAPER, ghost: 'rgba(14,14,18,0.08)' };
 }
@@ -314,53 +315,9 @@ function resultStory(r: KktiResult): Node {
   );
 }
 
-// ───────────────────────── 영상 편집 틀 ─────────────────────────
-
-/** 앱 화면 녹화를 넣을 자리 (1080×1920 안에서). 틱톡·릴스 아래쪽 글자와 오른쪽 버튼에 덜 가리게 위로 올린다 */
-export const VIDEO_WINDOW = { x: 190, y: 500, width: 700, height: 1244, radius: 54 };
-
-interface VideoFrame {
-  name: string;
-  lines: string[];
-  sub: string;
-  bg: string;
-  ink: string;
-  accent: string;
-  tag?: string;
-}
-export const VIDEO_FRAMES: VideoFrame[] = [
-  { name: '01', lines: ['썸남한테 이 링크', '보냈더니'], sub: '카톡 궁합 %가 나옴 👀', bg: PINK, ink: INK, accent: PAPER, tag: '연출' },
-  { name: '02', lines: ['우리 카톡 궁합', '몇 %게?'], sub: '둘 다 테스트해야 열림 🔒', bg: LIME, ink: INK, accent: PINK },
-  { name: '03', lines: ['MBTI 말고', '카톡으로 보는 나'], sub: '1분 · 12문항 · 16유형', bg: INK, ink: LIME, accent: PINK },
-];
-
-function videoBackground(f: VideoFrame): Node {
-  const w = VIDEO_WINDOW;
-  return box(
-    { width: '100%', height: '100%', flexDirection: 'column', backgroundColor: f.bg, fontFamily: 'Pretendard', padding: '120px 70px 0' },
-    box({ justifyContent: 'space-between', alignItems: 'center' }, box({ padding: '12px 26px', borderRadius: 999, backgroundColor: f.ink === INK ? INK : LIME }, text('KKTI', { fontSize: 34, fontWeight: 900, color: f.ink === INK ? PAPER : INK, letterSpacing: 1 })), f.tag ? pill(f.tag, 30, PAPER, INK) : null),
-    box(
-      { marginTop: 28, flexDirection: 'column' },
-      ...f.lines.map((l) => text(l, { fontSize: 108, fontWeight: 900, color: f.ink, letterSpacing: -3, lineHeight: 1.08, textShadow: `6px 6px 0 ${f.accent}` })),
-    ),
-    // 화면이 들어갈 자리 — 그림자만 미리 그려 둔다
-    box({ position: 'absolute', left: w.x, top: w.y, width: w.width, height: w.height, borderRadius: w.radius, backgroundColor: INK, boxShadow: `16px 16px 0 0 ${f.ink === INK ? INK : f.accent}` }),
-    box({ position: 'absolute', left: w.x, top: w.y + w.height + 34, width: w.width, justifyContent: 'center' }, text(f.sub, { fontSize: 40, fontWeight: 900, color: f.ink })),
-  );
-}
-
-/** 화면 위에 덮는 테두리 (나머지는 투명) */
-function videoBorder(f: VideoFrame): Node {
-  const w = VIDEO_WINDOW;
-  return box({ width: '100%', height: '100%' }, box({ position: 'absolute', left: w.x, top: w.y, width: w.width, height: w.height, borderRadius: w.radius, border: `7px solid ${f.ink === INK ? INK : PAPER}` }));
-}
-
-/** 화면을 둥글게 자르는 가림판 (흰 곳만 보인다) */
-const videoMask = (): Node => box({ width: '100%', height: '100%', backgroundColor: '#000000' }, box({ position: 'absolute', left: 0, top: 0, width: VIDEO_WINDOW.width, height: VIDEO_WINDOW.height, borderRadius: VIDEO_WINDOW.radius, backgroundColor: '#FFFFFF' }));
-
 // ───────────────────────── 내보내기 ─────────────────────────
 
-async function render(tree: Node, width: number, height: number): Promise<Buffer> {
+export async function render(tree: Node, width: number, height: number): Promise<Buffer> {
   const svg = await satori(tree as unknown as Parameters<typeof satori>[0], {
     width,
     height,
@@ -402,12 +359,7 @@ async function main() {
   await save('', 'sample-match-square', matchCard(a, b, false), 1080, 1080);
   await save('', 'sample-match-low-square', matchCard(a, c, false), 1080, 1080);
   rmSync(path.join(OUT, 'sample-link-preview.png'), { force: true });
-  for (const f of VIDEO_FRAMES) {
-    await save(path.join('video', 'frames'), `bg-${f.name}`, videoBackground(f), 1080, 1920);
-    await save(path.join('video', 'frames'), `border-${f.name}`, videoBorder(f), 1080, 1920);
-  }
-  await save(path.join('video', 'frames'), 'mask', videoMask(), VIDEO_WINDOW.width, VIDEO_WINDOW.height);
-  console.log(`그림 ${results.length * 2 + KKTI_MATCH_TIERS.length + 10}장 + 영상 틀 ${VIDEO_FRAMES.length * 2 + 1}장 → ${OUT}`);
+  console.log(`그림 ${results.length * 2 + KKTI_MATCH_TIERS.length + 10}장 → ${OUT}`);
 }
 
 if (require.main === module)
