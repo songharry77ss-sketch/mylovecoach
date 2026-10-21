@@ -738,7 +738,9 @@ $$;
 comment on function admin_funnel is '관리자 결제 흐름 — 단계별 기기 수·결제 화면 진입 이유·상품별 결과·체류·앞뒤 화면·이탈 화면 (이용 기록 동의자만)';
 
 -- ── 가입자 목록 (카카오·Google·Apple 로 가입한 회원, 최근 가입 순) ─────────
--- 이메일은 앞 두 글자만 보이게 가린다 (전체 주소는 한 명 상세에서만)
+-- 운영자(사업자)만 보는 목록이라 이메일은 가리지 않고 전체 주소를 내보낸다.
+-- 이 함수는 서버(service_role)만 부를 수 있다 (맨 아래 revoke) — 앱·웹의 공개 키로는 부르지 못한다.
+-- 이용 현황(실행·체류·코칭·최근 이용·유입)은 이 회원과 이어진(app_user.user_id) 이용 기록 동의 기기를 모두 합친 값
 create or replace function admin_members(p_limit int default 500)
 returns json
 language sql
@@ -747,24 +749,34 @@ set search_path = public
 as $$
   select coalesce(json_agg(row_to_json(r) order by r.created_at desc), '[]'::json) from (
     select m.provider, m.nickname,
-           case when m.email is null or position('@' in m.email) = 0 then null
-                else left(split_part(m.email, '@', 1), least(2, length(split_part(m.email, '@', 1)) - 1)) || '***@' || split_part(m.email, '@', 2) end as email,
+           m.email,   -- 운영자 전용 · 전체 주소 (Apple 은 가린 주소일 수 있음)
            m.created_at, m.last_login_at, m.bonus_at is not null as bonus,
            (select count(*) from member_device d where d.user_id = m.user_id) as devices,
-           r.device_id,
-           r.device_id is not null as has_records
+           latest.device_id,
+           latest.device_id is not null as has_records,
+           latest.last_seen_at,
+           latest.premium_plan,
+           origin.source, origin.source_detail, origin.platform,
+           (select count(*) from app_session s join app_user a on a.device_id = s.device_id where a.user_id = m.user_id)              as sessions,
+           (select round(coalesce(sum(v.duration_ms), 0) / 1000.0) from screen_view v join app_user a on a.device_id = v.device_id
+             where a.user_id = m.user_id)                                                                                           as total_sec,
+           (select count(*) from coach_log c join app_user a on a.device_id = c.device_id where a.user_id = m.user_id)                as coach_count
     from member m
-    -- 이 회원과 이어진 이용 기록(동의한 기기) 중 가장 최근 것 — 없으면 기기 ID 를 내보내지 않는다
+    -- 이 회원과 이어진 이용 기록(동의한 기기) 중 가장 최근 것 — 없으면 기기 ID 를 내보내지 않는다 (「기록 보기」는 이 기기)
     left join lateral (
-      select a.device_id from app_user a where a.user_id = m.user_id order by a.last_seen_at desc limit 1
-    ) r on true
+      select a.device_id, a.last_seen_at, a.premium_plan from app_user a where a.user_id = m.user_id order by a.last_seen_at desc limit 1
+    ) latest on true
+    -- 처음 기록된 기기의 유입 경로 (utm·이전 사이트·설치 경로)
+    left join lateral (
+      select a.source, a.source_detail, a.platform from app_user a where a.user_id = m.user_id order by a.first_seen_at limit 1
+    ) origin on true
     where m.provider is not null
     order by m.created_at desc
     limit greatest(least(p_limit, 2000), 1)
   ) r;
 $$;
 
-comment on function admin_members is '관리자 가입자 목록 (가입 방법·닉네임·가린 이메일·가입일·최근 로그인·기기 수)';
+comment on function admin_members is '관리자 가입자 목록 (가입 방법·닉네임·전체 이메일·가입일·최근 로그인·기기 수·유입·실행/체류/코칭 — 운영자 전용, service_role 만)';
 
 -- ── 관리자 함수는 서버(service_role)만 부를 수 있게 ──────────────────
 do $$

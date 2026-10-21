@@ -163,9 +163,10 @@
     <div class="card" style="margin-bottom:20px">
       <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between">
         <h2 style="margin:0">가입자 <span class="muted" id="membersCount"></span></h2>
-        <input id="memberSearch" placeholder="닉네임·이메일·가입 방법 검색" autocomplete="off" style="flex:0 1 240px" />
+        <input id="memberSearch" placeholder="닉네임·이메일·가입 방법·유입 검색" autocomplete="off" style="flex:0 1 240px" />
       </div>
-      <p class="muted" style="margin:6px 0 10px">기간과 상관없이 최근 가입 순 · 이용 기록 동의와 상관없이 모든 회원 · 이메일은 앞 두 글자만. 「기록 보기」는 이용 기록에 동의한 회원만 있어요.</p>
+      <p class="muted" style="margin:6px 0 10px">기간과 상관없이 최근 가입 순 · 이용 기록 동의와 상관없이 모든 회원 · 이메일은 전체 주소(운영자만 보는 화면이에요).
+        유입·실행·체류·코칭은 이 회원과 이어진 기기 중 이용 기록에 동의한 기기를 모두 합친 값이고, 「기록 보기」는 가장 최근 기기의 이동 경로·화면별 체류·버튼 기록·코칭 대화예요.</p>
       <div id="members" style="overflow-x:auto"></div>
     </div>
 
@@ -287,6 +288,7 @@
     paywall_plan: '결제 화면에서 상품 고름', paywall_close: '결제 화면 닫음', restore_start: '구매 복원 누름', restore_result: '구매 복원 결과',
     purchase_purchased: '결제 완료 (구독·평생권)', purchase_granted: '결제 완료 (이용권)', purchase_cancelled: '결제 취소', purchase_pending: '결제 승인 대기', purchase_error: '결제 오류',
     analytics_opt_out: '이용 기록 수집 끔', signup: '회원가입', login: '로그인', logout: '로그아웃', signup_open: '가입 화면 열림', kkti_start: 'KKTI 시작', kkti_complete: 'KKTI 완료', kkti_share: 'KKTI 공유', kkti_cta: 'KKTI → 코칭',
+    app_download_click: '웹 결제 화면에서 앱 받기 누름',
   };
   const PROVIDER = { kakao: '카카오', google: 'Google', apple: 'Apple' };
   // 결제 화면 (src/app/paywall.tsx 의 reason · PlanKey 와 같은 값)
@@ -440,18 +442,22 @@
   function renderMembers() {
     const q = $('memberSearch').value.trim().toLowerCase();
     const rows = q
-      ? members.filter((m) => [m.nickname, m.email, PROVIDER[m.provider] ?? m.provider].some((v) => String(v ?? '').toLowerCase().includes(q)))
+      ? members.filter((m) => [m.nickname, m.email, PROVIDER[m.provider] ?? m.provider, m.has_records ? sourceLabel(m) : ''].some((v) => String(v ?? '').toLowerCase().includes(q)))
       : members;
     $('membersCount').textContent = members.length ? `${num(members.length)}명${q ? ` 중 ${num(rows.length)}명` : ''}` : '';
     $('members').innerHTML = rows.length
       ? `<table>
-          <thead><tr><th>닉네임</th><th>가입 방법 · 이메일</th><th>가입 → 최근 로그인</th><th class="num">기기</th><th></th></tr></thead>
+          <thead><tr><th>닉네임</th><th>가입 방법</th><th>이메일</th><th>가입 → 최근 로그인</th><th>유입</th><th class="num">실행 · 체류 · 코칭</th><th></th></tr></thead>
           <tbody>${rows.map((m) => `<tr>
-            <td><b>${esc(m.nickname || '(닉네임 없음)')}</b> ${m.bonus ? '<span class="pill">가입 보너스 받음</span>' : ''}</td>
-            <td>${esc(PROVIDER[m.provider] ?? m.provider)}<div class="muted">${esc(m.email || '-')}</div></td>
+            <td><b>${esc(m.nickname || '(닉네임 없음)')}</b> ${m.premium_plan ? `<span class="pill hot">${esc(PLAN[m.premium_plan] ?? m.premium_plan)}</span>` : ''} ${m.bonus ? '<span class="pill">가입 보너스 받음</span>' : ''}</td>
+            <td style="white-space:nowrap">${esc(PROVIDER[m.provider] ?? m.provider)}<div class="muted">로그인 기기 ${num(m.devices)}대</div></td>
+            <td style="word-break:break-all">${esc(m.email || '-')}</td>
             <td class="muted" style="white-space:nowrap">${when(m.created_at)}<br>→ ${when(m.last_login_at)}</td>
-            <td class="num">${num(m.devices)}</td>
-            <td class="num">${m.has_records && m.device_id ? `<button class="ghost" data-user="${esc(m.device_id)}">기록 보기</button>` : '<span class="muted">기록 없음</span>'}</td>
+            <td>${m.has_records ? esc(sourceLabel(m)) : '<span class="muted">-</span>'}</td>
+            <td class="num" style="white-space:nowrap">${m.has_records
+              ? `실행 ${num(m.sessions)}번 · ${secs(m.total_sec)} · 코칭 ${num(m.coach_count)}번<div class="muted">최근 이용 ${when(m.last_seen_at)}</div>`
+              : '<span class="muted">이용 기록 미동의</span>'}</td>
+            <td class="num">${m.has_records && m.device_id ? `<button class="ghost" data-user="${esc(m.device_id)}">기록 보기</button>` : ''}</td>
           </tr>`).join('')}</tbody>
         </table>`
       : `<p class="muted">${members.length ? '검색 결과가 없어요.' : '아직 가입한 회원이 없어요.'}</p>`;
