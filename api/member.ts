@@ -5,12 +5,16 @@
  *   DELETE /api/member { appleAuthorizationCode?, appleManualRevocationAcknowledged? } → 회원 탈퇴.
  *             Apple 자동 취소를 확인하거나, 수동 연결 해제 안내를 확인한 본인의 명시적 요청일 때만 데이터를 지운다.
  *             카카오는 연결 해제를 시도한다. Google 외부 연결은 자동 해제하지 않는다.
+ *   처음 가입하면 운영자 텔레그램으로 알린다 (닉네임·이메일·가입 방법·기기 종류·유입 경로·보너스 — 처리방침 2번·5번 「운영자 알림」).
+ *   유입 경로는 이용 기록에 동의한 기기(app_user)에만 있다. 알림이 실패해도 가입은 그대로 마친다.
  * 환경변수: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, COACH_APP_TOKEN(선택, 앱 토큰 검사),
- *          KAKAO_ADMIN_KEY · APPLE_TEAM_ID · APPLE_KEY_ID · APPLE_PRIVATE_KEY (선택, 탈퇴 때 연결 끊기 — _unlink.ts)
+ *          KAKAO_ADMIN_KEY · APPLE_TEAM_ID · APPLE_KEY_ID · APPLE_PRIVATE_KEY (선택, 탈퇴 때 연결 끊기 — _unlink.ts),
+ *          TELEGRAM_BOT_TOKEN · TELEGRAM_CHAT_ID (선택, 가입 알림 — _telegram.ts)
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-import { authUser, deleteAuthUser, DEVICE_ID, rpc, supabaseReady } from './_supabase';
+import { authUser, countRows, deleteAuthUser, DEVICE_ID, query, rpc, supabaseReady } from './_supabase';
+import { escapeHtml, kstMidnight, notifyTelegram, telegramReady } from './_telegram';
 import { appleUserId, kakaoUserId, revokeApple, unlinkKakao } from './_unlink';
 
 export const config = { maxDuration: 30 };
@@ -28,6 +32,89 @@ function parseBody(req: VercelRequest): Record<string, unknown> {
 }
 
 const clean = (v: unknown, max: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+
+type SignupPlatform = 'ios' | 'android' | 'web';
+
+/**
+ * 가입한 기기 종류. 앱이 본문에 platform 을 보내면 그대로, 아니면 요청 머리글(user-agent)로 짐작한다:
+ * 앱(React Native)의 요청은 iOS 가 「앱이름/빌드 CFNetwork/… Darwin/…」, Android 가 「okhttp/…」이고 브라우저는 「Mozilla/…」로 시작한다
+ */
+export function signupPlatform(userAgent: unknown, hinted?: unknown): SignupPlatform | null {
+  if (hinted === 'ios' || hinted === 'android' || hinted === 'web') return hinted;
+  const ua = typeof userAgent === 'string' ? userAgent : '';
+  if (!ua) return null;
+  if (/Mozilla\//i.test(ua)) return 'web';
+  if (/CFNetwork|Darwin|iPhone|iPad|iOS/i.test(ua)) return 'ios';
+  if (/okhttp|Android/i.test(ua)) return 'android';
+  return null;
+}
+
+const PROVIDER_LABELS: Record<string, string> = { kakao: '카카오', google: 'Google', apple: 'Apple' };
+const PLATFORM_LABELS: Record<SignupPlatform, string> = { ios: 'iOS 앱', android: 'Android 앱', web: '웹' };
+
+interface SourceRow {
+  source: string | null;
+  source_detail: Record<string, unknown> | null;
+  platform: string | null;
+}
+
+/** 유입 경로 문구 (이용자가 보낸 값이라 escape 한다) */
+export function sourceText(row: SourceRow | null | undefined, state: 'ok' | 'no-device' | 'failed'): string {
+  if (state === 'no-device') return '알 수 없음 (기기 정보 없음)';
+  if (state === 'failed') return '알 수 없음 (조회 실패)';
+  if (!row) return '알 수 없음 (이용 기록 미동의)';
+  if (!row.source) return '알 수 없음 (경로 기록 없음)';
+  const detail = row.source_detail ?? {};
+  const extra = [detail.medium, detail.campaign].filter((v): v is string => typeof v === 'string' && Boolean(v.trim()) && v !== row.source);
+  return escapeHtml([row.source, ...extra].join(' · '));
+}
+
+/** 가입 알림 문구 */
+export function signupMessage(info: {
+  nickname: string | null;
+  email: string | null;
+  provider: string;
+  platform: SignupPlatform | null;
+  source: string;
+  bonus: boolean;
+  today: number | null;
+  total: number | null;
+}): string {
+  const counts = [info.today != null ? `오늘 ${info.today}번째` : null, info.total != null ? `누적 ${info.total}명` : null].filter(Boolean).join(' · ');
+  return [
+    `🎉 새 회원가입${counts ? ` (${counts})` : ''}`,
+    `👤 ${escapeHtml(info.nickname ?? '(닉네임 없음)')} · ${escapeHtml(info.email ?? '(이메일 없음)')}`,
+    `🔑 ${PROVIDER_LABELS[info.provider] ?? escapeHtml(info.provider)} · 📱 ${info.platform ? PLATFORM_LABELS[info.platform] : '기기 모름'}`,
+    `🧭 유입: ${info.source}`,
+    info.bonus ? '🎁 가입 보너스 지급' : '🎁 보너스 없음(이미 받은 기기)',
+  ].join('\n');
+}
+
+/** 처음 가입한 회원을 운영자에게 알린다. 텔레그램을 설정하지 않았으면 아무것도 읽지 않는다. 실패해도 예외 없음 */
+async function alertSignup(req: VercelRequest, body: Record<string, unknown>, deviceId: string | null, member: { nickname: string | null; email: string | null; provider: string; bonus: boolean }) {
+  if (!telegramReady()) return;
+  try {
+    const joined = 'provider=not.is.null';
+    const [sourceRows, today, total] = await Promise.all([
+      deviceId ? query<SourceRow>('app_user', `select=source,source_detail,platform&device_id=eq.${encodeURIComponent(deviceId)}&limit=1`) : Promise.resolve(null),
+      countRows('member', `${joined}&created_at=gte.${encodeURIComponent(kstMidnight().toISOString())}`),
+      countRows('member', joined),
+    ]);
+    const row = sourceRows?.[0] ?? null;
+    const recorded = row?.platform === 'ios' || row?.platform === 'android' || row?.platform === 'web' ? row.platform : null;
+    await notifyTelegram(
+      signupMessage({
+        ...member,
+        platform: signupPlatform(req.headers['user-agent'], body.platform) ?? recorded,
+        source: sourceText(row, !deviceId ? 'no-device' : sourceRows === null ? 'failed' : 'ok'),
+        today,
+        total,
+      }),
+    );
+  } catch (e) {
+    console.warn('[member] 가입 알림 실패:', e instanceof Error ? e.name : 'unknown');
+  }
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('cache-control', 'no-store');
@@ -113,6 +200,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!linked) {
     res.status(502).json({ error: '가입을 마치지 못했어요. 잠시 후 다시 시도해주세요.' });
     return;
+  }
+  // 서버리스는 응답 뒤 작업이 멈출 수 있어 기다린다 (텔레그램은 4초 안에 포기)
+  if (linked.new) {
+    await alertSignup(req, body, deviceId, { nickname: linked.nickname ?? nickname, email: clean(user.email, 120), provider: linked.provider ?? provider, bonus: linked.bonus });
   }
   res.status(200).json({
     new: linked.new,

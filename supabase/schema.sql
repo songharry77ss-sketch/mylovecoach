@@ -535,6 +535,7 @@ comment on function delete_device is '기기 ID 하나의 이용 기록 삭제 (
 
 -- ── 1년 지난 이용 기록 파기 (처리방침 4번 「1년이 지나면 파기」) ─
 -- AI 답변 신고는 아래 purge_ai_report() 가 따로 지운다 — 이 함수는 브랜치마다 본문이 달라 다시 만들 때 줄이 사라질 수 있어서
+-- (스토어 결제 알림 store_event 도 같은 이유로 파일 끝의 purge_store_event() 가 따로 지운다)
 create or replace function purge_old_records()
 returns void
 language sql
@@ -775,4 +776,64 @@ begin
     revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text), admin_funnel(int), admin_members(int), delete_device(text), purge_old_records(),
       take_quota(text, int, bigint), member_link(uuid, text, text, text, text), member_delete(uuid), app_user_member() from anon, authenticated;
   end if;
+end $$;
+
+-- ── 스토어 결제 알림 기록 (App Store 서버 알림·Google Play 실시간 알림 — supabase/store_event.sql 과 같음) ─
+-- 이름·이메일·기기 ID 는 없고 Google 구매 토큰은 바꾼 값(해시)만. 1년 지나면 purge_store_event() 가 지운다
+create table if not exists store_event (
+  id                      bigserial primary key,
+  store                   text not null,     -- apple | google
+  environment             text,              -- Production | Sandbox | test (Google 연결 확인)
+  kind                    text not null,     -- purchase | renewal | refund | cancel | expire | fail | test | other
+  notification            text,              -- 스토어가 붙인 알림 이름 (예: DID_RENEW, SUBSCRIPTION_RENEWED)
+  product_id              text,
+  plan                    text,              -- day | weekly | lifetime | credits
+  amount                  numeric,           -- 결제 금액 (Apple 은 알림에 든 가격, Google 은 요금제 정가)
+  currency                text,              -- KRW …
+  transaction_id          text,              -- Apple 거래 ID · Google 구매 토큰 해시(갱신 등은 + 알림 시각) · 연결 확인은 메시지 ID
+  original_transaction_id text,              -- 같은 구매·구독을 묶는 ID (Apple 원거래 ID · Google 구매 토큰 해시)
+  raw                     jsonb,             -- 고른 항목만 (알림 ID·서명 시각·거래 종류·구매/만료 시각 등)
+  created_at              timestamptz not null default now()
+);
+
+-- 스토어가 같은 알림을 다시 보내도(응답이 늦거나 실패하면 다시 보냄) 한 번만 남긴다.
+-- 거래 ID 가 없는 행(null)은 고유 색인에서 서로 다른 값으로 보므로 「transaction_id is not null 일 때만」과 같은 효과다.
+-- 부분 색인(where …)으로 만들면 PostgREST 의 on_conflict 가 대상으로 삼지 못해 중복 무시가 오류가 되므로 일반 고유 색인으로 둔다
+create unique index if not exists store_event_dedupe_idx on store_event (store, transaction_id, kind);
+create index if not exists store_event_created_idx  on store_event (created_at desc);
+create index if not exists store_event_original_idx on store_event (original_transaction_id) where original_transaction_id is not null;
+
+-- 공개 키(anon)로는 읽기·쓰기 불가 — 서버(service_role)만
+alter table store_event enable row level security;
+
+-- ── 스토어 결제 알림 1년 파기 (처리방침 3번 「스토어 결제 알림」) — 매일 03:40 KST ─
+create or replace function purge_store_event()
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  delete from store_event where created_at < now() - interval '1 year';
+$$;
+
+comment on function purge_store_event is '스토어 결제 알림 기록 1년 파기 (pg_cron mylovecoach-purge-store 매일 03:40 KST — purge_old_records 와 따로 둔다)';
+
+do $$
+begin
+  revoke execute on function purge_store_event() from public;
+  if exists (select 1 from pg_roles where rolname = 'anon') then
+    revoke execute on function purge_store_event() from anon, authenticated;
+  end if;
+end $$;
+
+do $$
+begin
+  begin
+    create extension if not exists pg_cron;
+  exception when others then
+    raise notice 'pg_cron 을 켤 수 없어 스토어 결제 알림 1년 파기 예약을 건너뜁니다: %', sqlerrm;
+    return;
+  end;
+  perform cron.unschedule(jobid) from cron.job where jobname = 'mylovecoach-purge-store';
+  perform cron.schedule('mylovecoach-purge-store', '40 18 * * *', 'select public.purge_store_event()');
 end $$;

@@ -68,6 +68,56 @@ export async function insert(table: string, rows: unknown[] | unknown, options: 
   return (await insertResult(table, rows, options)).ok;
 }
 
+/**
+ * 같은 키(onConflict 열들)가 이미 있으면 건너뛰고 추가 — 실제로 새로 들어간 행 수. 실패하면 null.
+ * 스토어 알림처럼 같은 알림이 다시 와도 한 번만 처리할 때 쓴다 (0 이면 이미 받은 것).
+ * onConflict 는 그 열들의 (부분 조건 없는) 고유 색인이 있어야 한다 — PostgREST 는 부분 색인을 대상으로 지정할 수 없다.
+ */
+export async function insertNew(table: string, rows: unknown[] | unknown, onConflict: string): Promise<number | null> {
+  if (!supabaseReady()) return null;
+  const body = Array.isArray(rows) ? rows : [rows];
+  if (!body.length) return 0;
+  try {
+    const res = await fetch(`${URL_ENV()}/rest/v1/${table}?on_conflict=${encodeURIComponent(onConflict)}&select=${encodeURIComponent(onConflict.split(',')[0])}`, {
+      method: 'POST',
+      headers: headers({ Prefer: 'resolution=ignore-duplicates,return=representation' }),
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      console.warn(`[supabase] ${table} insert ${res.status}: ${(await res.text()).slice(0, 200)}`);
+      return null;
+    }
+    const inserted = (await res.json()) as unknown;
+    return Array.isArray(inserted) ? inserted.length : null;
+  } catch (e) {
+    console.warn(`[supabase] ${table} insert 실패:`, e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
+/**
+ * 행 수 세기 (PostgREST count=exact, 조건은 쿼리 문자열). 실패하면 null.
+ * 한 행만 요청하고 응답 머리글 content-range(예: 0-0/123, 없으면 * /0)의 전체 수를 읽는다
+ */
+export async function countRows(table: string, filter = ''): Promise<number | null> {
+  if (!supabaseReady()) return null;
+  try {
+    const res = await fetch(`${URL_ENV()}/rest/v1/${table}?select=*${filter ? `&${filter}` : ''}`, {
+      headers: headers({ Prefer: 'count=exact', 'Range-Unit': 'items', Range: '0-0' }),
+    });
+    // 0건이면 PostgREST 판에 따라 416 과 함께 전체 수(*/0)만 줄 수 있어 상태와 관계없이 머리글을 본다
+    const range = typeof res.headers?.get === 'function' ? res.headers.get('content-range') : null;
+    const total = range?.split('/')[1];
+    if (!total || total === '*' || !/^\d+$/.test(total)) {
+      if (!res.ok) console.warn(`[supabase] ${table} count ${res.status}`);
+      return null;
+    }
+    return Number(total);
+  } catch {
+    return null;
+  }
+}
+
 /** 행 수정 (조건은 PostgREST 쿼리 문자열, 예: `device_id=eq.abc`) */
 export async function patch(table: string, filter: string, values: Record<string, unknown>): Promise<boolean> {
   if (!supabaseReady()) return false;
