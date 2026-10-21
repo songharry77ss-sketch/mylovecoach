@@ -51,8 +51,9 @@ export function sharePage(code: string, site: string, utm: Record<string, string
   if (!a) {
     const q = query.toString();
     return {
-      title: 'KKTI · 카톡으로 보는 진짜 연애 MBTI',
-      description: '선톡, 답장 속도, 이모지 습관으로 보는 16가지 연애 유형. 1분이면 끝나고, 친구랑 궁합도 볼 수 있어요.',
+      // 미리보기 제목은 앞부분만 보일 때가 많다 — 누구나 아는 「진짜 MBTI」를 먼저 둔다
+      title: '카톡으로 보는 진짜 연애 MBTI · KKTI',
+      description: '선톡, 답장 속도, 이모지 습관으로 보는 나의 진짜 MBTI와 16가지 연애 유형. 1분이면 끝나고, 친구랑 궁합도 볼 수 있어요.',
       target: `/kkti${q ? `?${q}` : ''}`,
       image: `${site}/api/kkti-card`,
       url: `${site}/k`,
@@ -65,16 +66,16 @@ export function sharePage(code: string, site: string, utm: Record<string, string
   if (w) {
     const match = kktiMatch(a, w);
     return {
-      title: `우리 KKTI 궁합 ${match.percent}% ${match.tier.emoji} ${match.tier.label}`,
-      description: `${a.type.emoji} ${a.type.name} × ${w.type.emoji} ${w.type.name} — 너도 1분 테스트 하고 궁합 봐!`,
+      title: `우리 카톡 MBTI 궁합 ${match.percent}% ${match.tier.emoji} ${match.tier.label}`,
+      description: `${a.mbti.type} ${a.type.emoji} ${a.type.name} × ${w.mbti.type} ${w.type.emoji} ${w.type.name} — 너도 1분 테스트 하고 궁합 봐!`,
       target,
       image: cardUrl(a.encoded, w.encoded, 'og', site),
       url: `${site}/k/${a.encoded}-${w.encoded}`,
     };
   }
   return {
-    title: `나의 KKTI는 ${a.type.emoji} ${a.type.name} (${a.code})`,
-    description: `"${a.type.oneLiner}" — 너도 1분 테스트 하면 나랑 궁합이 나와 👀`,
+    title: `내 카톡 속 진짜 MBTI는 ${a.mbti.type} ${a.type.emoji} ${a.type.name}`,
+    description: `KKTI ${a.code} · "${a.type.oneLiner}" — 너도 1분 테스트 하면 나랑 궁합이 나와 👀`,
     target,
     image: cardUrl(a.encoded, null, 'og', site),
     url: `${site}/k/${a.encoded}`,

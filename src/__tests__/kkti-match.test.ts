@@ -188,6 +188,9 @@ describe('공유 링크', () => {
     const text = shareText(me);
     expect(text).toContain(shareUrl(me.encoded));
     expect(text).toContain('궁합');
+    // 첫 줄은 누구나 아는 「진짜 MBTI」로 시작한다
+    expect(text.split('\n')[0].startsWith(`내 카톡 속 진짜 MBTI는 ${me.mbti.type}`)).toBe(true);
+    expect(chatShareText(shareUrl(me.encoded))).toContain('진짜 MBTI');
     expect(chatShareText(shareUrl(me.encoded))).toContain(shareUrl(me.encoded));
     // 한 사람에게 보내는 문구에는 해시태그를 넣지 않는다
     expect(chatShareText(shareUrl(me.encoded))).not.toContain('#');

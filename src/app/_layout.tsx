@@ -21,6 +21,7 @@ import { supabase } from '@/lib/supabase';
 import { haptic, setHapticsEnabled } from '@/lib/haptics';
 import { isDemoMode } from '@/lib/demo';
 import { cleanupOrphanImages, clearImageCaches } from '@/lib/images';
+import { skipIntroForPath } from '@/lib/intro-paths';
 import { processPendingDeletion } from '@/lib/server-deletion';
 import { useAppStore } from '@/store/app-store';
 
@@ -28,8 +29,6 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 // 같은 로고의 인트로로 이어지므로 네이티브 페이드와 로고 움직임이 겹치지 않게 한다.
 SplashScreen.setOptions({ duration: 0, fade: false });
 
-/** 데모·빠른 코칭·로그인 콜백은 바로 연다. OAuth 복귀 화면을 인트로로 가리지 않는다. */
-const skipIntroForPath = (path: string | null | undefined) => path === '/quick' || path?.startsWith('/quick/') === true || path === '/auth/callback';
 const INTRO_SAFETY_MS = 7000;
 const hideNativeSplash = () => {
   SplashScreen.hideAsync().catch(() => {});
