@@ -568,6 +568,9 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
           <AppText variant="small" color="textSecondary">
             카톡 습관만으로 본 MBTI예요 (평균 확신도 {mbti.confidence}%). 평소 MBTI랑 다르다면… 카톡 속 내가 진짜일지도? 😉
           </AppText>
+          <AppText variant="caption" color="textTertiary">
+            공식 MBTI 검사와는 관계없는 재미용 테스트예요.
+          </AppText>
         </Section>
 
         {/* 애니어그램 추정 */}

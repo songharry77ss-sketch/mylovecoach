@@ -1112,9 +1112,9 @@ export function retakeFriend(role: KktiRole, result: KktiResult, partner: KktiRe
 export function shareText(result: KktiResult, url: string = shareUrl(result.encoded)): string {
   const { type, mbti, color } = result;
   return [
-    `나의 KKTI는 ${type.emoji} ${type.code} 「${type.name}」`,
+    `내 카톡 속 진짜 MBTI는 ${mbti.type} ${type.emoji} 「${type.name}」`,
     `"${type.oneLiner}"`,
-    `카톡 속 진짜 MBTI ${mbti.type} · 연애 컬러 ${color.name}`,
+    `KKTI ${type.code} · 연애 컬러 ${color.name}`,
     `너도 하면 나랑 궁합 나와 👉 ${url}`,
     '#KKTI #카톡MBTI #연애MBTI',
   ].join('\n');
@@ -1122,7 +1122,7 @@ export function shareText(result: KktiResult, url: string = shareUrl(result.enco
 
 /** 카톡·DM 으로 한 사람에게 보낼 때의 짧은 문구 (해시태그 없이, 말 걸듯이). 유형은 링크 미리보기 카드가 보여 준다 */
 export function chatShareText(url: string): string {
-  return `이거 해 봐 ㅋㅋ 1분이면 나랑 카톡 궁합 나온대 👉 ${url}`;
+  return `이거 해 봐 ㅋㅋ 카톡 습관으로 진짜 MBTI 나온대. 1분이면 나랑 궁합도 나옴 👉 ${url}`;
 }
 
 // ───────────────────────── 둘의 궁합 ─────────────────────────
@@ -1254,8 +1254,8 @@ export function kktiMatch(a: KktiResult, b: KktiResult): KktiMatch {
 export function matchShareText(mine: KktiResult, theirs: KktiResult, url: string = shareUrl(mine.encoded, theirs.encoded)): string {
   const match = kktiMatch(mine, theirs);
   return [
-    `우리 KKTI 궁합 ${match.percent}% ${match.tier.emoji} 「${match.tier.label}」`,
-    `${mine.type.emoji} ${mine.type.name} × ${theirs.type.emoji} ${theirs.type.name}`,
+    `우리 카톡 MBTI 궁합 ${match.percent}% ${match.tier.emoji} 「${match.tier.label}」`,
+    `${mine.mbti.type} ${mine.type.emoji} ${mine.type.name} × ${theirs.mbti.type} ${theirs.type.emoji} ${theirs.type.name}`,
     `너도 1분 테스트 하고 나랑 궁합 봐 👉 ${url}`,
     '#KKTI #카톡궁합 #연애MBTI',
   ].join('\n');
@@ -1264,5 +1264,5 @@ export function matchShareText(mine: KktiResult, theirs: KktiResult, url: string
 /** 궁합 결과를 카톡·DM 으로 상대에게 돌려보낼 때의 짧은 문구 */
 export function matchChatText(mine: KktiResult, theirs: KktiResult, url: string = shareUrl(mine.encoded, theirs.encoded)): string {
   const match = kktiMatch(mine, theirs);
-  return `우리 카톡 궁합 ${match.percent}% 나옴 ㅋㅋ ${match.tier.emoji} ${match.tier.label} 👉 ${url}`;
+  return `우리 카톡 MBTI 궁합 ${match.percent}% 나옴 ㅋㅋ ${match.tier.emoji} ${match.tier.label} 👉 ${url}`;
 }

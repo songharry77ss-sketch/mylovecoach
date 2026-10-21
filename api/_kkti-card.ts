@@ -110,10 +110,19 @@ export function letterTiles(result: KktiResult, tone: Tone, size: number): Node 
   );
 }
 
+/** 맨 위 띠 — 처음 보는 사람도 아는 「진짜 MBTI」로 결과를 먼저 말한다 */
+function mbtiPill(result: KktiResult, tone: Tone, fontSize: number): Node {
+  return box(
+    { alignItems: 'center', flexShrink: 0, gap: Math.round(fontSize * 0.3), padding: `${Math.round(fontSize * 0.4)}px ${Math.round(fontSize * 0.95)}px`, borderRadius: 999, backgroundColor: tone.glass },
+    emoji('🧬', Math.round(fontSize * 1.05)),
+    text(`카톡 속 진짜 MBTI는 ${result.mbti.type}`, { fontSize, fontWeight: 700, color: tone.ink }),
+  );
+}
+
+/** MBTI 는 맨 위 띠에 있으므로 여기엔 컬러·애니어그램만 */
 function chips(result: KktiResult, tone: Tone, fontSize: number): Node {
   const items: [string, string][] = [
     ['🎨', result.color.name],
-    ['🧬', result.mbti.type],
     ['🔢', result.enneagram.title],
   ];
   return box(
@@ -154,7 +163,7 @@ function soloStory(result: KktiResult): Node {
   return box(
     { width: '100%', height: '100%', flexDirection: 'column', alignItems: 'center', backgroundColor: result.color.hex, fontFamily: 'Pretendard', padding: '170px 90px 190px' },
     sheen(),
-    box({ padding: '14px 34px', borderRadius: 999, backgroundColor: tone.glass }, text('나의 KKTI 연애 유형', { fontSize: 34, fontWeight: 700, color: tone.ink })),
+    mbtiPill(result, tone, 34),
     box({ marginTop: 40, width: 250, height: 250, flexShrink: 0, borderRadius: 125, backgroundColor: tone.glass, alignItems: 'center', justifyContent: 'center' }, emoji(result.type.emoji, 144)),
     box({ marginTop: 40, flexShrink: 0 }, letterTiles(result, tone, 172)),
     text(result.type.name, { marginTop: 36, flexShrink: 0, fontSize: result.type.name.length > 7 ? 88 : 104, fontWeight: 700, color: tone.ink, letterSpacing: -2 }),
@@ -176,7 +185,7 @@ function soloSquare(result: KktiResult): Node {
   return box(
     { width: '100%', height: '100%', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: result.color.hex, fontFamily: 'Pretendard', padding: 70 },
     sheen(),
-    box({ padding: '12px 30px', borderRadius: 999, backgroundColor: tone.glass }, text('나의 KKTI 연애 유형', { fontSize: 30, fontWeight: 700, color: tone.ink })),
+    mbtiPill(result, tone, 30),
     box({ marginTop: 30, width: 210, height: 210, borderRadius: 105, backgroundColor: tone.glass, alignItems: 'center', justifyContent: 'center' }, emoji(result.type.emoji, 120)),
     box({ marginTop: 30 }, letterTiles(result, tone, 150)),
     text(result.type.name, { marginTop: 30, fontSize: result.type.name.length > 7 ? 76 : 90, fontWeight: 700, color: tone.ink, letterSpacing: -2 }),
@@ -198,7 +207,7 @@ function soloOg(result: KktiResult): Node {
     ),
     box(
       { flexDirection: 'column', flexGrow: 1, flexShrink: 1, flexBasis: 0, gap: 14 },
-      text('나의 KKTI 연애 유형', { fontSize: 30, fontWeight: 700, color: tone.soft }),
+      box({ alignSelf: 'flex-start' }, mbtiPill(result, tone, 30)),
       text(result.type.name, { fontSize: result.type.name.length > 7 ? 78 : 92, fontWeight: 700, color: tone.ink, letterSpacing: -2, lineHeight: 1.12 }),
       text(result.type.oneLiner, { fontSize: 32, fontWeight: 500, color: tone.soft, lineHeight: 1.38 }),
       box(
@@ -206,6 +215,7 @@ function soloOg(result: KktiResult): Node {
         emoji('💞', 34),
         text('너도 하면 나랑 궁합이 나와', { fontSize: 30, fontWeight: 700, color: tone.ink === WHITE ? INK : WHITE }),
       ),
+      text(`KKTI ${result.code} · 1분 · 12문항`, { fontSize: 22, fontWeight: 500, color: tone.soft }),
     ),
   );
 }
@@ -220,7 +230,7 @@ function person(result: KktiResult, circle: number, nameSize: number): Node {
       emoji(result.type.emoji, Math.round(circle * 0.56)),
     ),
     text(result.type.name, { fontSize: nameSize, fontWeight: 700, color: INK, textAlign: 'center', justifyContent: 'center' }),
-    text(result.code, { fontSize: Math.round(nameSize * 0.7), fontWeight: 500, color: INK_FAINT }),
+    text(`${result.mbti.type} · ${result.code}`, { fontSize: Math.round(nameSize * 0.7), fontWeight: 500, color: INK_FAINT }),
   );
 }
 
@@ -254,7 +264,7 @@ function pairStory(a: KktiResult, b: KktiResult): Node {
     { width: '100%', height: '100%', flexDirection: 'column', alignItems: 'center', backgroundImage: pairBackground(a, b), fontFamily: 'Pretendard', padding: '180px 60px 200px' },
     box(
       { flexDirection: 'column', alignItems: 'center', width: '100%', flexGrow: 1, borderRadius: 64, backgroundColor: WHITE, padding: '54px 50px 46px' },
-      box({ alignItems: 'center', gap: 12, padding: '12px 30px', borderRadius: 999, backgroundColor: '#F4F6F8' }, emoji('💬', 34), text('KKTI 카톡 궁합', { fontSize: 32, fontWeight: 700, color: INK })),
+      box({ alignItems: 'center', gap: 12, padding: '12px 30px', borderRadius: 999, backgroundColor: '#F4F6F8' }, emoji('💬', 34), text('KKTI · 카톡 MBTI 궁합', { fontSize: 32, fontWeight: 700, color: INK })),
       box({ marginTop: 34, flexShrink: 0, alignItems: 'flex-start', justifyContent: 'center' }, person(a, 180, 36), text('×', { fontSize: 60, fontWeight: 500, color: INK_FAINT, marginTop: 52 }), person(b, 180, 36)),
       box(
         { marginTop: 18, flexShrink: 0, alignItems: 'flex-end' },
@@ -277,7 +287,7 @@ function pairSquare(a: KktiResult, b: KktiResult): Node {
     { width: '100%', height: '100%', backgroundImage: pairBackground(a, b), fontFamily: 'Pretendard', padding: 56 },
     box(
       { flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', borderRadius: 60, backgroundColor: WHITE, padding: 44 },
-      box({ alignItems: 'center', gap: 12, padding: '12px 30px', borderRadius: 999, backgroundColor: '#F4F6F8' }, emoji('💬', 32), text('KKTI 카톡 궁합', { fontSize: 30, fontWeight: 700, color: INK })),
+      box({ alignItems: 'center', gap: 12, padding: '12px 30px', borderRadius: 999, backgroundColor: '#F4F6F8' }, emoji('💬', 32), text('KKTI · 카톡 MBTI 궁합', { fontSize: 30, fontWeight: 700, color: INK })),
       box({ marginTop: 34, alignItems: 'flex-start', justifyContent: 'center' }, person(a, 190, 34), text('×', { fontSize: 60, fontWeight: 500, color: INK_FAINT, marginTop: 56 }), person(b, 190, 34)),
       box(
         { marginTop: 18, alignItems: 'flex-end' },
@@ -300,7 +310,7 @@ function pairOg(a: KktiResult, b: KktiResult): Node {
       person(a, 170, 32),
       box(
         { flexDirection: 'column', alignItems: 'center', flexGrow: 1 },
-        text('KKTI 카톡 궁합', { fontSize: 28, fontWeight: 700, color: INK_FAINT }),
+        text('KKTI · 카톡 MBTI 궁합', { fontSize: 28, fontWeight: 700, color: INK_FAINT }),
         box(
           { alignItems: 'flex-end' },
           text(String(match.percent), { fontSize: 190, fontWeight: 700, color: INK, letterSpacing: -6, lineHeight: 1.05 }),

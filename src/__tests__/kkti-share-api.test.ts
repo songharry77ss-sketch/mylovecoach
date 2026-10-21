@@ -65,7 +65,9 @@ describe('공유 페이지 내용', () => {
   it('내 결과 — 유형 이름과 유형 카드 그림, 결과 화면으로', () => {
     const page = sharePage(me.encoded, SITE);
     expect(page.title).toContain(me.type.name);
-    expect(page.title).toContain(me.code);
+    // 미리보기 제목은 누구나 아는 「진짜 MBTI」로 시작하고, KKTI 코드는 설명에 둔다
+    expect(page.title.startsWith(`내 카톡 속 진짜 MBTI는 ${me.mbti.type}`)).toBe(true);
+    expect(page.description).toContain(`KKTI ${me.code}`);
     expect(page.description).toContain('궁합');
     expect(page.target).toBe(`/kkti/result?a=${me.encoded}`);
     expect(page.image).toBe(`${SITE}/api/kkti-card?a=${me.encoded}`);
@@ -77,8 +79,9 @@ describe('공유 페이지 내용', () => {
     const match = kktiMatch(me, friend);
     expect(page.title).toContain(`${match.percent}%`);
     expect(page.title).toContain(match.tier.label);
-    expect(page.description).toContain(me.type.name);
-    expect(page.description).toContain(friend.type.name);
+    expect(page.title).toContain('MBTI 궁합');
+    expect(page.description).toContain(`${me.mbti.type} ${me.type.emoji} ${me.type.name}`);
+    expect(page.description).toContain(`${friend.mbti.type} ${friend.type.emoji} ${friend.type.name}`);
     expect(page.target).toBe(`/kkti/result?a=${me.encoded}&w=${friend.encoded}`);
     expect(page.image).toBe(`${SITE}/api/kkti-card?a=${me.encoded}&w=${friend.encoded}`);
   });
@@ -247,6 +250,10 @@ describe('결과 카드 그림', () => {
         expect(json).toContain('Pretendard');
       }
       expect(JSON.stringify(cardTree(shape, me))).toContain(me.type.name);
+      // 혼자 카드는 맨 위에 「카톡 속 진짜 MBTI는 ○○○○」, 궁합 카드는 두 사람의 MBTI
+      expect(JSON.stringify(cardTree(shape, me))).toContain(`카톡 속 진짜 MBTI는 ${me.mbti.type}`);
+      expect(JSON.stringify(cardTree(shape, me, friend))).toContain(`${me.mbti.type} · ${me.code}`);
+      expect(JSON.stringify(cardTree(shape, me, friend))).toContain(`${friend.mbti.type} · ${friend.code}`);
       expect(JSON.stringify(cardTree(shape, me, friend))).toContain(String(kktiMatch(me, friend).percent));
     }
   });
