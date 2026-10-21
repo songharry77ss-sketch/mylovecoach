@@ -1,6 +1,6 @@
 /**
  * 관리자 API — 「등록한 브라우저」 + 비밀번호 두 가지로 보호됩니다.
- *   GET  /api/admin?days=7&limit=50                            → 집계 + 최근 코칭 기록 + 팀원 명단 + 최근 AI 답변 신고 50건
+ *   GET  /api/admin?days=7&limit=50                            → 집계 + 결제 흐름 + 가입자 목록 + 최근 코칭 기록 + 팀원 명단 + 최근 AI 답변 신고 50건
  *   GET  /api/admin?view=users&days=30                         → 이용자 목록 (유입·시작 방식·체류·코칭 수)
  *   GET  /api/admin?view=user&deviceId=…                       → 한 명의 화면별 체류·이동 경로·코칭 대화·버튼 기록
  *   POST /api/admin { action: 'team_add', deviceId, label }   → 팀원 무제한 허용 (같은 기기면 이름만 바뀜)
@@ -244,8 +244,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const [stats, logs, team, kkti, reports] = await Promise.all([
+  const [stats, funnel, members, logs, team, kkti, reports] = await Promise.all([
     rpc<Record<string, unknown>>('admin_stats', { p_days: days }),
+    // 결제 흐름·가입자 목록 (supabase/admin_funnel.sql) — 아직 실행하지 않은 DB 면 null 이고 나머지 화면은 그대로 보여 준다
+    rpc<Record<string, unknown>>('admin_funnel', { p_days: days }),
+    rpc<unknown[]>('admin_members', { p_limit: 500 }),
     select<CoachRow>(
       'coach_log',
       `select=created_at,crush_alias,crush_mbti,relationship,tone,question,has_image,temperature,interest_score,summary,device_id&order=created_at.desc&limit=${limit}`,
@@ -264,6 +267,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   res.status(200).json({
     stats,
+    funnel,
+    members: members ?? [],
+    funnelReady: funnel !== null && members !== null,
     logs,
     team,
     kkti: kkti.map((row) => ({ day: row.day, event: row.kind.slice('kkti:'.length), count: Number(row.units) || 0 })),
