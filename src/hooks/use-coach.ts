@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { contentLoggingEnabled, track } from '@/lib/analytics';
+import { track } from '@/lib/analytics';
 import { beginAiRequest } from '@/lib/ai-request-lifetime';
 import { currentQuota } from '@/lib/billing/gate';
 import { aiRouteOf, CoachError, requestCoaching, requireAiConsent } from '@/lib/coach-client';
@@ -143,7 +143,6 @@ export function useCoach() {
               hasImage: Boolean(image),
               tone: input.tone,
               variation: Boolean(input.variationOf),
-              ...(contentLoggingEnabled() ? { temperature: analysis.temperature } : {}),
               secret,
               emoji,
             },

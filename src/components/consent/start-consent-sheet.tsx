@@ -145,7 +145,7 @@ function Sheet({ onAgree, onClose }: Omit<Props, 'visible'>) {
                       color="primary"
                       accessibilityRole="link"
                       accessibilityLabel={`${item.title} ${item.link.label}`}
-                      onPress={() => Linking.openURL(item.link.url)}
+                      onPress={() => Linking.openURL(item.link.url).catch(() => {})}
                       style={styles.link}>
                       {item.link.label} ›
                     </AppText>

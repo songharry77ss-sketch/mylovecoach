@@ -66,7 +66,7 @@ export default function PrivacySettings() {
         </AppText>
       </Card>
       <ListRow icon="mail-outline" title="처리 정지·삭제 요청" subtitle="메일 앱이 열려요 · 이 기기의 ID가 함께 적혀요" onPress={requestOptOut} />
-      <ListRow icon="document-text-outline" title="개인정보 처리방침 보기" onPress={() => Linking.openURL(privacyUrl('analytics'))} />
+      <ListRow icon="document-text-outline" title="개인정보 처리방침 보기" onPress={() => Linking.openURL(privacyUrl('analytics')).catch(() => toast.show('처리방침을 열지 못했어요. 잠시 후 다시 시도해 주세요.', 'error'))} />
 
       <SectionHeader title="선택 동의" />
       <ListRow
