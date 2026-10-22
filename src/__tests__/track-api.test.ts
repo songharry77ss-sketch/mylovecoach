@@ -197,9 +197,30 @@ describe('POST /api/track', () => {
 });
 
 describe('DELETE /api/track (전체 삭제·코칭 내용 삭제)', () => {
-  it('scope: content 면 그 기기의 코칭 내용과 예전 동의로 저장된 이름만 지우고, 기본 이용 기록은 남긴다', async () => {
+  it('scope: content 면 delete_device_content 함수로 코칭 내용·호감 온도·예전 이름만 지운다 (기본 이용 기록은 남김)', async () => {
     const res = fakeRes();
     await handler(fakeReq('DELETE', { deviceId: 'd_testdevice01', scope: 'content' }), res as never);
+    expect(res.statusCode).toBe(204);
+    const fn = calls.find((c) => c.url.endsWith('/rpc/delete_device_content'));
+    expect(JSON.parse(fn!.body!)).toEqual({ p_device: 'd_testdevice01' });
+    expect(calls.some((c) => c.url.endsWith('/rpc/delete_device'))).toBe(false);
+    expect(calls.some((c) => c.method === 'DELETE')).toBe(false);
+  });
+
+  it('delete_device_content 가 아직 없는 DB 면 코칭 내용과 예전 동의로 저장된 이름을 표에서 직접 지운다', async () => {
+    const base = global.fetch as jest.Mock;
+    const original = base.getMockImplementation()!;
+    global.fetch = jest.fn(async (url: string, init: { method?: string; body?: string } = {}) => {
+      if (String(url).endsWith('/rpc/delete_device_content')) {
+        calls.push({ url: String(url), method: init.method ?? 'GET', body: init.body });
+        return { ok: false, status: 404, text: async () => 'Could not find the function' };
+      }
+      return original(url, init);
+    }) as unknown as typeof fetch;
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const res = fakeRes();
+    await handler(fakeReq('DELETE', { deviceId: 'd_testdevice01', scope: 'content' }), res as never);
+    warn.mockRestore();
     expect(res.statusCode).toBe(204);
     const del = calls.find((c) => c.method === 'DELETE');
     expect(del?.url).toBe('https://db.example/rest/v1/coach_log?device_id=eq.d_testdevice01');
@@ -212,10 +233,13 @@ describe('DELETE /api/track (전체 삭제·코칭 내용 삭제)', () => {
   it('코칭 내용 삭제가 실패하면 502 — 앱이 남겨 두었다가 다시 보낸다', async () => {
     global.fetch = jest.fn(async (url: string, init: { method?: string; body?: string } = {}) => {
       calls.push({ url: String(url), method: init.method ?? 'GET', body: init.body });
-      return { ok: init.method !== 'DELETE', status: init.method === 'DELETE' ? 500 : 204, text: async () => '' };
+      const failed = init.method === 'DELETE' || String(url).includes('/rpc/');
+      return { ok: !failed, status: failed ? 500 : 204, text: async () => '' };
     }) as unknown as typeof fetch;
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const res = fakeRes();
     await handler(fakeReq('DELETE', { deviceId: 'd_testdevice01', scope: 'content' }), res as never);
+    warn.mockRestore();
     expect(res.statusCode).toBe(502);
   });
 

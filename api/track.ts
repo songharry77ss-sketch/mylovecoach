@@ -152,7 +152,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
     if (body?.scope === 'content') {
-      // 코칭 내용 저장 철회 — 코칭 기록과, 예전 앱의 선택 동의(판 2)로 저장돼 있던 이름(별명)을 지운다. 화면·버튼 같은 기본 이용 기록은 남는다
+      // 코칭 내용 저장 철회 — 코칭 기록, 코칭 성공 이벤트에 실렸던 호감 온도, 예전 앱의 선택 동의(판 2)로 저장돼 있던 이름(별명)을 지운다.
+      // 화면·버튼 같은 기본 이용 기록은 남는다. delete_device_content(supabase/consent_v3.sql)가 아직 없는 DB 면 예전처럼 표를 직접 지운다
+      if ((await rpc('delete_device_content', { p_device: deviceId })) !== null) {
+        res.status(204).end();
+        return;
+      }
       const device = `device_id=eq.${encodeURIComponent(deviceId)}`;
       const [logs, name] = await Promise.all([remove('coach_log', device), patch('app_user', device, { name: null })]);
       res.status(logs && name ? 204 : 502).end();
