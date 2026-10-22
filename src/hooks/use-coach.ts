@@ -132,12 +132,20 @@ export function useCoach() {
       if (!cached && quota.kind !== 'premium') useAppStore.getState().consumeQuota();
       // 누적 온도는 처음 분석한 대화에서만 움직인다 (같은 캡처 재사용·다시 분석·다른 답장 더 보기는 그대로)
       useAppStore.getState().completeAnalysis(crush.id, coachMessage.id, analysis, { applyHeat: !cached && !seenBefore && !input.variationOf, fromCapture: Boolean(image) });
-      // 비밀 상담은 내용(결과 온도·톤·캡처 여부)을 이용 기록으로 보내지 않고 이용했다는 사실만 남긴다
+      // 비밀 상담은 내용(결과 온도·톤·캡처 여부)을 이용 기록으로 보내지 않고 이용했다는 사실만 남긴다.
+      // 결과 온도는 대화 내용에서 나온 값이라 「코칭 내용 저장」에 동의한 경우에만 싣는다 (기본 이용 기록에는 설정·흐름만)
       track(
         'coach_success',
         secret
           ? { secret: true }
-          : { cached: Boolean(cached), hasImage: Boolean(image), tone: input.tone, variation: Boolean(input.variationOf), temperature: analysis.temperature, secret, emoji },
+          : {
+              cached: Boolean(cached),
+              hasImage: Boolean(image),
+              tone: input.tone,
+              variation: Boolean(input.variationOf),
+              secret,
+              emoji,
+            },
       );
     } catch (e) {
       if (!request.active()) return 'skipped';

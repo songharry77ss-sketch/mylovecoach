@@ -203,7 +203,7 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
   const heroFloodStyle = useAnimatedStyle(() => ({ transform: [{ scale: heroFlood.value }] }));
   const sheenStyle = useAnimatedStyle(() => ({ opacity: interpolate(heroFlood.value, [0.55, 1], [0, 1], Extrapolation.CLAMP) }));
 
-  // 공유 링크가 얼마나 다음 사람을 데려오는지 보기 위한 기록 (이용 기록에 동의한 사람만 남는다)
+  // 공유 링크가 얼마나 다음 사람을 데려오는지 보기 위한 기록 (서비스 이용 기록 — 만 14세 미만은 남지 않는다)
   useEffect(() => {
     if (!hydrated) return;
     if (role === 'guest') {

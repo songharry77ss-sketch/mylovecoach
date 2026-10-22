@@ -19,7 +19,7 @@ import { IMAGE_TOO_LARGE_MESSAGE, MAX_IMAGE_BASE64_LENGTH, isImageTooLarge } fro
 import { callGeminiTask, type GeminiUsage } from '../src/lib/gemini';
 import { aiFlagsFor } from './_ai-flags';
 import { clientIp, rateLimited, storedKb } from './_limits';
-import { analyticsEnabled, consentVersionOk, DEVICE_ID, insert, rpc } from './_supabase';
+import { analyticsEnabled, contentConsentOk, DEVICE_ID, insert, optedOutDevice, rpc } from './_supabase';
 
 export const config = { maxDuration: 120 };
 
@@ -94,9 +94,10 @@ export function coachLogRow(
 }
 
 /**
- * 코칭 기록 저장 — 이용 기록 수집에 동의한 앱만 x-device-id·x-consent-version 헤더를 보냅니다.
- * 기기 ID 가 없거나 동의 판이 2 미만(미리 체크된 예전 동의)이면 아무것도 기록하지 않습니다. 캡처 이미지는 저장하지 않습니다.
- * 만 14세 미만으로 입력한 이용자의 요청과, 하루 저장 상한을 넘은 요청도 기록하지 않습니다.
+ * 코칭 내용 저장 — 「코칭 내용 저장」(선택)에 동의한 앱만 x-device-id·x-consent-version·x-content-consent 헤더를 보냅니다
+ * (1.0.3 까지의 예전 앱은 이용 기록 선택 동의(판 2)로 코칭 내용까지 동의받아 x-content-consent 없이 보낸다 — contentConsentOk).
+ * 기기 ID 가 없거나, 동의 판이 2 미만(미리 체크된 예전 동의)이거나, 판 3 이상인데 내용 저장 동의 표시가 없으면 아무것도 기록하지 않습니다.
+ * 캡처 이미지는 저장하지 않습니다. 만 14세 미만으로 입력한 이용자의 요청, 메일로 처리 정지를 요청한 기기, 하루 저장 상한을 넘은 요청도 기록하지 않습니다.
  */
 async function logCoach(
   req: VercelRequest,
@@ -106,8 +107,9 @@ async function logCoach(
 ): Promise<void> {
   const deviceId = req.headers['x-device-id'];
   if (typeof deviceId !== 'string' || !DEVICE_ID.test(deviceId) || !analyticsEnabled()) return;
-  // 직접 체크해 받은 동의(판 2 이상)만 저장한다 — 판 표시가 없으면 예전 미리 체크된 동의
-  if (!consentVersionOk(req.headers['x-consent-version'])) return;
+  // 직접 받은 코칭 내용 저장 동의만 — 판 표시가 없으면 예전 미리 체크된 동의, 판 3 이상은 x-content-consent: 1 이 있어야 한다
+  if (!contentConsentOk(req.headers['x-consent-version'], req.headers['x-content-consent'])) return;
+  if (optedOutDevice(deviceId)) return;
   const age = coachReq.user?.age;
   if (typeof age === 'number' && age < MIN_AGE) return;
   const sessionId = typeof req.headers['x-session-id'] === 'string' ? req.headers['x-session-id'] : undefined;
@@ -288,7 +290,7 @@ async function handle(req: VercelRequest, res: VercelResponse, send: (status: nu
   }
   line.image = parsed.mode === 'coach' && Boolean(parsed.req.image);
   const task: AiTask = buildTask(parsed);
-  // 코칭만 (이용 기록에 동의한 앱에 한해) 기록한다. 보고서·속마음·연습 내용은 저장하지 않는다
+  // 코칭만 (코칭 내용 저장에 동의한 앱에 한해) 기록한다. 보고서·속마음·연습 내용은 저장하지 않는다
   const log = (result: { analysis?: Record<string, unknown>; provider?: string; error?: string }) =>
     parsed.mode === 'coach' ? logCoach(req, parsed.req, result, startedAt) : Promise.resolve();
   const reply = (output: unknown, usage: unknown) =>

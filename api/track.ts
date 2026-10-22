@@ -1,12 +1,15 @@
 /**
  * 이용 기록 API
  *   POST   /api/track — 앱이 보낸 이용 기록을 Supabase 에 저장합니다.
- *   DELETE /api/track { deviceId } — 이용 기록 수집을 끈 기기의 서버 기록을 모두 지웁니다 (처리방침 「동의 철회 시 지체 없이 파기」).
- *     앱은 삭제가 끝날 때까지 새 기록을 보내지 않으므로(lib/server-deletion) 시각 기준 없이 그 기기 기록을 모두 지운다.
+ *   DELETE /api/track { deviceId } — 그 기기의 서버 기록을 모두 지웁니다 (모든 데이터 삭제·만 14세 미만·예전 기록 지우기, 예전 앱의 동의 철회).
+ *   DELETE /api/track { deviceId, scope: 'content' } — 그 기기의 코칭 내용(coach_log)만 지웁니다 (「코칭 내용 저장」 동의 철회).
+ *     앱은 삭제가 끝날 때까지 지우는 범위의 기록을 새로 보내지 않으므로(lib/server-deletion) 시각 기준 없이 지운다.
  *
- * 저장 조건: 첫 화면 체크박스를 이용자가 직접 눌러 동의한 앱(consentVersion ≥ 2)만 저장합니다.
- * 판 표시가 없는 예전 동의(미리 체크된 체크박스)는 받기만 하고 저장하지 않습니다(204).
+ * 저장 조건: 수집 기준의 판(consentVersion)이 2 이상인 앱만 저장합니다 — 3 은 처리방침에 알리고 만 14세 이상에게 수집하는 기본 이용 기록(1.0.4~),
+ * 2 는 첫 화면 체크박스를 직접 눌러 동의한 예전 앱. 판 표시가 없는 예전 동의(미리 체크된 체크박스)는 받기만 하고 저장하지 않습니다(204).
+ * 판 3 부터는 이름(별명)을 저장하지 않습니다(분석에 필요 없음 — 판 2 동의로 저장돼 있던 이름도 지움).
  * 만 14세 미만으로 입력한 이용자의 기록은 (예전 앱이 보낸 것도) 저장하지 않고, 남아 있던 기록도 지웁니다(법정대리인 동의를 받지 않으므로).
+ * 메일로 처리 정지를 요청한 기기(ANALYTICS_OPTOUT_DEVICES)의 기록도 받기만 하고 저장하지 않습니다(204).
  * SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 가 없거나 ANALYTICS_ENABLED=1 이 아니어도 조용히 204 입니다.
  *
  * 남용 막기: 앱 토큰은 공개 번들에 들어 있어 사실상 누구나 부를 수 있으므로
@@ -18,7 +21,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
 
 import { bodyTooLarge, clientIp, rateLimited, storedKb } from './_limits';
-import { analyticsEnabled, consentVersionOk, DEVICE_ID, insert, patch, rpc, supabaseReady } from './_supabase';
+import { analyticsEnabled, BASIC_LOG_VERSION, consentVersionOk, DEVICE_ID, insert, optedOutDevice, patch, remove, rpc, supabaseReady } from './_supabase';
 
 export const config = { maxDuration: 15 };
 
@@ -48,7 +51,7 @@ const EventSchema = z.object({
 const BodySchema = z.object({
   deviceId: z.string().regex(DEVICE_ID),
   sessionId: z.string().regex(SESSION_ID),
-  /** 동의를 받은 방식의 판 (앱 store 의 analyticsConsentVersion). 없으면 예전 미리 체크 방식 */
+  /** 수집 기준의 판 — 3 기본 이용 기록(1.0.4~), 2 예전 앱의 직접 체크 동의, 없으면 예전 미리 체크 방식 */
   consentVersion: z.number().int().nullable().optional(),
   platform: z.string().max(16).optional(),
   appVersion: z.string().max(32).optional(),
@@ -137,7 +140,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (deleting) {
-    const deviceId = (parseBody(req) as { deviceId?: unknown } | null)?.deviceId;
+    const body = parseBody(req) as { deviceId?: unknown; scope?: unknown } | null;
+    const deviceId = body?.deviceId;
     if (typeof deviceId !== 'string' || !DEVICE_ID.test(deviceId)) {
       res.status(400).json({ error: '기기 ID 형식이 올바르지 않아요.' });
       return;
@@ -145,6 +149,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 수집을 꺼 둔 상태(ANALYTICS_ENABLED 꺼짐)여도 이미 저장된 기록은 지운다
     if (!supabaseReady()) {
       res.status(204).end();
+      return;
+    }
+    if (body?.scope === 'content') {
+      // 코칭 내용 저장 철회 — 코칭 기록과, 예전 앱의 선택 동의(판 2)로 저장돼 있던 이름(별명)을 지운다. 화면·버튼 같은 기본 이용 기록은 남는다
+      const device = `device_id=eq.${encodeURIComponent(deviceId)}`;
+      const [logs, name] = await Promise.all([remove('coach_log', device), patch('app_user', device, { name: null })]);
+      res.status(logs && name ? 204 : 502).end();
       return;
     }
     const done = await rpc('delete_device', { p_device: deviceId });
@@ -169,10 +180,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(204).end();
     return;
   }
-  if (!consentVersionOk(b.consentVersion)) {
+  if (!consentVersionOk(b.consentVersion) || optedOutDevice(b.deviceId)) {
     res.status(204).end();
     return;
   }
+  // 판 3(기본 이용 기록)부터는 이름(별명)을 받지 않는다. 예전 앱의 선택 동의(판 2)는 동의받은 대로 저장한다
+  const basicOnly = Number(b.consentVersion) >= BASIC_LOG_VERSION;
+  const name = basicOnly ? null : (b.user?.name ?? null);
 
   const nowMs = Date.now();
   const now = new Date(nowMs).toISOString();
@@ -217,7 +231,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       'app_user',
       {
         device_id: b.deviceId,
-        name: b.user?.name ?? null,
+        name,
         gender: b.user?.gender ?? null,
         age: b.user?.age ?? null,
         mbti: b.user?.mbti ?? null,
@@ -239,7 +253,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (source) await patch('app_user', `${userFilter}&source=is.null&first_seen_at=gte.${yearAgo}`, { source, source_detail: acq });
       return patch('app_user', userFilter, {
         last_seen_at: now,
-        ...(b.user?.name ? { name: b.user.name } : {}),
+        // 판 3 이 되면 예전 동의로 저장돼 있던 이름도 지운다 (지금 안내하는 수집 항목에 이름이 없으므로)
+        ...(basicOnly ? { name: null } : name ? { name } : {}),
         ...(b.user ? { gender: b.user.gender ?? null, age: b.user.age ?? null, mbti: b.user.mbti ?? null, default_tone: b.user.defaultTone ?? null } : {}),
         ...(b.platform ? { platform: b.platform } : {}),
         ...(b.appVersion ? { app_version: b.appVersion } : {}),

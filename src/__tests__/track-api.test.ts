@@ -1,5 +1,6 @@
 /**
- * api/track.ts — 동의 판 확인, 남용 막기(크기·빈도·props), 시각 보정, 동의 철회 삭제.
+ * api/track.ts — 수집 기준의 판 확인(3 기본 이용 기록 · 2 예전 선택 동의), 이름 미저장, 처리 정지 기기,
+ * 남용 막기(크기·빈도·props), 시각 보정, 전체 삭제·코칭 내용만 삭제.
  * Supabase 는 fetch 를 가짜로 바꿔 어떤 요청이 나가는지만 본다.
  */
 import handler, { clampAt, cleanProps } from '../../api/track';
@@ -50,6 +51,7 @@ const goodBody = (extra: Record<string, unknown> = {}) => ({
 
 beforeEach(() => {
   calls.length = 0;
+  delete process.env.ANALYTICS_OPTOUT_DEVICES;
   process.env.SUPABASE_URL = 'https://db.example';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
   process.env.ANALYTICS_ENABLED = '1';
@@ -87,6 +89,33 @@ describe('POST /api/track', () => {
     expect(event.props).toEqual({ reason: 'quota', long: 'x'.repeat(100), n: 3, ok: true });
     const [screen] = JSON.parse(screenInsert!.body!);
     expect(screen.duration_ms).toBe(30 * 60 * 1000);
+  });
+
+  it('판 3(기본 이용 기록 — 선택 동의 없이 보낸 1.0.4 앱)도 저장하되, 이름은 저장하지 않고 예전 동의로 저장된 이름도 지운다', async () => {
+    const res = fakeRes();
+    await handler(fakeReq('POST', goodBody({ consentVersion: 3, user: { name: '민지', gender: 'female', age: 25 } })), res as never);
+    expect(res.statusCode).toBe(204);
+    expect(calls.some((c) => c.method === 'POST' && c.url.endsWith('/rest/v1/app_event'))).toBe(true);
+    const [created] = JSON.parse(calls.find((c) => c.method === 'POST' && c.url.endsWith('/rest/v1/app_user'))!.body!);
+    expect(created).toMatchObject({ name: null, gender: 'female', age: 25 });
+    const update = calls.find((c) => c.method === 'PATCH' && c.url.includes('/rest/v1/app_user?device_id=eq.') && !c.url.includes('source=is.null'));
+    expect(JSON.parse(update!.body!)).toMatchObject({ name: null, gender: 'female', age: 25 });
+  });
+
+  it('예전 앱의 직접 체크 동의(판 2)는 동의받은 대로 이름까지 저장한다 (1.0.3 까지의 앱)', async () => {
+    const res = fakeRes();
+    await handler(fakeReq('POST', goodBody({ user: { name: '민지', age: 25 } })), res as never);
+    expect(res.statusCode).toBe(204);
+    const [created] = JSON.parse(calls.find((c) => c.method === 'POST' && c.url.endsWith('/rest/v1/app_user'))!.body!);
+    expect(created.name).toBe('민지');
+  });
+
+  it('메일로 처리 정지를 요청한 기기(ANALYTICS_OPTOUT_DEVICES)는 받기만 하고 저장하지 않는다', async () => {
+    process.env.ANALYTICS_OPTOUT_DEVICES = 'd_other01, d_testdevice01';
+    const res = fakeRes();
+    await handler(fakeReq('POST', goodBody({ consentVersion: 3 })), res as never);
+    expect(res.statusCode).toBe(204);
+    expect(calls).toHaveLength(0);
   });
 
   it('수집이 꺼져 있으면 저장하지 않는다', async () => {
@@ -167,7 +196,29 @@ describe('POST /api/track', () => {
   });
 });
 
-describe('DELETE /api/track (동의 철회)', () => {
+describe('DELETE /api/track (전체 삭제·코칭 내용 삭제)', () => {
+  it('scope: content 면 그 기기의 코칭 내용과 예전 동의로 저장된 이름만 지우고, 기본 이용 기록은 남긴다', async () => {
+    const res = fakeRes();
+    await handler(fakeReq('DELETE', { deviceId: 'd_testdevice01', scope: 'content' }), res as never);
+    expect(res.statusCode).toBe(204);
+    const del = calls.find((c) => c.method === 'DELETE');
+    expect(del?.url).toBe('https://db.example/rest/v1/coach_log?device_id=eq.d_testdevice01');
+    const name = calls.find((c) => c.method === 'PATCH');
+    expect(name?.url).toBe('https://db.example/rest/v1/app_user?device_id=eq.d_testdevice01');
+    expect(JSON.parse(name!.body!)).toEqual({ name: null });
+    expect(calls.some((c) => c.url.endsWith('/rpc/delete_device'))).toBe(false);
+  });
+
+  it('코칭 내용 삭제가 실패하면 502 — 앱이 남겨 두었다가 다시 보낸다', async () => {
+    global.fetch = jest.fn(async (url: string, init: { method?: string; body?: string } = {}) => {
+      calls.push({ url: String(url), method: init.method ?? 'GET', body: init.body });
+      return { ok: init.method !== 'DELETE', status: init.method === 'DELETE' ? 500 : 204, text: async () => '' };
+    }) as unknown as typeof fetch;
+    const res = fakeRes();
+    await handler(fakeReq('DELETE', { deviceId: 'd_testdevice01', scope: 'content' }), res as never);
+    expect(res.statusCode).toBe(502);
+  });
+
   it('void 함수의 본문 없는 204 응답도 성공으로 본다 (예전에는 502)', async () => {
     global.fetch = jest.fn(async (url: string, init: { method?: string; body?: string } = {}) => {
       calls.push({ url: String(url), method: init.method ?? 'GET', body: init.body });

@@ -1,10 +1,11 @@
 /**
- * 서버에 남은 이 기기의 이용 기록 지우기 — 동의 철회·「모든 데이터 삭제」·만 14세 미만일 때.
+ * 서버에 남은 이 기기의 기록 지우기 — 「코칭 내용 저장」 철회(코칭 내용만)·「모든 데이터 삭제」·만 14세 미만·예전 기록 지우기(전체).
  *
  * 요청은 store 의 pendingDeletion 에 남겨 두고, 서버가 지웠다고 답할 때까지 앱을 켤 때·돌아올 때 다시 보낸다
  * (네트워크가 끊겼거나 앱이 바로 꺼져도 빠지지 않게). 철회 직전에 보낸 코칭 요청은 최대 120초 뒤에 저장될 수 있어,
- * 철회 2분 30초 뒤에 한 번 더 지운 다음에 요청을 지운다. 요청이 끝날 때까지는 다시 동의해도 이용 기록을 보내지 않으므로
- * (lib/analytics deletionPending) 서버는 시각 기준 없이 그 기기 기록을 모두 지운다 — 기기 시계가 틀려도 빠짐이 없다.
+ * 요청 2분 30초 뒤에 한 번 더 지운 다음에 요청을 지운다. 요청이 끝날 때까지는 지우는 범위의 기록을 새로 보내지 않으므로
+ * (lib/analytics 의 deletionPending·contentDeletionPending) 서버는 시각 기준 없이 그 기기 기록을 지운다 — 기기 시계가 틀려도 빠짐이 없다.
+ * 코칭 내용만 지울 때는 본문에 scope: 'content' 를 붙인다 (예전 서버는 이 표시를 몰라 전체를 지운다 — 더 지우는 쪽이라 안전).
  */
 import { APP_CONFIG } from '@/lib/config';
 import { isDemoMode } from '@/lib/demo';
@@ -30,7 +31,7 @@ async function sendDeletion(pending: PendingDeletion): Promise<boolean> {
     const res = await fetch(`${APP_CONFIG.apiUrl}/api/track`, {
       method: 'DELETE',
       headers: { 'content-type': 'application/json', ...(APP_CONFIG.apiToken ? { 'x-app-token': APP_CONFIG.apiToken } : {}) },
-      body: JSON.stringify({ deviceId: pending.deviceId }),
+      body: JSON.stringify(pending.scope === 'content' ? { deviceId: pending.deviceId, scope: 'content' } : { deviceId: pending.deviceId }),
       keepalive: true,
       signal: controller.signal,
     });

@@ -185,11 +185,11 @@ describe('가입 알림 (운영자 텔레그램)', () => {
     expect(count?.url).toContain('provider=not.is.null');
   });
 
-  it('이용 기록에 동의하지 않은 기기는 유입 경로를 「미동의」로, 기기 종류는 user-agent 로 짐작한다', async () => {
+  it('이용 기록이 없는 기기는 유입 경로를 「이용 기록 없음」으로, 기기 종류는 user-agent 로 짐작한다', async () => {
     sourceRows = [];
     await signup({ 'user-agent': 'okhttp/4.12.0' });
     expect(telegramTexts()[0]).toContain('📱 Android 앱');
-    expect(telegramTexts()[0]).toContain('🧭 유입: 알 수 없음 (이용 기록 미동의)');
+    expect(telegramTexts()[0]).toContain('🧭 유입: 알 수 없음 (이용 기록 없음)');
   });
 
   it('이미 가입한 회원의 로그인은 알리지 않고, 알림을 위한 조회도 하지 않는다', async () => {

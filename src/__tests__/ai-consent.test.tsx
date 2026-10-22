@@ -352,21 +352,34 @@ describe('AI 분석 동의 저장', () => {
     expect(s.aiConsentProvider).toBeNull();
     expect(s.aiConsentAt).toBeNull();
     expect(s.deviceId).toBe('d_old');
-    expect(s.analyticsConsent).toBe(false);
+    // 예전 「이용 기록 수집」 동의 안 함은 「코칭 내용 저장」 동의 안 함으로 옮겨 읽는다
+    expect(s.contentConsent).toBe(false);
     expect(s.usage.total).toBe(2);
   });
 
-  it('미리 체크된 첫 화면에서 저장된 이용 기록 동의(판 표시 없음)는 다시 묻고, 직접 켠 동의는 그대로 둔다', async () => {
+  it('미리 체크된 첫 화면에서 저장된 예전 동의(판 표시 없음)는 코칭 내용 저장을 다시 묻고, 직접 켠 동의는 새 칸으로 저장돼 유지된다', async () => {
     await AsyncStorage.setItem(KEY, JSON.stringify({ version: 1, state: { analyticsConsent: true } }));
     await useAppStore.persist.rehydrate();
-    expect(useAppStore.getState().analyticsConsent).toBeNull();
-    // 마이 탭·새 첫 화면에서 직접 켜면 판 표시와 함께 저장돼 다음 실행에도 유지된다
-    useAppStore.getState().setAnalyticsConsent(true);
+    expect(useAppStore.getState().contentConsent).toBeNull();
+    // 개인정보 설정·첫 화면 동의 창에서 직접 켜면 새 칸에 저장돼 다음 실행에도 유지된다 (예전 칸은 다시 저장하지 않는다)
+    useAppStore.getState().setContentConsent(true);
     const saved = useAppStore.persist.getOptions().partialize?.(useAppStore.getState()) as Partial<AppState>;
-    expect(saved).toEqual(expect.objectContaining({ analyticsConsent: true, analyticsConsentVersion: 2 }));
+    expect(saved).toEqual(expect.objectContaining({ contentConsent: true }));
+    expect(saved).not.toHaveProperty('analyticsConsent');
+    expect(saved).not.toHaveProperty('analyticsConsentVersion');
     await AsyncStorage.setItem(KEY, JSON.stringify({ version: 1, state: saved }));
     await useAppStore.persist.rehydrate();
-    expect(useAppStore.getState().analyticsConsent).toBe(true);
+    expect(useAppStore.getState().contentConsent).toBe(true);
+  });
+
+  it('예전 판에서 직접 체크한 이용 기록 동의(판 2)는 코칭 질문·답 저장까지 포함한 동의라 「코칭 내용 저장」 동의로 이어 읽는다', async () => {
+    useAppStore.setState({ pendingDeletion: null });
+    await AsyncStorage.setItem(KEY, JSON.stringify({ version: 1, state: { deviceId: 'd_v2', analyticsConsent: true, analyticsConsentVersion: 2, legacyDeletionChecked: true } }));
+    await useAppStore.persist.rehydrate();
+    const s = useAppStore.getState() as AppState & { analyticsConsent?: unknown };
+    expect(s.contentConsent).toBe(true);
+    expect(s.pendingDeletion).toBeNull();
+    expect(s.analyticsConsent).toBeUndefined();
   });
 
   it('「분석 중」인 채로 저장된 말풍선(답을 받기 전에 앱이 닫힘)은 「다시 시도」할 수 있는 실패로 읽는다', async () => {

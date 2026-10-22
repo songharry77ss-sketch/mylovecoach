@@ -21,11 +21,11 @@ const PERKS: Perk[] = [
   { icon: 'sunny-outline', title: '매일 무료 코칭 1회', body: '하루가 지나면 다시 충전돼요' },
 ];
 
-/** 저장 위치 안내 — 이용 기록 수집을 켠 기기는 코칭 기록이 서버에도 저장되고 회원과 연결된다 (처리방침 5번) */
-const storagePerk = (analyticsOn: boolean): Perk => ({
+/** 저장 위치 안내 — 「코칭 내용 저장」에 동의한 기기는 코칭 질문·답이 서버에도 저장되고 회원과 연결된다 (처리방침 4번·5번) */
+const storagePerk = (contentOn: boolean): Perk => ({
   icon: 'lock-closed-outline',
   title: '캡처와 채팅방은 내 기기에',
-  body: analyticsOn ? '이용 기록 수집을 켜 둬서 코칭 질문·답은 서버에도 보관되고 회원과 연결돼요' : '가입해도 지금처럼 이 기기에만 저장돼요',
+  body: contentOn ? '코칭 내용 저장에 동의해 둬서 코칭 질문·답은 서버에도 보관되고 회원과 연결돼요' : '가입해도 지금처럼 이 기기에만 저장돼요',
 });
 
 /** 회원가입 화면 (마이 탭 등에서 연다). 무료 횟수가 끝났을 때는 결제 화면에 같은 가입 카드가 나온다 */
@@ -33,7 +33,7 @@ export default function Signup() {
   const theme = useTheme();
   const router = useRouter();
   const toast = useToast();
-  const analyticsOn = useAppStore((s) => s.analyticsConsent === true);
+  const contentOn = useAppStore((s) => s.contentConsent === true);
 
   useEffect(() => {
     track('signup_open');
@@ -50,7 +50,7 @@ export default function Signup() {
       </View>
 
       <View style={[styles.perks, { backgroundColor: theme.surface }]}>
-        {[...PERKS, storagePerk(analyticsOn)].map((p) => (
+        {[...PERKS, storagePerk(contentOn)].map((p) => (
           <View key={p.title} style={styles.perk}>
             <View style={[styles.perkIcon, { backgroundColor: theme.primarySoft }]}>
               <Ionicons name={p.icon} size={18} color={theme.primary} />

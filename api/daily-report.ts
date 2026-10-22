@@ -3,7 +3,8 @@
  *   GET /api/daily-report  (Authorization: Bearer <CRON_SECRET> — CRON_SECRET 을 설정하면 Vercel 이 붙여 보낸다)
  * 어제(한국 날짜) 하루를 모아 운영자 텔레그램으로 보낸다:
  *   신규 회원(10명까지 닉네임·가입 방법·이메일)과 누적 회원 · 스토어 매출(실제 결제만, 스토어·상품별)·환불·해지 예약
- *   · 이용 기록에 동의한 이용자의 앱 실행 기기 수·코칭 요청 수·결제 화면 열람 기기 수·결제창 진입 기기 수
+ *   · 서비스 이용 기록이 있는 기기의 앱 실행 기기 수·코칭 결과 수·결제 화면 열람 기기 수·결제창 진입 기기 수
+ *     (1.0.4 부터는 만 14세 이상 전체, 1.0.3 까지의 앱은 이용 기록에 선택 동의한 기기만 보낸다)
  * 응답에는 리포트 내용(이메일 등)을 싣지 않는다.
  * 환경변수: CRON_SECRET (없으면 503), SUPABASE_URL·SUPABASE_SERVICE_ROLE_KEY, TELEGRAM_BOT_TOKEN·TELEGRAM_CHAT_ID
  */
@@ -103,9 +104,9 @@ export function reportMessage(d: ReportData): string {
   }
 
   lines.push('');
-  lines.push('📱 이용 (이용 기록 동의자만)');
+  lines.push('📱 이용 (이용 기록이 있는 기기)');
   lines.push(` · 앱 실행 기기 ${num(d.launches, '대')}`);
-  lines.push(` · 코칭 요청 ${num(d.coaching, '건')}`);
+  lines.push(` · 코칭 결과 ${num(d.coaching, '건')}`);
   lines.push(` · 결제 화면 열람 ${num(d.paywall, '대')} → 결제창 진입 ${num(d.checkout, '대')}`);
   return lines.join('\n');
 }
@@ -122,7 +123,8 @@ export async function collectReport(now = Date.now()): Promise<ReportData> {
     countRows('member', joined),
     query<SaleRow>('store_event', `select=store,kind,plan,product_id,amount,currency&environment=eq.Production&kind=in.(purchase,renewal,refund,cancel)&${between('created_at')}&limit=1000`), // Supabase 한 번에 최대 1000행 — 하루 결제가 그보다 많아지면 집계 함수로 바꿀 것
     distinctDevices('app_session', between('started_at')),
-    countRows('coach_log', between('created_at')),
+    // 코칭 결과는 기본 이용 기록의 coach_success 로 센다 (coach_log 는 「코칭 내용 저장」에 동의한 기기만 있어 적게 나온다)
+    countRows('app_event', `name=eq.coach_success&${between('created_at')}`),
     distinctDevices('app_event', `name=eq.paywall_open&${between('created_at')}`),
     distinctDevices('app_event', `name=eq.purchase_start&${between('created_at')}`),
   ]);

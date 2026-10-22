@@ -2,10 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { StartConsentSheet, type StartConsentAnswer } from '@/components/consent/start-consent-sheet';
 import { DemoReel } from '@/components/fx/demo-reel';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
@@ -18,11 +19,15 @@ import { track } from '@/lib/analytics';
 import { APP_CONFIG } from '@/lib/config';
 import { haptic } from '@/lib/haptics';
 import { pickImage } from '@/lib/images';
+import { privacyUrl } from '@/lib/privacy-copy';
 import { useAppStore } from '@/store/app-store';
+
+type StartMode = 'image' | 'text' | 'secret';
 
 /**
  * 첫 화면 — 짧은 시연 영상(루프 애니메이션)으로 무엇을 해 주는 앱인지 바로 보여 주고,
  * 가입도 설문도 없이 캡처 한 장으로 바로 코칭을 받는다. 이름·MBTI 같은 정보는 결과를 본 뒤에 원하면 채운다.
+ * 처음 시작 버튼을 누르면 동의 창(필수: 이용약관·개인정보 처리방침 확인, 선택: 코칭 내용 저장)을 띄우고, 답하면 누른 버튼의 일을 이어서 한다.
  */
 export default function Start() {
   const theme = useTheme();
@@ -32,10 +37,11 @@ export default function Start() {
   const insets = useSafeAreaInsets();
   const quickStart = useAppStore((s) => s.quickStart);
   const createSecretChat = useAppStore((s) => s.createSecretChat);
-  const setAnalyticsConsent = useAppStore((s) => s.setAnalyticsConsent);
-  // (선택) 이용 기록 수집은 직접 체크해야 켜진다 — 기본은 꺼짐
-  const [consent, setConsent] = useState(false);
+  const agreeToStart = useAppStore((s) => s.agreeToStart);
+  const agreed = useAppStore((s) => s.termsAgreedAt != null);
   const [busy, setBusy] = useState(false);
+  // 동의 창이 떠 있으면 그 창을 띄운 버튼 (답하면 그 일을 이어서 한다)
+  const [asking, setAsking] = useState<StartMode | null>(null);
 
   // 메인 버튼이 은은하게 빛나며 숨 쉰다
   const glow = useSharedValue(0);
@@ -44,9 +50,8 @@ export default function Start() {
   }, [glow]);
   const glowStyle = useAnimatedStyle(() => ({ opacity: 0.25 + glow.value * 0.35, transform: [{ scale: 1 + glow.value * 0.04 }] }));
 
-  const begin = (mode: 'image' | 'text' | 'secret') => {
-    setAnalyticsConsent(consent);
-    track('start', { mode, consent });
+  const begin = (mode: StartMode) => {
+    track('start', { mode, content: useAppStore.getState().contentConsent === true });
     return mode === 'secret' ? createSecretChat() : quickStart();
   };
 
@@ -78,6 +83,33 @@ export default function Start() {
     router.push({ pathname: '/crush/[id]', params: { id: crushId } });
   };
 
+  const run = (mode: StartMode) => {
+    if (mode === 'image') withCapture();
+    else if (mode === 'text') withText();
+    else secret();
+  };
+
+  // 아직 동의 창에 답하지 않았으면 먼저 띄운다
+  const go = (mode: StartMode) => {
+    if (busy) return;
+    if (!agreed) {
+      track('start_consent_open', { mode });
+      setAsking(mode);
+      return;
+    }
+    run(mode);
+  };
+
+  const onAgree = ({ content, all }: StartConsentAnswer) => {
+    const mode = asking;
+    haptic.select();
+    agreeToStart(content);
+    track('start_consent', { all, content, mode });
+    setAsking(null);
+    // 같은 누름 안에서 이어서 연다 — 웹은 사용자가 누른 직후에만 사진 선택 창을 열 수 있다
+    if (mode) run(mode);
+  };
+
   const bg: [string, string, string] = scheme === 'dark' ? [theme.background, '#141B2A', '#20182A'] : [palette.sky50, palette.lavender100, palette.pink50];
 
   return (
@@ -107,12 +139,12 @@ export default function Start() {
             <Animated.View pointerEvents="none" style={[styles.glow, { backgroundColor: theme.primary }, glowStyle]} />
             <Button
               title={busy ? '사진 여는 중…' : '대화 캡처 올리기'}
-              onPress={withCapture}
+              onPress={() => go('image')}
               disabled={busy}
               icon={busy ? <ActivityIndicator size="small" color={theme.primaryText} /> : <Ionicons name="image" size={18} color={theme.primaryText} />}
             />
           </View>
-          <Button title="캡처 없이 상황만 적을래요" variant="ghost" onPress={withText} disabled={busy} />
+          <Button title="캡처 없이 상황만 적을래요" variant="ghost" onPress={() => go('text')} disabled={busy} />
 
           <View style={styles.extras}>
             <PressableScale onPress={() => router.push('/kkti')} style={[styles.extra, { backgroundColor: theme.surface }]}>
@@ -121,7 +153,7 @@ export default function Start() {
                 카톡 속 진짜 연애 MBTI
               </AppText>
             </PressableScale>
-            <PressableScale onPress={secret} style={[styles.extra, { backgroundColor: theme.surface }]}>
+            <PressableScale onPress={() => go('secret')} style={[styles.extra, { backgroundColor: theme.surface }]}>
               <AppText variant="smallStrong">🕶️ 비밀 상담</AppText>
               <AppText variant="caption" color="textSecondary">
                 기록이 남지 않아요
@@ -129,40 +161,19 @@ export default function Start() {
             </PressableScale>
           </View>
 
-          <Pressable
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: consent }}
-            onPress={() => {
-              haptic.select();
-              setConsent((v) => !v);
-            }}
-            style={styles.consent}
-            hitSlop={6}>
-            <View style={[styles.checkbox, { borderColor: consent ? theme.primary : theme.textTertiary, backgroundColor: consent ? theme.primary : 'transparent' }]}>
-              {consent ? <Ionicons name="checkmark" size={12} color={theme.primaryText} /> : null}
-            </View>
-            <AppText variant="caption" color="textSecondary" style={styles.consentText}>
-              (선택) 서비스 개선을 위해 이용 기록(기기 ID·내 프로필·화면 이용·코칭 질문과 답)을 보관하는 데 동의해요. 기록은 1년, 기기 ID·프로필은 마지막 이용 후 1년 보관하고, 미국 회사 Vercel(중계)·Supabase(보관, 서울 리전)가 처리해요(국외 이전). 동의하지 않아도 모든 기능을 쓸 수 있어요. 캡처 이미지는 저장하지 않고, 마이 탭에서 언제든 끌 수 있어요.
-            </AppText>
-          </Pressable>
-          {/* 체크박스 줄 밖에 둔다 — 안에 두면 링크를 눌러도 체크가 바뀌고, 화면 읽기에서 링크에 닿지 못한다 */}
-          <AppText variant="caption" color="primary" accessibilityRole="link" onPress={() => Linking.openURL(`${APP_CONFIG.privacyUrl}#analytics`)} style={styles.consentMore}>
-            수집 항목·보관 기간·국외 이전 자세히 보기 ›
-          </AppText>
-
-          <AppText variant="caption" color="textTertiary" align="center">
-            시작하면{' '}
-            <AppText variant="caption" color="primary" onPress={() => Linking.openURL(APP_CONFIG.termsUrl)}>
-              이용약관
-            </AppText>
-            {' · '}
-            <AppText variant="caption" color="primary" onPress={() => Linking.openURL(APP_CONFIG.privacyUrl)}>
+          <AppText variant="caption" color="textTertiary" align="center" style={styles.notice}>
+            앱을 쓰는 동안 화면·버튼 이용 기록이 서비스 제공·개선을 위해 자동으로 수집돼요 (만 14세 미만 제외).{' '}
+            <AppText variant="caption" color="primary" accessibilityRole="link" onPress={() => Linking.openURL(privacyUrl('analytics'))}>
               개인정보 처리방침
             </AppText>
-            에 동의하게 돼요
+            {' · '}
+            <AppText variant="caption" color="primary" accessibilityRole="link" onPress={() => Linking.openURL(APP_CONFIG.termsUrl)}>
+              이용약관
+            </AppText>
           </AppText>
         </View>
       </ScrollView>
+      <StartConsentSheet visible={asking != null} onAgree={onAgree} onClose={() => setAsking(null)} />
     </LinearGradient>
   );
 }
@@ -178,9 +189,5 @@ const styles = StyleSheet.create({
   glow: { position: 'absolute', left: 8, right: 8, top: 6, bottom: -6, borderRadius: Radius.md },
   extras: { flexDirection: 'row', gap: Spacing.sm },
   extra: { flex: 1, borderRadius: Radius.md, paddingVertical: Spacing.md, paddingHorizontal: Spacing.md, gap: 2 },
-  consent: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, marginTop: Spacing.xs },
-  checkbox: { width: 18, height: 18, borderRadius: 5, borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
-  consentText: { flex: 1 },
-  // 체크박스(18) + 간격만큼 들여 안내 글과 줄을 맞춘다
-  consentMore: { alignSelf: 'flex-start', marginLeft: 18 + Spacing.sm, marginTop: -Spacing.xs },
+  notice: { marginTop: Spacing.xs },
 });

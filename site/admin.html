@@ -124,7 +124,7 @@
     </div>
 
     <div class="card" style="margin-bottom:20px">
-      <h2>KKTI 퍼짐 <span class="muted">최근 7일 · 누가 했는지 없이 횟수만 · 웹은 동의와 상관없이 · 앱은 이용 기록 동의자만</span></h2>
+      <h2>KKTI 퍼짐 <span class="muted">최근 7일 · 누가 했는지 없이 횟수만 · 웹은 모두 · 앱은 이용 기록을 보내는 기기만(1.0.4~ 만 14세 이상 전체, 1.0.3 까지는 동의자만)</span></h2>
       <div id="kktiSummary" class="muted" style="margin-bottom:8px"></div>
       <div id="kktiStats" style="overflow-x:auto"></div>
     </div>
@@ -134,7 +134,7 @@
     <div class="grid stats" id="stats"></div>
 
     <div class="card" style="margin-bottom:20px">
-      <h2>결제 흐름 <span class="muted">이 기간 · 이용 기록 수집에 동의한 사람만 · 단계마다 한 번이라도 거친 기기 수</span></h2>
+      <h2>결제 흐름 <span class="muted">이 기간 · 이용 기록이 있는 기기(1.0.4~ 만 14세 이상 전체, 1.0.3 까지는 동의자만) · 단계마다 한 번이라도 거친 기기 수</span></h2>
       <div class="notice hide" id="funnelNote">결제 흐름·가입자 목록을 읽지 못했어요. Supabase SQL Editor 에 <b>supabase/admin_funnel.sql</b> 을 한 번 실행해 주세요 (표는 만들지 않고 집계 함수만 추가해요).</div>
       <div id="funnelSteps"></div>
       <div class="grid cols" style="margin:16px 0 0">
@@ -180,7 +180,7 @@
         <h2 style="margin:0">이용자 <span class="muted" id="usersCount"></span></h2>
         <input id="userSearch" placeholder="이름·기기 ID·유입 검색" autocomplete="off" style="flex:0 1 240px" />
       </div>
-      <p class="muted" style="margin:6px 0 10px">이용 기록 수집에 동의한 사람만 보여요. 줄을 누르면 어디서 얼마나 머물렀는지, 어떤 코칭을 받았는지 볼 수 있어요.</p>
+      <p class="muted" style="margin:6px 0 10px">이용 기록이 있는 기기만 보여요(1.0.4~ 만 14세 이상 전체, 1.0.3 까지는 동의자만). 줄을 누르면 어디서 얼마나 머물렀는지 보고, 코칭 내용 저장에 동의한 기기는 어떤 코칭을 받았는지도 볼 수 있어요.</p>
       <div class="row" style="margin-bottom:10px">
         <input id="openDeviceId" placeholder="기기 ID로 열기 (메일로 받은 삭제 요청 등 — 목록에 없는 기기도)" autocomplete="off" spellcheck="false" />
         <button class="ghost" id="openDeviceBtn">열기</button>
@@ -284,10 +284,10 @@
   };
   const EVENT = {
     app_open: '앱 실행', start: '첫 화면에서 시작', coach_success: '코칭 받음', coach_error: '코칭 오류', coach_blocked: '무료 횟수 소진으로 막힘',
-    ai_blocked: '무료 횟수 소진으로 막힘', paywall_open: '결제 화면 열림', purchase_start: '결제창 열기(스토어)', analytics_opt_in: '이용 기록 수집 켬',
+    ai_blocked: '무료 횟수 소진으로 막힘', paywall_open: '결제 화면 열림', purchase_start: '결제창 열기(스토어)', analytics_opt_in: '이용 기록 수집 켬(1.0.3 까지)', content_consent: '코칭 내용 저장 동의 바꿈', start_consent_open: '첫 화면 동의 창 열림', start_consent: '첫 화면 동의', privacy_notice: '개인정보 안내 카드',
     paywall_plan: '결제 화면에서 상품 고름', paywall_close: '결제 화면 닫음', restore_start: '구매 복원 누름', restore_result: '구매 복원 결과',
     purchase_purchased: '결제 완료 (구독·평생권)', purchase_granted: '결제 완료 (이용권)', purchase_cancelled: '결제 취소', purchase_pending: '결제 승인 대기', purchase_error: '결제 오류',
-    analytics_opt_out: '이용 기록 수집 끔', signup: '회원가입', login: '로그인', logout: '로그아웃', signup_open: '가입 화면 열림', kkti_start: 'KKTI 시작', kkti_complete: 'KKTI 완료', kkti_share: 'KKTI 공유', kkti_cta: 'KKTI → 코칭',
+    analytics_opt_out: '이용 기록 수집 끔(1.0.3 까지)', signup: '회원가입', login: '로그인', logout: '로그아웃', signup_open: '가입 화면 열림', kkti_start: 'KKTI 시작', kkti_complete: 'KKTI 완료', kkti_share: 'KKTI 공유', kkti_cta: 'KKTI → 코칭',
     app_download_click: '웹 결제 화면에서 앱 받기 누름',
   };
   const PROVIDER = { kakao: '카카오', google: 'Google', apple: 'Apple' };
