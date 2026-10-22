@@ -1,6 +1,8 @@
 // PC 에서 실행: node tools/play-setup.mjs [--listing] [--products] [--email you@example.com] [--site https://...] [--secrets <폴더>]
 // Play Console 에 앱을 만들고(패키지 이름 포함) 서비스 계정에 앱 권한을 준 뒤 쓸 수 있다. 일회성 상품은 결제 권한이 든 AAB 가 먼저 올라가야 만들어진다 (tools/play-upload.mjs).
 //   --listing  : 스토어 등록 정보(제목·설명), 아이콘·그래픽 이미지·휴대전화 스크린샷, 연락처
+//   --listing --text-only : 이미지는 그대로 두고 제목·설명·연락처만 바꾼다
+//   --listing --dry-run   : 지금 Play 등록 정보와 문서를 비교만 하고 저장하지 않는다 (검토 중에도 안전)
 //   --products : 인앱 상품 — 주간 구독 mylovecoach.premium.weekly(기본 요금제 weekly, ₩9,900) + 일회성 mylovecoach.premium.lifetime(₩29,800)
 //   --products --consumables : 위에 더해 하루 이용권 mylovecoach.pass.day(₩2,700) · 횟수권 mylovecoach.credits.10(₩4,900, 가안)
 //   --day-pass : 하루 이용권 하나만 만든다 (등록 정보·다른 상품은 건드리지 않음 — 2026-10-11 사용자 결정: 하루 이용권 ₩2,700 추가)
@@ -22,6 +24,12 @@ const root = argOf('--secrets') ?? process.env.MYLOVECOACH_SECRETS ?? join(homed
 const SITE = (argOf('--site') ?? (existsSync(join(root, 'mylovecoach-api-url.txt')) ? readFileSync(join(root, 'mylovecoach-api-url.txt'), 'utf8').trim() : 'https://mylovecoach.vercel.app')).replace(/\/+$/, '');
 const doListing = args.includes('--listing') || !args.includes('--products');
 const doProducts = args.includes('--products') || !args.includes('--listing');
+const textOnly = args.includes('--text-only');
+const dryRun = args.includes('--dry-run');
+if (dryRun && doProducts) {
+  console.error('--dry-run 은 --listing 과 함께만 쓴다 (상품 단계에는 비교 모드가 없음).');
+  process.exit(1);
+}
 
 const listingMd = readFileSync(join(repo, 'docs', 'STORE_LISTING.md'), 'utf8');
 const field = (label) => (listingMd.match(new RegExp(`\\*\\*${label}[^*]*\\*\\*:\\s*(.+)`)) ?? [])[1]?.trim();
@@ -69,6 +77,20 @@ async function listing() {
   const edit = await call('POST', `${BASE}/edits`, {});
   const E = `${BASE}/edits/${edit.id}`;
   const description = section('전체 설명').replaceAll('https://mylovecoach.vercel.app', SITE);
+  if (dryRun) {
+    try {
+      const cur = await call('GET', `${E}/listings/${LANG}`);
+      const want = { title: field('앱 이름') ?? '나만의 연애코치', shortDescription: field('짧은 설명') ?? '', fullDescription: description };
+      for (const key of Object.keys(want)) {
+        const same = (cur[key] ?? '').replace(/\r\n/g, '\n') === want[key].replace(/\r\n/g, '\n');
+        console.log(`${same ? '=' : '≠'} ${key}: 지금 ${(cur[key] ?? '').length}자 → 문서 ${want[key].length}자`);
+      }
+    } finally {
+      await call('DELETE', E).catch(() => {});
+    }
+    console.log('(비교만 함 — 저장하지 않음)');
+    return;
+  }
   let ok = await step('제목·짧은 설명·전체 설명', () =>
     call('PUT', `${E}/listings/${LANG}`, { language: LANG, title: field('앱 이름') ?? '나만의 연애코치', shortDescription: field('짧은 설명') ?? '', fullDescription: description }).then(() => `${description.length}자`),
   );
@@ -87,7 +109,7 @@ async function listing() {
     ['featureGraphic', [join(repo, 'docs', 'store-assets', 'feature-graphic-1024x500.png')]],
     ['phoneScreenshots', readdirSync(join(repo, 'docs', 'store-assets', 'play-framed')).filter((f) => /\.png$/i.test(f)).sort().map((f) => join(repo, 'docs', 'store-assets', 'play-framed', f))],
   ];
-  for (const [type, files] of images) {
+  for (const [type, files] of textOnly ? [] : images) {
     ok =
       (await step(`이미지: ${type}`, async () => {
         await call('DELETE', `${E}/listings/${LANG}/${type}`);
