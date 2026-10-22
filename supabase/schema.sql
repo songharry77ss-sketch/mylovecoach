@@ -375,8 +375,8 @@ as $$
     ),
     'sessions',       (select count(*) from app_session, span where started_at >= span.since),
     'avg_session_sec',(select coalesce(round(avg(duration_ms) / 1000.0), 0) from app_session, span where started_at >= span.since and duration_ms is not null),
-    'coach_requests', (select count(*) from coach_log,  span where created_at >= span.since),
-    'with_image',     (select count(*) from coach_log,  span where created_at >= span.since and has_image),
+    'coach_requests', (select count(*) from app_event e, span where e.name = 'coach_success' and e.created_at >= span.since),
+    'with_image',     (select count(*) from app_event e, span where e.name = 'coach_success' and e.props->>'hasImage' = 'true' and e.created_at >= span.since),
     'signups_by_day', (
       select coalesce(json_agg(json_build_object('day', to_char(d.d, 'MM-DD'), 'users', d.users) order by d.d), '[]'::json) from (
         select (first_seen_at at time zone 'Asia/Seoul')::date as d, count(*) as users
@@ -397,7 +397,7 @@ as $$
         select (created_at at time zone 'Asia/Seoul')::date as d,
                count(*)                  as requests,
                count(distinct device_id) as users
-        from coach_log, span where created_at >= span.since
+        from app_event, span where name = 'coach_success' and created_at >= span.since
         group by 1
       ) d
     ),
@@ -420,8 +420,8 @@ as $$
     ),
     'tones', (
       select coalesce(json_agg(row_to_json(t) order by t.count desc), '[]'::json) from (
-        select coalesce(tone, '(없음)') as tone, count(*) as count
-        from coach_log, span where created_at >= span.since group by 1 order by 2 desc
+        select coalesce(props->>'tone', '(없음)') as tone, count(*) as count
+        from app_event, span where name = 'coach_success' and created_at >= span.since group by 1 order by 2 desc
       ) t
     ),
     'relationships', (
@@ -458,7 +458,7 @@ as $$
            (select e.props->>'mode' from app_event e where e.device_id = u.device_id and e.name = 'start' order by e.created_at limit 1) as start_mode,
            (select count(*) from app_session s where s.device_id = u.device_id)                                as sessions,
            (select round(coalesce(sum(v.duration_ms), 0) / 1000.0) from screen_view v where v.device_id = u.device_id) as total_sec,
-           (select count(*) from coach_log c where c.device_id = u.device_id)                                  as coach_count,
+           (select count(*) from app_event c where c.device_id = u.device_id and c.name = 'coach_success')        as coach_count,
            exists (select 1 from team_member t where t.device_id = u.device_id)                                as is_team,
            m.provider as member_provider, m.nickname as member_nickname, m.created_at as member_since
     from recent u
@@ -532,6 +532,22 @@ as $$
 $$;
 
 comment on function delete_device is '기기 ID 하나의 이용 기록 삭제 (DELETE /api/track, 관리자 기록 삭제, 만 14세 미만)';
+
+-- ── 코칭 내용만 지움 (「코칭 내용 저장」 동의 철회 — DELETE /api/track { scope: 'content' }) ─
+-- 코칭 기록(질문·답변), 코칭 성공 이벤트에 실렸던 호감 온도, 예전 앱의 선택 동의(판 2)로 저장된 이름(별명). 화면·버튼 같은 기본 이용 기록은 남긴다
+create or replace function delete_device_content(p_device text)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  delete from coach_log where device_id = p_device;
+  update app_event set props = props - 'temperature'
+   where device_id = p_device and name = 'coach_success' and props ? 'temperature';
+  update app_user set name = null where device_id = p_device and name is not null;
+$$;
+
+comment on function delete_device_content is '기기 하나의 코칭 내용(coach_log·호감 온도·예전 이름)만 삭제 — 코칭 내용 저장 철회';
 
 -- ── 1년 지난 이용 기록 파기 (처리방침 4번 「1년이 지나면 파기」) ─
 -- AI 답변 신고는 아래 purge_ai_report() 가 따로 지운다 — 이 함수는 브랜치마다 본문이 달라 다시 만들 때 줄이 사라질 수 있어서
@@ -655,7 +671,7 @@ as $$
     'steps', json_build_array(
       json_build_object('key', 'open',    'label', '앱 실행',            'users', (select count(distinct s.device_id) from app_session s, span where s.started_at >= span.since)),
       json_build_object('key', 'start',   'label', '첫 화면 통과',       'users', (select count(distinct device_id) from ev where name = 'start')),
-      json_build_object('key', 'coach',   'label', '코칭 1회 이상',      'users', (select count(distinct c.device_id) from coach_log c, span where c.created_at >= span.since)),
+      json_build_object('key', 'coach',   'label', '코칭 1회 이상',      'users', (select count(distinct device_id) from ev where name = 'coach_success')),
       json_build_object('key', 'paywall', 'label', '결제 화면 열람',     'users', (select count(distinct device_id) from ev where name = 'paywall_open')),
       json_build_object('key', 'try',     'label', '결제창 진입(스토어)', 'users', (select count(distinct device_id) from ev where name = 'purchase_start')),
       json_build_object('key', 'paid',    'label', '결제 완료',          'users', (select count(distinct device_id) from ev where name in ('purchase_purchased', 'purchase_granted')))
@@ -761,7 +777,7 @@ as $$
            (select count(*) from app_session s join app_user a on a.device_id = s.device_id where a.user_id = m.user_id)              as sessions,
            (select round(coalesce(sum(v.duration_ms), 0) / 1000.0) from screen_view v join app_user a on a.device_id = v.device_id
              where a.user_id = m.user_id)                                                                                           as total_sec,
-           (select count(*) from coach_log c join app_user a on a.device_id = c.device_id where a.user_id = m.user_id)                as coach_count
+           (select count(*) from app_event c join app_user a on a.device_id = c.device_id where a.user_id = m.user_id and c.name = 'coach_success')                as coach_count
     from member m
     -- 이 회원과 이어진 이용 기록(동의한 기기) 중 가장 최근 것 — 없으면 기기 ID 를 내보내지 않는다 (「기록 보기」는 이 기기)
     left join lateral (
@@ -782,10 +798,10 @@ comment on function admin_members is '관리자 가입자 목록 (가입 방법�
 -- ── 관리자 함수는 서버(service_role)만 부를 수 있게 ──────────────────
 do $$
 begin
-  revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text), admin_funnel(int), admin_members(int), delete_device(text), purge_old_records(),
+  revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text), admin_funnel(int), admin_members(int), delete_device(text), delete_device_content(text), purge_old_records(),
     take_quota(text, int, bigint), member_link(uuid, text, text, text, text), member_delete(uuid), app_user_member() from public;
   if exists (select 1 from pg_roles where rolname = 'anon') then
-    revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text), admin_funnel(int), admin_members(int), delete_device(text), purge_old_records(),
+    revoke execute on function admin_stats(int), admin_users(int, int), admin_user(text), admin_funnel(int), admin_members(int), delete_device(text), delete_device_content(text), purge_old_records(),
       take_quota(text, int, bigint), member_link(uuid, text, text, text, text), member_delete(uuid), app_user_member() from anon, authenticated;
   end if;
 end $$;

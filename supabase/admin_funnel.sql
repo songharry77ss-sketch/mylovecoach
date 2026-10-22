@@ -57,7 +57,7 @@ as $$
     'steps', json_build_array(
       json_build_object('key', 'open',    'label', '앱 실행',            'users', (select count(distinct s.device_id) from app_session s, span where s.started_at >= span.since)),
       json_build_object('key', 'start',   'label', '첫 화면 통과',       'users', (select count(distinct device_id) from ev where name = 'start')),
-      json_build_object('key', 'coach',   'label', '코칭 1회 이상',      'users', (select count(distinct c.device_id) from coach_log c, span where c.created_at >= span.since)),
+      json_build_object('key', 'coach',   'label', '코칭 1회 이상',      'users', (select count(distinct device_id) from ev where name = 'coach_success')),
       json_build_object('key', 'paywall', 'label', '결제 화면 열람',     'users', (select count(distinct device_id) from ev where name = 'paywall_open')),
       json_build_object('key', 'try',     'label', '결제창 진입(스토어)', 'users', (select count(distinct device_id) from ev where name = 'purchase_start')),
       json_build_object('key', 'paid',    'label', '결제 완료',          'users', (select count(distinct device_id) from ev where name in ('purchase_purchased', 'purchase_granted')))
@@ -163,7 +163,7 @@ as $$
            (select count(*) from app_session s join app_user a on a.device_id = s.device_id where a.user_id = m.user_id)              as sessions,
            (select round(coalesce(sum(v.duration_ms), 0) / 1000.0) from screen_view v join app_user a on a.device_id = v.device_id
              where a.user_id = m.user_id)                                                                                           as total_sec,
-           (select count(*) from coach_log c join app_user a on a.device_id = c.device_id where a.user_id = m.user_id)                as coach_count
+           (select count(*) from app_event c join app_user a on a.device_id = c.device_id where a.user_id = m.user_id and c.name = 'coach_success')                as coach_count
     from member m
     -- 이 회원과 이어진 이용 기록(동의한 기기) 중 가장 최근 것 — 없으면 기기 ID 를 내보내지 않는다 (「기록 보기」는 이 기기)
     left join lateral (
