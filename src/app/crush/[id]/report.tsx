@@ -45,13 +45,13 @@ export default function CrushReportScreen() {
   const kkti = useAppStore((s) => s.kkti);
   const saveReport = useAppStore((s) => s.saveReport);
   const quota = useQuota();
-  const { run, busy, error, blocked } = useAiAction();
-  // 횟수가 없어 막혔다면 결제·가입하고 돌아왔을 때 다시 누르지 않아도 한 번 만들어 준다
+  const { run, busy, error, blockCount } = useAiAction();
+  // 횟수가 없어 막혔다면 결제·가입하고 돌아왔을 때 다시 누르지 않아도 한 번 만들어 준다 (막힐 때마다 새로 기억)
   const resume = useResumeAfterPaywall('report');
   const generateRef = useRef<(() => void) | null>(null);
   useEffect(() => {
-    if (blocked) resume.remember(() => generateRef.current?.());
-  }, [blocked, resume]);
+    if (blockCount > 0) resume.remember(() => generateRef.current?.());
+  }, [blockCount, resume]);
 
   const analyzed = useMemo(() => (messages ?? []).filter((m) => m.analysis).length, [messages]);
 

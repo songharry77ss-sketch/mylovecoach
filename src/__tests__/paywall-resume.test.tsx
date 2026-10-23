@@ -9,7 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { create, type ReactTestRenderer } from 'react-test-renderer';
 
 import PracticeSessionScreen from '@/app/practice/[id]';
-import { RESUME_WINDOW_MS, useResumeAfterPaywall } from '@/hooks/use-resume-after-paywall';
+import { CLOSE_GRACE_MS, paywallClosed, resetResumeSlot, RESUME_WINDOW_MS, useResumeAfterPaywall } from '@/hooks/use-resume-after-paywall';
 import { dayKey, EMPTY_WALLET } from '@/lib/billing/quota';
 import type { PracticePersona } from '@/lib/types';
 import { useAppStore } from '@/store/app-store';
@@ -102,7 +102,86 @@ describe('useResumeAfterPaywall', () => {
   }
 
   beforeEach(() => {
+    resetResumeSlot();
     useAppStore.setState({ usage: exhausted(), wallet: EMPTY_WALLET, premium: null, team: null });
+  });
+
+  it('결제 화면이 닫힌 뒤에는 잠깐만 이어 준다 — 결제 없이 닫고 한참 뒤(자정 충전 등) 횟수가 생기면 보내지 않음', async () => {
+    let tree: ReactTestRenderer | null = null;
+    await act(async () => {
+      tree = create(<Probe />);
+    });
+    const late = jest.fn();
+    act(() => resume?.remember(late));
+    const now = Date.now();
+    paywallClosed(now);
+    const spy = jest.spyOn(Date, 'now').mockReturnValue(now + CLOSE_GRACE_MS + 1000);
+    await act(async () => useAppStore.setState({ usage: { total: 99, day: '', dayCount: 0 } }));
+    spy.mockRestore();
+    expect(late).not.toHaveBeenCalled();
+
+    // 닫힌 직후(가입 보너스가 조금 늦게 들어옴)에는 이어 준다
+    await act(async () => useAppStore.setState({ usage: exhausted(), wallet: EMPTY_WALLET }));
+    const soon = jest.fn();
+    act(() => resume?.remember(soon));
+    paywallClosed(Date.now());
+    await act(async () => useAppStore.setState({ wallet: { ...EMPTY_WALLET, bonus: 3 } }));
+    expect(soon).toHaveBeenCalledTimes(1);
+    act(() => (tree as unknown as ReactTestRenderer).unmount());
+  });
+
+  it('여러 화면이 막혀도 마지막에 막힌 것 하나만, 사라진 화면의 것은 실행하지 않는다', async () => {
+    let first: ReturnType<typeof useResumeAfterPaywall> | null = null;
+    let second: ReturnType<typeof useResumeAfterPaywall> | null = null;
+    function A() {
+      first = useResumeAfterPaywall('a');
+      return null;
+    }
+    function B() {
+      second = useResumeAfterPaywall('b');
+      return null;
+    }
+    let tree: ReactTestRenderer | null = null;
+    await act(async () => {
+      tree = create(
+        <>
+          <A />
+          <B />
+        </>,
+      );
+    });
+    const runA = jest.fn();
+    const runB = jest.fn();
+    act(() => first?.remember(runA));
+    act(() => second?.remember(runB));
+    await act(async () => useAppStore.setState({ wallet: { ...EMPTY_WALLET, credits: 10 } }));
+    expect(runA).not.toHaveBeenCalled();
+    expect(runB).toHaveBeenCalledTimes(1);
+    act(() => (tree as unknown as ReactTestRenderer).unmount());
+
+    // 기억한 화면이 사라지면 버린다
+    let only: ReturnType<typeof useResumeAfterPaywall> | null = null;
+    function C() {
+      only = useResumeAfterPaywall('c');
+      return null;
+    }
+    function Other() {
+      useResumeAfterPaywall('other');
+      return null;
+    }
+    await act(async () => useAppStore.setState({ wallet: EMPTY_WALLET }));
+    let c: ReactTestRenderer | null = null;
+    let other: ReactTestRenderer | null = null;
+    await act(async () => {
+      c = create(<C />);
+      other = create(<Other />);
+    });
+    const gone = jest.fn();
+    act(() => only?.remember(gone));
+    act(() => (c as unknown as ReactTestRenderer).unmount());
+    await act(async () => useAppStore.setState({ wallet: { ...EMPTY_WALLET, credits: 10 } }));
+    expect(gone).not.toHaveBeenCalled();
+    act(() => (other as unknown as ReactTestRenderer).unmount());
   });
 
   it('횟수가 생기는 순간 기억한 동작을 한 번만 실행한다', async () => {

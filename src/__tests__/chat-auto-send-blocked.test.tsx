@@ -87,6 +87,12 @@ it('무료 횟수가 없으면 붙여 넣은 글을 입력창에 살려 두고 �
   });
   const screen = tree as unknown as ReactTestRenderer;
   await act(flush);
+  // 화면 전환이 끝나도록 조금 뒤에 결제 화면을 띄운다
+  expect(mockPush).not.toHaveBeenCalled();
+  await act(async () => {
+    jest.advanceTimersByTime(500);
+    await flush();
+  });
 
   // 보내지 않고(메시지 없음) 결제 화면으로, 글은 입력창에 남아 있다
   expect(mockPush).toHaveBeenCalledWith({ pathname: '/paywall', params: { reason: 'quota' } });
@@ -101,10 +107,44 @@ it('무료 횟수가 없으면 붙여 넣은 글을 입력창에 살려 두고 �
   for (let i = 0; i < 50 && useAppStore.getState().messages.c_blocked.length === 0; i += 1) await act(flush);
   expect(track).toHaveBeenCalledWith('paywall_resume', { feature: 'coach', kind: 'pass' });
   // 막혔던 그 글로 코칭 요청이 시작됐다 (사용자 말풍선 + 코치 답 자리)
-  const [first, coach] = useAppStore.getState().messages.c_blocked;
-  expect(first).toMatchObject({ role: 'user', text: '주말에 뭐 하냐고 물어봤어' });
-  expect(coach).toMatchObject({ role: 'coach' });
+  for (let i = 0; i < 10; i += 1) await act(flush);
+  const sent = useAppStore.getState().messages.c_blocked;
+  // 한 번만 보낸다 (사용자 말풍선 1개 + 코치 답 자리 1개)
+  expect(sent.filter((m) => m.role === 'user')).toHaveLength(1);
+  expect(sent[0]).toMatchObject({ role: 'user', text: '주말에 뭐 하냐고 물어봤어' });
+  expect(sent[1]).toMatchObject({ role: 'coach' });
   // 이어 보냈으니 입력창은 비운다
   expect(screen.root.findByType(TextInput).props.value).toBe('');
+  act(() => screen.unmount());
+});
+
+it('캡처로 막히면 캡처를 입력창에 살려 둔다', async () => {
+  mockPush.mockClear();
+  const now = Date.now();
+  useAppStore.setState({
+    usage: { total: 99, day: dayKey(now), dayCount: 99 },
+    wallet: EMPTY_WALLET,
+    crushes: { c_img: { id: 'c_img', name: '민지', gender: 'female', relationship: 'talking', style: [], notes: '', createdAt: 0, updatedAt: 0 } },
+    messages: { c_img: [] },
+  });
+  mockParams = { id: 'c_img', pendingImage: 'file:///shot.png', pendingWidth: '1080' };
+  let tree: ReactTestRenderer | null = null;
+  await act(async () => {
+    tree = create(
+      <SafeAreaProvider initialMetrics={METRICS}>
+        <CrushChat />
+      </SafeAreaProvider>,
+    );
+    await flush();
+  });
+  const screen = tree as unknown as ReactTestRenderer;
+  await act(async () => {
+    jest.advanceTimersByTime(500);
+    await flush();
+  });
+  expect(mockPush).toHaveBeenCalledWith({ pathname: '/paywall', params: { reason: 'quota' } });
+  expect(useAppStore.getState().messages.c_img).toHaveLength(0);
+  const composer = screen.root.findAll((n) => n.props.onPickImage && n.props.onClearImage)[0];
+  expect(composer.props.image).toMatchObject({ uri: 'file:///shot.png', width: 1080 });
   act(() => screen.unmount());
 });

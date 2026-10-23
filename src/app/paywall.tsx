@@ -11,6 +11,7 @@ import { Screen } from '@/components/ui/screen';
 import { useToast } from '@/components/ui/toast';
 import { Radius, Spacing } from '@/constants/theme';
 import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
+import { paywallClosed } from '@/hooks/use-resume-after-paywall';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { STORE_LABEL, STORE_URL, downloadDevice, type DownloadStore } from '@/lib/app-download';
@@ -91,6 +92,8 @@ export default function Paywall() {
   useEffect(() => {
     track('paywall_open', { reason });
   }, [reason]);
+  // 닫히면 알린다 — 결제·가입 없이 닫았으면 막혔던 요청을 나중에 저절로 보내지 않게 (use-resume-after-paywall)
+  useEffect(() => () => paywallClosed(), []);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
   const priceOf = (plan: PlanKey) => products?.find((p) => p.plan === plan)?.displayPrice ?? FALLBACK_PRICES[plan];

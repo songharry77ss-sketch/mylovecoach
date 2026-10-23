@@ -46,7 +46,7 @@ export default function MindScreen() {
   const [fromHistory] = useState(() => (params.history != null ? history[Number(params.history)] : undefined));
   const perspective: Gender = fromHistory?.perspective ?? (params.perspective === 'female' || params.perspective === 'other' ? params.perspective : 'male');
   const situation = fromHistory?.situation ?? params.situation ?? '';
-  const { reading, reused, ask, retry, busy, error, blocked, openPaywall } = useMindReading(situation, perspective, fromHistory?.reading);
+  const { reading, reused, ask, retry, busy, error, blocked, blockCount, openPaywall } = useMindReading(situation, perspective, fromHistory?.reading);
   const started = useRef(false);
 
   // 횟수가 없어 막혔다면, 결제·가입하고 돌아왔을 때 다시 누르지 않아도 한 번 풀어 준다
@@ -56,9 +56,10 @@ export default function MindScreen() {
     retryRef.current = retry;
   }, [retry]);
   const resume = useResumeAfterPaywall('mind');
+  // 막힐 때마다(다시 눌러 또 막혀도) 새로 기억한다
   useEffect(() => {
-    if (blocked && !reading) resume.remember(() => void retryRef.current().then(feel));
-  }, [blocked, reading, resume]);
+    if (blockCount > 0 && !reading) resume.remember(() => void retryRef.current().then(feel));
+  }, [blockCount, reading, resume]);
 
   // 처음 열면 한 번 풀어 준다 — 같은 카드·같은 대상·같은 내 프로필로 풀어 둔 결과가 있으면 AI 를 부르지 않고 그 결과를 보여 준다
   useEffect(() => {

@@ -152,16 +152,31 @@ export default function CrushChat() {
     [send, fillComposer, openPaywall],
   );
 
+  // 채팅방에 막 들어온 순간(빠른 코칭 모달에서 바뀌는 중)에는 결제 화면을 조금 뒤에 띄운다 — 화면 전환 중 모달이 무시되지 않게
+  const paywallTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (paywallTimer.current) clearTimeout(paywallTimer.current);
+    },
+    [],
+  );
+
   /** 막힌 순간: 캡처·글을 입력창에 살려 두고, 결제·가입 뒤 이어서 보내도록 기억한 다음 결제 화면을 띄운다 */
   const blockedSend = useCallback(
-    (input: SendInput, reason: 'quota' | 'regenerate', fromComposer: boolean, restore: boolean) => {
+    (input: SendInput, reason: 'quota' | 'regenerate', fromComposer: boolean, restore: boolean, delayMs = 0) => {
       haptic.warning();
       if (restore && fromComposer) {
         if (input.image) setImage(input.image);
         if (input.text) fillComposer(input.text);
       }
       resume.remember(() => resumeSend(input, fromComposer));
-      openPaywall(reason);
+      if (delayMs > 0) {
+        if (paywallTimer.current) clearTimeout(paywallTimer.current);
+        paywallTimer.current = setTimeout(() => {
+          paywallTimer.current = null;
+          openPaywall(reason);
+        }, delayMs);
+      } else openPaywall(reason);
     },
     [fillComposer, resume, resumeSend, openPaywall],
   );
@@ -174,10 +189,10 @@ export default function CrushChat() {
     const input: SendInput = { crushId: crush.id, image: pendingImage ? { uri: pendingImage, width: Number(pendingWidth) || 0, height: 0 } : null, text: pendingText ?? '', tone, emoji };
     router.setParams({ pendingImage: undefined, pendingWidth: undefined, pendingText: undefined });
     if (currentQuota().remaining <= 0) {
-      blockedSend(input, 'quota', true, true);
+      blockedSend(input, 'quota', true, true, AUTO_PAYWALL_DELAY_MS);
       return;
     }
-    send(input).then((result) => result === 'blocked' && blockedSend(input, 'quota', true, true));
+    send(input).then((result) => result === 'blocked' && blockedSend(input, 'quota', true, true, AUTO_PAYWALL_DELAY_MS));
   }, [crush, pendingImage, pendingWidth, pendingText, send, tone, emoji, router, blockedSend]);
 
   useEffect(() => {
@@ -520,8 +535,15 @@ export default function CrushChat() {
           emoji={emoji}
           onEmojiChange={(value) => { setEmoji(value); setEmojiChosen(true); }}
           image={image}
-          onPickImage={chooseImage}
-          onClearImage={() => setImage(null)}
+          onPickImage={() => {
+            // 막힌 뒤 캡처를 바꾸거나 지우면 예전 요청은 이어 보내지 않는다
+            resume.forget();
+            chooseImage();
+          }}
+          onClearImage={() => {
+            resume.forget();
+            setImage(null);
+          }}
           onSend={submit}
           sending={sending}
           notice={notice}
@@ -529,6 +551,7 @@ export default function CrushChat() {
           onQuestion={(q) => guardedSend({ crushId: crush.id, image: null, text: q, tone, emoji })}
           onShuffleQuestions={() => setQuestionSeed((v) => v + 1)}
           fill={composerFill}
+          onEdit={resume.forget}
         />
       </KeyboardAvoidingView>
 
@@ -558,6 +581,8 @@ function mulberry(seed: number) {
 }
 
 const EMPTY: ChatMessage[] = [];
+/** 자동 보내기가 막혔을 때 결제 화면을 띄우기까지 기다리는 시간 (화면 전환이 끝나도록) */
+const AUTO_PAYWALL_DELAY_MS = 450;
 /** 비밀 상담 지우기 예약 (채팅방 id → 타이머) */
 const secretWipes = new Map<string, ReturnType<typeof setTimeout>>();
 const STARTERS = ['첫 메시지 뭐라고 보낼까?', '주말에 만나자고 하고 싶어', '답장이 늦어졌는데 어떻게 하지?'];
