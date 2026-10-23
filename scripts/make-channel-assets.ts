@@ -266,7 +266,7 @@ function cover(shape: Shape): Node {
   const px = (n: number) => Math.round(n * k);
   const at = (square: number, feed: number, story: number) => pick(shape, square, feed, Math.round(story * k));
   return box(
-    { width: '100%', height: '100%', flexDirection: 'column', justifyContent: 'center', backgroundColor: INK, fontFamily: 'Pretendard', padding: pick(shape, 70, `110px ${FEED_SIDE}px`, '220px 80px 280px'), overflow: 'hidden' },
+    { width: '100%', height: '100%', flexDirection: 'column', justifyContent: 'center', backgroundColor: INK, fontFamily: 'Pretendard', padding: pick<string | number>(shape, 70, `110px ${FEED_SIDE}px`, '220px 80px 280px'), overflow: 'hidden' },
     box({ position: 'absolute', left: at(60, 104, 60), top: at(70, 112, 240), transform: 'rotate(-8deg)' }, bubble('뭐해?', px(40))),
     box({ position: 'absolute', right: at(60, 104, 60), top: at(120, 176, 330), transform: 'rotate(6deg)' }, bubble('ㅋㅋㅋㅋㅋㅋ', px(40), {}, LIME)),
     box({ position: 'absolute', right: at(110, 132, 110), bottom: at(110, 150, 330), transform: 'rotate(-5deg)' }, bubble('자니…?', px(40), {}, LILAC)),
@@ -284,7 +284,7 @@ function cta(shape: Shape): Node {
   const px = (n: number) => Math.round(n * k);
   const at = (square: number, feed: number, story: number) => pick(shape, square, feed, Math.round(story * k));
   return box(
-    { width: '100%', height: '100%', flexDirection: 'column', justifyContent: 'center', backgroundColor: PINK, fontFamily: 'Pretendard', padding: pick(shape, 72, `110px ${FEED_SIDE}px`, '240px 80px 300px'), overflow: 'hidden' },
+    { width: '100%', height: '100%', flexDirection: 'column', justifyContent: 'center', backgroundColor: PINK, fontFamily: 'Pretendard', padding: pick<string | number>(shape, 72, `110px ${FEED_SIDE}px`, '240px 80px 300px'), overflow: 'hidden' },
     box({ position: 'absolute', right: at(70, 104, 70), top: at(80, 104, 260) }, emojiSticker('✨', px(170), 10, LIME)),
     text('내 유형은', { fontSize: px(150), fontWeight: 900, color: INK, letterSpacing: -px(9), lineHeight: 1, textShadow: `${px(7)}px ${px(7)}px 0 ${PAPER}` }),
     text('뭘까?', { fontSize: px(150), fontWeight: 900, color: INK, letterSpacing: -px(9), lineHeight: 1.05, textShadow: `${px(7)}px ${px(7)}px 0 ${PAPER}` }),
@@ -302,7 +302,7 @@ function matchTeaser(shape: Shape): Node {
   const px = (n: number) => Math.round(n * k);
   const at = (square: number, feed: number, story: number) => pick(shape, square, feed, Math.round(story * k));
   return box(
-    { width: '100%', height: '100%', flexDirection: 'column', justifyContent: 'center', backgroundColor: LIME, fontFamily: 'Pretendard', padding: pick(shape, 72, `110px ${FEED_SIDE}px`, '240px 80px 300px'), overflow: 'hidden' },
+    { width: '100%', height: '100%', flexDirection: 'column', justifyContent: 'center', backgroundColor: LIME, fontFamily: 'Pretendard', padding: pick<string | number>(shape, 72, `110px ${FEED_SIDE}px`, '240px 80px 300px'), overflow: 'hidden' },
     box({ position: 'absolute', right: at(80, 104, 80), top: at(90, 110, 280) }, emojiSticker('🔒', px(190), 8)),
     text('둘 다 해야 열리는', { fontSize: px(58), fontWeight: 900, color: INK, letterSpacing: -2 }),
     text('카톡 궁합', { marginTop: px(8), fontSize: px(150), fontWeight: 900, color: INK, letterSpacing: -px(9), lineHeight: 1 }),
