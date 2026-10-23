@@ -35,6 +35,10 @@ interface AnalysisCardProps {
    * 시트는 화면이 하나만 둔다 — 카드마다 두면 목록이 카드를 내렸다 다시 그릴 때 열린 시트·적던 메모가 사라질 수 있다
    */
   onReport?: (content: string) => void;
+  /** 이 번호부터 답장을 가려 둔다 (웹 비회원 — 가입하면 바로 보임) */
+  lockedFrom?: number;
+  /** 가린 답장을 보려고 할 때 (가입 화면으로) */
+  onUnlock?: (index: number) => void;
 }
 
 const SPEECH_CHIP = { polite: '🙇 존댓말 유지', casual: '👋 반말 유지', mixed: '🔀 말투 섞임', unknown: null } as const;
@@ -43,7 +47,7 @@ const SPEECH_CHIP = { polite: '🙇 존댓말 유지', casual: '👋 반말 유�
  * 결과 카드 — 누적 호감 온도가 차오르고, 답장 여러 버전을 스와이프로 넘겨 본다.
  * 카드를 누르거나 아래 버튼으로 복사하면 하트가 터진다. 이유·다음 스텝은 접어 둔다.
  */
-export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedReplyIndex, onSelectReply, onRegenerate, regenerating, onReport }: AnalysisCardProps) {
+export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedReplyIndex, onSelectReply, onRegenerate, regenerating, onReport, lockedFrom, onUnlock }: AnalysisCardProps) {
   const theme = useTheme();
   const toast = useToast();
   const celebrate = useCelebrate();
@@ -55,6 +59,8 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
   const replies = analysis.replies;
   const current = Math.min(shown, Math.max(0, replies.length - 1));
   const reply = replies[current];
+  const isLocked = (i: number) => lockedFrom != null && i >= lockedFrom && Boolean(onUnlock);
+  const locked = isLocked(current);
   const hasDetails = Boolean(reply?.why || analysis.insights.length || analysis.nextStep || analysis.warnings.length);
   const speechChip = analysis.speechLevel ? SPEECH_CHIP[analysis.speechLevel] : null;
   const vibe = TEMPERATURES[analysis.temperature];
@@ -62,6 +68,7 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
   const copy = async (index = current, at?: { x: number; y: number }) => {
     const target = replies[index];
     if (!target) return;
+    if (isLocked(index)) return onUnlock?.(index);
     await Clipboard.setStringAsync(target.text);
     setCopied(index);
     onSelectReply(index);
@@ -140,7 +147,12 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
           </Animated.View>
         ) : null}
 
-        {/* 답장 버전들 — 옆으로 넘겨 본다 */}
+        {/* 답장 버전들 — 옆으로 넘겨 본다 (웹 비회원은 첫 버전만 보이고 나머지는 가입하면 보임) */}
+        {lockedFrom != null && onUnlock && replies.length > lockedFrom ? (
+          <AppText variant="caption" color="primary" weight="700">
+            🔓 답장 {replies.length - lockedFrom}개가 더 있어요 · 가입하면 바로 보여요
+          </AppText>
+        ) : null}
         <ReplyCarousel
           replies={replies}
           index={current}
@@ -150,6 +162,8 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
           onCopy={(i, at) => copy(i, at)}
           copiedIndex={copied}
           partnerName={partnerName}
+          lockedFrom={onUnlock ? lockedFrom : undefined}
+          onUnlock={onUnlock}
         />
 
         <View style={styles.actions}>
@@ -158,20 +172,24 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
             feedback={false}
             onPress={() => copy()}
             style={[styles.copyBtn, { backgroundColor: copied === current ? theme.primarySoft : theme.primary }]}>
-            {copied === current ? (
+            {locked ? (
+              <Ionicons name="lock-open-outline" size={17} color={theme.primaryText} />
+            ) : copied === current ? (
               <Animated.View entering={ZoomIn.springify()}>
                 <Ionicons name="checkmark-circle" size={18} color={theme.primary} />
               </Animated.View>
             ) : (
               <Ionicons name="copy-outline" size={17} color={theme.primaryText} />
             )}
-            <AppText variant="bodyStrong" color={copied === current ? 'primary' : theme.primaryText}>
-              {copied === current ? '복사했어요' : replies.length > 1 ? `버전 ${current + 1} 복사하기` : '이 답장 복사하기'}
+            <AppText variant="bodyStrong" color={copied === current && !locked ? 'primary' : theme.primaryText}>
+              {locked ? `가입하고 버전 ${current + 1} 보기` : copied === current ? '복사했어요' : replies.length > 1 ? `버전 ${current + 1} 복사하기` : '이 답장 복사하기'}
             </AppText>
           </PressableScale>
-          <PressableScale accessibilityLabel="답장 공유하기" feedback={false} onPress={shareReply} style={[styles.shareBtn, { backgroundColor: theme.surface }]}>
-            <Ionicons name="share-outline" size={19} color={theme.textSecondary} />
-          </PressableScale>
+          {locked ? null : (
+            <PressableScale accessibilityLabel="답장 공유하기" feedback={false} onPress={shareReply} style={[styles.shareBtn, { backgroundColor: theme.surface }]}>
+              <Ionicons name="share-outline" size={19} color={theme.textSecondary} />
+            </PressableScale>
+          )}
           {onReport ? (
             <PressableScale accessibilityLabel="이 답변 신고하기" feedback={false} onPress={reportAnswer} style={[styles.shareBtn, { backgroundColor: theme.surface }]}>
               <Ionicons name="flag-outline" size={18} color={theme.textTertiary} />
@@ -200,7 +218,7 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
       {open ? (
         <Animated.View entering={FadeInDown.duration(220)} style={styles.details}>
           {analysis.summary ? <Detail title="지금 분위기" body={analysis.summary} /> : null}
-          {reply.why ? <Detail title="이 답장을 고른 이유" body={reply.why} /> : null}
+          {reply.why && !locked ? <Detail title="이 답장을 고른 이유" body={reply.why} /> : null}
           {analysis.insights.length ? <Detail title="읽어낸 포인트" lines={analysis.insights} /> : null}
           {analysis.nextStep ? <Detail title="다음 스텝" body={analysis.nextStep} tone="primary" /> : null}
           {analysis.warnings.length ? <Detail title="주의할 점" lines={analysis.warnings} tone="accent" /> : null}

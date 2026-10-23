@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View, type GestureResponderEvent, type LayoutChangeEvent } from 'react-native';
+import { Platform, Pressable, StyleSheet, View, type GestureResponderEvent, type LayoutChangeEvent, type TextStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { interpolate, runOnJS, useAnimatedStyle, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
 
@@ -24,13 +24,17 @@ interface ReplyCarouselProps {
   copiedIndex?: number | null;
   /** 상대 이름 (예상 반응 말풍선에 표시) */
   partnerName?: string;
+  /** 이 번호부터는 가려서 보여 준다 (웹 비회원 — 가입하면 바로 보임). 없으면 모두 보임 */
+  lockedFrom?: number;
+  /** 가린 카드를 눌렀을 때 */
+  onUnlock?: (index: number) => void;
 }
 
 /**
  * 답장 여러 버전을 카드로 넘겨 보는 스와이프 캐러셀.
  * 넘길 때마다 「톡」 진동, 카드마다 성공 확률과 예상 반응을 보여 준다.
  */
-export function ReplyCarousel({ replies, index, onIndexChange, onCopy, copiedIndex, partnerName }: ReplyCarouselProps) {
+export function ReplyCarousel({ replies, index, onIndexChange, onCopy, copiedIndex, partnerName, lockedFrom, onUnlock }: ReplyCarouselProps) {
   const [width, setWidth] = useState(0);
   const cardWidth = replies.length > 1 ? Math.max(200, width - PEEK) : width;
   const step = cardWidth + GAP;
@@ -101,6 +105,7 @@ export function ReplyCarousel({ replies, index, onIndexChange, onCopy, copiedInd
                   x={x}
                   copied={copiedIndex === i}
                   partnerName={partnerName}
+                  locked={lockedFrom != null && i >= lockedFrom}
                   onPress={(e) => {
                     if (dragging.current) return;
                     if (i !== index) {
@@ -109,6 +114,7 @@ export function ReplyCarousel({ replies, index, onIndexChange, onCopy, copiedInd
                       onIndexChange(i);
                       return;
                     }
+                    if (lockedFrom != null && i >= lockedFrom) return onUnlock?.(i);
                     onCopy(i, { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY });
                   }}
                 />
@@ -131,10 +137,20 @@ interface ReplyCardProps {
   x: SharedValue<number>;
   copied: boolean;
   partnerName?: string;
+  /** 가려서 보여 준다 — 글자 모양만 흐리게 보이고 실제 글은 그리지 않는다 */
+  locked?: boolean;
   onPress: (e: GestureResponderEvent) => void;
 }
 
-function ReplyCard({ reply, i, total, width, step, x, copied, partnerName, onPress }: ReplyCardProps) {
+/** 가린 답장 자리 — 실제 글 대신 같은 길이의 글자 모양을 흐리게 그린다 (글이 화면 코드에 남지 않게) */
+const veil = (text: string) => text.replace(/\S/g, '가').slice(0, 120);
+/** 흐린 글씨 그림자 — 웹은 CSS text-shadow 한 줄로, 앱은 textShadow* 로 (웹은 textShadow* 를 무시한다) */
+const veilShadow = (color: string) =>
+  Platform.OS === 'web'
+    ? ({ textShadow: `0 0 10px ${color}` } as unknown as TextStyle)
+    : ({ textShadowColor: color, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 9 } satisfies TextStyle);
+
+function ReplyCard({ reply, i, total, width, step, x, copied, partnerName, locked, onPress }: ReplyCardProps) {
   const theme = useTheme();
   const t = toneLabel(reply.tone);
   const rate = reply.successRate;
@@ -150,7 +166,7 @@ function ReplyCard({ reply, i, total, width, step, x, copied, partnerName, onPre
     <Animated.View style={[{ width, marginRight: GAP }, animated]}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`답장 ${i + 1}: ${reply.text}. 눌러서 복사`}
+        accessibilityLabel={locked ? `답장 ${i + 1}: 가입하면 볼 수 있어요` : `답장 ${i + 1}: ${reply.text}. 눌러서 복사`}
         onPress={onPress}
         style={[styles.card, { backgroundColor: theme.surface, borderColor: copied ? theme.primary : theme.border }]}>
         <View style={styles.cardHead}>
@@ -178,8 +194,19 @@ function ReplyCard({ reply, i, total, width, step, x, copied, partnerName, onPre
 
         {/* 내가 보낼 말풍선 */}
         <View style={[styles.mine, { backgroundColor: theme.bubbleUser }]}>
-          <AppText style={styles.replyText}>{reply.text}</AppText>
+          {locked ? (
+            <AppText style={[styles.replyText, styles.veiled, veilShadow(theme.text)]}>{veil(reply.text)}</AppText>
+          ) : (
+            <AppText style={styles.replyText}>{reply.text}</AppText>
+          )}
         </View>
+        {locked ? (
+          <View style={[styles.lockBadge, { backgroundColor: theme.primary }]}>
+            <AppText variant="caption" color={theme.primaryText} weight="700">
+              🔒 가입하면 바로 보여요
+            </AppText>
+          </View>
+        ) : null}
 
         {/* 상대의 예상 반응 — 성공한 장면을 미리 보여 준다 */}
         {reply.expectedReaction ? (
@@ -192,14 +219,20 @@ function ReplyCard({ reply, i, total, width, step, x, copied, partnerName, onPre
                 예상 반응
               </AppText>
               <View style={[styles.theirs, { backgroundColor: theme.background, borderColor: theme.border }]}>
-                <AppText variant="small">{reply.expectedReaction}</AppText>
+                {locked ? (
+                  <AppText variant="small" style={[styles.veiled, veilShadow(theme.text)]}>
+                    {veil(reply.expectedReaction)}
+                  </AppText>
+                ) : (
+                  <AppText variant="small">{reply.expectedReaction}</AppText>
+                )}
               </View>
             </View>
           </View>
         ) : null}
 
         <AppText variant="caption" color={copied ? 'primary' : 'textTertiary'} align="right">
-          {copied ? '✓ 복사됨' : '탭하면 복사'}
+          {locked ? '탭하면 가입하고 보기' : copied ? '✓ 복사됨' : '탭하면 복사'}
         </AppText>
       </Pressable>
     </Animated.View>
@@ -252,4 +285,7 @@ const styles = StyleSheet.create({
   dots: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   dot: { height: 7, borderRadius: 4, overflow: 'hidden' },
   swipeHint: { marginLeft: Spacing.sm },
+  // 글자 색을 투명하게 하고 그림자만 퍼뜨려 흐린 글씨처럼 보이게 (그림자는 veilShadow)
+  veiled: { color: 'transparent' },
+  lockBadge: { alignSelf: 'center', paddingHorizontal: Spacing.md, paddingVertical: 5, borderRadius: Radius.pill, marginTop: -Spacing.xs },
 });

@@ -24,6 +24,8 @@ import { useKeyboardVisible } from '@/hooks/use-keyboard';
 import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
 import { useResumeAfterPaywall } from '@/hooks/use-resume-after-paywall';
 import { useTheme } from '@/hooks/use-theme';
+import { track } from '@/lib/analytics';
+import { rememberAuthReturn } from '@/lib/auth-return';
 import { currentQuota, isUnlimited, useQuota } from '@/lib/billing/gate';
 import { quotaLabel } from '@/lib/billing/quota';
 import { dateLabel, isSameDay } from '@/lib/format';
@@ -31,6 +33,7 @@ import { haptic } from '@/lib/haptics';
 import { clearImageCaches, deleteImageQuietly, pickImage, type PickedImage } from '@/lib/images';
 import { relationshipLabel } from '@/lib/labels';
 import { drawChatQuestions } from '@/lib/mind-cards';
+import { authAvailable } from '@/lib/supabase';
 import type { ChatMessage, EmojiPref, Tone } from '@/lib/types';
 import { isVariationRequest, turnRequestOf, useAppStore, variationTargetOf } from '@/store/app-store';
 
@@ -45,6 +48,7 @@ export default function CrushChat() {
   const selectReply = useAppStore((s) => s.selectReply);
   const removeMessage = useAppStore((s) => s.removeMessage);
   const freeUsed = useAppStore((s) => s.usage.total);
+  const isMember = useAppStore((s) => s.member != null);
   const upsellDismissed = useAppStore((s) => s.upsellDismissed);
   const dismissUpsell = useAppStore((s) => s.dismissUpsell);
   const { send, sending } = useCoach();
@@ -301,6 +305,17 @@ export default function CrushChat() {
 
   latest.current.retry = retry;
 
+  // 웹 비회원은 답장 첫 버전만 보여 주고 나머지는 가린다 — 가입(카카오·Google 1초)하면 바로 보이고 무료 3회도 더 받는다.
+  // 앱(iOS·Android)에서는 가리지 않는다 (가입을 강요하지 않는 스토어 정책). 비밀 상담·무제한 이용자도 가리지 않는다
+  const lockExtraReplies = Platform.OS === 'web' && authAvailable && !isMember && !secret && !isUnlimited(quota);
+  const unlockReplies = (index: number) => {
+    haptic.select();
+    track('reply_unlock_tap', { index });
+    // 웹 가입은 페이지를 떠났다 돌아오므로, 돌아올 채팅방을 적어 둔다
+    rememberAuthReturn(`/crush/${crush.id}`);
+    router.push({ pathname: '/signup', params: { from: 'replies' } });
+  };
+
   const wipeNow = () => {
     const run = () => {
       haptic.heavy();
@@ -382,6 +397,8 @@ export default function CrushChat() {
                   regenerating={sending}
                   // 비밀 상담이면 신고하면 이 답변은 저장된다고 시트가 먼저 알린다
                   onReport={report.available ? (content) => report.open({ mode: 'coach', content, secret }) : undefined}
+                  lockedFrom={lockExtraReplies ? 1 : undefined}
+                  onUnlock={lockExtraReplies ? (i) => unlockReplies(i) : undefined}
                 />
               ) : null}
             </View>
