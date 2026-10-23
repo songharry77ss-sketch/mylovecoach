@@ -6,10 +6,15 @@
  * 디자인: 프리텐다드 Black·ExtraBold 를 크게 · 검은 테두리와 딱 떨어지는 그림자의 스티커 · 카톡 말풍선 · 3D 이모지(Fluent).
  * 앱 안의 공유 카드(api/_kkti-card)와는 따로 그린다 (그쪽은 서버에서 그리는 가벼운 판).
  *
- * - types-square/01-esfj.png … : 16유형 소개 카드 (1080×1080 — 인스타 캐러셀·X·스레드). 번호는 KKTI_CODES 순서
+ * - types-square/01-esfj.png … : 16유형 소개 카드 (1080×1080 — X·스레드). 번호는 KKTI_CODES 순서
+ * - types-feed/… : 같은 카드의 인스타 피드판 (1080×1350, 4:5 — 인스타 캐러셀)
  * - types-story/… : 같은 카드의 세로판 (1080×1920 — 인스타 스토리·틱톡 포토)
- * - tiers-square/1.png … 5.png : 궁합 등급 다섯 가지 (천생연분 → 극과 극)
- * - cover-* · cta-* · match-teaser-* : 캐러셀 표지 · 마지막 장 · 「둘 다 해야 열리는 궁합」
+ * - tiers-square/1.png … 5.png · tiers-feed/… : 궁합 등급 다섯 가지 (천생연분 → 극과 극)
+ * - cover-* · cta-* · match-teaser-* : 캐러셀 표지 · 마지막 장 · 「둘 다 해야 열리는 궁합」 (square · feed · story)
+ *
+ * 인스타 캐러셀은 반드시 feed(4:5)판을 쓴다. 프로필 격자가 게시물을 세로 3:4 로 잘라 보여 줘서
+ * 정사각형은 양옆이 135px 씩 잘리고(10-22 1일차 표지 「KKTI」가 잘림), 4:5 는 34px 씩만 잘린다.
+ * 그래서 feed 판은 글·스티커를 양옆 FEED_SIDE(96px) 안쪽에 둔다.
  * - sample-* : 결과·궁합 카드 견본 (유형 소개용, 실제 이용자 결과가 아님)
  * 영상은 scripts/make-channel-videos.ts
  */
@@ -30,6 +35,13 @@ export const LIME = '#C6FF3D';
 export const LILAC = '#B9A2FF';
 export const SKY = '#7FD8FF';
 export const SUN = '#FFD43D';
+
+/** 그림 모양: 정사각형(X·스레드) · 피드 4:5(인스타 캐러셀) · 세로 9:16(스토리·틱톡) */
+export type Shape = 'square' | 'feed' | 'story';
+export const SIZES: Record<Shape, readonly [number, number]> = { square: [1080, 1080], feed: [1080, 1350], story: [1080, 1920] };
+/** 피드판 양옆 여백 — 프로필 격자(3:4)에서 잘리는 34px 보다 넉넉하게 */
+export const FEED_SIDE = 96;
+const FEED_WIDTH = 1080 - FEED_SIDE * 2;
 
 // ───────────────────────── 그리기 재료 ─────────────────────────
 
@@ -181,6 +193,27 @@ function typeSquare(result: KktiResult, index: number): Node {
   );
 }
 
+/** 인스타 캐러셀용 4:5 — 정사각형판을 세로로 늘리고 양옆은 FEED_SIDE 안쪽에 */
+function typeFeed(result: KktiResult, index: number): Node {
+  const tone = inkOn(result.color.hex);
+  const best = KKTI_TYPES[result.type.bestMatch];
+  return box(
+    { width: '100%', height: '100%', flexDirection: 'column', backgroundColor: result.color.hex, fontFamily: 'Pretendard', padding: `84px ${FEED_SIDE}px 92px`, overflow: 'hidden' },
+    ghost(result.code, 360, tone.ghost, { right: -40, bottom: -80, transform: 'rotate(-8deg)' }),
+    topBar(`16유형 · ${String(index + 1).padStart(2, '0')}`),
+    box({ marginTop: 64, alignItems: 'center', gap: 40 }, emojiSticker(result.type.emoji, 250, -7), letterTiles(result, 116)),
+    box({ marginTop: 56 }, bigName(result.type.name, FEED_WIDTH, 176, tone.ink, tone.shadow)),
+    box({ flexGrow: 1 }),
+    bubble(result.type.oneLiner, 33, { alignSelf: 'flex-start', maxWidth: FEED_WIDTH }),
+    box(
+      { marginTop: 30, alignSelf: 'flex-start', alignItems: 'center', gap: 12, padding: '14px 26px', borderRadius: 999, backgroundColor: INK },
+      emoji('💞', 36),
+      text(`찰떡궁합 · ${best.name}`, { fontSize: 28, fontWeight: 800, color: PAPER }),
+    ),
+    box({ marginTop: 22 }, text('내 유형은? 프로필 링크 ↗', { fontSize: 28, fontWeight: 800, color: tone.ink })),
+  );
+}
+
 function typeStory(result: KktiResult, index: number): Node {
   const tone = inkOn(result.color.hex);
   const best = KKTI_TYPES[result.type.bestMatch];
@@ -207,32 +240,38 @@ const TIER_BG: Record<string, [string, string]> = {
   '극과 극': ['#FF8A3D', '#FF3D3D'],
 };
 
-function tierSquare(index: number): Node {
+function tierCard(index: number, shape: 'square' | 'feed'): Node {
   const tier = KKTI_MATCH_TIERS[index];
   const top = index === 0 ? 99 : KKTI_MATCH_TIERS[index - 1].min - 1;
   const [a, b] = TIER_BG[tier.label] ?? [PINK, LILAC];
+  const feed = shape === 'feed';
   return box(
-    { width: '100%', height: '100%', flexDirection: 'column', backgroundImage: `linear-gradient(150deg, ${a} 0%, ${b} 100%)`, fontFamily: 'Pretendard', padding: 64, overflow: 'hidden' },
+    { width: '100%', height: '100%', flexDirection: 'column', backgroundImage: `linear-gradient(150deg, ${a} 0%, ${b} 100%)`, fontFamily: 'Pretendard', padding: feed ? `84px ${FEED_SIDE}px 96px` : 64, overflow: 'hidden' },
     topBar(`궁합 등급 · ${index + 1}/5`),
-    box({ position: 'absolute', right: 70, top: 170 }, emojiSticker(tier.emoji, 210, 9)),
+    box({ position: 'absolute', right: feed ? FEED_SIDE + 4 : 70, top: feed ? 220 : 170 }, emojiSticker(tier.emoji, feed ? 240 : 210, 9)),
     box({ flexGrow: 1 }),
-    text(`${Math.max(tier.min, 30)}–${top}%`, { fontSize: 210, fontWeight: 900, color: INK, letterSpacing: -12, lineHeight: 1, textShadow: `8px 8px 0 ${PAPER}` }),
-    box({ marginTop: 26, alignSelf: 'flex-start' }, pill(tier.label, 64, INK, PAPER)),
-    box({ marginTop: 34 }, bubble(tier.line, 34)),
-    box({ marginTop: 38 }, text('KKTI 카톡 궁합 · 둘 다 테스트하면 열림', { fontSize: 26, fontWeight: 800, color: INK })),
+    text(`${Math.max(tier.min, 30)}–${top}%`, { fontSize: feed ? 194 : 210, fontWeight: 900, color: INK, letterSpacing: -12, lineHeight: 1, whiteSpace: 'nowrap', textShadow: `8px 8px 0 ${PAPER}` }),
+    box({ marginTop: feed ? 30 : 26, alignSelf: 'flex-start' }, pill(tier.label, feed ? 68 : 64, INK, PAPER)),
+    box({ marginTop: feed ? 38 : 34 }, bubble(tier.line, feed ? 36 : 34, feed ? { maxWidth: FEED_WIDTH } : {})),
+    box({ marginTop: feed ? 42 : 38 }, text('KKTI 카톡 궁합 · 둘 다 테스트하면 열림', { fontSize: feed ? 28 : 26, fontWeight: 800, color: INK })),
   );
 }
 
-function cover(tall: boolean): Node {
-  const k = tall ? 1.25 : 1;
+/** 모양마다 다른 값 고르기 */
+const pick = <T,>(shape: Shape, square: T, feed: T, story: T): T => (shape === 'story' ? story : shape === 'feed' ? feed : square);
+const scaleOf = (shape: Shape) => pick(shape, 1, 1.1, 1.25);
+
+function cover(shape: Shape): Node {
+  const k = scaleOf(shape);
   const px = (n: number) => Math.round(n * k);
+  const at = (square: number, feed: number, story: number) => pick(shape, square, feed, Math.round(story * k));
   return box(
-    { width: '100%', height: '100%', flexDirection: 'column', justifyContent: 'center', backgroundColor: INK, fontFamily: 'Pretendard', padding: tall ? '220px 80px 280px' : 70, overflow: 'hidden' },
-    box({ position: 'absolute', left: px(60), top: px(tall ? 240 : 70), transform: 'rotate(-8deg)' }, bubble('뭐해?', px(40))),
-    box({ position: 'absolute', right: px(60), top: px(tall ? 330 : 120), transform: 'rotate(6deg)' }, bubble('ㅋㅋㅋㅋㅋㅋ', px(40), {}, LIME)),
-    box({ position: 'absolute', right: px(110), bottom: px(tall ? 330 : 110), transform: 'rotate(-5deg)' }, bubble('자니…?', px(40), {}, LILAC)),
-    box({ position: 'absolute', left: px(70), bottom: px(tall ? 360 : 120) }, emojiSticker('🦊', px(150), -10, SKY)),
-    box({ position: 'absolute', left: px(250), bottom: px(tall ? 300 : 70) }, emojiSticker('🐹', px(120), 8, SUN)),
+    { width: '100%', height: '100%', flexDirection: 'column', justifyContent: 'center', backgroundColor: INK, fontFamily: 'Pretendard', padding: pick(shape, 70, `110px ${FEED_SIDE}px`, '220px 80px 280px'), overflow: 'hidden' },
+    box({ position: 'absolute', left: at(60, 104, 60), top: at(70, 112, 240), transform: 'rotate(-8deg)' }, bubble('뭐해?', px(40))),
+    box({ position: 'absolute', right: at(60, 104, 60), top: at(120, 176, 330), transform: 'rotate(6deg)' }, bubble('ㅋㅋㅋㅋㅋㅋ', px(40), {}, LIME)),
+    box({ position: 'absolute', right: at(110, 132, 110), bottom: at(110, 150, 330), transform: 'rotate(-5deg)' }, bubble('자니…?', px(40), {}, LILAC)),
+    box({ position: 'absolute', left: at(70, 104, 70), bottom: at(120, 150, 360) }, emojiSticker('🦊', px(150), -10, SKY)),
+    box({ position: 'absolute', left: at(250, 296, 250), bottom: at(70, 96, 300) }, emojiSticker('🐹', px(120), 8, SUN)),
     text('KKTI', { fontSize: px(300), fontWeight: 900, color: LIME, letterSpacing: -px(18), lineHeight: 0.95, textShadow: `${px(10)}px ${px(10)}px 0 ${PINK}` }),
     text('카톡으로 보는', { marginTop: px(20), fontSize: px(64), fontWeight: 900, color: PAPER, letterSpacing: -2 }),
     text('진짜 연애 MBTI', { fontSize: px(64), fontWeight: 900, color: PAPER, letterSpacing: -2 }),
@@ -240,12 +279,13 @@ function cover(tall: boolean): Node {
   );
 }
 
-function cta(tall: boolean): Node {
-  const k = tall ? 1.25 : 1;
+function cta(shape: Shape): Node {
+  const k = scaleOf(shape);
   const px = (n: number) => Math.round(n * k);
+  const at = (square: number, feed: number, story: number) => pick(shape, square, feed, Math.round(story * k));
   return box(
-    { width: '100%', height: '100%', flexDirection: 'column', justifyContent: 'center', backgroundColor: PINK, fontFamily: 'Pretendard', padding: tall ? '240px 80px 300px' : 72, overflow: 'hidden' },
-    box({ position: 'absolute', right: px(70), top: px(tall ? 260 : 80) }, emojiSticker('✨', px(170), 10, LIME)),
+    { width: '100%', height: '100%', flexDirection: 'column', justifyContent: 'center', backgroundColor: PINK, fontFamily: 'Pretendard', padding: pick(shape, 72, `110px ${FEED_SIDE}px`, '240px 80px 300px'), overflow: 'hidden' },
+    box({ position: 'absolute', right: at(70, 104, 70), top: at(80, 104, 260) }, emojiSticker('✨', px(170), 10, LIME)),
     text('내 유형은', { fontSize: px(150), fontWeight: 900, color: INK, letterSpacing: -px(9), lineHeight: 1, textShadow: `${px(7)}px ${px(7)}px 0 ${PAPER}` }),
     text('뭘까?', { fontSize: px(150), fontWeight: 900, color: INK, letterSpacing: -px(9), lineHeight: 1.05, textShadow: `${px(7)}px ${px(7)}px 0 ${PAPER}` }),
     box({ marginTop: px(40), alignSelf: 'flex-start' }, bubble('1분 · 12문항 · 가입 없이', px(40))),
@@ -257,12 +297,13 @@ function cta(tall: boolean): Node {
   );
 }
 
-function matchTeaser(tall: boolean): Node {
-  const k = tall ? 1.25 : 1;
+function matchTeaser(shape: Shape): Node {
+  const k = scaleOf(shape);
   const px = (n: number) => Math.round(n * k);
+  const at = (square: number, feed: number, story: number) => pick(shape, square, feed, Math.round(story * k));
   return box(
-    { width: '100%', height: '100%', flexDirection: 'column', justifyContent: 'center', backgroundColor: LIME, fontFamily: 'Pretendard', padding: tall ? '240px 80px 300px' : 72, overflow: 'hidden' },
-    box({ position: 'absolute', right: px(80), top: px(tall ? 280 : 90) }, emojiSticker('🔒', px(190), 8)),
+    { width: '100%', height: '100%', flexDirection: 'column', justifyContent: 'center', backgroundColor: LIME, fontFamily: 'Pretendard', padding: pick(shape, 72, `110px ${FEED_SIDE}px`, '240px 80px 300px'), overflow: 'hidden' },
+    box({ position: 'absolute', right: at(80, 104, 80), top: at(90, 110, 280) }, emojiSticker('🔒', px(190), 8)),
     text('둘 다 해야 열리는', { fontSize: px(58), fontWeight: 900, color: INK, letterSpacing: -2 }),
     text('카톡 궁합', { marginTop: px(8), fontSize: px(150), fontWeight: 900, color: INK, letterSpacing: -px(9), lineHeight: 1 }),
     text('??%', { fontSize: px(250), fontWeight: 900, color: PINK, letterSpacing: -px(14), lineHeight: 1, textShadow: `${px(10)}px ${px(10)}px 0 ${INK}` }),
@@ -334,22 +375,22 @@ async function save(dir: string, name: string, tree: Node, width: number, height
 
 async function main() {
   // 예전 그림을 지우고 새로 만든다 (영상 폴더는 그대로)
-  for (const dir of ['types-square', 'types-story', 'tiers-square']) rmSync(path.join(OUT, dir), { recursive: true, force: true });
+  for (const dir of ['types-square', 'types-feed', 'types-story', 'tiers-square', 'tiers-feed']) rmSync(path.join(OUT, dir), { recursive: true, force: true });
   const results = KKTI_CODES.map(typical);
   for (const [i, r] of results.entries()) {
     const name = `${String(i + 1).padStart(2, '0')}-${r.mbti.type.toLowerCase()}`;
-    await save('types-square', name, typeSquare(r, i), 1080, 1080);
-    await save('types-story', name, typeStory(r, i), 1080, 1920);
+    await save('types-square', name, typeSquare(r, i), ...SIZES.square);
+    await save('types-feed', name, typeFeed(r, i), ...SIZES.feed);
+    await save('types-story', name, typeStory(r, i), ...SIZES.story);
   }
-  for (let i = 0; i < KKTI_MATCH_TIERS.length; i++) await save('tiers-square', String(i + 1), tierSquare(i), 1080, 1080);
-  for (const [shape, w, h] of [
-    ['square', 1080, 1080],
-    ['story', 1080, 1920],
-  ] as const) {
-    const tall = shape === 'story';
-    await save('', `cover-${shape}`, cover(tall), w, h);
-    await save('', `cta-${shape}`, cta(tall), w, h);
-    await save('', `match-teaser-${shape}`, matchTeaser(tall), w, h);
+  for (let i = 0; i < KKTI_MATCH_TIERS.length; i++) {
+    await save('tiers-square', String(i + 1), tierCard(i, 'square'), ...SIZES.square);
+    await save('tiers-feed', String(i + 1), tierCard(i, 'feed'), ...SIZES.feed);
+  }
+  for (const shape of ['square', 'feed', 'story'] as const) {
+    await save('', `cover-${shape}`, cover(shape), ...SIZES[shape]);
+    await save('', `cta-${shape}`, cta(shape), ...SIZES[shape]);
+    await save('', `match-teaser-${shape}`, matchTeaser(shape), ...SIZES[shape]);
   }
   const a = results[KKTI_CODES.indexOf('후빠폭밀')];
   const b = results[KKTI_CODES.indexOf('선빠폭밀')];
@@ -359,7 +400,7 @@ async function main() {
   await save('', 'sample-match-square', matchCard(a, b, false), 1080, 1080);
   await save('', 'sample-match-low-square', matchCard(a, c, false), 1080, 1080);
   rmSync(path.join(OUT, 'sample-link-preview.png'), { force: true });
-  console.log(`그림 ${results.length * 2 + KKTI_MATCH_TIERS.length + 10}장 → ${OUT}`);
+  console.log(`그림 ${results.length * 3 + KKTI_MATCH_TIERS.length * 2 + 13}장 → ${OUT}`);
 }
 
 if (require.main === module)

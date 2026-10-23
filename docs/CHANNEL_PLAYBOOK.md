@@ -45,12 +45,15 @@
 
 | 파일 | 크기 | 쓰는 곳 |
 |---|---|---|
-| `types-square/01-esfj.png` … `16-intp.png` | 1080×1080 | 인스타 캐러셀, X·쓰레드 글에 붙이는 그림 |
+| `types-feed/01-esfj.png` … `16-intp.png` | 1080×1350 (4:5) | **인스타 캐러셀** |
+| `types-square/…` (같은 16장의 정사각형판) | 1080×1080 | X·쓰레드 글에 붙이는 그림 |
 | `types-story/…` (같은 16장의 세로판) | 1080×1920 | 인스타 스토리, 틱톡 포토 |
-| `cover-*.png` · `cta-*.png` | 두 크기 | 캐러셀·포토의 첫 장과 마지막 장 |
-| `match-teaser-*.png` | 두 크기 | 「둘 다 해야 열리는 궁합」을 알리는 장 |
-| `tiers-square/1.png` … `5.png` | 1080×1080 | 궁합 등급 다섯 가지 (천생연분 → 극과 극) |
+| `cover-*.png` · `cta-*.png` | square · feed · story | 캐러셀·포토의 첫 장과 마지막 장 |
+| `match-teaser-*.png` | square · feed · story | 「둘 다 해야 열리는 궁합」을 알리는 장 |
+| `tiers-feed/1.png` … `5.png` · `tiers-square/…` | 4:5 · 1:1 | 궁합 등급 다섯 가지 (천생연분 → 극과 극) |
 | `sample-result-story.png` · `sample-match-*.png` | — | 「이런 카드가 나와요」 견본. 유형 소개용이지 실제 이용자 결과가 아닙니다 (앱이 이용자에게 주는 공유 카드는 아직 예전 디자인) |
+
+**인스타 캐러셀은 꼭 `*-feed`(4:5)판을 올리고, 올릴 때 자르기 비율도 4:5 로 고릅니다(웹 기본값은 1:1).** 프로필 격자가 게시물을 세로 3:4 로 잘라 보여 줘서, 정사각형은 양옆이 4분의 1 잘립니다 — 10-22 에 올린 1일차 표지의 「KKTI」 글자가 이렇게 잘렸습니다. 4:5 판은 양옆 34px 만 잘리고, 글·스티커는 그보다 안쪽(96px)에 있습니다.
 
 영상은 [channel-assets/video/](channel-assets/video/) 에 있습니다 (1080×1920 · 30fps). 앱 화면 녹화가 아니라 **모션 그래픽**입니다 — 큰 글씨가 튀어나오고, 숫자가 차오르며 화면이 흔들리고, 하트가 터지고, 아래에 띠 자막이 흘러갑니다. 효과음(팝·틱·쿵)이 들어 있고, 각 앱의 유행 음악을 깔 때는 [silent/](channel-assets/video/silent/) 의 무음판을 씁니다.
 
@@ -106,13 +109,13 @@
 
 | 날 | 형식 | 내용 | 그림·대본 |
 |---|---|---|---|
-| D1 | 캐러셀 10장 | KKTI 16유형 (1/2) — 먼저 연락하는 사람들 | `cover-square` + `types-square/01~08` + `cta-square` |
+| D1 | 캐러셀 10장 | KKTI 16유형 (1/2) — 먼저 연락하는 사람들 | `cover-feed` + `types-feed/01~08` + `cta-feed` |
 | D2 | 릴스 15초 | 썸남이 보낸 링크 → 궁합 쾅 | `video/01-link-match.mp4` |
-| D3 | 캐러셀 10장 | KKTI 16유형 (2/2) — 기다리는 사람들 | `cover-square` + `types-square/09~16` + `cta-square` |
+| D3 | 캐러셀 10장 | KKTI 16유형 (2/2) — 기다리는 사람들 | `cover-feed` + `types-feed/09~16` + `cta-feed` |
 | D4 | 릴스 10초 | 16유형 슬롯 — 「너는 뭐 나올까?」 | `video/02-type-slot.mp4` |
 | D5 | 스토리 3장 | 「너희 궁합 몇 % 나왔어?」 질문 스티커 → 답을 모아 다시 올리기 | `sample-match-story` |
 | D6 | 릴스 20초 | 읽씹 역전극 (앱 코칭으로 이어지는 편) | MARKETING.md S1 |
-| D7 | 릴스 14초 + 캐러셀 7장 | 궁합 등급 카운트다운 영상, 같은 날 등급 캐러셀 | `video/03-tier-countdown.mp4` · `match-teaser-square` + `tiers-square/1~5` + `cta-square` |
+| D7 | 릴스 14초 + 캐러셀 7장 | 궁합 등급 카운트다운 영상, 같은 날 등급 캐러셀 | `video/03-tier-countdown.mp4` · `match-teaser-feed` + `tiers-feed/1~5` + `cta-feed` |
 
 캡션 예 (D1):
 ```
