@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSequence, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,16 +34,25 @@ interface ComposerProps {
   questions?: string[];
   onQuestion?: (question: string) => void;
   onShuffleQuestions?: () => void;
+  /** 밖에서 입력창 글을 바꿀 때 (key 가 바뀔 때마다 text 로 채움) — 막혔던 글을 살리거나, 이어 보낸 뒤 비울 때 */
+  fill?: { text: string; key: number } | null;
+  /** 이용자가 입력창 글을 고칠 때 (막혔던 예전 요청을 잊게) */
+  onEdit?: () => void;
 }
 
 const EMOJI_NEXT: Record<EmojiPref, EmojiPref> = { on: 'off', off: 'auto', auto: 'on' };
 const EMOJI_LABEL: Record<EmojiPref, string> = { on: '😊 이모지 넣기', off: '🚫 이모지 빼기', auto: '🪞 이모지 자동' };
 
-export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPickImage, onClearImage, onSend, sending, notice, questions, onQuestion, onShuffleQuestions }: ComposerProps) {
+export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPickImage, onClearImage, onSend, sending, notice, questions, onQuestion, onShuffleQuestions, fill, onEdit }: ComposerProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const keyboardVisible = useKeyboardVisible();
   const [text, setText] = useState('');
+  const fillKey = fill?.key;
+  const fillText = fill?.text;
+  useEffect(() => {
+    if (fillKey != null) setText(fillText ?? '');
+  }, [fillKey, fillText]);
   const sendScale = useSharedValue(1);
   const sendStyle = useAnimatedStyle(() => ({ transform: [{ scale: sendScale.value }] }));
   // 키보드가 올라오면 홈 인디케이터 여백이 필요 없다 — 그대로 두면 키보드와 입력창 사이가 벌어진다
@@ -149,7 +158,10 @@ export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPi
         <View style={[styles.inputBox, { backgroundColor: theme.surface }]}>
           <TextInput
             value={text}
-            onChangeText={setText}
+            onChangeText={(value) => {
+              setText(value);
+              onEdit?.();
+            }}
             placeholder={image ? '상황을 덧붙여도 좋아요 (선택)' : '캡처를 올리거나 상황을 적어주세요'}
             placeholderTextColor={theme.textTertiary}
             multiline

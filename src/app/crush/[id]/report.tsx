@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp, useAnimatedStyle, useSharedValue, withDelay, withSpring } from 'react-native-reanimated';
 
@@ -18,6 +18,7 @@ import { Screen } from '@/components/ui/screen';
 import { Radius, Spacing, palette } from '@/constants/theme';
 import { kktiLabel } from '@/hooks/use-coach';
 import { useAiAction } from '@/hooks/use-ai-action';
+import { useResumeAfterPaywall } from '@/hooks/use-resume-after-paywall';
 import { useTheme } from '@/hooks/use-theme';
 import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { requestAi } from '@/lib/coach-client';
@@ -44,7 +45,13 @@ export default function CrushReportScreen() {
   const kkti = useAppStore((s) => s.kkti);
   const saveReport = useAppStore((s) => s.saveReport);
   const quota = useQuota();
-  const { run, busy, error } = useAiAction();
+  const { run, busy, error, blockCount } = useAiAction();
+  // 횟수가 없어 막혔다면 결제·가입하고 돌아왔을 때 다시 누르지 않아도 한 번 만들어 준다 (막힐 때마다 새로 기억)
+  const resume = useResumeAfterPaywall('report');
+  const generateRef = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    if (blockCount > 0) resume.remember(() => generateRef.current?.());
+  }, [blockCount, resume]);
 
   const analyzed = useMemo(() => (messages ?? []).filter((m) => m.analysis).length, [messages]);
 
@@ -91,6 +98,7 @@ export default function CrushReportScreen() {
       haptic.error();
     }
   };
+  generateRef.current = () => void generate();
 
   return (
     <Screen contentStyle={styles.content}>

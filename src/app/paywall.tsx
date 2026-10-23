@@ -11,6 +11,7 @@ import { Screen } from '@/components/ui/screen';
 import { useToast } from '@/components/ui/toast';
 import { Radius, Spacing } from '@/constants/theme';
 import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
+import { paywallClosed } from '@/hooks/use-resume-after-paywall';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { STORE_LABEL, STORE_URL, downloadDevice, type DownloadStore } from '@/lib/app-download';
@@ -22,7 +23,7 @@ import { APP_CONFIG } from '@/lib/config';
 import { authAvailable } from '@/lib/supabase';
 import { useAppStore } from '@/store/app-store';
 
-type Reason = 'quota' | 'regenerate' | 'my' | 'banner' | 'report' | 'practice' | 'mind';
+type Reason = 'quota' | 'regenerate' | 'my' | 'banner' | 'upsell' | 'report' | 'practice' | 'mind';
 
 const HEADLINES: Record<Reason, { title: string; subtitle: string }> = {
   // 하루 이용권이 스토어에 있으면 화면에서 가격을 넣은 문구로 바꾼다
@@ -30,6 +31,8 @@ const HEADLINES: Record<Reason, { title: string; subtitle: string }> = {
   regenerate: { title: '마음에 드는 답장이\n나올 때까지', subtitle: '이용권이면 다른 버전도 횟수 제한 없이 넘겨 볼 수 있어요.' },
   my: { title: '답장 고민,\n이제 무제한으로', subtitle: '횟수 걱정 없이 필요한 순간마다 코치를 불러보세요.' },
   banner: { title: '답장 고민,\n이제 무제한으로', subtitle: '횟수 걱정 없이 필요한 순간마다 코치를 불러보세요.' },
+  // 채팅 속 「답장이 도움이 됐나요?」 카드 — 결과를 받아 본 뒤
+  upsell: { title: '마음에 드는 답장이\n나올 때까지', subtitle: '이용권이면 횟수 걱정 없이 답장을 계속 받아볼 수 있어요.' },
   report: { title: '그 사람 분석 보고서,\n지금 열어볼까요?', subtitle: '성향·호감 신호·공략법·궁합까지 한 번에 정리해 드려요.' },
   practice: { title: '연애 연습,\n실전처럼 계속해요', subtitle: '이용권이면 AI 상대와 마음껏 리허설할 수 있어요.' },
   mind: { title: '그 사람 속마음,\n더 들여다볼까요?', subtitle: '이용권이면 궁금한 상황을 횟수 걱정 없이 물어볼 수 있어요.' },
@@ -72,10 +75,12 @@ export default function Paywall() {
   const setPremium = useAppStore((s) => s.setPremium);
 
   // 앱에서는 스토어 응답을 받은 뒤에 상품을 보여 준다 (스토어에 없는 상품이 잠깐이라도 보이지 않도록)
-  const storeProducts = usePlanProducts();
+  // 스토어에 닿지 못했을 때 「다시 불러오기」로 한 번 더 묻는다
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const storeProducts = usePlanProducts(loadAttempt);
   const products = billingSupported && !previewStore ? storeProducts : DEFAULT_PRODUCTS;
-  // 지금 막혀서 들어온 사람에게는 가장 가벼운 하루 이용권부터 보여 준다
-  const [selected, setSelected] = useState<PlanKey>(reason === 'my' || reason === 'banner' ? 'lifetime' : 'day');
+  // 쓰다가 들어온 사람(채팅 안내·막힘)에게는 가장 가벼운 하루 이용권부터, 마이 탭에서 둘러보러 온 사람에게는 평생권부터 보여 준다
+  const [selected, setSelected] = useState<PlanKey>(reason === 'my' ? 'lifetime' : 'day');
   const [busy, setBusy] = useState<'purchase' | 'restore' | null>(null);
   // 이 화면은 iOS 네이티브 모달이라 앱 전체 토스트가 모달 뒤에 가려진다.
   // 그래서 결제·복원 결과는 버튼 바로 아래에 직접 보여 준다.
@@ -87,13 +92,18 @@ export default function Paywall() {
   useEffect(() => {
     track('paywall_open', { reason });
   }, [reason]);
+  // 닫히면 알린다 — 결제·가입 없이 닫았으면 막혔던 요청을 나중에 저절로 보내지 않게 (use-resume-after-paywall)
+  useEffect(() => () => paywallClosed(), []);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
   const priceOf = (plan: PlanKey) => products?.find((p) => p.plan === plan)?.displayPrice ?? FALLBACK_PRICES[plan];
   // 스토어에서 확인된 상품만 보여 준다. 스토어에 닿지 못했으면 이미 등록된 프리미엄(주간·평생)만 (미리보기·웹은 전부)
   const confirmed = products?.some((p) => p.available === true) ?? false;
   const visible = (products ?? []).filter((p) => previewStore || !billingSupported || (confirmed ? p.available === true : !isConsumablePlan(p.plan)));
-  const chosen = visible.some((p) => p.plan === selected) ? selected : (visible[0]?.plan ?? 'lifetime');
+  // 고른 상품이 목록에 없으면(스토어 확인 실패 등) 자동 결제가 아닌 상품을 먼저 고른다 — 주간 구독이 저절로 골라져 있지 않게
+  const chosen = visible.some((p) => p.plan === selected) ? selected : (visible.find((p) => p.plan !== 'weekly')?.plan ?? visible[0]?.plan ?? 'lifetime');
+  // 앱에서 스토어 상품을 하나도 확인하지 못했으면 다시 불러오기를 권한다
+  const storeUnreachable = billingSupported && !previewStore && products != null && !confirmed;
   const dayPrice = onSalePrice(products, 'day');
   const subtitle = reason === 'quota' && dayPrice ? `하루 이용권이면 ${dayPrice}으로 지금 바로 이어서 코칭받을 수 있어요.` : HEADLINES[reason].subtitle;
   const active = isPremiumActive(premium, Date.now());
@@ -252,6 +262,17 @@ export default function Paywall() {
               </Animated.View>
             ))}
           </View>
+
+          {storeUnreachable ? (
+            <Pressable accessibilityRole="button" onPress={() => setLoadAttempt((n) => n + 1)} hitSlop={8} style={styles.reload}>
+              <AppText variant="caption" color="textSecondary" align="center">
+                스토어 정보를 다 불러오지 못했어요 ·{' '}
+                <AppText variant="caption" color="primary" weight="700">
+                  다시 불러오기
+                </AppText>
+              </AppText>
+            </Pressable>
+          ) : null}
 
           <Button title={buyTitle(chosen, priceOf(chosen))} onPress={buy} loading={busy === 'purchase'} disabled={busy != null} />
 
@@ -431,5 +452,6 @@ const styles = StyleSheet.create({
   storeRow: { flexDirection: 'row', gap: Spacing.sm },
   storeButton: { flex: 1 },
   links: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.lg, flexWrap: 'wrap' },
+  reload: { marginTop: -Spacing.xs },
   statusPill: { paddingHorizontal: Spacing.md, paddingVertical: 4, borderRadius: Radius.pill, marginTop: Spacing.xs },
 });

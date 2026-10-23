@@ -19,11 +19,12 @@ import { IconButton } from '@/components/ui/icon-button';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { useToast } from '@/components/ui/toast';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { useCoach } from '@/hooks/use-coach';
+import { useCoach, type SendInput } from '@/hooks/use-coach';
 import { useKeyboardVisible } from '@/hooks/use-keyboard';
 import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
+import { useResumeAfterPaywall } from '@/hooks/use-resume-after-paywall';
 import { useTheme } from '@/hooks/use-theme';
-import { isUnlimited, useQuota } from '@/lib/billing/gate';
+import { currentQuota, isUnlimited, useQuota } from '@/lib/billing/gate';
 import { quotaLabel } from '@/lib/billing/quota';
 import { dateLabel, isSameDay } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
@@ -49,6 +50,11 @@ export default function CrushChat() {
   const { send, sending } = useCoach();
   const quota = useQuota();
   const hasDayPass = onSalePrice(usePlanProducts(), 'day') != null;
+  // 무료 횟수가 없어 막힌 요청 — 결제·가입으로 횟수가 생기면 한 번 이어서 보낸다
+  const resume = useResumeAfterPaywall('coach');
+  // 막힌 「다시 시도」를 이어 갈 때 그때의 화면이 아니라 최신 함수를 부르려고 둔다
+  const latest = useRef<{ retry?: (failed: ChatMessage) => void }>({});
+  const [composerFill, setComposerFill] = useState<{ text: string; key: number } | null>(null);
 
   const [tone, setTone] = useState<Tone>(user?.defaultTone ?? 'natural');
   const [emoji, setEmoji] = useState<EmojiPref>(user?.emoji ?? 'on');
@@ -115,18 +121,79 @@ export default function CrushChat() {
   const analyzed = messages.filter((m) => m.analysis).length;
   const needsCrushInfo = !secret && crush?.name === '상대' && !crush?.mbti && analyzed > 0;
 
-  // 코칭을 몇 번 받아 본 무료 이용자에게 한 번만 보여 주는 안내 카드 (닫으면 다시 안 뜸)
-  const showUpsell = quota.enforced && !isUnlimited(quota) && freeUsed >= 2 && !upsellDismissed && !sending && analyzed > 0;
+  // 코칭 결과를 받아 본 무료 이용자에게 보여 주는 안내 카드 (닫으면 다시 안 뜸).
+  // 예전에는 2회 이상 써야 떠서, 맛보기가 1회인 비회원은 한 번도 보지 못했다
+  const showUpsell = quota.enforced && !isUnlimited(quota) && freeUsed >= 1 && !upsellDismissed && !sending && analyzed > 0;
   // 두 번 이상 분석했으면 상대 분석 보고서를 권한다
   const showReport = !secret && analyzed >= 2 && !sending;
 
-  // 첫 화면·빠른 코칭에서 고른 캡처(또는 붙여 넣은 글)는 채팅방에 들어오자마자 자동으로 보낸다
+  const openPaywall = useCallback((reason: 'quota' | 'regenerate' | 'banner' | 'upsell') => router.push({ pathname: '/paywall', params: { reason } }), [router]);
+  const fillComposer = useCallback((text: string) => setComposerFill((f) => ({ text, key: (f?.key ?? 0) + 1 })), []);
+
+  /**
+   * 막혔던 요청을 결제 화면에 다녀온 뒤 이어 보낸다. 입력창에 살려 둔 글·캡처는 이때 비운다.
+   * 그래도 막히면(횟수가 다시 없음) 입력창에 되돌려 두고 결제 화면을 다시 띄운다.
+   */
+  const resumeSend = useCallback(
+    (input: SendInput, fromComposer: boolean) => {
+      if (fromComposer) {
+        setImage(null);
+        fillComposer('');
+      }
+      send(input).then((result) => {
+        if (result !== 'blocked') return;
+        if (fromComposer) {
+          setImage(input.image);
+          fillComposer(input.text);
+        }
+        openPaywall('quota');
+      });
+    },
+    [send, fillComposer, openPaywall],
+  );
+
+  // 채팅방에 막 들어온 순간(빠른 코칭 모달에서 바뀌는 중)에는 결제 화면을 조금 뒤에 띄운다 — 화면 전환 중 모달이 무시되지 않게
+  const paywallTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (paywallTimer.current) clearTimeout(paywallTimer.current);
+    },
+    [],
+  );
+
+  /** 막힌 순간: 캡처·글을 입력창에 살려 두고, 결제·가입 뒤 이어서 보내도록 기억한 다음 결제 화면을 띄운다 */
+  const blockedSend = useCallback(
+    (input: SendInput, reason: 'quota' | 'regenerate', fromComposer: boolean, restore: boolean, delayMs = 0) => {
+      haptic.warning();
+      if (restore && fromComposer) {
+        if (input.image) setImage(input.image);
+        if (input.text) fillComposer(input.text);
+      }
+      resume.remember(() => resumeSend(input, fromComposer));
+      if (delayMs > 0) {
+        if (paywallTimer.current) clearTimeout(paywallTimer.current);
+        paywallTimer.current = setTimeout(() => {
+          paywallTimer.current = null;
+          openPaywall(reason);
+        }, delayMs);
+      } else openPaywall(reason);
+    },
+    [fillComposer, resume, resumeSend, openPaywall],
+  );
+
+  // 첫 화면·빠른 코칭에서 고른 캡처(또는 붙여 넣은 글)는 채팅방에 들어오자마자 자동으로 보낸다.
+  // 무료 횟수가 없으면 보내지 않고 캡처·글을 입력창에 살려 둔 채 결제 화면을 띄운다 (예전에는 아무 안내 없이 캡처가 사라졌다)
   useEffect(() => {
     if (autoSent.current || !crush || (!pendingImage && !pendingText)) return;
     autoSent.current = true;
-    send({ crushId: crush.id, image: pendingImage ? { uri: pendingImage, width: Number(pendingWidth) || 0, height: 0 } : null, text: pendingText ?? '', tone, emoji });
+    const input: SendInput = { crushId: crush.id, image: pendingImage ? { uri: pendingImage, width: Number(pendingWidth) || 0, height: 0 } : null, text: pendingText ?? '', tone, emoji };
     router.setParams({ pendingImage: undefined, pendingWidth: undefined, pendingText: undefined });
-  }, [crush, pendingImage, pendingWidth, pendingText, send, tone, emoji, router]);
+    if (currentQuota().remaining <= 0) {
+      blockedSend(input, 'quota', true, true, AUTO_PAYWALL_DELAY_MS);
+      return;
+    }
+    send(input).then((result) => result === 'blocked' && blockedSend(input, 'quota', true, true, AUTO_PAYWALL_DELAY_MS));
+  }, [crush, pendingImage, pendingWidth, pendingText, send, tone, emoji, router, blockedSend]);
 
   useEffect(() => {
     const t = setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
@@ -162,21 +229,23 @@ export default function CrushChat() {
     }
   };
 
-  const openPaywall = (reason: 'quota' | 'regenerate' | 'banner') => router.push({ pathname: '/paywall', params: { reason } });
-
-  /** 무료 횟수를 다 썼으면 보내지 않고 프리미엄 안내를 띄운다 (입력한 내용은 그대로 남김) */
-  const guardedSend = (input: Parameters<typeof send>[0], reason: 'quota' | 'regenerate' = 'quota'): boolean => {
-    if (quota.remaining <= 0) {
-      haptic.warning();
-      openPaywall(reason);
+  /**
+   * 무료 횟수를 다 썼으면 보내지 않고 결제 화면을 띄운다 (입력한 내용은 그대로 남김).
+   * 결제·가입으로 횟수가 생기면 그 요청을 한 번 이어서 보낸다. 횟수는 이 순간 값으로 본다 (이어 보낼 때 예전 화면 값으로 다시 막히지 않게)
+   */
+  const guardedSend = (input: SendInput, reason: 'quota' | 'regenerate' = 'quota', fromComposer = false): boolean => {
+    if (currentQuota().remaining <= 0) {
+      blockedSend(input, reason, fromComposer, false);
       return false;
     }
-    send(input).then((result) => result === 'blocked' && openPaywall(reason));
+    resume.forget();
+    // 확인과 보내기 사이에 횟수가 사라졌으면(다른 화면에서 씀) 입력창에 되돌려 둔다
+    send(input).then((result) => result === 'blocked' && blockedSend(input, reason, fromComposer, true));
     return true;
   };
 
   const submit = (text: string) => {
-    if (!guardedSend({ crushId: crush.id, image, text, tone, emoji, toneChosen, emojiChosen })) return false;
+    if (!guardedSend({ crushId: crush.id, image, text, tone, emoji, toneChosen, emojiChosen }, 'quota', true)) return false;
     setImage(null);
   };
 
@@ -185,7 +254,11 @@ export default function CrushChat() {
     const idx = messages.findIndex((m) => m.id === failed.id);
     const prev = idx > 0 ? messages[idx - 1] : undefined;
     if (!prev || prev.role !== 'user') return;
-    if (quota.remaining <= 0) return openPaywall('quota');
+    if (currentQuota().remaining <= 0) {
+      haptic.warning();
+      resume.remember(() => latest.current.retry?.(failed));
+      return openPaywall('quota');
+    }
     // 실패한 게 「다른 답장 더 보기」였으면 같은 카드의 다른 답장을 다시 요청한다 (빈 요청으로 첫 메시지 추천을 받지 않게)
     if (isVariationRequest(prev)) {
       const target = variationTargetOf(messages, prev);
@@ -226,6 +299,8 @@ export default function CrushChat() {
     );
   };
 
+  latest.current.retry = retry;
+
   const wipeNow = () => {
     const run = () => {
       haptic.heavy();
@@ -246,8 +321,10 @@ export default function CrushChat() {
     quota.enforced && !isUnlimited(quota)
       ? {
           text: `${quota.kind === 'exhausted' ? '⏳' : '🎁'} ${quotaLabel(quota)}`,
-          actionLabel: quota.kind === 'exhausted' ? '지금 이어서 하기' : '무제한 이용',
-          onAction: () => openPaywall(quota.kind === 'exhausted' ? 'quota' : 'banner'),
+          // 아직 결과를 한 번도 받지 않은 채팅방에서는 결제 링크를 걸지 않는다 (써 보기 전에 결제 화면부터 열고 닫는 일이 많았다)
+          ...(quota.kind === 'exhausted' || analyzed > 0
+            ? { actionLabel: quota.kind === 'exhausted' ? '지금 이어서 하기' : '무제한 이용', onAction: () => openPaywall(quota.kind === 'exhausted' ? 'quota' : 'banner') }
+            : {}),
           emphasized: quota.kind === 'exhausted',
         }
       : null;
@@ -429,7 +506,7 @@ export default function CrushChat() {
                   </AppText>
                 </View>
                 <View style={styles.upsellActions}>
-                  <Button title="이용권 보기" size="sm" fullWidth={false} onPress={() => openPaywall('banner')} />
+                  <Button title="이용권 보기" size="sm" fullWidth={false} onPress={() => openPaywall('upsell')} />
                   <Button title="괜찮아요" size="sm" variant="ghost" fullWidth={false} onPress={dismissUpsell} />
                 </View>
               </Animated.View>
@@ -458,14 +535,23 @@ export default function CrushChat() {
           emoji={emoji}
           onEmojiChange={(value) => { setEmoji(value); setEmojiChosen(true); }}
           image={image}
-          onPickImage={chooseImage}
-          onClearImage={() => setImage(null)}
+          onPickImage={() => {
+            // 막힌 뒤 캡처를 바꾸거나 지우면 예전 요청은 이어 보내지 않는다
+            resume.forget();
+            chooseImage();
+          }}
+          onClearImage={() => {
+            resume.forget();
+            setImage(null);
+          }}
           onSend={submit}
           sending={sending}
           notice={notice}
           questions={messages.length ? questions : undefined}
           onQuestion={(q) => guardedSend({ crushId: crush.id, image: null, text: q, tone, emoji })}
           onShuffleQuestions={() => setQuestionSeed((v) => v + 1)}
+          fill={composerFill}
+          onEdit={resume.forget}
         />
       </KeyboardAvoidingView>
 
@@ -495,6 +581,8 @@ function mulberry(seed: number) {
 }
 
 const EMPTY: ChatMessage[] = [];
+/** 자동 보내기가 막혔을 때 결제 화면을 띄우기까지 기다리는 시간 (화면 전환이 끝나도록) */
+const AUTO_PAYWALL_DELAY_MS = 450;
 /** 비밀 상담 지우기 예약 (채팅방 id → 타이머) */
 const secretWipes = new Map<string, ReturnType<typeof setTimeout>>();
 const STARTERS = ['첫 메시지 뭐라고 보낼까?', '주말에 만나자고 하고 싶어', '답장이 늦어졌는데 어떻게 하지?'];

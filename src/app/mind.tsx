@@ -16,6 +16,7 @@ import { useToast } from '@/components/ui/toast';
 import { Radius, Spacing } from '@/constants/theme';
 import { useMindReading, type MindOutcome } from '@/hooks/use-mind-reading';
 import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
+import { useResumeAfterPaywall } from '@/hooks/use-resume-after-paywall';
 import { useTheme } from '@/hooks/use-theme';
 import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { haptic } from '@/lib/haptics';
@@ -45,8 +46,20 @@ export default function MindScreen() {
   const [fromHistory] = useState(() => (params.history != null ? history[Number(params.history)] : undefined));
   const perspective: Gender = fromHistory?.perspective ?? (params.perspective === 'female' || params.perspective === 'other' ? params.perspective : 'male');
   const situation = fromHistory?.situation ?? params.situation ?? '';
-  const { reading, reused, ask, retry, busy, error, blocked, openPaywall } = useMindReading(situation, perspective, fromHistory?.reading);
+  const { reading, reused, ask, retry, busy, error, blocked, blockCount, openPaywall } = useMindReading(situation, perspective, fromHistory?.reading);
   const started = useRef(false);
+
+  // 횟수가 없어 막혔다면, 결제·가입하고 돌아왔을 때 다시 누르지 않아도 한 번 풀어 준다
+  // (예전에는 결제하고 와도 「다 썼어요」 카드가 그대로 남아 결제가 안 된 줄 알 수 있었다)
+  const retryRef = useRef(retry);
+  useEffect(() => {
+    retryRef.current = retry;
+  }, [retry]);
+  const resume = useResumeAfterPaywall('mind');
+  // 막힐 때마다(다시 눌러 또 막혀도) 새로 기억한다
+  useEffect(() => {
+    if (blockCount > 0 && !reading) resume.remember(() => void retryRef.current().then(feel));
+  }, [blockCount, reading, resume]);
 
   // 처음 열면 한 번 풀어 준다 — 같은 카드·같은 대상·같은 내 프로필로 풀어 둔 결과가 있으면 AI 를 부르지 않고 그 결과를 보여 준다
   useEffect(() => {
@@ -77,7 +90,7 @@ export default function MindScreen() {
 
       {blocked && !reading ? (
         <View style={[styles.error, { backgroundColor: theme.primarySoft }]}>
-          <AppText variant="smallStrong">오늘 쓸 수 있는 횟수를 다 썼어요</AppText>
+          <AppText variant="smallStrong">무료 횟수를 다 썼어요</AppText>
           <AppText variant="small" color="textSecondary">
             {hasDayPass ? '하루 이용권이면 지금부터 24시간 동안 속마음을 마음껏 물어볼 수 있어요.' : '이용권이면 횟수 걱정 없이 속마음을 마음껏 물어볼 수 있어요.'}
           </AppText>

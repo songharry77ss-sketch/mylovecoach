@@ -8,7 +8,7 @@ import { aiRouteOf, CoachError, requireAiConsent, type AiFeature } from '@/lib/c
 import { useAppStore } from '@/store/app-store';
 import { loadApiKey } from '@/store/storage';
 
-export type PaywallReason = 'quota' | 'regenerate' | 'my' | 'banner' | 'report' | 'practice' | 'mind';
+export type PaywallReason = 'quota' | 'regenerate' | 'my' | 'banner' | 'upsell' | 'report' | 'practice' | 'mind';
 
 /**
  * 보고서·속마음·연습처럼 AI 를 한 번 부르는 기능의 공통 흐름.
@@ -22,6 +22,8 @@ export function useAiAction() {
   const [error, setError] = useState<string | null>(null);
   /** 남은 횟수가 없어 부르지 못했는지 (화면에서 이용권 안내를 보여 준다) */
   const [blocked, setBlocked] = useState(false);
+  /** 막힌 횟수 — 다시 눌러 또 막혀도(blocked 가 true 그대로) 화면이 알아챌 수 있게 */
+  const [blockCount, setBlockCount] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
   useEffect(() => () => abortRef.current?.abort(), []);
 
@@ -48,6 +50,7 @@ export function useAiAction() {
       setBlocked(false);
       if (chargeable && !ensureQuota(options.reason)) {
         setBlocked(true);
+        setBlockCount((n) => n + 1);
         return null;
       }
       setError(null);
@@ -87,5 +90,5 @@ export function useAiAction() {
 
   const cancel = useCallback(() => abortRef.current?.abort(), []);
 
-  return { run, busy, error, setError, blocked, ensureQuota, openPaywall, cancel };
+  return { run, busy, error, setError, blocked, blockCount, ensureQuota, openPaywall, cancel };
 }
