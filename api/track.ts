@@ -20,6 +20,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
 
+import { alertFunnel } from './_funnel-alert';
 import { bodyTooLarge, clientIp, rateLimited, storedKb } from './_limits';
 import { analyticsEnabled, BASIC_LOG_VERSION, consentVersionOk, DEVICE_ID, insert, optedOutDevice, patch, remove, rpc, supabaseReady } from './_supabase';
 
@@ -285,6 +286,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     insert('app_event', eventRows),
   ]);
+
+  // 결제 화면 열림·결제 진행을 운영자 텔레그램으로 (저장한 기록만 · 텔레그램 미설정이면 아무것도 안 함 · 실패해도 응답은 그대로)
+  await alertFunnel(b.deviceId, eventRows, { platform: b.platform ?? null, appVersion: b.appVersion ?? null, premiumPlan: b.premiumPlan ?? null, source });
 
   res.status(204).end();
 }
