@@ -8,7 +8,7 @@ import { aiRouteOf, CoachError, requireAiConsent, type AiFeature } from '@/lib/c
 import { useAppStore } from '@/store/app-store';
 import { loadApiKey } from '@/store/storage';
 
-export type PaywallReason = 'quota' | 'regenerate' | 'my' | 'banner' | 'report' | 'practice' | 'mind';
+export type PaywallReason = 'quota' | 'regenerate' | 'my' | 'banner' | 'upsell' | 'report' | 'practice' | 'mind';
 
 /**
  * 보고서·속마음·연습처럼 AI 를 한 번 부르는 기능의 공통 흐름.

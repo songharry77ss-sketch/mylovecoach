@@ -24,18 +24,19 @@ function fetchOnce(): Promise<PlanProduct[]> {
   return pending;
 }
 
-/** 불러오는 중이면 null */
-export function usePlanProducts(): PlanProduct[] | null {
+/** 불러오는 중이면 null. attempt 를 올리면(다시 불러오기) 확인하지 못한 목록을 버리고 스토어에 다시 묻는다 */
+export function usePlanProducts(attempt = 0): PlanProduct[] | null {
   const [products, setProducts] = useState<PlanProduct[] | null>(cached);
   useEffect(() => {
     let alive = true;
+    if (attempt > 0 && !cached) setProducts(null);
     fetchOnce()
       .then((list) => alive && setProducts(list))
       .catch(() => {});
     return () => {
       alive = false;
     };
-  }, []);
+  }, [attempt]);
   return products;
 }
 

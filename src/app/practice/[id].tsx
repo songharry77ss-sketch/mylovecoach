@@ -18,10 +18,11 @@ import { MaxContentWidth, Radius, Spacing, Typography } from '@/constants/theme'
 import { kktiLabel } from '@/hooks/use-coach';
 import { useAiAction } from '@/hooks/use-ai-action';
 import { useKeyboardVisible } from '@/hooks/use-keyboard';
+import { useResumeAfterPaywall } from '@/hooks/use-resume-after-paywall';
 import { useTheme } from '@/hooks/use-theme';
 import { practiceFeedbackReportContent, practiceReportContent } from '@/lib/ai-report';
 import { beginAiRequest } from '@/lib/ai-request-lifetime';
-import { isUnlimited, useQuota } from '@/lib/billing/gate';
+import { currentQuota, isUnlimited, useQuota } from '@/lib/billing/gate';
 import { PRACTICE_PROMPT_TURNS } from '@/lib/ai-tasks';
 import { aiRouteOf, requestAi } from '@/lib/coach-client';
 import { userToRequest } from '@/lib/coach-schema';
@@ -58,6 +59,9 @@ export default function PracticeSessionScreen() {
   const kkti = useAppStore((s) => s.kkti);
   const quota = useQuota();
   const { run, busy, error, setError, cancel } = useAiAction();
+  // 횟수가 없어 막힌 첫 답장을 결제·가입 뒤 한 번 이어서 보낸다 (입력한 글은 입력창에 그대로 남아 있음)
+  const resume = useResumeAfterPaywall('practice');
+  const sendRef = useRef<(() => void) | null>(null);
   const report = useAiReport();
   const [text, setText] = useState('');
   const [typing, setTyping] = useState(false);
@@ -111,11 +115,14 @@ export default function PracticeSessionScreen() {
     const store = useAppStore.getState();
     // 연습 한 번에 1회만 차감 — 첫 답장을 받을 때
     const chargeable = !session.charged;
-    if (chargeable && quota.remaining <= 0) {
+    // 이 순간의 횟수로 본다 — 결제 뒤 이어 보낼 때 예전 화면 값으로 다시 막히지 않게
+    if (chargeable && currentQuota().remaining <= 0) {
       haptic.warning();
+      resume.remember(() => sendRef.current?.());
       router.push({ pathname: '/paywall', params: { reason: 'practice' } });
       return;
     }
+    resume.forget();
     haptic.thud();
     setText('');
     setError(null);
@@ -200,6 +207,7 @@ export default function PracticeSessionScreen() {
       }
     }
   };
+  sendRef.current = () => void send();
 
   const end = () => {
     replyRef.current?.controller.abort();
