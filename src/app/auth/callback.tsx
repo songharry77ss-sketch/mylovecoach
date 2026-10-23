@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/toast';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { authErrorMessage, linkMember } from '@/lib/auth';
+import { takeAuthReturn } from '@/lib/auth-return';
 import { SIGNUP_BONUS } from '@/lib/billing/plans';
 import { haptic } from '@/lib/haptics';
 import { supabase } from '@/lib/supabase';
@@ -48,6 +49,13 @@ export default function AuthCallback() {
         if (!alive) return;
         haptic.celebrate();
         toast.show(result.bonus ? `가입 완료! 무료 코칭 ${SIGNUP_BONUS}회를 받았어요 🎁` : '로그인했어요.', 'success');
+        // 웹에서 채팅방의 「가입하고 보기」로 왔으면 그 채팅방으로 돌아간다 (뒤로 가면 홈)
+        const back = takeAuthReturn();
+        if (back) {
+          router.replace('/(tabs)');
+          router.push(back as never);
+          return;
+        }
         router.replace('/(tabs)/my');
       } catch (e) {
         if (alive) setError(e instanceof Error ? e.message : authErrorMessage(null));

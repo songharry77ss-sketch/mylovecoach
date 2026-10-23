@@ -145,11 +145,40 @@ afterEach(() => {
   tree = null;
 });
 
+describe('첫 화면 — 캡처 없이 상황만 적기', () => {
+  const askButton = (t: ReactTestRenderer) =>
+    t.root.findAll((n) => n.props.accessibilityRole === 'button' && n.props.accessibilityState && textOf(n) === '답장·조언 받기')[0];
+
+  it('예시를 누르면 채워지고, 「답장·조언 받기」로 그 글을 가지고 채팅방에 들어가 바로 보낸다', () => {
+    useAppStore.setState({ termsAgreedAt: Date.now() });
+    const t = mount(<Start />);
+    // 비어 있으면 누를 수 없다
+    expect(askButton(t).props.accessibilityState.disabled).toBe(true);
+    act(() => pressable(t, '소개팅 다음 날, 먼저 연락해도 될까?').props.onPress());
+    expect(t.root.findByProps({ accessibilityLabel: '지금 상황 적기' }).props.value).toBe('소개팅 다음 날, 먼저 연락해도 될까?');
+    expect(askButton(t).props.accessibilityState.disabled).toBe(false);
+    act(() => askButton(t).props.onPress());
+    expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/crush/[id]', params: expect.objectContaining({ pendingText: '소개팅 다음 날, 먼저 연락해도 될까?' }) });
+    expect(tracked).toHaveBeenCalledWith('start', expect.objectContaining({ mode: 'text', typed: true, example: true }));
+  });
+
+  it('직접 적은 글은 앞뒤 공백을 빼고 보내며, 동의 창을 거쳐도 그 글을 잃지 않는다', () => {
+    const t = mount(<Start />);
+    act(() => t.root.findByProps({ accessibilityLabel: '지금 상황 적기' }).props.onChangeText('  썸남이 3시간째 답이 없어  '));
+    act(() => askButton(t).props.onPress());
+    // 처음이면 동의 창부터
+    expect(texts(t).join('\n')).toContain('시작하기 전에 확인해 주세요');
+    act(() => pressable(t, '모두 동의하고 시작').props.onPress());
+    expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/crush/[id]', params: expect.objectContaining({ pendingText: '썸남이 3시간째 답이 없어' }) });
+    expect(tracked).toHaveBeenCalledWith('start', expect.objectContaining({ mode: 'text', typed: true, example: false }));
+  });
+});
+
 describe('첫 화면 동의 창', () => {
   it('처음 시작 버튼을 누르면 필수·선택 항목이 체크되지 않은 채로 뜬다', () => {
     const t = mount(<Start />);
     expect(texts(t).join('\n')).not.toContain('시작하기 전에 확인해 주세요');
-    act(() => pressable(t, '캡처 없이 상황만 적을래요').props.onPress());
+    act(() => pressable(t, '빈 채팅방에서 시작하기').props.onPress());
     const shown = texts(t).join('\n');
     expect(shown).toContain('시작하기 전에 확인해 주세요');
     expect(shown).toContain('(필수) 이용약관 동의');
@@ -169,7 +198,7 @@ describe('첫 화면 동의 창', () => {
 
   it('「모두 동의하고 시작」은 선택 항목(코칭 내용 저장)까지 모두 동의하고, 누른 버튼의 일을 이어서 한다', () => {
     const t = mount(<Start />);
-    act(() => pressable(t, '캡처 없이 상황만 적을래요').props.onPress());
+    act(() => pressable(t, '빈 채팅방에서 시작하기').props.onPress());
     act(() => pressable(t, '모두 동의하고 시작').props.onPress());
     const s = useAppStore.getState();
     expect(s.termsAgreedAt).not.toBeNull();
@@ -182,7 +211,7 @@ describe('첫 화면 동의 창', () => {
 
   it('필수 항목만 체크하고 「선택한 항목으로 시작」하면 코칭 내용 저장은 동의 안 함으로 남는다', () => {
     const t = mount(<Start />);
-    act(() => pressable(t, '캡처 없이 상황만 적을래요').props.onPress());
+    act(() => pressable(t, '빈 채팅방에서 시작하기').props.onPress());
     const [terms, privacy] = checkboxes(t);
     act(() => terms.props.onPress());
     act(() => privacy.props.onPress());
@@ -196,7 +225,7 @@ describe('첫 화면 동의 창', () => {
 
   it('닫으면 동의하지 않은 채 첫 화면에 남고, 이미 답한 기기는 다시 묻지 않고 바로 시작한다', () => {
     const t = mount(<Start />);
-    act(() => pressable(t, '캡처 없이 상황만 적을래요').props.onPress());
+    act(() => pressable(t, '빈 채팅방에서 시작하기').props.onPress());
     const close = t.root.findAll((n) => n.props.accessibilityLabel === '닫기' && typeof n.props.onPress === 'function');
     act(() => close[close.length - 1].props.onPress());
     expect(texts(t).join('\n')).not.toContain('시작하기 전에 확인해 주세요');
@@ -206,7 +235,7 @@ describe('첫 화면 동의 창', () => {
     act(() => {
       useAppStore.setState({ termsAgreedAt: Date.now() });
     });
-    act(() => pressable(t, '캡처 없이 상황만 적을래요').props.onPress());
+    act(() => pressable(t, '빈 채팅방에서 시작하기').props.onPress());
     expect(texts(t).join('\n')).not.toContain('시작하기 전에 확인해 주세요');
     expect(mockRouter.replace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/crush/[id]' }));
   });

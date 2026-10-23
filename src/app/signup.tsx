@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -21,6 +21,8 @@ const PERKS: Perk[] = [
   { icon: 'sunny-outline', title: '매일 무료 코칭 1회', body: '하루가 지나면 다시 충전돼요' },
 ];
 
+const REPLIES_PERK: Perk = { icon: 'lock-open-outline', title: '가려진 답장이 바로 보여요', body: '지금 받은 답장의 나머지 버전과 이유까지 전부 열려요' };
+
 /** 저장 위치 안내 — 「코칭 내용 저장」에 동의한 기기는 코칭 질문·답이 서버에도 저장되고 회원과 연결된다 (처리방침 4번·5번) */
 const storagePerk = (contentOn: boolean): Perk => ({
   icon: 'lock-closed-outline',
@@ -34,10 +36,13 @@ export default function Signup() {
   const router = useRouter();
   const toast = useToast();
   const contentOn = useAppStore((s) => s.contentConsent === true);
+  // 채팅방에서 가려진 답장을 보려고 왔으면 그 이유를 맨 위에 보여 준다
+  const { from } = useLocalSearchParams<{ from?: string }>();
+  const forReplies = from === 'replies';
 
   useEffect(() => {
-    track('signup_open');
-  }, []);
+    track('signup_open', forReplies ? { from: 'replies' } : undefined);
+  }, [forReplies]);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
@@ -50,7 +55,7 @@ export default function Signup() {
       </View>
 
       <View style={[styles.perks, { backgroundColor: theme.surface }]}>
-        {[...PERKS, storagePerk(contentOn)].map((p) => (
+        {[...(forReplies ? [REPLIES_PERK] : []), ...PERKS, storagePerk(contentOn)].map((p) => (
           <View key={p.title} style={styles.perk}>
             <View style={[styles.perkIcon, { backgroundColor: theme.primarySoft }]}>
               <Ionicons name={p.icon} size={18} color={theme.primary} />
