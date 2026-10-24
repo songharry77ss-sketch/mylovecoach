@@ -50,7 +50,7 @@
 | `cover-*.png` · `cta-*.png` | 두 크기 | 캐러셀·포토의 첫 장과 마지막 장 |
 | `match-teaser-*.png` | 두 크기 | 「둘 다 해야 열리는 궁합」을 알리는 장 |
 | `tiers-square/1.png` … `5.png` | 1080×1080 | 궁합 등급 다섯 가지 (천생연분 → 극과 극) |
-| `sample-result-story.png` · `sample-match-*.png` | — | 「이런 카드가 나와요」 견본. 유형 소개용이지 실제 이용자 결과가 아닙니다 (앱이 이용자에게 주는 공유 카드 `/api/kkti-card` 도 10-24 부터 같은 디자인) |
+| `sample-result-story.png` · `sample-match-*.png` | — | 「이런 카드가 나와요」 견본. 유형 소개용이지 실제 이용자 결과가 아닙니다 (앱이 이용자에게 주는 공유 카드는 아직 예전 디자인) |
 
 영상은 [channel-assets/video/](channel-assets/video/) 에 있습니다 (1080×1920 · 30fps). 앱 화면 녹화가 아니라 **모션 그래픽**입니다 — 큰 글씨가 튀어나오고, 숫자가 차오르며 화면이 흔들리고, 하트가 터지고, 아래에 띠 자막이 흘러갑니다. 효과음(팝·틱·쿵)이 들어 있고, 각 앱의 유행 음악을 깔 때는 [silent/](channel-assets/video/silent/) 의 무음판을 씁니다.
 
