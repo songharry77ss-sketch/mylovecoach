@@ -173,9 +173,9 @@ describe('공유 링크', () => {
   });
 
   it('카드 그림 주소', () => {
-    expect(cardUrl(me.encoded)).toBe(`https://mylovecoach.vercel.app/api/kkti-card?a=${me.encoded}`);
-    expect(cardUrl(me.encoded, friend.encoded, 'story')).toBe(`https://mylovecoach.vercel.app/api/kkti-card?a=${me.encoded}&w=${friend.encoded}&s=story`);
-    expect(cardUrl(me.encoded, null, 'square', 'https://kkti.example.com')).toBe(`https://kkti.example.com/api/kkti-card?a=${me.encoded}&s=square`);
+    expect(cardUrl(me.encoded)).toBe(`https://mylovecoach.vercel.app/api/kkti-card?a=${me.encoded}&v=2`);
+    expect(cardUrl(me.encoded, friend.encoded, 'story')).toBe(`https://mylovecoach.vercel.app/api/kkti-card?a=${me.encoded}&w=${friend.encoded}&s=story&v=2`);
+    expect(cardUrl(me.encoded, null, 'square', 'https://kkti.example.com')).toBe(`https://kkti.example.com/api/kkti-card?a=${me.encoded}&s=square&v=2`);
   });
 
   it('전용 주소는 https 주소 모양일 때만 쓴다', () => {
