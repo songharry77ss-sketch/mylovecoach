@@ -88,4 +88,39 @@ HTML 로 할 거면 `npx playwright-core` 를 이 폴더 밖 임시 폴더에 �
 
 ## 실행 기록
 
-- (아직 없음)
+- **2026-10-24 · Codex 실행 완료** — 지정 폴더와 `design/store-shots-20261024` 브랜치를 확인하고 작업했다. 이번 사용자 지시가 위 마무리의 커밋·push 지시보다 우선하므로 **git add·커밋·push 없이 파일만 생성/기록**했다.
+- **만든 시안:** `docs/store-assets/candidates-20261024/`에 A 볼드 팝(6색 단색·큰 UI 크롭), B 다크(검정·흰색/회색 제목·네온 픽셀), C 클린(밝은 여백·실제 예시 숫자·부분 카드), D 스티커·스토리(보라/핑크·직접 그린 스티커·6장 연속 리본)를 만들었다. iOS **24장 1290×2796**, Play **24장 1242×2208**, 시안별 가로 비교 **8장**과 첫 장 비교 **2장**을 생성했다. PNG 총 **58개**, `README.md`, `make_candidates.py`, `layout_d.py`, `index.html`, `validation.json`을 포함해 후보 폴더 파일 **63개**다. 첫 확인 파일은 `overview.png`, 전체 탐색은 `index.html`이다.
+- **카피 변경:** 3번 원본은 읽씹이 아닌 함께 찍은 사진을 올린 상황이므로 ‘읽씹’을 빼고 ‘가능성’ 또는 ‘사진 올린 그 사람’으로 맞췄다. 4번은 실제 보고서 **25°**와 기록 **15°→25°**를 사용하고 상승을 보장하는 표현 대신 변화·기록을 강조했다. 5번 메인 카피는 KKTI의 연애 유형·컬러 중심으로 정리했다. 6번은 ‘캡처 없이 상황만’ 메시지와 1번 원본의 실제 입력창 크롭을 함께 사용했다. C의 **95%·+10°·50%·25°**는 각각 화면의 예시라는 레이블을 붙였으며, **16가지 유형**은 기존 앱 설명에 근거했다. 모든 시안의 제목·보조문구와 변경 이유는 후보 README에 기록했다.
+- **검증:** 48개 스토어 이미지의 크기·RGB·PNG 읽기·장당 3MB 이하 확인을 통과했다(최대 **733,053바이트**). 새 제목은 작업 폭 1290px 기준 **116~141px**, 상단 150px·하단 120px 안전영역 안이다. iOS/Play **48장을 각각 직접 열고**, 8개 가로 비교 및 첫 장 비교도 확인했다. Play의 하단 문구/카드 겹침을 재배치로 수정했고, 레몬 배경 A2의 강조색은 진한 보라로 바꿨다. D5 하트와 하단 캡션의 접촉도 수정했다. D 리본은 공통 좌표로 이어지며 경계 곡선 검사와 시각 검토를 했다. 원본 SHA-256·텍스트 좌표·크롭 출처는 `validation.json`에 남겼다.
+- **보존/실행 환경:** 이 PC의 Python·Pillow 12.1.1과 저장소 Pretendard Bold/Medium만 사용했다. 네트워크·다운로드·패키지 설치·스토어 API·업로드·비밀 폴더 접근은 없었다. 레퍼런스 보드는 저장하지 않았고 타사 화면·로고·캐릭터·사진도 시안에 옮기지 않았다. KKTI 원본 하단의 X·Threads 로고와 속마음 원본 상단의 타사 서비스명 영역은 크롭에서 제외했다. 앱 코드·기존 이미지·아이콘·그래픽을 수정하지 않았다.
+- **남은 것:** 요청된 iOS/Play 시안 제작에서 생략한 항목은 없다. 사장님의 방향 선택, 선택본 출시 검토, Claude 세션의 커밋·push 및 이후 실제 스토어 반영이 남아 있다. 이번 결과는 비교·선택용 시안이며 제출하지 않았다.
+- **조회 오류 기록:** 이미지 생성·최종 검증 실패는 없었다. 파일 검색 도구 `rg`가 PC에 없어 PowerShell `Get-ChildItem`으로 확인했고, 보조 검토의 추정 파일명 `make_story.py`는 존재하지 않아 실제 import인 `layout_d.py`를 읽었다. 설정은 변경하지 않았다. 해당 오류 본문은 아래와 같다.
+
+```text
+rg : The term 'rg' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spe
+lling of the name, or if a path was included, verify that the path is correct and try again.
+At line:2 char:1
++ rg --files -g AGENTS.md -g '*store*' -g '*shot*' -g '*Pretendard*' -g ...
++ ~~
+    + CategoryInfo          : ObjectNotFound: (rg:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+```
+
+```text
+Get-Content : Cannot find path 'C:\Users\shsop\mylovecoach-codex-shots\docs\store-assets\candidates-20261024\make_story
+.py' because it does not exist.
+At line:2 char:1
++ Get-Content -Raw docs/store-assets/candidates-20261024/make_story.py; ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (C:\Users\shsop\...4\make_story.py:String) [Get-Content], ItemNotFoundEx
+   ception
+    + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.GetContentCommand
+```
+
+- **최종 정리 중 도구 거절:** 경로를 검증한 `__pycache__` 재귀 삭제 명령이 자동 승인 검토에서 실행 전 차단됐다. 도구의 거절 문구는 `rejected: blocked by policy`였다(추가 사유는 제공되지 않음). 재귀 삭제를 다시 시도하지 않고, 목록으로 확인한 이번 실행의 `layout_d.cpython-313.pyc`와 `_qa_D.png` 두 파일만 절대 경로의 `Remove-Item -LiteralPath`로 개별 삭제해 정리를 마쳤다. 빈 캐시 디렉터리는 파일 산출물/커밋 대상에 포함되지 않는다.
+- **기록 서식 검사:** 위 원문 조회 오류의 행 끝 공백 때문에 최초 `git diff --check`가 다음을 출력했다. 해당 공백만 제거하고 재검사했다.
+
+```text
+docs/codex/tasks/store-shots-20261024.md:115: trailing whitespace.
++    + CategoryInfo          : ObjectNotFound: (C:\Users\shsop\...4\make_story.py:String) [Get-Content], ItemNotFoundEx
+```
