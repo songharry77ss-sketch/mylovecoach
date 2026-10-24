@@ -1,16 +1,18 @@
 /**
- * 결제 흐름 텔레그램 알림 — 결제 화면 열림·앱 받기 누름·결제창 진입·결제 결과(완료·취소·오류·대기).
+ * 결제 흐름·KKTI 텔레그램 알림 — 결제 화면 열림·앱 받기 누름·결제창 진입·결제 결과(완료·취소·오류·대기), KKTI 검사 완료(같은 묶음의 결과 공유는 한 줄로).
  * /api/track 이 이용 기록을 저장한 뒤 부른다 (저장 조건을 통과한 기록만 — 만 14세 미만·처리 정지 기기·수집 판 미달은 여기까지 오지 않음).
  *
  * 한 번 받은 묶음(앱은 8초마다 모아 보냄)에서 알릴 이벤트를 모아 기기당 메시지 한 통으로 보낸다.
- * 결제 화면만 연 것(결제 시도 없음)은 같은 기기에서 10분에 한 번만 알린다. 결제창 진입·결과는 늘 알린다.
+ * 결제 화면만 연 것(결제 시도 없음)·KKTI 검사 완료는 같은 기기에서 각각 10분에 한 번만 알린다(다시 해 보기 도배 방지). 결제창 진입·결과는 늘 알린다.
  * 스토어가 확인한 실제 결제는 따로 /api/store-apple·store-google 이 알린다 (여기는 앱이 보고한 결과).
  *
- * 환경변수 FUNNEL_ALERTS: 'off' 면 보내지 않음, 'purchase' 면 결제창 진입·결과만(결제 화면 열림·앱 받기 제외). 없으면 전부.
+ * 환경변수 FUNNEL_ALERTS: 'off' 면 보내지 않음, 'purchase' 면 결제창 진입·결과만(결제 화면 열림·앱 받기·KKTI 제외). 없으면 전부.
+ * 환경변수 KKTI_ALERTS: 'off' 면 KKTI 알림만 끈다.
  * 이용자가 적은 값(닉네임·이메일·유입 경로·오류 문구)은 escapeHtml 로 감싼다.
  */
+import { kktiType } from '../src/lib/kkti';
 import { countRows, query } from './_supabase';
-import { escapeHtml, notifyTelegram, telegramReady } from './_telegram';
+import { escapeHtml, kstMidnight, notifyTelegram, telegramReady } from './_telegram';
 
 export interface AlertEvent {
   name: string;
@@ -52,11 +54,28 @@ const RANK: Record<string, number> = {
   purchase_error: 7,
   purchase_purchased: 8,
   purchase_granted: 8,
+  kkti_complete: 3,
+  kkti_share: 1,
+  kkti_open_shared: 1,
 };
 /** 결제창 진입·결과 — 쿨다운 없이 늘 알림 */
 const PURCHASE_EVENTS = new Set(['purchase_start', 'purchase_cancelled', 'purchase_pending', 'purchase_error', 'purchase_purchased', 'purchase_granted']);
-/** 이것만 있으면(결제 화면 닫기) 알리지 않는다 — 다른 알림에 한 줄로만 붙인다 */
-const TAIL_ONLY = new Set(['paywall_close']);
+/** 이것만 있으면(결제 화면 닫기·KKTI 공유·친구 링크로 들어옴) 알리지 않는다 — 다른 알림에 한 줄로만 붙인다 */
+const TAIL_ONLY = new Set(['paywall_close', 'kkti_share', 'kkti_open_shared']);
+const KKTI_EVENTS = new Set(['kkti_complete', 'kkti_share', 'kkti_open_shared']);
+
+/** KKTI 결과 공유 방법 (src/app/kkti/result.tsx 의 channel) */
+const SHARE_LABELS: Record<string, string> = {
+  kakao: '카카오톡',
+  instagram: '인스타그램',
+  link: '링크 복사',
+  copy: '링크 복사',
+  x: 'X',
+  threads: '스레드',
+  web_share: '공유 창',
+  system: '공유 창',
+  image: '이미지 저장',
+};
 
 export const PAYWALL_COOLDOWN_MS = 10 * 60 * 1000;
 /** 한 서버 인스턴스가 한 시간에 보내는 알림 상한 (가짜 기기 ID 로 대화방을 도배하지 못하게) */
@@ -84,6 +103,16 @@ export function eventLine(e: AlertEvent): string | null {
       return `⏳ 결제 승인 대기 · ${planText(p)}`;
     case 'purchase_error':
       return `⚠️ 결제 오류 · ${planText(p)}${p?.message ? ` · ${text(p.message, 100)}` : ''}`;
+    case 'kkti_complete': {
+      const code = String(p?.code ?? '');
+      const type = kktiType(code);
+      const label = type ? `${type.emoji} ${type.code} ${type.name}` : code ? text(code, 12) : '유형 모름';
+      return `🧪 KKTI 검사 완료 · ${label}${p?.via === 'friend' ? ' · 친구가 보낸 링크로' : ''}`;
+    }
+    case 'kkti_share':
+      return `📤 KKTI 결과 공유 · ${SHARE_LABELS[String(p?.channel ?? '')] ?? (p?.channel ? text(p.channel, 20) : '방법 모름')}${p?.match === true ? ' (궁합)' : ''}`;
+    case 'kkti_open_shared':
+      return `🔗 친구가 공유한 KKTI 결과로 들어옴${p?.pair === true ? ' (궁합 링크)' : ''}`;
     case 'paywall_close': {
       const sec = typeof p?.sec === 'number' ? `${Math.round(p.sec)}초` : '';
       return `🚪 결제 없이 닫음${sec ? ` · ${sec} 머묾` : ''}${p?.picked === true ? ' · 상품을 직접 골라 봄' : ''}`;
@@ -94,10 +123,14 @@ export function eventLine(e: AlertEvent): string | null {
 }
 
 /** 이 묶음에서 알릴 이벤트만 (모드·닫기만 있는 경우 반영) */
-export function alertEvents(events: AlertEvent[], mode: string | undefined = process.env.FUNNEL_ALERTS): AlertEvent[] {
+export function alertEvents(events: AlertEvent[], mode: string | undefined = process.env.FUNNEL_ALERTS, kktiMode: string | undefined = process.env.KKTI_ALERTS): AlertEvent[] {
   const m = (mode ?? '').trim().toLowerCase();
   if (m === 'off' || m === '0' || m === 'false') return [];
-  const picked = events.filter((e) => RANK[e.name] && (m !== 'purchase' || PURCHASE_EVENTS.has(e.name) || TAIL_ONLY.has(e.name)));
+  const k = (kktiMode ?? '').trim().toLowerCase();
+  const kktiOff = k === 'off' || k === '0' || k === 'false' || m === 'purchase';
+  const picked = events.filter(
+    (e) => RANK[e.name] && !(kktiOff && KKTI_EVENTS.has(e.name)) && (m !== 'purchase' || PURCHASE_EVENTS.has(e.name) || TAIL_ONLY.has(e.name)),
+  );
   return picked.some((e) => !TAIL_ONLY.has(e.name)) ? picked : [];
 }
 
@@ -109,6 +142,8 @@ export interface AlertContext {
   source: string | null;
   coachCount: number | null;
   paywallOpens: number | null;
+  /** 오늘(한국 시간) KKTI 검사 완료 수 — KKTI 알림일 때만 */
+  kktiToday?: number | null;
 }
 
 /** 텔레그램 메시지 (HTML) */
@@ -122,14 +157,17 @@ export function funnelMessage(events: AlertEvent[], ctx: AlertContext): string {
         ? '⚠️ 결제 오류'
         : top?.name && PURCHASE_EVENTS.has(top.name)
           ? '🛒 결제 진행'
-          : top?.name === 'app_download_click'
-            ? '📲 웹에서 앱 받기'
-            : '👀 결제 화면 열림';
+          : events.some((e) => e.name === 'kkti_complete')
+            ? '🧪 KKTI 검사 완료'
+            : top?.name === 'app_download_click'
+              ? '📲 웹에서 앱 받기'
+              : '👀 결제 화면 열림';
   const who = ctx.member
     ? `👤 ${text(ctx.member.nickname ?? '(닉네임 없음)', 40)} · ${text(ctx.member.email ?? '(이메일 없음)', 80)}${ctx.member.provider ? ` (${PROVIDER_LABELS[ctx.member.provider] ?? text(ctx.member.provider, 16)})` : ''}`
     : '👤 비회원';
   const device = [ctx.platform ? (PLATFORM_LABELS[ctx.platform] ?? text(ctx.platform, 16)) : '기기 모름', ctx.appVersion ? text(ctx.appVersion, 16) : null].filter(Boolean).join(' ');
   const stats = [
+    ctx.kktiToday != null ? `KKTI 오늘 ${ctx.kktiToday}번째` : null,
     ctx.coachCount != null ? `코칭 ${ctx.coachCount}회` : null,
     ctx.paywallOpens != null ? `결제 화면 ${ctx.paywallOpens}번째` : null,
     ctx.premiumPlan ? `이용 중: ${PLAN_LABELS[ctx.premiumPlan] ?? text(ctx.premiumPlan, 24)}` : null,
@@ -160,11 +198,13 @@ export function shouldAlert(deviceId: string, events: AlertEvent[], now = Date.n
   }
   if (sentThisHour >= HOURLY_CAP) return false;
   const purchase = events.some((e) => PURCHASE_EVENTS.has(e.name));
+  // 결제 화면과 KKTI 는 따로 센다 (KKTI 를 하고 바로 결제 화면을 열어도 둘 다 알림)
+  const key = `${deviceId}:${events.some((e) => e.name === 'kkti_complete') ? 'kkti' : 'paywall'}`;
   if (!purchase) {
-    const last = lastPaywallAlert.get(deviceId);
+    const last = lastPaywallAlert.get(key);
     if (last != null && now - last < PAYWALL_COOLDOWN_MS) return false;
   }
-  lastPaywallAlert.set(deviceId, now);
+  lastPaywallAlert.set(key, now);
   if (lastPaywallAlert.size > 2000) lastPaywallAlert.delete(lastPaywallAlert.keys().next().value as string);
   sentThisHour += 1;
   return true;
@@ -177,12 +217,17 @@ interface UserRow {
 }
 
 /** 알림에 붙일 회원·유입·횟수를 모은다. 못 읽은 값은 비워 둔다 */
-async function loadContext(deviceId: string, base: Pick<AlertContext, 'platform' | 'appVersion' | 'premiumPlan'> & { source: string | null }): Promise<AlertContext> {
+async function loadContext(
+  deviceId: string,
+  base: Pick<AlertContext, 'platform' | 'appVersion' | 'premiumPlan'> & { source: string | null },
+  kkti: boolean,
+): Promise<AlertContext> {
   const device = `device_id=eq.${encodeURIComponent(deviceId)}`;
-  const [users, coachCount, paywallOpens] = await Promise.all([
+  const [users, coachCount, paywallOpens, kktiToday] = await Promise.all([
     query<UserRow>('app_user', `select=user_id,source,source_detail&${device}&limit=1`),
     countRows('app_event', `${device}&name=eq.coach_success`),
     countRows('app_event', `${device}&name=eq.paywall_open`),
+    kkti ? countRows('app_event', `name=eq.kkti_complete&created_at=gte.${encodeURIComponent(kstMidnight().toISOString())}`) : Promise.resolve(undefined),
   ]);
   const user = users?.[0] ?? null;
   const members = user?.user_id
@@ -191,7 +236,7 @@ async function loadContext(deviceId: string, base: Pick<AlertContext, 'platform'
   const detail = user?.source_detail ?? {};
   const extra = [detail.medium, detail.campaign].filter((v): v is string => typeof v === 'string' && Boolean(v.trim()));
   const recorded = user?.source ? [user.source, ...extra.filter((v) => v !== user.source)].join(' · ') : null;
-  return { ...base, source: recorded ?? base.source, member: members?.[0] ?? null, coachCount, paywallOpens };
+  return { ...base, source: recorded ?? base.source, member: members?.[0] ?? null, coachCount, paywallOpens, ...(kktiToday !== undefined ? { kktiToday } : {}) };
 }
 
 /**
@@ -209,7 +254,7 @@ export async function alertFunnel(
   if (!shouldAlert(deviceId, picked)) return false;
   const work = (async () => {
     try {
-      return await notifyTelegram(funnelMessage(picked, await loadContext(deviceId, base)));
+      return await notifyTelegram(funnelMessage(picked, await loadContext(deviceId, base, picked.some((e) => e.name === 'kkti_complete'))));
     } catch (e) {
       console.warn('[funnel-alert] 실패:', e instanceof Error ? e.name : 'unknown');
       return false;

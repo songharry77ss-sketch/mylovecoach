@@ -104,6 +104,36 @@ describe('쿨다운·상한', () => {
   });
 });
 
+describe('KKTI 검사 완료 알림', () => {
+  const done = { name: 'kkti_complete', props: { code: '선빠폭직', via: 'friend' } };
+  const share = { name: 'kkti_share', props: { channel: 'kakao', match: true } };
+
+  it('유형 이름·친구 링크·같은 묶음의 공유를 한 통에', () => {
+    const text = funnelMessage([done, share], ctx({ kktiToday: 7, coachCount: null, paywallOpens: null }));
+    expect(text.split('\n')[0]).toBe('🧪 KKTI 검사 완료');
+    expect(text).toContain('🧪 KKTI 검사 완료 · 🚜 선빠폭직 직진 불도저 · 친구가 보낸 링크로');
+    expect(text).toContain('📤 KKTI 결과 공유 · 카카오톡 (궁합)');
+    expect(text).toContain('📊 KKTI 오늘 7번째');
+  });
+
+  it('모르는 유형 코드는 escape 해서 그대로, 공유만 있는 묶음은 알리지 않는다', () => {
+    expect(eventLine({ name: 'kkti_complete', props: { code: '<b>' } })).toBe('🧪 KKTI 검사 완료 · &lt;b&gt;');
+    expect(alertEvents([share])).toEqual([]);
+    expect(alertEvents([{ name: 'kkti_open_shared', props: { pair: true } }])).toEqual([]);
+  });
+
+  it('KKTI_ALERTS=off 나 FUNNEL_ALERTS=purchase 면 KKTI 는 빼고, 결제와는 따로 쿨다운', () => {
+    expect(alertEvents([done], undefined, 'off')).toEqual([]);
+    expect(alertEvents([done], 'purchase')).toEqual([]);
+    expect(alertEvents([done, { name: 'paywall_open', props: { reason: 'my' } }], undefined, 'off')).toEqual([{ name: 'paywall_open', props: { reason: 'my' } }]);
+    const t = 1_900_000_000_000;
+    expect(shouldAlert('d_k', [done], t)).toBe(true);
+    expect(shouldAlert('d_k', [done], t + 60_000)).toBe(false);
+    // KKTI 바로 뒤에 결제 화면을 열어도 알린다
+    expect(shouldAlert('d_k', [{ name: 'paywall_open', props: { reason: 'my' } }], t + 61_000)).toBe(true);
+  });
+});
+
 describe('/api/track 연동', () => {
   const calls: { url: string; method: string; body?: string }[] = [];
   let ip = 0;
@@ -178,6 +208,17 @@ describe('/api/track 연동', () => {
     await handler(req(body([{ type: 'event', name: 'purchase_start', props: { plan: 'day' } }], { consentVersion: null })), res() as never);
     await handler(req(body([{ type: 'event', name: 'purchase_start', props: { plan: 'day' } }], { user: { age: 12 } })), res() as never);
     expect(telegramBodies()).toHaveLength(0);
+  });
+
+  it('KKTI 검사 완료도 저장한 뒤 회원·유입·오늘 몇 번째를 붙여 보낸다', async () => {
+    await handler(req(body([{ type: 'event', name: 'kkti_complete', props: { code: '후빠폭직', via: 'direct' } }], { platform: 'web' })), res() as never);
+    const sent = telegramBodies();
+    expect(sent).toHaveLength(1);
+    expect(sent[0].split('\n')[0]).toBe('🧪 KKTI 검사 완료');
+    expect(sent[0]).toContain('후빠폭직');
+    expect(sent[0]).toContain('👤 민지 · m@j.kr (Google)');
+    expect(sent[0]).toContain('KKTI 오늘 5번째');
+    expect(calls.some((c) => c.url.includes('name=eq.kkti_complete&created_at=gte.'))).toBe(true);
   });
 
   it('텔레그램을 설정하지 않았으면 아무것도 읽지 않는다', async () => {
