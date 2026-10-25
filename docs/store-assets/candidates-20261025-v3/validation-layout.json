@@ -1,0 +1,4689 @@
+{
+  "generatedAt": "2026-10-25T03:53:06.214Z",
+  "coordinateSystem": "1290px-wide stage; CSS transforms removed from recorded stage bounds",
+  "requirements": {
+    "minimumHeadingFontSize": 130,
+    "safeTop": 150,
+    "safeBottom": 120,
+    "expectedPhoneCounts": [
+      1,
+      0,
+      0,
+      2,
+      0,
+      0
+    ]
+  },
+  "notes": [
+    "Overlaps are intentional design choices and are recorded without an overlap failure."
+  ],
+  "checks": [
+    {
+      "slide": 1,
+      "format": "ios",
+      "viewport": {
+        "width": 1290,
+        "height": 2796
+      },
+      "failures": [],
+      "stage": {
+        "width": 1290,
+        "height": 2796,
+        "scaleX": 1,
+        "scaleY": 1,
+        "viewportBounds": {
+          "left": 0,
+          "top": 0,
+          "right": 1290,
+          "bottom": 2796
+        }
+      },
+      "fonts": {
+        "status": "loaded",
+        "pretendardBoldReady": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "headings": [
+        {
+          "tag": "h1",
+          "id": null,
+          "class": null,
+          "safe": null,
+          "text": "뭐라고 답장하지?캡처 한 장이면 끝",
+          "visible": true,
+          "bounds": {
+            "left": 75,
+            "top": 280,
+            "right": 1260,
+            "bottom": 593.59,
+            "width": 1185,
+            "height": 313.59
+          },
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": 140,
+          "textFragments": [
+            {
+              "text": "뭐라고 답장하지?",
+              "bounds": {
+                "left": 75,
+                "top": 274,
+                "right": 962.08,
+                "bottom": 441,
+                "width": 887.08,
+                "height": 167
+              }
+            },
+            {
+              "text": "캡처 한 장",
+              "bounds": {
+                "left": 75,
+                "top": 430.8,
+                "right": 578.52,
+                "bottom": 597.8,
+                "width": 503.52,
+                "height": 167
+              }
+            },
+            {
+              "text": "이면 끝",
+              "bounds": {
+                "left": 578.52,
+                "top": 430.8,
+                "right": 943.78,
+                "bottom": 597.8,
+                "width": 365.27,
+                "height": 167
+              }
+            }
+          ]
+        }
+      ],
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "alt": "실제 앱 원본 화면",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025-v3/_photos/01-point-woman-cutout.png",
+          "alt": "AI로 생성한 가상 한국인 성인 스튜디오 사진",
+          "complete": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        }
+      ],
+      "safeElements": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "brand",
+          "safe": "",
+          "text": "나만의 연애코치",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 166,
+            "right": 366.09,
+            "bottom": 210,
+            "width": 286.09,
+            "height": 44
+          }
+        },
+        {
+          "tag": "header",
+          "id": null,
+          "class": null,
+          "safe": "",
+          "text": "뭐라고 답장하지?캡처 한 장이면 끝호칭·말투 그대로, 답장 3가지",
+          "visible": true,
+          "bounds": {
+            "left": 75,
+            "top": 280,
+            "right": 1260,
+            "bottom": 683.64,
+            "width": 1185,
+            "height": 403.64
+          }
+        },
+        {
+          "tag": "footer",
+          "id": null,
+          "class": "footer",
+          "safe": "",
+          "text": "실제 앱 화면 · 코칭 예시01 / 06",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 2608.31,
+            "right": 1210,
+            "bottom": 2646,
+            "width": 1130,
+            "height": 37.69
+          }
+        }
+      ],
+      "phoneCount": 1,
+      "phoneElements": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed phone",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 390.39,
+            "top": 710.42,
+            "right": 1294.61,
+            "bottom": 2218.21,
+            "width": 904.21,
+            "height": 1507.79
+          }
+        }
+      ],
+      "bounds": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "brand",
+          "safe": "",
+          "text": "나만의 연애코치",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 166,
+            "right": 366.09,
+            "bottom": 210,
+            "width": 286.09,
+            "height": 44
+          }
+        },
+        {
+          "tag": "header",
+          "id": null,
+          "class": null,
+          "safe": "",
+          "text": "뭐라고 답장하지?캡처 한 장이면 끝호칭·말투 그대로, 답장 3가지",
+          "visible": true,
+          "bounds": {
+            "left": 75,
+            "top": 280,
+            "right": 1260,
+            "bottom": 683.64,
+            "width": 1185,
+            "height": 403.64
+          }
+        },
+        {
+          "tag": "h1",
+          "id": null,
+          "class": null,
+          "safe": null,
+          "text": "뭐라고 답장하지?캡처 한 장이면 끝",
+          "visible": true,
+          "bounds": {
+            "left": 75,
+            "top": 280,
+            "right": 1260,
+            "bottom": 593.59,
+            "width": 1185,
+            "height": 313.59
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed phone",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 390.39,
+            "top": 710.42,
+            "right": 1294.61,
+            "bottom": 2218.21,
+            "width": 904.21,
+            "height": 1507.79
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed portrait cutout",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": -125.87,
+            "top": 1096.62,
+            "right": 875.87,
+            "bottom": 2538.38,
+            "width": 1001.73,
+            "height": 1441.76
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed feature",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 291.68,
+            "top": 1954.83,
+            "right": 1228.32,
+            "bottom": 2538.06,
+            "width": 936.65,
+            "height": 583.22
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker star",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 985.76,
+            "top": 660.76,
+            "right": 1234.24,
+            "bottom": 909.24,
+            "width": 248.48,
+            "height": 248.48
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker heart",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 875,
+            "top": 1470,
+            "right": 1130,
+            "bottom": 1725,
+            "width": 255,
+            "height": 255
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker chat",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 56.24,
+            "top": 758.24,
+            "right": 338.76,
+            "bottom": 1026.32,
+            "width": 282.53,
+            "height": 268.07
+          }
+        },
+        {
+          "tag": "footer",
+          "id": null,
+          "class": "footer",
+          "safe": "",
+          "text": "실제 앱 화면 · 코칭 예시01 / 06",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 2608.31,
+            "right": 1210,
+            "bottom": 2646,
+            "width": 1130,
+            "height": 37.69
+          }
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestErrors": [],
+      "passed": true
+    },
+    {
+      "slide": 2,
+      "format": "ios",
+      "viewport": {
+        "width": 1290,
+        "height": 2796
+      },
+      "failures": [],
+      "stage": {
+        "width": 1290,
+        "height": 2796,
+        "scaleX": 1,
+        "scaleY": 1,
+        "viewportBounds": {
+          "left": 0,
+          "top": 0,
+          "right": 1290,
+          "bottom": 2796
+        }
+      },
+      "fonts": {
+        "status": "loaded",
+        "pretendardBoldReady": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "headings": [
+        {
+          "tag": "h1",
+          "id": null,
+          "class": null,
+          "safe": null,
+          "text": "실전 전에AI랑 카톡 연습",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 280,
+            "right": 1235,
+            "bottom": 593.59,
+            "width": 1180,
+            "height": 313.59
+          },
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": 140,
+          "textFragments": [
+            {
+              "text": "실전 전에",
+              "bounds": {
+                "left": 405.63,
+                "top": 274,
+                "right": 884.38,
+                "bottom": 441,
+                "width": 478.75,
+                "height": 167
+              }
+            },
+            {
+              "text": "AI랑",
+              "bounds": {
+                "left": 275.16,
+                "top": 430.8,
+                "right": 536.09,
+                "bottom": 597.8,
+                "width": 260.94,
+                "height": 167
+              }
+            },
+            {
+              "text": "카톡 연습",
+              "bounds": {
+                "left": 536.09,
+                "top": 430.8,
+                "right": 1014.84,
+                "bottom": 597.8,
+                "width": 478.75,
+                "height": 167
+              }
+            }
+          ]
+        }
+      ],
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/05-studio-woman.png",
+          "alt": "AI로 생성한 가상 한국인 성인 스튜디오 사진",
+          "complete": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025-v3/_photos/02-heart-man.png",
+          "alt": "AI로 생성한 가상 한국인 성인 스튜디오 사진",
+          "complete": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        }
+      ],
+      "safeElements": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "brand",
+          "safe": "",
+          "text": "나만의 연애코치",
+          "visible": true,
+          "bounds": {
+            "left": 501.95,
+            "top": 166,
+            "right": 788.05,
+            "bottom": 210,
+            "width": 286.09,
+            "height": 44
+          }
+        },
+        {
+          "tag": "header",
+          "id": null,
+          "class": null,
+          "safe": "",
+          "text": "실전 전에AI랑 카톡 연습보낼 때마다 코치가 바로 피드백",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 280,
+            "right": 1235,
+            "bottom": 683.64,
+            "width": 1180,
+            "height": 403.64
+          }
+        },
+        {
+          "tag": "footer",
+          "id": null,
+          "class": "footer",
+          "safe": "",
+          "text": "실제 앱 화면 · 코칭 예시02 / 06",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 2608.31,
+            "right": 1210,
+            "bottom": 2646,
+            "width": 1130,
+            "height": 37.69
+          }
+        }
+      ],
+      "phoneCount": 0,
+      "phoneElements": [],
+      "bounds": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "brand",
+          "safe": "",
+          "text": "나만의 연애코치",
+          "visible": true,
+          "bounds": {
+            "left": 501.95,
+            "top": 166,
+            "right": 788.05,
+            "bottom": 210,
+            "width": 286.09,
+            "height": 44
+          }
+        },
+        {
+          "tag": "header",
+          "id": null,
+          "class": null,
+          "safe": "",
+          "text": "실전 전에AI랑 카톡 연습보낼 때마다 코치가 바로 피드백",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 280,
+            "right": 1235,
+            "bottom": 683.64,
+            "width": 1180,
+            "height": 403.64
+          }
+        },
+        {
+          "tag": "h1",
+          "id": null,
+          "class": null,
+          "safe": null,
+          "text": "실전 전에AI랑 카톡 연습",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 280,
+            "right": 1235,
+            "bottom": 593.59,
+            "width": 1180,
+            "height": 313.59
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed portrait round",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 34.15,
+            "top": 769.15,
+            "right": 265.85,
+            "bottom": 1000.85,
+            "width": 231.69,
+            "height": 231.69
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed bubble",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 257.95,
+            "top": 837.67,
+            "right": 1207.05,
+            "bottom": 1137.22,
+            "width": 949.11,
+            "height": 299.54
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed portrait round",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 1019.15,
+            "top": 1234.15,
+            "right": 1250.85,
+            "bottom": 1465.85,
+            "width": 231.69,
+            "height": 231.69
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed bubble",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 61.18,
+            "top": 1295.4,
+            "right": 1074.82,
+            "bottom": 1594.94,
+            "width": 1013.63,
+            "height": 299.54
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed bubble feedback",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 145.52,
+            "top": 1573.58,
+            "right": 1204.48,
+            "bottom": 1811.67,
+            "width": 1058.97,
+            "height": 238.09
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed bubble",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 247.31,
+            "top": 1865.97,
+            "right": 1052.69,
+            "bottom": 2144.92,
+            "width": 805.37,
+            "height": 278.94
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker star",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 850.81,
+            "top": 2205.81,
+            "right": 1159.19,
+            "bottom": 2514.19,
+            "width": 308.38,
+            "height": 308.38
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker heart",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 46.14,
+            "top": 1796.14,
+            "right": 228.86,
+            "bottom": 1978.86,
+            "width": 182.71,
+            "height": 182.71
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker chat",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 1007.4,
+            "top": 685.9,
+            "right": 1182.6,
+            "bottom": 851.05,
+            "width": 175.2,
+            "height": 165.15
+          }
+        },
+        {
+          "tag": "footer",
+          "id": null,
+          "class": "footer",
+          "safe": "",
+          "text": "실제 앱 화면 · 코칭 예시02 / 06",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 2608.31,
+            "right": 1210,
+            "bottom": 2646,
+            "width": 1130,
+            "height": 37.69
+          }
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestErrors": [],
+      "passed": true
+    },
+    {
+      "slide": 3,
+      "format": "ios",
+      "viewport": {
+        "width": 1290,
+        "height": 2796
+      },
+      "failures": [],
+      "stage": {
+        "width": 1290,
+        "height": 2796,
+        "scaleX": 1,
+        "scaleY": 1,
+        "viewportBounds": {
+          "left": 0,
+          "top": 0,
+          "right": 1290,
+          "bottom": 2796
+        }
+      },
+      "fonts": {
+        "status": "loaded",
+        "pretendardBoldReady": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "headings": [
+        {
+          "tag": "h1",
+          "id": null,
+          "class": null,
+          "safe": null,
+          "text": "그 사람 속마음가능성은 몇 %?",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 2092.36,
+            "right": 1235,
+            "bottom": 2405.95,
+            "width": 1180,
+            "height": 313.59
+          },
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": 140,
+          "textFragments": [
+            {
+              "text": "그 사람 속마음",
+              "bounds": {
+                "left": 279.73,
+                "top": 2086.36,
+                "right": 1010.25,
+                "bottom": 2253.36,
+                "width": 730.52,
+                "height": 167
+              }
+            },
+            {
+              "text": "가능성은",
+              "bounds": {
+                "left": 239.13,
+                "top": 2243.16,
+                "right": 717.88,
+                "bottom": 2410.16,
+                "width": 478.75,
+                "height": 167
+              }
+            },
+            {
+              "text": "몇 %?",
+              "bounds": {
+                "left": 717.88,
+                "top": 2243.16,
+                "right": 1050.88,
+                "bottom": 2410.16,
+                "width": 333,
+                "height": 167
+              }
+            }
+          ]
+        }
+      ],
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025-v3/_photos/03-think-woman.png",
+          "alt": "AI로 생성한 가상 한국인 성인 스튜디오 사진",
+          "complete": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        }
+      ],
+      "safeElements": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "brand",
+          "safe": "",
+          "text": "나만의 연애코치",
+          "visible": true,
+          "bounds": {
+            "left": 501.95,
+            "top": 166,
+            "right": 788.05,
+            "bottom": 210,
+            "width": 286.09,
+            "height": 44
+          }
+        },
+        {
+          "tag": "header",
+          "id": null,
+          "class": null,
+          "safe": "",
+          "text": "그 사람 속마음가능성은 몇 %?하나의 상황을 여러 가능성으로",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 2092.36,
+            "right": 1235,
+            "bottom": 2496,
+            "width": 1180,
+            "height": 403.64
+          }
+        },
+        {
+          "tag": "footer",
+          "id": null,
+          "class": "footer",
+          "safe": "",
+          "text": "실제 앱 화면 · 코칭 예시03 / 06",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 2608.31,
+            "right": 1210,
+            "bottom": 2646,
+            "width": 1130,
+            "height": 37.69
+          }
+        }
+      ],
+      "phoneCount": 0,
+      "phoneElements": [],
+      "bounds": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "brand",
+          "safe": "",
+          "text": "나만의 연애코치",
+          "visible": true,
+          "bounds": {
+            "left": 501.95,
+            "top": 166,
+            "right": 788.05,
+            "bottom": 210,
+            "width": 286.09,
+            "height": 44
+          }
+        },
+        {
+          "tag": "header",
+          "id": null,
+          "class": null,
+          "safe": "",
+          "text": "그 사람 속마음가능성은 몇 %?하나의 상황을 여러 가능성으로",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 2092.36,
+            "right": 1235,
+            "bottom": 2496,
+            "width": 1180,
+            "height": 403.64
+          }
+        },
+        {
+          "tag": "h1",
+          "id": null,
+          "class": null,
+          "safe": null,
+          "text": "그 사람 속마음가능성은 몇 %?",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 2092.36,
+            "right": 1235,
+            "bottom": 2405.95,
+            "width": 1180,
+            "height": 313.59
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed portrait thought",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 822.74,
+            "top": 331.97,
+            "right": 1222.26,
+            "bottom": 722.68,
+            "width": 399.51,
+            "height": 390.71
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed number",
+          "safe": null,
+          "text": "50%",
+          "visible": true,
+          "bounds": {
+            "left": 59.08,
+            "top": 536.58,
+            "right": 1050.92,
+            "bottom": 1083.42,
+            "width": 991.83,
+            "height": 546.84
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed feature",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 65.39,
+            "top": 1050.83,
+            "right": 1194.61,
+            "bottom": 1314.6,
+            "width": 1129.22,
+            "height": 263.77
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed feature",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 70.78,
+            "top": 1296.2,
+            "right": 1149.22,
+            "bottom": 1579.27,
+            "width": 1078.44,
+            "height": 283.07
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed feature",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 138.97,
+            "top": 1590.76,
+            "right": 1201.03,
+            "bottom": 1736.27,
+            "width": 1062.06,
+            "height": 145.51
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed feature",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 85.73,
+            "top": 1765.3,
+            "right": 1164.27,
+            "bottom": 2030.16,
+            "width": 1078.53,
+            "height": 264.86
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker star",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 36.06,
+            "top": 366.06,
+            "right": 263.94,
+            "bottom": 593.94,
+            "width": 227.87,
+            "height": 227.87
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker heart",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 1079.61,
+            "top": 1044.61,
+            "right": 1255.39,
+            "bottom": 1220.39,
+            "width": 175.77,
+            "height": 175.77
+          }
+        },
+        {
+          "tag": "footer",
+          "id": null,
+          "class": "footer",
+          "safe": "",
+          "text": "실제 앱 화면 · 코칭 예시03 / 06",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 2608.31,
+            "right": 1210,
+            "bottom": 2646,
+            "width": 1130,
+            "height": 37.69
+          }
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestErrors": [],
+      "passed": true
+    },
+    {
+      "slide": 4,
+      "format": "ios",
+      "viewport": {
+        "width": 1290,
+        "height": 2796
+      },
+      "failures": [],
+      "stage": {
+        "width": 1290,
+        "height": 2796,
+        "scaleX": 1,
+        "scaleY": 1,
+        "viewportBounds": {
+          "left": 0,
+          "top": 0,
+          "right": 1290,
+          "bottom": 2796
+        }
+      },
+      "fonts": {
+        "status": "loaded",
+        "pretendardBoldReady": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "headings": [
+        {
+          "tag": "h1",
+          "id": null,
+          "class": null,
+          "safe": null,
+          "text": "대화 속에 담긴우리 호감 온도",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 280,
+            "right": 1235,
+            "bottom": 593.59,
+            "width": 1180,
+            "height": 313.59
+          },
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": 140,
+          "textFragments": [
+            {
+              "text": "대화 속에 담긴",
+              "bounds": {
+                "left": 279.73,
+                "top": 274,
+                "right": 1010.25,
+                "bottom": 441,
+                "width": 730.52,
+                "height": 167
+              }
+            },
+            {
+              "text": "우리",
+              "bounds": {
+                "left": 279.73,
+                "top": 430.8,
+                "right": 531.5,
+                "bottom": 597.8,
+                "width": 251.77,
+                "height": 167
+              }
+            },
+            {
+              "text": "호감 온도",
+              "bounds": {
+                "left": 531.5,
+                "top": 430.8,
+                "right": 1010.25,
+                "bottom": 597.8,
+                "width": 478.75,
+                "height": 167
+              }
+            }
+          ]
+        }
+      ],
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "alt": "실제 앱 원본 화면",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        }
+      ],
+      "safeElements": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "brand",
+          "safe": "",
+          "text": "나만의 연애코치",
+          "visible": true,
+          "bounds": {
+            "left": 501.95,
+            "top": 166,
+            "right": 788.05,
+            "bottom": 210,
+            "width": 286.09,
+            "height": 44
+          }
+        },
+        {
+          "tag": "header",
+          "id": null,
+          "class": null,
+          "safe": "",
+          "text": "대화 속에 담긴우리 호감 온도온도 변화부터 상대 분석 보고서까지",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 280,
+            "right": 1235,
+            "bottom": 683.64,
+            "width": 1180,
+            "height": 403.64
+          }
+        },
+        {
+          "tag": "footer",
+          "id": null,
+          "class": "footer",
+          "safe": "",
+          "text": "실제 앱 화면 · 코칭 예시04 / 06",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 2608.31,
+            "right": 1210,
+            "bottom": 2646,
+            "width": 1130,
+            "height": 37.69
+          }
+        }
+      ],
+      "phoneCount": 2,
+      "phoneElements": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed phone",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": -35.19,
+            "top": 1096.42,
+            "right": 725.19,
+            "bottom": 2321.27,
+            "width": 760.38,
+            "height": 1224.85
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed phone",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 565.01,
+            "top": 1074.55,
+            "right": 1294.99,
+            "bottom": 2177.45,
+            "width": 729.97,
+            "height": 1102.9
+          }
+        }
+      ],
+      "bounds": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "brand",
+          "safe": "",
+          "text": "나만의 연애코치",
+          "visible": true,
+          "bounds": {
+            "left": 501.95,
+            "top": 166,
+            "right": 788.05,
+            "bottom": 210,
+            "width": 286.09,
+            "height": 44
+          }
+        },
+        {
+          "tag": "header",
+          "id": null,
+          "class": null,
+          "safe": "",
+          "text": "대화 속에 담긴우리 호감 온도온도 변화부터 상대 분석 보고서까지",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 280,
+            "right": 1235,
+            "bottom": 683.64,
+            "width": 1180,
+            "height": 403.64
+          }
+        },
+        {
+          "tag": "h1",
+          "id": null,
+          "class": null,
+          "safe": null,
+          "text": "대화 속에 담긴우리 호감 온도",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 280,
+            "right": 1235,
+            "bottom": 593.59,
+            "width": 1180,
+            "height": 313.59
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed phone",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": -35.19,
+            "top": 1096.42,
+            "right": 725.19,
+            "bottom": 2321.27,
+            "width": 760.38,
+            "height": 1224.85
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed phone",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 565.01,
+            "top": 1074.55,
+            "right": 1294.99,
+            "bottom": 2177.45,
+            "width": 729.97,
+            "height": 1102.9
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed portrait heartframe",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 416.24,
+            "top": 715.5,
+            "right": 873.76,
+            "bottom": 1154.01,
+            "width": 457.52,
+            "height": 438.51
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed feature gauge",
+          "safe": null,
+          "text": "0° → 25°",
+          "visible": true,
+          "bounds": {
+            "left": 133.34,
+            "top": 1956.09,
+            "right": 1156.66,
+            "bottom": 2536.17,
+            "width": 1023.32,
+            "height": 580.08
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker star",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 1011.39,
+            "top": 831.39,
+            "right": 1248.61,
+            "bottom": 1068.61,
+            "width": 237.21,
+            "height": 237.21
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker chat",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 41.1,
+            "top": 768.85,
+            "right": 303.9,
+            "bottom": 1016.57,
+            "width": 262.79,
+            "height": 247.71
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker heart",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 541.05,
+            "top": 1686.05,
+            "right": 718.95,
+            "bottom": 1863.95,
+            "width": 177.91,
+            "height": 177.91
+          }
+        },
+        {
+          "tag": "footer",
+          "id": null,
+          "class": "footer",
+          "safe": "",
+          "text": "실제 앱 화면 · 코칭 예시04 / 06",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 2608.31,
+            "right": 1210,
+            "bottom": 2646,
+            "width": 1130,
+            "height": 37.69
+          }
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestErrors": [],
+      "passed": true
+    },
+    {
+      "slide": 5,
+      "format": "ios",
+      "viewport": {
+        "width": 1290,
+        "height": 2796
+      },
+      "failures": [],
+      "stage": {
+        "width": 1290,
+        "height": 2796,
+        "scaleX": 1,
+        "scaleY": 1,
+        "viewportBounds": {
+          "left": 0,
+          "top": 0,
+          "right": 1290,
+          "bottom": 2796
+        }
+      },
+      "fonts": {
+        "status": "loaded",
+        "pretendardBoldReady": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "headings": [
+        {
+          "tag": "h1",
+          "id": null,
+          "class": null,
+          "safe": null,
+          "text": "카톡 습관 속나의 연애 유형",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 280,
+            "right": 1235,
+            "bottom": 593.59,
+            "width": 1180,
+            "height": 313.59
+          },
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": 140,
+          "textFragments": [
+            {
+              "text": "카톡 습관 속",
+              "bounds": {
+                "left": 336.48,
+                "top": 274,
+                "right": 953.5,
+                "bottom": 441,
+                "width": 617.02,
+                "height": 167
+              }
+            },
+            {
+              "text": "나의",
+              "bounds": {
+                "left": 279.73,
+                "top": 430.8,
+                "right": 531.5,
+                "bottom": 597.8,
+                "width": 251.77,
+                "height": 167
+              }
+            },
+            {
+              "text": "연애 유형",
+              "bounds": {
+                "left": 531.5,
+                "top": 430.8,
+                "right": 1010.25,
+                "bottom": 597.8,
+                "width": 478.75,
+                "height": 167
+              }
+            }
+          ]
+        }
+      ],
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025-v3/_photos/05-friends.png",
+          "alt": "AI로 생성한 가상 한국인 성인 스튜디오 사진",
+          "complete": true,
+          "naturalWidth": 1536,
+          "naturalHeight": 1024,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025-v3/_photos/05-friends.png",
+          "alt": "AI로 생성한 가상 한국인 성인 스튜디오 사진",
+          "complete": true,
+          "naturalWidth": 1536,
+          "naturalHeight": 1024,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        }
+      ],
+      "safeElements": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "brand",
+          "safe": "",
+          "text": "나만의 연애코치",
+          "visible": true,
+          "bounds": {
+            "left": 501.95,
+            "top": 166,
+            "right": 788.05,
+            "bottom": 210,
+            "width": 286.09,
+            "height": 44
+          }
+        },
+        {
+          "tag": "header",
+          "id": null,
+          "class": null,
+          "safe": "",
+          "text": "카톡 습관 속나의 연애 유형16가지 유형 · 나만의 연애 컬러",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 280,
+            "right": 1235,
+            "bottom": 683.64,
+            "width": 1180,
+            "height": 403.64
+          }
+        },
+        {
+          "tag": "footer",
+          "id": null,
+          "class": "footer",
+          "safe": "",
+          "text": "실제 앱 화면 · 코칭 예시05 / 06",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 2608.31,
+            "right": 1210,
+            "bottom": 2646,
+            "width": 1130,
+            "height": 37.69
+          }
+        }
+      ],
+      "phoneCount": 0,
+      "phoneElements": [],
+      "bounds": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "brand",
+          "safe": "",
+          "text": "나만의 연애코치",
+          "visible": true,
+          "bounds": {
+            "left": 501.95,
+            "top": 166,
+            "right": 788.05,
+            "bottom": 210,
+            "width": 286.09,
+            "height": 44
+          }
+        },
+        {
+          "tag": "header",
+          "id": null,
+          "class": null,
+          "safe": "",
+          "text": "카톡 습관 속나의 연애 유형16가지 유형 · 나만의 연애 컬러",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 280,
+            "right": 1235,
+            "bottom": 683.64,
+            "width": 1180,
+            "height": 403.64
+          }
+        },
+        {
+          "tag": "h1",
+          "id": null,
+          "class": null,
+          "safe": null,
+          "text": "카톡 습관 속나의 연애 유형",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 280,
+            "right": 1235,
+            "bottom": 593.59,
+            "width": 1180,
+            "height": 313.59
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed portrait polaroid left",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 3.57,
+            "top": 734,
+            "right": 446.43,
+            "bottom": 1232.83,
+            "width": 442.86,
+            "height": 498.82
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed portrait polaroid right",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 923.46,
+            "top": 2189.06,
+            "right": 1246.54,
+            "bottom": 2560.21,
+            "width": 323.07,
+            "height": 371.15
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed feature",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 127.4,
+            "top": 1099.89,
+            "right": 1177.6,
+            "bottom": 2199.77,
+            "width": 1050.2,
+            "height": 1099.88
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker star",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 1064.18,
+            "top": 1064.18,
+            "right": 1265.82,
+            "bottom": 1265.82,
+            "width": 201.63,
+            "height": 201.63
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker heart",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 44.05,
+            "top": 1829.05,
+            "right": 235.95,
+            "bottom": 2020.95,
+            "width": 191.89,
+            "height": 191.89
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker chat",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 617.82,
+            "top": 2366.42,
+            "right": 812.18,
+            "bottom": 2548.78,
+            "width": 194.37,
+            "height": 182.37
+          }
+        },
+        {
+          "tag": "footer",
+          "id": null,
+          "class": "footer",
+          "safe": "",
+          "text": "실제 앱 화면 · 코칭 예시05 / 06",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 2608.31,
+            "right": 1210,
+            "bottom": 2646,
+            "width": 1130,
+            "height": 37.69
+          }
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestErrors": [],
+      "passed": true
+    },
+    {
+      "slide": 6,
+      "format": "ios",
+      "viewport": {
+        "width": 1290,
+        "height": 2796
+      },
+      "failures": [],
+      "stage": {
+        "width": 1290,
+        "height": 2796,
+        "scaleX": 1,
+        "scaleY": 1,
+        "viewportBounds": {
+          "left": 0,
+          "top": 0,
+          "right": 1290,
+          "bottom": 2796
+        }
+      },
+      "fonts": {
+        "status": "loaded",
+        "pretendardBoldReady": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "headings": [
+        {
+          "tag": "h1",
+          "id": null,
+          "class": null,
+          "safe": null,
+          "text": "캡처 없이상황만 적어도 OK",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 2092.36,
+            "right": 1235,
+            "bottom": 2405.95,
+            "width": 1180,
+            "height": 313.59
+          },
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": 140,
+          "textFragments": [
+            {
+              "text": "캡처 없이",
+              "bounds": {
+                "left": 405.63,
+                "top": 2086.36,
+                "right": 884.38,
+                "bottom": 2253.36,
+                "width": 478.75,
+                "height": 167
+              }
+            },
+            {
+              "text": "상황만",
+              "bounds": {
+                "left": 188.11,
+                "top": 2243.16,
+                "right": 528.61,
+                "bottom": 2410.16,
+                "width": 340.5,
+                "height": 167
+              }
+            },
+            {
+              "text": "적어도 OK",
+              "bounds": {
+                "left": 528.61,
+                "top": 2243.16,
+                "right": 1101.88,
+                "bottom": 2410.16,
+                "width": 573.27,
+                "height": 167
+              }
+            }
+          ]
+        }
+      ],
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/05-studio-woman.png",
+          "alt": "AI로 생성한 가상 한국인 성인 스튜디오 사진",
+          "complete": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025-v3/_photos/06-wink-man.png",
+          "alt": "AI로 생성한 가상 한국인 성인 스튜디오 사진",
+          "complete": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        }
+      ],
+      "safeElements": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "brand",
+          "safe": "",
+          "text": "나만의 연애코치",
+          "visible": true,
+          "bounds": {
+            "left": 501.95,
+            "top": 166,
+            "right": 788.05,
+            "bottom": 210,
+            "width": 286.09,
+            "height": 44
+          }
+        },
+        {
+          "tag": "header",
+          "id": null,
+          "class": null,
+          "safe": "",
+          "text": "캡처 없이상황만 적어도 OK연습·속마음·비밀 상담까지 한 앱에",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 2092.36,
+            "right": 1235,
+            "bottom": 2496,
+            "width": 1180,
+            "height": 403.64
+          }
+        },
+        {
+          "tag": "footer",
+          "id": null,
+          "class": "footer",
+          "safe": "",
+          "text": "실제 앱 화면 · 코칭 예시06 / 06",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 2608.31,
+            "right": 1210,
+            "bottom": 2646,
+            "width": 1130,
+            "height": 37.69
+          }
+        }
+      ],
+      "phoneCount": 0,
+      "phoneElements": [],
+      "bounds": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "brand",
+          "safe": "",
+          "text": "나만의 연애코치",
+          "visible": true,
+          "bounds": {
+            "left": 501.95,
+            "top": 166,
+            "right": 788.05,
+            "bottom": 210,
+            "width": 286.09,
+            "height": 44
+          }
+        },
+        {
+          "tag": "header",
+          "id": null,
+          "class": null,
+          "safe": "",
+          "text": "캡처 없이상황만 적어도 OK연습·속마음·비밀 상담까지 한 앱에",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 2092.36,
+            "right": 1235,
+            "bottom": 2496,
+            "width": 1180,
+            "height": 403.64
+          }
+        },
+        {
+          "tag": "h1",
+          "id": null,
+          "class": null,
+          "safe": null,
+          "text": "캡처 없이상황만 적어도 OK",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 2092.36,
+            "right": 1235,
+            "bottom": 2405.95,
+            "width": 1180,
+            "height": 313.59
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed portrait peek",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": -141.78,
+            "top": 431.74,
+            "right": 371.78,
+            "bottom": 1002.37,
+            "width": 513.55,
+            "height": 570.63
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed portrait peek",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 962.95,
+            "top": 1429.81,
+            "right": 1347.05,
+            "bottom": 1854.9,
+            "width": 384.1,
+            "height": 425.09
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed tile",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 158.1,
+            "top": 686.73,
+            "right": 756.9,
+            "bottom": 1065.23,
+            "width": 598.81,
+            "height": 378.5
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed tile",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 731.01,
+            "top": 661.85,
+            "right": 1278.99,
+            "bottom": 1021.02,
+            "width": 547.97,
+            "height": 359.17
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed tile",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 20.1,
+            "top": 1351.33,
+            "right": 614.9,
+            "bottom": 1723.37,
+            "width": 594.8,
+            "height": 372.04
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed tile",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 595.67,
+            "top": 1392.34,
+            "right": 1094.33,
+            "bottom": 1711.62,
+            "width": 498.67,
+            "height": 319.28
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed feature input",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 79.97,
+            "top": 1080.84,
+            "right": 1210.03,
+            "bottom": 1360.81,
+            "width": 1130.07,
+            "height": 279.97
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker star",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 810.59,
+            "top": 365.59,
+            "right": 1089.41,
+            "bottom": 644.41,
+            "width": 278.81,
+            "height": 278.81
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker heart",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 409.18,
+            "top": 1854.18,
+            "right": 610.82,
+            "bottom": 2055.81,
+            "width": 201.63,
+            "height": 201.63
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker chat",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 80.68,
+            "top": 1758.38,
+            "right": 349.32,
+            "bottom": 2011.62,
+            "width": 268.64,
+            "height": 253.23
+          }
+        },
+        {
+          "tag": "footer",
+          "id": null,
+          "class": "footer",
+          "safe": "",
+          "text": "실제 앱 화면 · 코칭 예시06 / 06",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 2608.31,
+            "right": 1210,
+            "bottom": 2646,
+            "width": 1130,
+            "height": 37.69
+          }
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestErrors": [],
+      "passed": true
+    },
+    {
+      "slide": 1,
+      "format": "play",
+      "viewport": {
+        "width": 1242,
+        "height": 2208
+      },
+      "failures": [],
+      "stage": {
+        "width": 1290,
+        "height": 2293.33,
+        "scaleX": 0.9627906976744186,
+        "scaleY": 0.9627898614882616,
+        "viewportBounds": {
+          "left": 0,
+          "top": 0,
+          "right": 1242,
+          "bottom": 2207.99
+        }
+      },
+      "fonts": {
+        "status": "loaded",
+        "pretendardBoldReady": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "headings": [
+        {
+          "tag": "h1",
+          "id": null,
+          "class": null,
+          "safe": null,
+          "text": "뭐라고 답장하지?캡처 한 장이면 끝",
+          "visible": true,
+          "bounds": {
+            "left": 75,
+            "top": 258,
+            "right": 1260,
+            "bottom": 552.78,
+            "width": 1185,
+            "height": 294.78
+          },
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": 134,
+          "textFragments": [
+            {
+              "text": "뭐라고 답장하지?",
+              "bounds": {
+                "left": 75,
+                "top": 251,
+                "right": 925.67,
+                "bottom": 411,
+                "width": 850.67,
+                "height": 160
+              }
+            },
+            {
+              "text": "캡처 한 장",
+              "bounds": {
+                "left": 75,
+                "top": 398.39,
+                "right": 558.02,
+                "bottom": 558.39,
+                "width": 483.02,
+                "height": 160
+              }
+            },
+            {
+              "text": "이면 끝",
+              "bounds": {
+                "left": 558.02,
+                "top": 398.39,
+                "right": 908.34,
+                "bottom": 558.39,
+                "width": 350.33,
+                "height": 160
+              }
+            }
+          ]
+        }
+      ],
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "alt": "실제 앱 원본 화면",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025-v3/_photos/01-point-woman-cutout.png",
+          "alt": "AI로 생성한 가상 한국인 성인 스튜디오 사진",
+          "complete": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        }
+      ],
+      "safeElements": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "brand",
+          "safe": "",
+          "text": "나만의 연애코치",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 160,
+            "right": 350.53,
+            "bottom": 201,
+            "width": 270.53,
+            "height": 41
+          }
+        },
+        {
+          "tag": "header",
+          "id": null,
+          "class": null,
+          "safe": "",
+          "text": "뭐라고 답장하지?캡처 한 장이면 끝호칭·말투 그대로, 답장 3가지",
+          "visible": true,
+          "bounds": {
+            "left": 75,
+            "top": 258,
+            "right": 1260,
+            "bottom": 635.13,
+            "width": 1185,
+            "height": 377.13
+          }
+        },
+        {
+          "tag": "footer",
+          "id": null,
+          "class": "footer",
+          "safe": "",
+          "text": "실제 앱 화면 · 코칭 예시01 / 06",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 2115.24,
+            "right": 1210,
+            "bottom": 2150.33,
+            "width": 1130,
+            "height": 35.09
+          }
+        }
+      ],
+      "phoneCount": 1,
+      "phoneElements": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed phone",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 450.05,
+            "top": 659.65,
+            "right": 1189.95,
+            "bottom": 1899.71,
+            "width": 739.9,
+            "height": 1240.06
+          }
+        }
+      ],
+      "bounds": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "brand",
+          "safe": "",
+          "text": "나만의 연애코치",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 160,
+            "right": 350.53,
+            "bottom": 201,
+            "width": 270.53,
+            "height": 41
+          }
+        },
+        {
+          "tag": "header",
+          "id": null,
+          "class": null,
+          "safe": "",
+          "text": "뭐라고 답장하지?캡처 한 장이면 끝호칭·말투 그대로, 답장 3가지",
+          "visible": true,
+          "bounds": {
+            "left": 75,
+            "top": 258,
+            "right": 1260,
+            "bottom": 635.13,
+            "width": 1185,
+            "height": 377.13
+          }
+        },
+        {
+          "tag": "h1",
+          "id": null,
+          "class": null,
+          "safe": null,
+          "text": "뭐라고 답장하지?캡처 한 장이면 끝",
+          "visible": true,
+          "bounds": {
+            "left": 75,
+            "top": 258,
+            "right": 1260,
+            "bottom": 552.78,
+            "width": 1185,
+            "height": 294.78
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed phone",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 450.05,
+            "top": 659.65,
+            "right": 1189.95,
+            "bottom": 1899.71,
+            "width": 739.9,
+            "height": 1240.06
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed portrait cutout",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": -110.08,
+            "top": 890.39,
+            "right": 730.08,
+            "bottom": 2099.61,
+            "width": 840.16,
+            "height": 1209.22
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed feature",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 343.46,
+            "top": 1568.39,
+            "right": 1206.54,
+            "bottom": 2106.75,
+            "width": 863.08,
+            "height": 538.36
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker star",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 1017.7,
+            "top": 635.7,
+            "right": 1232.3,
+            "bottom": 850.3,
+            "width": 214.59,
+            "height": 214.59
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker heart",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 953.72,
+            "top": 1233.72,
+            "right": 1161.28,
+            "bottom": 1441.28,
+            "width": 207.56,
+            "height": 207.56
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker chat",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 64.27,
+            "top": 684.66,
+            "right": 310.73,
+            "bottom": 918.51,
+            "width": 246.46,
+            "height": 233.85
+          }
+        },
+        {
+          "tag": "footer",
+          "id": null,
+          "class": "footer",
+          "safe": "",
+          "text": "실제 앱 화면 · 코칭 예시01 / 06",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 2115.24,
+            "right": 1210,
+            "bottom": 2150.33,
+            "width": 1130,
+            "height": 35.09
+          }
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestErrors": [],
+      "passed": true
+    },
+    {
+      "slide": 2,
+      "format": "play",
+      "viewport": {
+        "width": 1242,
+        "height": 2208
+      },
+      "failures": [],
+      "stage": {
+        "width": 1290,
+        "height": 2293.33,
+        "scaleX": 0.9627906976744186,
+        "scaleY": 0.9627898614882616,
+        "viewportBounds": {
+          "left": 0,
+          "top": 0,
+          "right": 1242,
+          "bottom": 2207.99
+        }
+      },
+      "fonts": {
+        "status": "loaded",
+        "pretendardBoldReady": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "headings": [
+        {
+          "tag": "h1",
+          "id": null,
+          "class": null,
+          "safe": null,
+          "text": "실전 전에AI랑 카톡 연습",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 258,
+            "right": 1235,
+            "bottom": 552.78,
+            "width": 1180,
+            "height": 294.78
+          },
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": 134,
+          "textFragments": [
+            {
+              "text": "실전 전에",
+              "bounds": {
+                "left": 415.44,
+                "top": 251,
+                "right": 874.56,
+                "bottom": 411,
+                "width": 459.13,
+                "height": 160
+              }
+            },
+            {
+              "text": "AI랑",
+              "bounds": {
+                "left": 290.2,
+                "top": 398.39,
+                "right": 540.67,
+                "bottom": 558.39,
+                "width": 250.47,
+                "height": 160
+              }
+            },
+            {
+              "text": "카톡 연습",
+              "bounds": {
+                "left": 540.67,
+                "top": 398.39,
+                "right": 999.8,
+                "bottom": 558.39,
+                "width": 459.12,
+                "height": 160
+              }
+            }
+          ]
+        }
+      ],
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/05-studio-woman.png",
+          "alt": "AI로 생성한 가상 한국인 성인 스튜디오 사진",
+          "complete": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025-v3/_photos/02-heart-man.png",
+          "alt": "AI로 생성한 가상 한국인 성인 스튜디오 사진",
+          "complete": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        }
+      ],
+      "safeElements": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "brand",
+          "safe": "",
+          "text": "나만의 연애코치",
+          "visible": true,
+          "bounds": {
+            "left": 509.73,
+            "top": 160,
+            "right": 780.27,
+            "bottom": 201,
+            "width": 270.53,
+            "height": 41
+          }
+        },
+        {
+          "tag": "header",
+          "id": null,
+          "class": null,
+          "safe": "",
+          "text": "실전 전에AI랑 카톡 연습보낼 때마다 코치가 바로 피드백",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 258,
+            "right": 1235,
+            "bottom": 635.13,
+            "width": 1180,
+            "height": 377.13
+          }
+        },
+        {
+          "tag": "footer",
+          "id": null,
+          "class": "footer",
+          "safe": "",
+          "text": "실제 앱 화면 · 코칭 예시02 / 06",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 2115.24,
+            "right": 1210,
+            "bottom": 2150.33,
+            "width": 1130,
+            "height": 35.09
+          }
+        }
+      ],
+      "phoneCount": 0,
+      "phoneElements": [],
+      "bounds": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "brand",
+          "safe": "",
+          "text": "나만의 연애코치",
+          "visible": true,
+          "bounds": {
+            "left": 509.73,
+            "top": 160,
+            "right": 780.27,
+            "bottom": 201,
+            "width": 270.53,
+            "height": 41
+          }
+        },
+        {
+          "tag": "header",
+          "id": null,
+          "class": null,
+          "safe": "",
+          "text": "실전 전에AI랑 카톡 연습보낼 때마다 코치가 바로 피드백",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 258,
+            "right": 1235,
+            "bottom": 635.13,
+            "width": 1180,
+            "height": 377.13
+          }
+        },
+        {
+          "tag": "h1",
+          "id": null,
+          "class": null,
+          "safe": null,
+          "text": "실전 전에AI랑 카톡 연습",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 258,
+            "right": 1235,
+            "bottom": 552.78,
+            "width": 1180,
+            "height": 294.78
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed portrait round",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 40.74,
+            "top": 705.74,
+            "right": 249.26,
+            "bottom": 914.26,
+            "width": 208.52,
+            "height": 208.52
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed bubble",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 247.91,
+            "top": 737.5,
+            "right": 1202.09,
+            "bottom": 1038.51,
+            "width": 954.17,
+            "height": 301.01
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed portrait round",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 1020.74,
+            "top": 1045.74,
+            "right": 1229.26,
+            "bottom": 1254.26,
+            "width": 208.52,
+            "height": 208.52
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed bubble",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 58.15,
+            "top": 1095.23,
+            "right": 1076.85,
+            "bottom": 1396.13,
+            "width": 1018.69,
+            "height": 300.9
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed bubble feedback",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 145.52,
+            "top": 1343.58,
+            "right": 1204.48,
+            "bottom": 1581.67,
+            "width": 1058.97,
+            "height": 238.09
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed bubble",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 247.31,
+            "top": 1595.98,
+            "right": 1052.69,
+            "bottom": 1874.92,
+            "width": 805.37,
+            "height": 278.94
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker star",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 910.46,
+            "top": 1840.47,
+            "right": 1159.54,
+            "bottom": 2089.54,
+            "width": 249.07,
+            "height": 249.07
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker heart",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 51.79,
+            "top": 1576.8,
+            "right": 228.21,
+            "bottom": 1753.21,
+            "width": 176.41,
+            "height": 176.41
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker chat",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 1039.08,
+            "top": 637.78,
+            "right": 1190.92,
+            "bottom": 780.91,
+            "width": 151.84,
+            "height": 143.12
+          }
+        },
+        {
+          "tag": "footer",
+          "id": null,
+          "class": "footer",
+          "safe": "",
+          "text": "실제 앱 화면 · 코칭 예시02 / 06",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 2115.24,
+            "right": 1210,
+            "bottom": 2150.33,
+            "width": 1130,
+            "height": 35.09
+          }
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestErrors": [],
+      "passed": true
+    },
+    {
+      "slide": 3,
+      "format": "play",
+      "viewport": {
+        "width": 1242,
+        "height": 2208
+      },
+      "failures": [],
+      "stage": {
+        "width": 1290,
+        "height": 2293.33,
+        "scaleX": 0.9627906976744186,
+        "scaleY": 0.9627898614882616,
+        "viewportBounds": {
+          "left": 0,
+          "top": 0,
+          "right": 1242,
+          "bottom": 2207.99
+        }
+      },
+      "fonts": {
+        "status": "loaded",
+        "pretendardBoldReady": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "headings": [
+        {
+          "tag": "h1",
+          "id": null,
+          "class": null,
+          "safe": null,
+          "text": "그 사람 속마음가능성은 몇 %?",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 1686.2,
+            "right": 1235,
+            "bottom": 1980.99,
+            "width": 1180,
+            "height": 294.78
+          },
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": 134,
+          "textFragments": [
+            {
+              "text": "그 사람 속마음",
+              "bounds": {
+                "left": 294.67,
+                "top": 1679.2,
+                "right": 995.31,
+                "bottom": 1839.2,
+                "width": 700.64,
+                "height": 160
+              }
+            },
+            {
+              "text": "가능성은",
+              "bounds": {
+                "left": 255.72,
+                "top": 1826.6,
+                "right": 714.84,
+                "bottom": 1986.6,
+                "width": 459.12,
+                "height": 160
+              }
+            },
+            {
+              "text": "몇 %?",
+              "bounds": {
+                "left": 714.84,
+                "top": 1826.6,
+                "right": 1034.28,
+                "bottom": 1986.6,
+                "width": 319.44,
+                "height": 160
+              }
+            }
+          ]
+        }
+      ],
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025-v3/_photos/03-think-woman.png",
+          "alt": "AI로 생성한 가상 한국인 성인 스튜디오 사진",
+          "complete": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        }
+      ],
+      "safeElements": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "brand",
+          "safe": "",
+          "text": "나만의 연애코치",
+          "visible": true,
+          "bounds": {
+            "left": 509.73,
+            "top": 160,
+            "right": 780.27,
+            "bottom": 201,
+            "width": 270.53,
+            "height": 41
+          }
+        },
+        {
+          "tag": "header",
+          "id": null,
+          "class": null,
+          "safe": "",
+          "text": "그 사람 속마음가능성은 몇 %?하나의 상황을 여러 가능성으로",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 1686.2,
+            "right": 1235,
+            "bottom": 2063.33,
+            "width": 1180,
+            "height": 377.13
+          }
+        },
+        {
+          "tag": "footer",
+          "id": null,
+          "class": "footer",
+          "safe": "",
+          "text": "실제 앱 화면 · 코칭 예시03 / 06",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 2115.24,
+            "right": 1210,
+            "bottom": 2150.33,
+            "width": 1130,
+            "height": 35.09
+          }
+        }
+      ],
+      "phoneCount": 0,
+      "phoneElements": [],
+      "bounds": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "brand",
+          "safe": "",
+          "text": "나만의 연애코치",
+          "visible": true,
+          "bounds": {
+            "left": 509.73,
+            "top": 160,
+            "right": 780.27,
+            "bottom": 201,
+            "width": 270.53,
+            "height": 41
+          }
+        },
+        {
+          "tag": "header",
+          "id": null,
+          "class": null,
+          "safe": "",
+          "text": "그 사람 속마음가능성은 몇 %?하나의 상황을 여러 가능성으로",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 1686.2,
+            "right": 1235,
+            "bottom": 2063.33,
+            "width": 1180,
+            "height": 377.13
+          }
+        },
+        {
+          "tag": "h1",
+          "id": null,
+          "class": null,
+          "safe": null,
+          "text": "그 사람 속마음가능성은 몇 %?",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 1686.2,
+            "right": 1235,
+            "bottom": 1980.99,
+            "width": 1180,
+            "height": 294.78
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed portrait thought",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 855.25,
+            "top": 289.57,
+            "right": 1209.75,
+            "bottom": 636.24,
+            "width": 354.5,
+            "height": 346.68
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed number",
+          "safe": null,
+          "text": "50%",
+          "visible": true,
+          "bounds": {
+            "left": 67.22,
+            "top": 441.42,
+            "right": 1052.78,
+            "bottom": 928.58,
+            "width": 985.56,
+            "height": 487.17
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed feature",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 65.53,
+            "top": 821.88,
+            "right": 1154.47,
+            "bottom": 1077.06,
+            "width": 1088.93,
+            "height": 255.19
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed feature",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 66.04,
+            "top": 1058.09,
+            "right": 1073.96,
+            "bottom": 1290.16,
+            "width": 1007.93,
+            "height": 232.08
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed feature",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 164.02,
+            "top": 1291.28,
+            "right": 1165.98,
+            "bottom": 1429.98,
+            "width": 1001.96,
+            "height": 138.7
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed feature",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 86.04,
+            "top": 1438.09,
+            "right": 1093.96,
+            "bottom": 1670.16,
+            "width": 1007.93,
+            "height": 232.08
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker star",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 38.56,
+            "top": 303.56,
+            "right": 236.44,
+            "bottom": 501.44,
+            "width": 197.89,
+            "height": 197.89
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker heart",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 1095.14,
+            "top": 855.15,
+            "right": 1264.86,
+            "bottom": 1024.86,
+            "width": 169.71,
+            "height": 169.71
+          }
+        },
+        {
+          "tag": "footer",
+          "id": null,
+          "class": "footer",
+          "safe": "",
+          "text": "실제 앱 화면 · 코칭 예시03 / 06",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 2115.24,
+            "right": 1210,
+            "bottom": 2150.33,
+            "width": 1130,
+            "height": 35.09
+          }
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestErrors": [],
+      "passed": true
+    },
+    {
+      "slide": 4,
+      "format": "play",
+      "viewport": {
+        "width": 1242,
+        "height": 2208
+      },
+      "failures": [],
+      "stage": {
+        "width": 1290,
+        "height": 2293.33,
+        "scaleX": 0.9627906976744186,
+        "scaleY": 0.9627898614882616,
+        "viewportBounds": {
+          "left": 0,
+          "top": 0,
+          "right": 1242,
+          "bottom": 2207.99
+        }
+      },
+      "fonts": {
+        "status": "loaded",
+        "pretendardBoldReady": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "headings": [
+        {
+          "tag": "h1",
+          "id": null,
+          "class": null,
+          "safe": null,
+          "text": "대화 속에 담긴우리 호감 온도",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 258,
+            "right": 1235,
+            "bottom": 552.78,
+            "width": 1180,
+            "height": 294.78
+          },
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": 134,
+          "textFragments": [
+            {
+              "text": "대화 속에 담긴",
+              "bounds": {
+                "left": 294.67,
+                "top": 251,
+                "right": 995.31,
+                "bottom": 411,
+                "width": 700.64,
+                "height": 160
+              }
+            },
+            {
+              "text": "우리",
+              "bounds": {
+                "left": 294.67,
+                "top": 398.39,
+                "right": 536.19,
+                "bottom": 558.39,
+                "width": 241.52,
+                "height": 160
+              }
+            },
+            {
+              "text": "호감 온도",
+              "bounds": {
+                "left": 536.19,
+                "top": 398.39,
+                "right": 995.31,
+                "bottom": 558.39,
+                "width": 459.12,
+                "height": 160
+              }
+            }
+          ]
+        }
+      ],
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "alt": "실제 앱 원본 화면",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        }
+      ],
+      "safeElements": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "brand",
+          "safe": "",
+          "text": "나만의 연애코치",
+          "visible": true,
+          "bounds": {
+            "left": 509.73,
+            "top": 160,
+            "right": 780.27,
+            "bottom": 201,
+            "width": 270.53,
+            "height": 41
+          }
+        },
+        {
+          "tag": "header",
+          "id": null,
+          "class": null,
+          "safe": "",
+          "text": "대화 속에 담긴우리 호감 온도온도 변화부터 상대 분석 보고서까지",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 258,
+            "right": 1235,
+            "bottom": 635.13,
+            "width": 1180,
+            "height": 377.13
+          }
+        },
+        {
+          "tag": "footer",
+          "id": null,
+          "class": "footer",
+          "safe": "",
+          "text": "실제 앱 화면 · 코칭 예시04 / 06",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 2115.24,
+            "right": 1210,
+            "bottom": 2150.33,
+            "width": 1130,
+            "height": 35.09
+          }
+        }
+      ],
+      "phoneCount": 2,
+      "phoneElements": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed phone",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": -7.82,
+            "top": 960.86,
+            "right": 677.82,
+            "bottom": 2068.46,
+            "width": 685.65,
+            "height": 1107.6
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed phone",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 590.76,
+            "top": 939.19,
+            "right": 1249.24,
+            "bottom": 1937.81,
+            "width": 658.48,
+            "height": 998.63
+          }
+        }
+      ],
+      "bounds": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "brand",
+          "safe": "",
+          "text": "나만의 연애코치",
+          "visible": true,
+          "bounds": {
+            "left": 509.73,
+            "top": 160,
+            "right": 780.27,
+            "bottom": 201,
+            "width": 270.53,
+            "height": 41
+          }
+        },
+        {
+          "tag": "header",
+          "id": null,
+          "class": null,
+          "safe": "",
+          "text": "대화 속에 담긴우리 호감 온도온도 변화부터 상대 분석 보고서까지",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 258,
+            "right": 1235,
+            "bottom": 635.13,
+            "width": 1180,
+            "height": 377.13
+          }
+        },
+        {
+          "tag": "h1",
+          "id": null,
+          "class": null,
+          "safe": null,
+          "text": "대화 속에 담긴우리 호감 온도",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 258,
+            "right": 1235,
+            "bottom": 552.78,
+            "width": 1180,
+            "height": 294.78
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed phone",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": -7.82,
+            "top": 960.86,
+            "right": 677.82,
+            "bottom": 2068.46,
+            "width": 685.65,
+            "height": 1107.6
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed phone",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 590.76,
+            "top": 939.19,
+            "right": 1249.24,
+            "bottom": 1937.81,
+            "width": 658.48,
+            "height": 998.63
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed portrait heartframe",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 453.16,
+            "top": 662.52,
+            "right": 846.84,
+            "bottom": 1039.85,
+            "width": 393.68,
+            "height": 377.33
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed feature gauge",
+          "safe": null,
+          "text": "0° → 25°",
+          "visible": true,
+          "bounds": {
+            "left": 169.67,
+            "top": 1548.49,
+            "right": 1120.33,
+            "bottom": 2083.09,
+            "width": 950.65,
+            "height": 534.61
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker star",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 1044.18,
+            "top": 724.19,
+            "right": 1245.82,
+            "bottom": 925.82,
+            "width": 201.63,
+            "height": 201.63
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker chat",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 39.04,
+            "top": 687.14,
+            "right": 260.96,
+            "bottom": 896.33,
+            "width": 221.91,
+            "height": 209.18
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker heart",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 551.98,
+            "top": 1416.98,
+            "right": 718.02,
+            "bottom": 1583.03,
+            "width": 166.05,
+            "height": 166.05
+          }
+        },
+        {
+          "tag": "footer",
+          "id": null,
+          "class": "footer",
+          "safe": "",
+          "text": "실제 앱 화면 · 코칭 예시04 / 06",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 2115.24,
+            "right": 1210,
+            "bottom": 2150.33,
+            "width": 1130,
+            "height": 35.09
+          }
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestErrors": [],
+      "passed": true
+    },
+    {
+      "slide": 5,
+      "format": "play",
+      "viewport": {
+        "width": 1242,
+        "height": 2208
+      },
+      "failures": [],
+      "stage": {
+        "width": 1290,
+        "height": 2293.33,
+        "scaleX": 0.9627906976744186,
+        "scaleY": 0.9627898614882616,
+        "viewportBounds": {
+          "left": 0,
+          "top": 0,
+          "right": 1242,
+          "bottom": 2207.99
+        }
+      },
+      "fonts": {
+        "status": "loaded",
+        "pretendardBoldReady": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "headings": [
+        {
+          "tag": "h1",
+          "id": null,
+          "class": null,
+          "safe": null,
+          "text": "카톡 습관 속나의 연애 유형",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 258,
+            "right": 1235,
+            "bottom": 552.78,
+            "width": 1180,
+            "height": 294.78
+          },
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": 134,
+          "textFragments": [
+            {
+              "text": "카톡 습관 속",
+              "bounds": {
+                "left": 349.08,
+                "top": 251,
+                "right": 940.91,
+                "bottom": 411,
+                "width": 591.83,
+                "height": 160
+              }
+            },
+            {
+              "text": "나의",
+              "bounds": {
+                "left": 294.67,
+                "top": 398.39,
+                "right": 536.19,
+                "bottom": 558.39,
+                "width": 241.52,
+                "height": 160
+              }
+            },
+            {
+              "text": "연애 유형",
+              "bounds": {
+                "left": 536.19,
+                "top": 398.39,
+                "right": 995.31,
+                "bottom": 558.39,
+                "width": 459.12,
+                "height": 160
+              }
+            }
+          ]
+        }
+      ],
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025-v3/_photos/05-friends.png",
+          "alt": "AI로 생성한 가상 한국인 성인 스튜디오 사진",
+          "complete": true,
+          "naturalWidth": 1536,
+          "naturalHeight": 1024,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025-v3/_photos/05-friends.png",
+          "alt": "AI로 생성한 가상 한국인 성인 스튜디오 사진",
+          "complete": true,
+          "naturalWidth": 1536,
+          "naturalHeight": 1024,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        }
+      ],
+      "safeElements": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "brand",
+          "safe": "",
+          "text": "나만의 연애코치",
+          "visible": true,
+          "bounds": {
+            "left": 509.73,
+            "top": 160,
+            "right": 780.27,
+            "bottom": 201,
+            "width": 270.53,
+            "height": 41
+          }
+        },
+        {
+          "tag": "header",
+          "id": null,
+          "class": null,
+          "safe": "",
+          "text": "카톡 습관 속나의 연애 유형16가지 유형 · 나만의 연애 컬러",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 258,
+            "right": 1235,
+            "bottom": 635.13,
+            "width": 1180,
+            "height": 377.13
+          }
+        },
+        {
+          "tag": "footer",
+          "id": null,
+          "class": "footer",
+          "safe": "",
+          "text": "실제 앱 화면 · 코칭 예시05 / 06",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 2115.24,
+            "right": 1210,
+            "bottom": 2150.33,
+            "width": 1130,
+            "height": 35.09
+          }
+        }
+      ],
+      "phoneCount": 0,
+      "phoneElements": [],
+      "bounds": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "brand",
+          "safe": "",
+          "text": "나만의 연애코치",
+          "visible": true,
+          "bounds": {
+            "left": 509.73,
+            "top": 160,
+            "right": 780.27,
+            "bottom": 201,
+            "width": 270.53,
+            "height": 41
+          }
+        },
+        {
+          "tag": "header",
+          "id": null,
+          "class": null,
+          "safe": "",
+          "text": "카톡 습관 속나의 연애 유형16가지 유형 · 나만의 연애 컬러",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 258,
+            "right": 1235,
+            "bottom": 635.13,
+            "width": 1180,
+            "height": 377.13
+          }
+        },
+        {
+          "tag": "h1",
+          "id": null,
+          "class": null,
+          "safe": null,
+          "text": "카톡 습관 속나의 연애 유형",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 258,
+            "right": 1235,
+            "bottom": 552.78,
+            "width": 1180,
+            "height": 294.78
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed portrait polaroid left",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 18.88,
+            "top": 663.12,
+            "right": 411.12,
+            "bottom": 1104.93,
+            "width": 392.25,
+            "height": 441.81
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed portrait polaroid right",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 993.38,
+            "top": 1797.94,
+            "right": 1256.62,
+            "bottom": 2100.35,
+            "width": 263.24,
+            "height": 302.41
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed feature",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 144.83,
+            "top": 932.17,
+            "right": 1135.17,
+            "bottom": 1969.27,
+            "width": 990.33,
+            "height": 1037.09
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker star",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 1076.05,
+            "top": 916.05,
+            "right": 1253.95,
+            "bottom": 1093.96,
+            "width": 177.91,
+            "height": 177.91
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker heart",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 25.55,
+            "top": 1585.55,
+            "right": 199.45,
+            "bottom": 1759.45,
+            "width": 173.9,
+            "height": 173.9
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker chat",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 589.25,
+            "top": 1958.02,
+            "right": 760.75,
+            "bottom": 2118.94,
+            "width": 171.5,
+            "height": 160.92
+          }
+        },
+        {
+          "tag": "footer",
+          "id": null,
+          "class": "footer",
+          "safe": "",
+          "text": "실제 앱 화면 · 코칭 예시05 / 06",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 2115.24,
+            "right": 1210,
+            "bottom": 2150.33,
+            "width": 1130,
+            "height": 35.09
+          }
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestErrors": [],
+      "passed": true
+    },
+    {
+      "slide": 6,
+      "format": "play",
+      "viewport": {
+        "width": 1242,
+        "height": 2208
+      },
+      "failures": [],
+      "stage": {
+        "width": 1290,
+        "height": 2293.33,
+        "scaleX": 0.9627906976744186,
+        "scaleY": 0.9627898614882616,
+        "viewportBounds": {
+          "left": 0,
+          "top": 0,
+          "right": 1242,
+          "bottom": 2207.99
+        }
+      },
+      "fonts": {
+        "status": "loaded",
+        "pretendardBoldReady": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "headings": [
+        {
+          "tag": "h1",
+          "id": null,
+          "class": null,
+          "safe": null,
+          "text": "캡처 없이상황만 적어도 OK",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 1638.2,
+            "right": 1235,
+            "bottom": 1932.99,
+            "width": 1180,
+            "height": 294.78
+          },
+          "fontFamily": "Pretendard, sans-serif",
+          "fontSize": 134,
+          "textFragments": [
+            {
+              "text": "캡처 없이",
+              "bounds": {
+                "left": 415.44,
+                "top": 1631.2,
+                "right": 874.56,
+                "bottom": 1791.2,
+                "width": 459.13,
+                "height": 160
+              }
+            },
+            {
+              "text": "상황만",
+              "bounds": {
+                "left": 206.8,
+                "top": 1778.6,
+                "right": 533.23,
+                "bottom": 1938.6,
+                "width": 326.44,
+                "height": 160
+              }
+            },
+            {
+              "text": "적어도 OK",
+              "bounds": {
+                "left": 533.23,
+                "top": 1778.6,
+                "right": 1083.19,
+                "bottom": 1938.6,
+                "width": 549.95,
+                "height": 160
+              }
+            }
+          ]
+        }
+      ],
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/05-studio-woman.png",
+          "alt": "AI로 생성한 가상 한국인 성인 스튜디오 사진",
+          "complete": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025-v3/_photos/06-wink-man.png",
+          "alt": "AI로 생성한 가상 한국인 성인 스튜디오 사진",
+          "complete": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "alt": "실제 앱 원본 캡처 일부",
+          "complete": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796,
+          "loaded": true
+        }
+      ],
+      "safeElements": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "brand",
+          "safe": "",
+          "text": "나만의 연애코치",
+          "visible": true,
+          "bounds": {
+            "left": 509.73,
+            "top": 160,
+            "right": 780.27,
+            "bottom": 201,
+            "width": 270.53,
+            "height": 41
+          }
+        },
+        {
+          "tag": "header",
+          "id": null,
+          "class": null,
+          "safe": "",
+          "text": "캡처 없이상황만 적어도 OK연습·속마음·비밀 상담까지 한 앱에",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 1638.2,
+            "right": 1235,
+            "bottom": 2015.33,
+            "width": 1180,
+            "height": 377.13
+          }
+        },
+        {
+          "tag": "footer",
+          "id": null,
+          "class": "footer",
+          "safe": "",
+          "text": "실제 앱 화면 · 코칭 예시06 / 06",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 2115.24,
+            "right": 1210,
+            "bottom": 2150.33,
+            "width": 1130,
+            "height": 35.09
+          }
+        }
+      ],
+      "phoneCount": 0,
+      "phoneElements": [],
+      "bounds": [
+        {
+          "tag": "div",
+          "id": null,
+          "class": "brand",
+          "safe": "",
+          "text": "나만의 연애코치",
+          "visible": true,
+          "bounds": {
+            "left": 509.73,
+            "top": 160,
+            "right": 780.27,
+            "bottom": 201,
+            "width": 270.53,
+            "height": 41
+          }
+        },
+        {
+          "tag": "header",
+          "id": null,
+          "class": null,
+          "safe": "",
+          "text": "캡처 없이상황만 적어도 OK연습·속마음·비밀 상담까지 한 앱에",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 1638.2,
+            "right": 1235,
+            "bottom": 2015.33,
+            "width": 1180,
+            "height": 377.13
+          }
+        },
+        {
+          "tag": "h1",
+          "id": null,
+          "class": null,
+          "safe": null,
+          "text": "캡처 없이상황만 적어도 OK",
+          "visible": true,
+          "bounds": {
+            "left": 55,
+            "top": 1638.2,
+            "right": 1235,
+            "bottom": 1932.99,
+            "width": 1180,
+            "height": 294.78
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed portrait peek",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": -120.09,
+            "top": 352.2,
+            "right": 320.09,
+            "bottom": 841.31,
+            "width": 440.19,
+            "height": 489.11
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed portrait peek",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 972.95,
+            "top": 1179.81,
+            "right": 1357.05,
+            "bottom": 1604.9,
+            "width": 384.09,
+            "height": 425.09
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed tile",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 137.81,
+            "top": 536.15,
+            "right": 747.19,
+            "bottom": 921.11,
+            "width": 609.38,
+            "height": 384.96
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed tile",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 736.37,
+            "top": 522.6,
+            "right": 1273.63,
+            "bottom": 874.99,
+            "width": 537.27,
+            "height": 352.39
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed tile",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 25.1,
+            "top": 1111.33,
+            "right": 619.9,
+            "bottom": 1483.37,
+            "width": 594.8,
+            "height": 372.04
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed tile",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 595.67,
+            "top": 1147.35,
+            "right": 1094.33,
+            "bottom": 1466.63,
+            "width": 498.67,
+            "height": 319.28
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed feature input",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 74.93,
+            "top": 900.58,
+            "right": 1215.07,
+            "bottom": 1182.86,
+            "width": 1140.15,
+            "height": 282.27
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker star",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 818.78,
+            "top": 288.78,
+            "right": 1061.22,
+            "bottom": 531.22,
+            "width": 242.44,
+            "height": 242.44
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker heart",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 423.84,
+            "top": 1493.84,
+            "right": 566.16,
+            "bottom": 1636.17,
+            "width": 142.33,
+            "height": 142.33
+          }
+        },
+        {
+          "tag": "div",
+          "id": null,
+          "class": "placed sticker chat",
+          "safe": null,
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "left": 88.2,
+            "top": 1491.21,
+            "right": 321.8,
+            "bottom": 1711.39,
+            "width": 233.59,
+            "height": 220.19
+          }
+        },
+        {
+          "tag": "footer",
+          "id": null,
+          "class": "footer",
+          "safe": "",
+          "text": "실제 앱 화면 · 코칭 예시06 / 06",
+          "visible": true,
+          "bounds": {
+            "left": 80,
+            "top": 2115.24,
+            "right": 1210,
+            "bottom": 2150.33,
+            "width": 1130,
+            "height": 35.09
+          }
+        }
+      ],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestErrors": [],
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "passed": true,
+  "summary": {
+    "passed": 12,
+    "failed": 0,
+    "expectedChecks": 12
+  }
+}

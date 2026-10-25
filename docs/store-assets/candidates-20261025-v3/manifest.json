@@ -1,0 +1,362 @@
+{
+  "jobs": [
+    [
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\html\\S2-1.html",
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\S2\\1.png",
+      1290,
+      2796
+    ],
+    [
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\html\\S2-1.html",
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\S2\\play-1.png",
+      1242,
+      2208
+    ],
+    [
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\html\\S2-2.html",
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\S2\\2.png",
+      1290,
+      2796
+    ],
+    [
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\html\\S2-2.html",
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\S2\\play-2.png",
+      1242,
+      2208
+    ],
+    [
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\html\\S2-3.html",
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\S2\\3.png",
+      1290,
+      2796
+    ],
+    [
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\html\\S2-3.html",
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\S2\\play-3.png",
+      1242,
+      2208
+    ],
+    [
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\html\\S2-4.html",
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\S2\\4.png",
+      1290,
+      2796
+    ],
+    [
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\html\\S2-4.html",
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\S2\\play-4.png",
+      1242,
+      2208
+    ],
+    [
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\html\\S2-5.html",
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\S2\\5.png",
+      1290,
+      2796
+    ],
+    [
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\html\\S2-5.html",
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\S2\\play-5.png",
+      1242,
+      2208
+    ],
+    [
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\html\\S2-6.html",
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\S2\\6.png",
+      1290,
+      2796
+    ],
+    [
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\html\\S2-6.html",
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\S2\\play-6.png",
+      1242,
+      2208
+    ],
+    [
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\html\\contact.html",
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\S2\\contact.png",
+      2490,
+      900
+    ],
+    [
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\html\\contact-play.html",
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\S2\\contact-play.png",
+      3036,
+      900
+    ],
+    [
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\html\\contact-230.html",
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\S2\\contact-230.png",
+      1380,
+      499
+    ],
+    [
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\html\\compare.html",
+      "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v3\\compare.png",
+      2490,
+      1800
+    ]
+  ],
+  "crops": [
+    {
+      "source": "1-chat-replies.png",
+      "box": [
+        215,
+        1600,
+        1105,
+        2080
+      ]
+    },
+    {
+      "source": "2-practice.png",
+      "box": [
+        168,
+        898,
+        1067,
+        1100
+      ]
+    },
+    {
+      "source": "2-practice.png",
+      "box": [
+        225,
+        1135,
+        1245,
+        1344
+      ]
+    },
+    {
+      "source": "2-practice.png",
+      "box": [
+        143,
+        1354,
+        1243,
+        1498
+      ]
+    },
+    {
+      "source": "2-practice.png",
+      "box": [
+        167,
+        1532,
+        739,
+        1667
+      ]
+    },
+    {
+      "source": "3-mind.png",
+      "box": [
+        45,
+        920,
+        1245,
+        1115
+      ]
+    },
+    {
+      "source": "3-mind.png",
+      "box": [
+        90,
+        1155,
+        1205,
+        1270
+      ]
+    },
+    {
+      "source": "3-mind.png",
+      "box": [
+        90,
+        1398,
+        1205,
+        1505
+      ]
+    },
+    {
+      "source": "3-mind.png",
+      "box": [
+        90,
+        1630,
+        1205,
+        1745
+      ]
+    },
+    {
+      "source": "4-report.png",
+      "box": [
+        45,
+        220,
+        1245,
+        2500
+      ]
+    },
+    {
+      "source": "4-report.png",
+      "box": [
+        95,
+        490,
+        1195,
+        815
+      ]
+    },
+    {
+      "source": "5-kkti.png",
+      "box": [
+        45,
+        180,
+        1245,
+        1450
+      ]
+    },
+    {
+      "source": "5-kkti.png",
+      "box": [
+        113,
+        672,
+        368,
+        875
+      ]
+    },
+    {
+      "source": "5-kkti.png",
+      "box": [
+        383,
+        672,
+        638,
+        875
+      ]
+    },
+    {
+      "source": "5-kkti.png",
+      "box": [
+        652,
+        672,
+        908,
+        875
+      ]
+    },
+    {
+      "source": "5-kkti.png",
+      "box": [
+        923,
+        672,
+        1178,
+        875
+      ]
+    },
+    {
+      "source": "6-home.png",
+      "box": [
+        45,
+        318,
+        635,
+        630
+      ]
+    },
+    {
+      "source": "6-home.png",
+      "box": [
+        655,
+        318,
+        1245,
+        630
+      ]
+    },
+    {
+      "source": "6-home.png",
+      "box": [
+        45,
+        652,
+        635,
+        967
+      ]
+    },
+    {
+      "source": "6-home.png",
+      "box": [
+        655,
+        652,
+        1245,
+        967
+      ]
+    },
+    {
+      "source": "1-chat-replies.png",
+      "box": [
+        178,
+        2568,
+        1114,
+        2734
+      ]
+    }
+  ],
+  "phone_counts": [
+    1,
+    0,
+    0,
+    2,
+    0,
+    0
+  ],
+  "palette": [
+    "#940051",
+    "#4e21bd",
+    "#005c85",
+    "#9d300e",
+    "#3444aa",
+    "#00634e"
+  ],
+  "copy": [
+    [
+      "뭐라고 답장하지?",
+      "<em>캡처 한 장</em>이면 끝",
+      "호칭·말투 그대로, 답장 3가지"
+    ],
+    [
+      "실전 전에",
+      "AI랑 <em>카톡 연습</em>",
+      "보낼 때마다 코치가 바로 피드백"
+    ],
+    [
+      "그 사람 속마음",
+      "가능성은 <em>몇 %?</em>",
+      "하나의 상황을 여러 가능성으로"
+    ],
+    [
+      "대화 속에 담긴",
+      "우리 <em>호감 온도</em>",
+      "온도 변화부터 상대 분석 보고서까지"
+    ],
+    [
+      "카톡 습관 속",
+      "나의 <em>연애 유형</em>",
+      "16가지 유형 · 나만의 연애 컬러"
+    ],
+    [
+      "캡처 없이",
+      "<em>상황만</em> 적어도 OK",
+      "연습·속마음·비밀 상담까지 한 앱에"
+    ]
+  ],
+  "photos_by_slide": [
+    [
+      "01-point-woman-cutout"
+    ],
+    [
+      "v2/05-studio-woman",
+      "02-heart-man"
+    ],
+    [
+      "03-think-woman"
+    ],
+    [
+      "04-laugh-man",
+      "v2/05-studio-woman"
+    ],
+    [
+      "05-friends"
+    ],
+    [
+      "v2/05-studio-woman",
+      "06-wink-man"
+    ]
+  ]
+}

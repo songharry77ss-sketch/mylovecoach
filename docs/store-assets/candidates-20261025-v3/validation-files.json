@@ -1,0 +1,884 @@
+{
+  "generated_at_utc": "2026-10-25T03:54:50.531155+00:00",
+  "passed": true,
+  "counts": {
+    "ios": 6,
+    "play": 6,
+    "comparisons": 4,
+    "studio_originals": 6,
+    "transparent_cutouts": 1,
+    "png_total": 23,
+    "protected_files": 170
+  },
+  "max_png_bytes": 2458610,
+  "max_store_png_bytes": 1540500,
+  "sources": [
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\index.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\layout_d.py",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\make_candidates.py",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\overview-play.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\overview.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\README.md",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\validation.json",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\A\\1.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\A\\2.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\A\\3.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\A\\4.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\A\\5.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\A\\6.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\A\\contact-play.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\A\\contact.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\A\\play-1.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\A\\play-2.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\A\\play-3.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\A\\play-4.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\A\\play-5.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\A\\play-6.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\B\\1.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\B\\2.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\B\\3.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\B\\4.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\B\\5.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\B\\6.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\B\\contact-play.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\B\\contact.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\B\\play-1.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\B\\play-2.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\B\\play-3.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\B\\play-4.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\B\\play-5.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\B\\play-6.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\C\\1.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\C\\2.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\C\\3.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\C\\4.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\C\\5.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\C\\6.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\C\\contact-play.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\C\\contact.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\C\\play-1.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\C\\play-2.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\C\\play-3.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\C\\play-4.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\C\\play-5.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\C\\play-6.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\D\\1.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\D\\2.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\D\\3.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\D\\4.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\D\\5.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\D\\6.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\D\\contact-play.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\D\\contact.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\D\\play-1.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\D\\play-2.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\D\\play-3.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\D\\play-4.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\D\\play-5.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261024\\D\\play-6.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\build.py",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\contrast_audit.mjs",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\contrast_audit.py",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\index.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\manifest.json",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\optimize_validate.py",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\overview-play.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\overview.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\README.md",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\render-all.ps1",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\validate.mjs",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\validation-contrast.json",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\validation-files.json",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\validation-layout.json",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\contact-N-230.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\contact-N-play.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\contact-N.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\contact-P-230.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\contact-P-play.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\contact-P.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\contact-S-230.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\contact-S-play.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\contact-S.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\N-1.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\N-2.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\N-3.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\N-4.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\N-5.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\N-6.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\overview-play.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\overview.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\P-1.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\P-2.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\P-3.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\P-4.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\P-5.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\P-6.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\S-1.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\S-2.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\S-3.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\S-4.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\S-5.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\html\\S-6.html",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\N\\1.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\N\\2.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\N\\3.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\N\\4.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\N\\5.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\N\\6.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\N\\contact-230.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\N\\contact-play.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\N\\contact.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\N\\play-1.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\N\\play-2.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\N\\play-3.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\N\\play-4.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\N\\play-5.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\N\\play-6.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\P\\1.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\P\\2.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\P\\3.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\P\\4.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\P\\5.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\P\\6.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\P\\contact-230.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\P\\contact-play.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\P\\contact.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\P\\play-1.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\P\\play-2.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\P\\play-3.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\P\\play-4.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\P\\play-5.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\P\\play-6.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\S\\1.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\S\\2.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\S\\3.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\S\\4.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\S\\5.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\S\\6.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\S\\contact-230.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\S\\contact-play.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\S\\contact.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\S\\play-1.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\S\\play-2.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\S\\play-3.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\S\\play-4.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\S\\play-5.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\S\\play-6.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\_photos\\01-cafe-woman.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\_photos\\02-neon-man.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\_photos\\03-lamplight-woman.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\_photos\\04-studio-man.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\_photos\\05-studio-woman.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\_photos\\06-riverside-couple.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\_photos\\07-friends.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\_photos\\08-sofa-man.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\_photos\\prompts-night.md",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\_photos\\prompts-warm.md",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\candidates-20261025\\_photos\\prompts.md",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\ios-6.7\\1-chat-replies.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\ios-6.7\\2-practice.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\ios-6.7\\3-mind.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\ios-6.7\\4-report.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\ios-6.7\\5-kkti.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\store-assets\\ios-6.7\\6-home.png",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\codex\\tasks\\store-shots-20261024.md",
+      "unchanged": true
+    },
+    {
+      "path": "docs\\codex\\tasks\\store-shots-v2-20261025.md",
+      "unchanged": true
+    }
+  ],
+  "files": [
+    {
+      "path": "_photos\\01-point-woman-cutout.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "bytes": 2327335,
+      "sha256": "123cbe689283f44374fd48f34647256d5516dd61d5303eb3a095ca6a5e6f4e06"
+    },
+    {
+      "path": "_photos\\01-point-woman.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGB",
+      "bytes": 2243281,
+      "sha256": "004ad98027f5372f6e11fe5add5dc96d80ad2e952b5d5904e64f951974956dc5"
+    },
+    {
+      "path": "_photos\\02-heart-man.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGB",
+      "bytes": 2354597,
+      "sha256": "4dd5460d6378fa1da80e503ab59d457c0f98ebefbe1f8d662a4fd3d030f025c6"
+    },
+    {
+      "path": "_photos\\03-think-woman.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGB",
+      "bytes": 2087978,
+      "sha256": "98c8cb23136d8be6b5b747058ab085bc9ca567812a51e6ff010d7aee11a4bde6"
+    },
+    {
+      "path": "_photos\\04-laugh-man.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGB",
+      "bytes": 2010327,
+      "sha256": "036711c437d24a4b121817264d0ebef45100ea0380aeb6dcd479d5b7ce5ff377"
+    },
+    {
+      "path": "_photos\\05-friends.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGB",
+      "bytes": 2321815,
+      "sha256": "29ea064a9df1452096becec569303f83e56737e87afde95cb246795df26c16c6"
+    },
+    {
+      "path": "_photos\\06-wink-man.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGB",
+      "bytes": 2271453,
+      "sha256": "2b2f956a4a1098754fa11aa8e847a8da1b12917e97cf4d6546c36abb4a7cda6b"
+    },
+    {
+      "path": "compare.png",
+      "width": 2490,
+      "height": 1800,
+      "mode": "RGB",
+      "bytes": 2458610,
+      "sha256": "1e6969fb5be664e8181b6695cceef3c035f68b927973538502dc0250aad285e8"
+    },
+    {
+      "path": "S2\\1.png",
+      "width": 1290,
+      "height": 2796,
+      "mode": "RGB",
+      "bytes": 1540500,
+      "sha256": "ca8c0dbc49afe2d766936ccceb9396567efed55c39871c98ddf0f0c36f36e611"
+    },
+    {
+      "path": "S2\\2.png",
+      "width": 1290,
+      "height": 2796,
+      "mode": "RGB",
+      "bytes": 728290,
+      "sha256": "82f457652b03ed28da55014465a12dfd9b645428fe993db5857d9e5a97caa326"
+    },
+    {
+      "path": "S2\\3.png",
+      "width": 1290,
+      "height": 2796,
+      "mode": "RGB",
+      "bytes": 703624,
+      "sha256": "c3b6eaf2726851de2a0ea5381d2150410c255a4024084ea702ec69516ef52416"
+    },
+    {
+      "path": "S2\\4.png",
+      "width": 1290,
+      "height": 2796,
+      "mode": "RGB",
+      "bytes": 846615,
+      "sha256": "f574a49026e20c89f177bfffd0fdd0f1dea9a7ae2ad5aca3a67920e6ab76ac48"
+    },
+    {
+      "path": "S2\\5.png",
+      "width": 1290,
+      "height": 2796,
+      "mode": "RGB",
+      "bytes": 1064751,
+      "sha256": "08b4065f78e8fc45ada3b5f3174b1ac68aeacccf3e93e2d5138c399b1f1311f7"
+    },
+    {
+      "path": "S2\\6.png",
+      "width": 1290,
+      "height": 2796,
+      "mode": "RGB",
+      "bytes": 1121758,
+      "sha256": "0d1b7d4c0aa672212c6c3301cbc7dcc43b0bfee5fc06289399cf6b5abd4e86c8"
+    },
+    {
+      "path": "S2\\contact-230.png",
+      "width": 1380,
+      "height": 499,
+      "mode": "RGB",
+      "bytes": 463101,
+      "sha256": "53970d5d7a87a45e8f21b8ae7a607eb070638e83d2ca1d2bd17a95022b6ad89d"
+    },
+    {
+      "path": "S2\\contact-play.png",
+      "width": 3036,
+      "height": 900,
+      "mode": "RGB",
+      "bytes": 1340698,
+      "sha256": "df7d2bdca4328f7f870a519f882b6f9055097abaf7d1d4f89fc99b571ceb9f16"
+    },
+    {
+      "path": "S2\\contact.png",
+      "width": 2490,
+      "height": 900,
+      "mode": "RGB",
+      "bytes": 1212422,
+      "sha256": "fe60feb4a578d0d50f722f06f47c07fd72b12ac4b8ffa0ebfe10d5865534b4f1"
+    },
+    {
+      "path": "S2\\play-1.png",
+      "width": 1242,
+      "height": 2208,
+      "mode": "RGB",
+      "bytes": 1193915,
+      "sha256": "418744f1efe41ae77194a1ca200b926cab05b344eded1a11afc4cb533cb7b4ec"
+    },
+    {
+      "path": "S2\\play-2.png",
+      "width": 1242,
+      "height": 2208,
+      "mode": "RGB",
+      "bytes": 610356,
+      "sha256": "f8cf8434c5ad9c761d120bf27521e4d768fc156bf4030baf728e13f4d3e44f6a"
+    },
+    {
+      "path": "S2\\play-3.png",
+      "width": 1242,
+      "height": 2208,
+      "mode": "RGB",
+      "bytes": 574766,
+      "sha256": "d6cec5cfca6ec6ecbd0c4c3b04f85a925e6851ffff64b3bbd370dd6830be487d"
+    },
+    {
+      "path": "S2\\play-4.png",
+      "width": 1242,
+      "height": 2208,
+      "mode": "RGB",
+      "bytes": 657209,
+      "sha256": "4d48a3c23ae8bbd85e2d05f45c9eaf1c414dbcab6b68b8411bee1d75fc81208a"
+    },
+    {
+      "path": "S2\\play-5.png",
+      "width": 1242,
+      "height": 2208,
+      "mode": "RGB",
+      "bytes": 817446,
+      "sha256": "ae98bcbf7e6a4d9dea31f576664acf2d80a60a4dddf67c0b978d6f9effe6b9a2"
+    },
+    {
+      "path": "S2\\play-6.png",
+      "width": 1242,
+      "height": 2208,
+      "mode": "RGB",
+      "bytes": 949975,
+      "sha256": "299d96fb153a8dc189775867aea71221a6d0a01e154e66e6ee42687c0a9ece24"
+    }
+  ],
+  "errors": []
+}
