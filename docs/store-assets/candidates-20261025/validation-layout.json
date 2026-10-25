@@ -1,0 +1,6342 @@
+{
+  "checkedAt": "2026-10-25T03:21:36.336Z",
+  "checks": [
+    {
+      "file": "P-1.html",
+      "format": "iOS",
+      "viewport": {
+        "width": 1290,
+        "height": 2796
+      },
+      "designScale": 1,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1290,
+        "bottom": 2796,
+        "width": 1290,
+        "height": 2796
+      },
+      "header": {
+        "left": 86,
+        "top": 272,
+        "right": 1220,
+        "bottom": 688.015625,
+        "width": 1134,
+        "height": 416.015625
+      },
+      "brand": {
+        "left": 86,
+        "top": 164,
+        "right": 371.171875,
+        "bottom": 209,
+        "width": 285.171875,
+        "height": 45
+      },
+      "footer": {
+        "left": 86,
+        "top": 2612,
+        "right": 1204,
+        "bottom": 2647,
+        "width": 1118,
+        "height": 35
+      },
+      "phone": {
+        "left": 455.64593505859375,
+        "top": 999.836181640625,
+        "right": 1292.35400390625,
+        "bottom": 2597.335693359375,
+        "width": 836.7080688476562,
+        "height": 1597.49951171875,
+        "heightRatio": 0.571351756694832
+      },
+      "feature": {
+        "left": 55.21250534057617,
+        "top": 1833.060302734375,
+        "right": 1066.7874565124512,
+        "bottom": 2529.064697265625,
+        "width": 1011.574951171875,
+        "height": 696.00439453125
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 138,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "뭐라고 답장하지?",
+            "chars": 9,
+            "bounds": {
+              "left": 86,
+              "top": 268,
+              "right": 963.9375,
+              "bottom": 432,
+              "width": 877.9375,
+              "height": 164
+            }
+          },
+          {
+            "text": "캡처 한 장이면 끝",
+            "chars": 10,
+            "bounds": {
+              "left": 86,
+              "top": 425.3125,
+              "right": 946.296875,
+              "bottom": 589.3125,
+              "width": 860.296875,
+              "height": 164
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 48,
+        "bounds": {
+          "left": 86,
+          "top": 627.625,
+          "right": 605.203125,
+          "bottom": 685.625,
+          "width": 519.203125,
+          "height": 58
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/01-cafe-woman.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/01-cafe-woman.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 61.63010025024414,
+            "top": 1924.836181640625,
+            "right": 1066.7874488830566,
+            "bottom": 2529.064697265625,
+            "width": 1005.1573486328125,
+            "height": 604.228515625
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "P-1.html",
+      "format": "Play",
+      "viewport": {
+        "width": 1242,
+        "height": 2208
+      },
+      "designScale": 0.9627906976744186,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1242,
+        "bottom": 2207.994873046875,
+        "width": 1242,
+        "height": 2207.994873046875
+      },
+      "header": {
+        "left": 82.79999542236328,
+        "top": 234.92092895507812,
+        "right": 1174.6045608520508,
+        "bottom": 603.6396484375,
+        "width": 1091.8045654296875,
+        "height": 368.7187194824219
+      },
+      "brand": {
+        "left": 82.79999542236328,
+        "top": 150.19534301757812,
+        "right": 333.1857681274414,
+        "bottom": 193.5209197998047,
+        "width": 250.38577270507812,
+        "height": 43.32557678222656
+      },
+      "footer": {
+        "left": 82.79999542236328,
+        "top": 2044.320556640625,
+        "right": 1159.1998977661133,
+        "bottom": 2074.1669921875,
+        "width": 1076.39990234375,
+        "height": 29.846435546875
+      },
+      "phone": {
+        "left": 545.8653564453125,
+        "top": 696.6111450195312,
+        "right": 1233.3717041015625,
+        "bottom": 2012.2754516601562,
+        "width": 687.50634765625,
+        "height": 1315.664306640625,
+        "heightRatio": 0.5958624577176743
+      },
+      "feature": {
+        "left": 46.472042083740234,
+        "top": 1376.59912109375,
+        "right": 960.606990814209,
+        "bottom": 2011.5966796875,
+        "width": 914.1349487304688,
+        "height": 634.99755859375
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 134,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "뭐라고 답장하지?",
+            "chars": 9,
+            "bounds": {
+              "left": 82.79999542236328,
+              "top": 229.14418029785156,
+              "right": 901.818977355957,
+              "bottom": 383.190673828125,
+              "width": 819.0189819335938,
+              "height": 154.04649353027344
+            }
+          },
+          {
+            "text": "캡처 한 장이면 끝",
+            "chars": 10,
+            "bounds": {
+              "left": 82.79999542236328,
+              "top": 372.34423828125,
+              "right": 885.1355667114258,
+              "bottom": 526.3907470703125,
+              "width": 802.3355712890625,
+              "height": 154.0465087890625
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 45,
+        "bounds": {
+          "left": 82.79999542236328,
+          "top": 549.2420043945312,
+          "right": 549.8136672973633,
+          "bottom": 601.232666015625,
+          "width": 467.013671875,
+          "height": 51.99066162109375
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/01-cafe-woman.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/01-cafe-woman.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 52.65084457397461,
+            "top": 1464.9600830078125,
+            "right": 960.6070213317871,
+            "bottom": 2011.5966796875,
+            "width": 907.9561767578125,
+            "height": 546.6365966796875
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "P-2.html",
+      "format": "iOS",
+      "viewport": {
+        "width": 1290,
+        "height": 2796
+      },
+      "designScale": 1,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1290,
+        "bottom": 2796,
+        "width": 1290,
+        "height": 2796
+      },
+      "header": {
+        "left": 86,
+        "top": 272,
+        "right": 1220,
+        "bottom": 688.015625,
+        "width": 1134,
+        "height": 416.015625
+      },
+      "brand": {
+        "left": 86,
+        "top": 164,
+        "right": 371.171875,
+        "bottom": 209,
+        "width": 285.171875,
+        "height": 45
+      },
+      "footer": {
+        "left": 86,
+        "top": 2612,
+        "right": 1204,
+        "bottom": 2647,
+        "width": 1118,
+        "height": 35
+      },
+      "phone": {
+        "left": 455.64593505859375,
+        "top": 999.836181640625,
+        "right": 1292.35400390625,
+        "bottom": 2597.335693359375,
+        "width": 836.7080688476562,
+        "height": 1597.49951171875,
+        "heightRatio": 0.571351756694832
+      },
+      "feature": {
+        "left": 56.22615432739258,
+        "top": 1862.08740234375,
+        "right": 1065.7738227844238,
+        "bottom": 2529.10009765625,
+        "width": 1009.5476684570312,
+        "height": 667.0126953125
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 138,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "실전 전에",
+            "chars": 5,
+            "bounds": {
+              "left": 86,
+              "top": 268,
+              "right": 559.875,
+              "bottom": 432,
+              "width": 473.875,
+              "height": 164
+            }
+          },
+          {
+            "text": "AI랑 카톡 연습",
+            "chars": 9,
+            "bounds": {
+              "left": 86,
+              "top": 425.3125,
+              "right": 818.65625,
+              "bottom": 589.3125,
+              "width": 732.65625,
+              "height": 164
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 48,
+        "bounds": {
+          "left": 86,
+          "top": 627.625,
+          "right": 644.984375,
+          "bottom": 685.625,
+          "width": 558.984375,
+          "height": 58
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/08-sofa-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/08-sofa-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 62.64374923706055,
+            "top": 1953.86328125,
+            "right": 1065.7738151550293,
+            "bottom": 2529.10009765625,
+            "width": 1003.1300659179688,
+            "height": 575.23681640625
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "P-2.html",
+      "format": "Play",
+      "viewport": {
+        "width": 1242,
+        "height": 2208
+      },
+      "designScale": 0.9627906976744186,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1242,
+        "bottom": 2207.994873046875,
+        "width": 1242,
+        "height": 2207.994873046875
+      },
+      "header": {
+        "left": 82.79999542236328,
+        "top": 234.92092895507812,
+        "right": 1174.6045608520508,
+        "bottom": 603.6396484375,
+        "width": 1091.8045654296875,
+        "height": 368.7187194824219
+      },
+      "brand": {
+        "left": 82.79999542236328,
+        "top": 150.19534301757812,
+        "right": 333.1857681274414,
+        "bottom": 193.5209197998047,
+        "width": 250.38577270507812,
+        "height": 43.32557678222656
+      },
+      "footer": {
+        "left": 82.79999542236328,
+        "top": 2044.320556640625,
+        "right": 1159.1998977661133,
+        "bottom": 2074.1669921875,
+        "width": 1076.39990234375,
+        "height": 29.846435546875
+      },
+      "phone": {
+        "left": 545.8653564453125,
+        "top": 696.6111450195312,
+        "right": 1233.3717041015625,
+        "bottom": 2012.2754516601562,
+        "width": 687.50634765625,
+        "height": 1315.664306640625,
+        "heightRatio": 0.5958624577176743
+      },
+      "feature": {
+        "left": 47.385536193847656,
+        "top": 1402.7581787109375,
+        "right": 959.6934585571289,
+        "bottom": 2011.628662109375,
+        "width": 912.3079223632812,
+        "height": 608.8704833984375
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 134,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "실전 전에",
+            "chars": 5,
+            "bounds": {
+              "left": 82.79999542236328,
+              "top": 229.14418029785156,
+              "right": 524.8412551879883,
+              "bottom": 383.190673828125,
+              "width": 442.041259765625,
+              "height": 154.04649353027344
+            }
+          },
+          {
+            "text": "AI랑 카톡 연습",
+            "chars": 9,
+            "bounds": {
+              "left": 82.79999542236328,
+              "top": 372.34423828125,
+              "right": 765.9902420043945,
+              "bottom": 526.3907470703125,
+              "width": 683.1902465820312,
+              "height": 154.0465087890625
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 45,
+        "bounds": {
+          "left": 82.79999542236328,
+          "top": 549.2420043945312,
+          "right": 585.7077102661133,
+          "bottom": 601.232666015625,
+          "width": 502.90771484375,
+          "height": 51.99066162109375
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/08-sofa-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/08-sofa-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 53.564334869384766,
+            "top": 1491.119140625,
+            "right": 959.6934852600098,
+            "bottom": 2011.628662109375,
+            "width": 906.129150390625,
+            "height": 520.509521484375
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "P-3.html",
+      "format": "iOS",
+      "viewport": {
+        "width": 1290,
+        "height": 2796
+      },
+      "designScale": 1,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1290,
+        "bottom": 2796,
+        "width": 1290,
+        "height": 2796
+      },
+      "header": {
+        "left": 86,
+        "top": 272,
+        "right": 1220,
+        "bottom": 688.015625,
+        "width": 1134,
+        "height": 416.015625
+      },
+      "brand": {
+        "left": 86,
+        "top": 164,
+        "right": 371.171875,
+        "bottom": 209,
+        "width": 285.171875,
+        "height": 45
+      },
+      "footer": {
+        "left": 86,
+        "top": 2612,
+        "right": 1204,
+        "bottom": 2647,
+        "width": 1118,
+        "height": 35
+      },
+      "phone": {
+        "left": 455.64593505859375,
+        "top": 999.836181640625,
+        "right": 1292.35400390625,
+        "bottom": 2597.335693359375,
+        "width": 836.7080688476562,
+        "height": 1597.49951171875,
+        "heightRatio": 0.571351756694832
+      },
+      "feature": {
+        "left": 46.411746978759766,
+        "top": 1581.0394287109375,
+        "right": 1075.5882606506348,
+        "bottom": 2528.75732421875,
+        "width": 1029.176513671875,
+        "height": 947.7178955078125
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 138,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "그 사람 속마음",
+            "chars": 8,
+            "bounds": {
+              "left": 86,
+              "top": 268,
+              "right": 809.21875,
+              "bottom": 432,
+              "width": 723.21875,
+              "height": 164
+            }
+          },
+          {
+            "text": "가능성은 몇 %?",
+            "chars": 9,
+            "bounds": {
+              "left": 86,
+              "top": 425.3125,
+              "right": 889.6875,
+              "bottom": 589.3125,
+              "width": 803.6875,
+              "height": 164
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 48,
+        "bounds": {
+          "left": 86,
+          "top": 627.625,
+          "right": 634.859375,
+          "bottom": 685.625,
+          "width": 548.859375,
+          "height": 58
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/03-lamplight-woman.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/03-lamplight-woman.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 52.829341888427734,
+            "top": 1672.8154296875,
+            "right": 1075.5882530212402,
+            "bottom": 2528.75732421875,
+            "width": 1022.7589111328125,
+            "height": 855.94189453125
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "P-3.html",
+      "format": "Play",
+      "viewport": {
+        "width": 1242,
+        "height": 2208
+      },
+      "designScale": 0.9627906976744186,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1242,
+        "bottom": 2207.994873046875,
+        "width": 1242,
+        "height": 2207.994873046875
+      },
+      "header": {
+        "left": 82.79999542236328,
+        "top": 234.92092895507812,
+        "right": 1174.6045608520508,
+        "bottom": 603.6396484375,
+        "width": 1091.8045654296875,
+        "height": 368.7187194824219
+      },
+      "brand": {
+        "left": 82.79999542236328,
+        "top": 150.19534301757812,
+        "right": 333.1857681274414,
+        "bottom": 193.5209197998047,
+        "width": 250.38577270507812,
+        "height": 43.32557678222656
+      },
+      "footer": {
+        "left": 82.79999542236328,
+        "top": 2044.320556640625,
+        "right": 1159.1998977661133,
+        "bottom": 2074.1669921875,
+        "width": 1076.39990234375,
+        "height": 29.846435546875
+      },
+      "phone": {
+        "left": 545.8653564453125,
+        "top": 696.6111450195312,
+        "right": 1233.3717041015625,
+        "bottom": 2012.2754516601562,
+        "width": 687.50634765625,
+        "height": 1315.664306640625,
+        "heightRatio": 0.5958624577176743
+      },
+      "feature": {
+        "left": 38.54076385498047,
+        "top": 1149.4769287109375,
+        "right": 968.5382614135742,
+        "bottom": 2011.31982421875,
+        "width": 929.9974975585938,
+        "height": 861.8428955078125
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 134,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "그 사람 속마음",
+            "chars": 8,
+            "bounds": {
+              "left": 82.79999542236328,
+              "top": 229.14418029785156,
+              "right": 757.370246887207,
+              "bottom": 383.190673828125,
+              "width": 674.5702514648438,
+              "height": 154.04649353027344
+            }
+          },
+          {
+            "text": "가능성은 몇 %?",
+            "chars": 9,
+            "bounds": {
+              "left": 82.79999542236328,
+              "top": 372.34423828125,
+              "right": 832.392707824707,
+              "bottom": 526.3907470703125,
+              "width": 749.5927124023438,
+              "height": 154.0465087890625
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 45,
+        "bounds": {
+          "left": 82.79999542236328,
+          "top": 549.2420043945312,
+          "right": 576.6665115356445,
+          "bottom": 601.232666015625,
+          "width": 493.86651611328125,
+          "height": 51.99066162109375
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/03-lamplight-woman.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/03-lamplight-woman.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 44.71956253051758,
+            "top": 1237.837890625,
+            "right": 968.5382881164551,
+            "bottom": 2011.31982421875,
+            "width": 923.8187255859375,
+            "height": 773.48193359375
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "P-4.html",
+      "format": "iOS",
+      "viewport": {
+        "width": 1290,
+        "height": 2796
+      },
+      "designScale": 1,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1290,
+        "bottom": 2796,
+        "width": 1290,
+        "height": 2796
+      },
+      "header": {
+        "left": 86,
+        "top": 272,
+        "right": 1220,
+        "bottom": 688.015625,
+        "width": 1134,
+        "height": 416.015625
+      },
+      "brand": {
+        "left": 86,
+        "top": 164,
+        "right": 371.171875,
+        "bottom": 209,
+        "width": 285.171875,
+        "height": 45
+      },
+      "footer": {
+        "left": 86,
+        "top": 2612,
+        "right": 1204,
+        "bottom": 2647,
+        "width": 1118,
+        "height": 35
+      },
+      "phone": {
+        "left": 455.64593505859375,
+        "top": 999.836181640625,
+        "right": 1292.35400390625,
+        "bottom": 2597.335693359375,
+        "width": 836.7080688476562,
+        "height": 1597.49951171875,
+        "heightRatio": 0.571351756694832
+      },
+      "feature": {
+        "left": 50.6374626159668,
+        "top": 1702.0482177734375,
+        "right": 1071.3625602722168,
+        "bottom": 2528.905029296875,
+        "width": 1020.72509765625,
+        "height": 826.8568115234375
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 138,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "대화 속에 담긴",
+            "chars": 8,
+            "bounds": {
+              "left": 86,
+              "top": 268,
+              "right": 809.21875,
+              "bottom": 432,
+              "width": 723.21875,
+              "height": 164
+            }
+          },
+          {
+            "text": "우리 호감 온도",
+            "chars": 8,
+            "bounds": {
+              "left": 86,
+              "top": 425.3125,
+              "right": 809.21875,
+              "bottom": 589.3125,
+              "width": 723.21875,
+              "height": 164
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 48,
+        "bounds": {
+          "left": 86,
+          "top": 627.625,
+          "right": 724.75,
+          "bottom": 685.625,
+          "width": 638.75,
+          "height": 58
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/06-riverside-couple.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/06-riverside-couple.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 57.055057525634766,
+            "top": 1793.8240966796875,
+            "right": 1071.3625526428223,
+            "bottom": 2528.905029296875,
+            "width": 1014.3074951171875,
+            "height": 735.0809326171875
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "P-4.html",
+      "format": "Play",
+      "viewport": {
+        "width": 1242,
+        "height": 2208
+      },
+      "designScale": 0.9627906976744186,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1242,
+        "bottom": 2207.994873046875,
+        "width": 1242,
+        "height": 2207.994873046875
+      },
+      "header": {
+        "left": 82.79999542236328,
+        "top": 234.92092895507812,
+        "right": 1174.6045608520508,
+        "bottom": 603.6396484375,
+        "width": 1091.8045654296875,
+        "height": 368.7187194824219
+      },
+      "brand": {
+        "left": 82.79999542236328,
+        "top": 150.19534301757812,
+        "right": 333.1857681274414,
+        "bottom": 193.5209197998047,
+        "width": 250.38577270507812,
+        "height": 43.32557678222656
+      },
+      "footer": {
+        "left": 82.79999542236328,
+        "top": 2044.320556640625,
+        "right": 1159.1998977661133,
+        "bottom": 2074.1669921875,
+        "width": 1076.39990234375,
+        "height": 29.846435546875
+      },
+      "phone": {
+        "left": 545.8653564453125,
+        "top": 696.6111450195312,
+        "right": 1233.3717041015625,
+        "bottom": 2012.2754516601562,
+        "width": 687.50634765625,
+        "height": 1315.664306640625,
+        "heightRatio": 0.5958624577176743
+      },
+      "feature": {
+        "left": 42.348995208740234,
+        "top": 1258.5303955078125,
+        "right": 964.730037689209,
+        "bottom": 2011.45263671875,
+        "width": 922.3810424804688,
+        "height": 752.9222412109375
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 134,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "대화 속에 담긴",
+            "chars": 8,
+            "bounds": {
+              "left": 82.79999542236328,
+              "top": 229.14418029785156,
+              "right": 757.370246887207,
+              "bottom": 383.190673828125,
+              "width": 674.5702514648438,
+              "height": 154.04649353027344
+            }
+          },
+          {
+            "text": "우리 호감 온도",
+            "chars": 8,
+            "bounds": {
+              "left": 82.79999542236328,
+              "top": 372.34423828125,
+              "right": 757.370246887207,
+              "bottom": 526.3907470703125,
+              "width": 674.5702514648438,
+              "height": 154.0465087890625
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 45,
+        "bounds": {
+          "left": 82.79999542236328,
+          "top": 549.2420043945312,
+          "right": 657.5108108520508,
+          "bottom": 601.232666015625,
+          "width": 574.7108154296875,
+          "height": 51.99066162109375
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/06-riverside-couple.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/06-riverside-couple.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 48.527793884277344,
+            "top": 1346.891357421875,
+            "right": 964.7300643920898,
+            "bottom": 2011.45263671875,
+            "width": 916.2022705078125,
+            "height": 664.561279296875
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "P-5.html",
+      "format": "iOS",
+      "viewport": {
+        "width": 1290,
+        "height": 2796
+      },
+      "designScale": 1,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1290,
+        "bottom": 2796,
+        "width": 1290,
+        "height": 2796
+      },
+      "header": {
+        "left": 86,
+        "top": 272,
+        "right": 1220,
+        "bottom": 688.015625,
+        "width": 1134,
+        "height": 416.015625
+      },
+      "brand": {
+        "left": 86,
+        "top": 164,
+        "right": 371.171875,
+        "bottom": 209,
+        "width": 285.171875,
+        "height": 45
+      },
+      "footer": {
+        "left": 86,
+        "top": 2612,
+        "right": 1204,
+        "bottom": 2647,
+        "width": 1118,
+        "height": 35
+      },
+      "phone": {
+        "left": 455.64593505859375,
+        "top": 999.836181640625,
+        "right": 1292.35400390625,
+        "bottom": 2597.335693359375,
+        "width": 836.7080688476562,
+        "height": 1597.49951171875,
+        "heightRatio": 0.571351756694832
+      },
+      "feature": {
+        "left": 50.501220703125,
+        "top": 1698.146728515625,
+        "right": 1071.498779296875,
+        "bottom": 2528.900146484375,
+        "width": 1020.99755859375,
+        "height": 830.75341796875
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 138,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "카톡 습관 속",
+            "chars": 7,
+            "bounds": {
+              "left": 86,
+              "top": 268,
+              "right": 696.953125,
+              "bottom": 432,
+              "width": 610.953125,
+              "height": 164
+            }
+          },
+          {
+            "text": "나의 연애 유형",
+            "chars": 8,
+            "bounds": {
+              "left": 86,
+              "top": 425.3125,
+              "right": 809.21875,
+              "bottom": 589.3125,
+              "width": 723.21875,
+              "height": 164
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 48,
+        "bounds": {
+          "left": 86,
+          "top": 627.625,
+          "right": 634.609375,
+          "bottom": 685.625,
+          "width": 548.609375,
+          "height": 58
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/07-friends.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/07-friends.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 56.91881561279297,
+            "top": 1789.922607421875,
+            "right": 1071.4987716674805,
+            "bottom": 2528.900146484375,
+            "width": 1014.5799560546875,
+            "height": 738.9775390625
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "P-5.html",
+      "format": "Play",
+      "viewport": {
+        "width": 1242,
+        "height": 2208
+      },
+      "designScale": 0.9627906976744186,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1242,
+        "bottom": 2207.994873046875,
+        "width": 1242,
+        "height": 2207.994873046875
+      },
+      "header": {
+        "left": 82.79999542236328,
+        "top": 234.92092895507812,
+        "right": 1174.6045608520508,
+        "bottom": 603.6396484375,
+        "width": 1091.8045654296875,
+        "height": 368.7187194824219
+      },
+      "brand": {
+        "left": 82.79999542236328,
+        "top": 150.19534301757812,
+        "right": 333.1857681274414,
+        "bottom": 193.5209197998047,
+        "width": 250.38577270507812,
+        "height": 43.32557678222656
+      },
+      "footer": {
+        "left": 82.79999542236328,
+        "top": 2044.320556640625,
+        "right": 1159.1998977661133,
+        "bottom": 2074.1669921875,
+        "width": 1076.39990234375,
+        "height": 29.846435546875
+      },
+      "phone": {
+        "left": 545.8653564453125,
+        "top": 696.6111450195312,
+        "right": 1233.3717041015625,
+        "bottom": 2012.2754516601562,
+        "width": 687.50634765625,
+        "height": 1315.664306640625,
+        "heightRatio": 0.5958624577176743
+      },
+      "feature": {
+        "left": 42.22621536254883,
+        "top": 1255.0145263671875,
+        "right": 964.8528633117676,
+        "bottom": 2011.4483642578125,
+        "width": 922.6266479492188,
+        "height": 756.433837890625
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 134,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "카톡 습관 속",
+            "chars": 7,
+            "bounds": {
+              "left": 82.79999542236328,
+              "top": 229.14418029785156,
+              "right": 652.606575012207,
+              "bottom": 383.190673828125,
+              "width": 569.8065795898438,
+              "height": 154.04649353027344
+            }
+          },
+          {
+            "text": "나의 연애 유형",
+            "chars": 8,
+            "bounds": {
+              "left": 82.79999542236328,
+              "top": 372.34423828125,
+              "right": 757.370246887207,
+              "bottom": 526.3907470703125,
+              "width": 674.5702514648438,
+              "height": 154.0465087890625
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 45,
+        "bounds": {
+          "left": 82.79999542236328,
+          "top": 549.2420043945312,
+          "right": 576.1549758911133,
+          "bottom": 601.232666015625,
+          "width": 493.35498046875,
+          "height": 51.99066162109375
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/07-friends.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/07-friends.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 48.4050178527832,
+            "top": 1343.37548828125,
+            "right": 964.8528327941895,
+            "bottom": 2011.4483642578125,
+            "width": 916.4478149414062,
+            "height": 668.0728759765625
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "P-6.html",
+      "format": "iOS",
+      "viewport": {
+        "width": 1290,
+        "height": 2796
+      },
+      "designScale": 1,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1290,
+        "bottom": 2796,
+        "width": 1290,
+        "height": 2796
+      },
+      "header": {
+        "left": 86,
+        "top": 272,
+        "right": 1220,
+        "bottom": 688.015625,
+        "width": 1134,
+        "height": 416.015625
+      },
+      "brand": {
+        "left": 86,
+        "top": 164,
+        "right": 371.171875,
+        "bottom": 209,
+        "width": 285.171875,
+        "height": 45
+      },
+      "footer": {
+        "left": 86,
+        "top": 2612,
+        "right": 1204,
+        "bottom": 2647,
+        "width": 1118,
+        "height": 35
+      },
+      "phone": {
+        "left": 455.64593505859375,
+        "top": 999.836181640625,
+        "right": 1292.35400390625,
+        "bottom": 2597.335693359375,
+        "width": 836.7080688476562,
+        "height": 1597.49951171875,
+        "heightRatio": 0.571351756694832
+      },
+      "feature": {
+        "left": 47.88042068481445,
+        "top": 1625.1895751953125,
+        "right": 1044.1196174621582,
+        "bottom": 2527.763671875,
+        "width": 996.2391967773438,
+        "height": 902.5740966796875
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 138,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "캡처 없이",
+            "chars": 5,
+            "bounds": {
+              "left": 86,
+              "top": 268,
+              "right": 559.875,
+              "bottom": 432,
+              "width": 473.875,
+              "height": 164
+            }
+          },
+          {
+            "text": "상황만 적어도 OK",
+            "chars": 10,
+            "bounds": {
+              "left": 86,
+              "top": 425.3125,
+              "right": 990.640625,
+              "bottom": 589.3125,
+              "width": 904.640625,
+              "height": 164
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 48,
+        "bounds": {
+          "left": 86,
+          "top": 627.625,
+          "right": 696.859375,
+          "bottom": 685.625,
+          "width": 610.859375,
+          "height": 58
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/08-sofa-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/08-sofa-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 54.29801559448242,
+            "top": 1716.9654541015625,
+            "right": 1029.6036186218262,
+            "bottom": 2320.1767578125,
+            "width": 975.3056030273438,
+            "height": 603.2113037109375
+          }
+        },
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 93.28861236572266,
+            "top": 2274.556884765625,
+            "right": 1044.1196060180664,
+            "bottom": 2527.763671875,
+            "width": 950.8309936523438,
+            "height": 253.206787109375
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "P-6.html",
+      "format": "Play",
+      "viewport": {
+        "width": 1242,
+        "height": 2208
+      },
+      "designScale": 0.9627906976744186,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1242,
+        "bottom": 2207.994873046875,
+        "width": 1242,
+        "height": 2207.994873046875
+      },
+      "header": {
+        "left": 82.79999542236328,
+        "top": 234.92092895507812,
+        "right": 1174.6045608520508,
+        "bottom": 603.6396484375,
+        "width": 1091.8045654296875,
+        "height": 368.7187194824219
+      },
+      "brand": {
+        "left": 82.79999542236328,
+        "top": 150.19534301757812,
+        "right": 333.1857681274414,
+        "bottom": 193.5209197998047,
+        "width": 250.38577270507812,
+        "height": 43.32557678222656
+      },
+      "footer": {
+        "left": 82.79999542236328,
+        "top": 2044.320556640625,
+        "right": 1159.1998977661133,
+        "bottom": 2074.1669921875,
+        "width": 1076.39990234375,
+        "height": 29.846435546875
+      },
+      "phone": {
+        "left": 545.8653564453125,
+        "top": 696.6111450195312,
+        "right": 1233.3717041015625,
+        "bottom": 2012.2754516601562,
+        "width": 687.50634765625,
+        "height": 1315.664306640625,
+        "heightRatio": 0.5958624577176743
+      },
+      "feature": {
+        "left": 39.10271072387695,
+        "top": 1165.569091796875,
+        "right": 967.9763069152832,
+        "bottom": 2011.3392333984375,
+        "width": 928.8735961914062,
+        "height": 845.7701416015625
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 134,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "캡처 없이",
+            "chars": 5,
+            "bounds": {
+              "left": 82.79999542236328,
+              "top": 229.14418029785156,
+              "right": 524.8412551879883,
+              "bottom": 383.190673828125,
+              "width": 442.041259765625,
+              "height": 154.04649353027344
+            }
+          },
+          {
+            "text": "상황만 적어도 OK",
+            "chars": 10,
+            "bounds": {
+              "left": 82.79999542236328,
+              "top": 372.34423828125,
+              "right": 926.580696105957,
+              "bottom": 526.3907470703125,
+              "width": 843.7807006835938,
+              "height": 154.0465087890625
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 45,
+        "bounds": {
+          "left": 82.79999542236328,
+          "top": 549.2420043945312,
+          "right": 632.3428421020508,
+          "bottom": 601.232666015625,
+          "width": 549.5428466796875,
+          "height": 51.99066162109375
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/08-sofa-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/08-sofa-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 45.28151321411133,
+            "top": 1253.9300537109375,
+            "right": 954.3584785461426,
+            "bottom": 1816.593994140625,
+            "width": 909.0769653320312,
+            "height": 562.6639404296875
+          }
+        },
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 81.69635009765625,
+            "top": 1774.6865234375,
+            "right": 967.976318359375,
+            "bottom": 2011.3392333984375,
+            "width": 886.2799682617188,
+            "height": 236.6527099609375
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "S-1.html",
+      "format": "iOS",
+      "viewport": {
+        "width": 1290,
+        "height": 2796
+      },
+      "designScale": 1,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1290,
+        "bottom": 2796,
+        "width": 1290,
+        "height": 2796
+      },
+      "header": {
+        "left": 55,
+        "top": 272,
+        "right": 1235,
+        "bottom": 692.578125,
+        "width": 1180,
+        "height": 420.578125
+      },
+      "brand": {
+        "left": 502.4140625,
+        "top": 164,
+        "right": 787.5859375,
+        "bottom": 209,
+        "width": 285.171875,
+        "height": 45
+      },
+      "footer": {
+        "left": 86,
+        "top": 2612,
+        "right": 1204,
+        "bottom": 2647,
+        "width": 1118,
+        "height": 35
+      },
+      "phone": {
+        "left": 313.3938903808594,
+        "top": 861.0196533203125,
+        "right": 1201.6060485839844,
+        "bottom": 2595.27734375,
+        "width": 888.212158203125,
+        "height": 1734.2576904296875,
+        "heightRatio": 0.6202638377788582
+      },
+      "feature": {
+        "left": 62.5609130859375,
+        "top": 1787.59228515625,
+        "right": 1172.4390869140625,
+        "bottom": 2552.68896484375,
+        "width": 1109.878173828125,
+        "height": 765.0966796875
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 140,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "뭐라고 답장하지?",
+            "chars": 9,
+            "bounds": {
+              "left": 202.359375,
+              "top": 268,
+              "right": 1087.640625,
+              "bottom": 435,
+              "width": 885.28125,
+              "height": 167
+            }
+          },
+          {
+            "text": "캡처 한 장이면 끝",
+            "chars": 10,
+            "bounds": {
+              "left": 211.59375,
+              "top": 427.59375,
+              "right": 1078.390625,
+              "bottom": 594.59375,
+              "width": 866.796875,
+              "height": 167
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 48,
+        "bounds": {
+          "left": 385.390625,
+          "top": 632.1875,
+          "right": 904.59375,
+          "bottom": 690.1875,
+          "width": 519.203125,
+          "height": 58
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/05-studio-woman.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/05-studio-woman.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 70.57923889160156,
+            "top": 1879.2421875,
+            "right": 1172.4391021728516,
+            "bottom": 2552.68896484375,
+            "width": 1101.85986328125,
+            "height": 673.44677734375
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "S-1.html",
+      "format": "Play",
+      "viewport": {
+        "width": 1242,
+        "height": 2208
+      },
+      "designScale": 0.9627906976744186,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1242,
+        "bottom": 2207.994873046875,
+        "width": 1242,
+        "height": 2207.994873046875
+      },
+      "header": {
+        "left": 52.953487396240234,
+        "top": 234.92092895507812,
+        "right": 1189.0465049743652,
+        "bottom": 603.6396484375,
+        "width": 1136.093017578125,
+        "height": 368.7187194824219
+      },
+      "brand": {
+        "left": 495.8070983886719,
+        "top": 150.19534301757812,
+        "right": 746.19287109375,
+        "bottom": 193.5209197998047,
+        "width": 250.38577270507812,
+        "height": 43.32557678222656
+      },
+      "footer": {
+        "left": 82.79999542236328,
+        "top": 2044.320556640625,
+        "right": 1159.1998977661133,
+        "bottom": 2074.1669921875,
+        "width": 1076.39990234375,
+        "height": 29.846435546875
+      },
+      "phone": {
+        "left": 453.5760192871094,
+        "top": 636.6533203125,
+        "right": 1154.2842712402344,
+        "bottom": 2009.6219482421875,
+        "width": 700.708251953125,
+        "height": 1372.9686279296875,
+        "heightRatio": 0.6218155017797498
+      },
+      "feature": {
+        "left": 81.04875183105469,
+        "top": 1330.15771484375,
+        "right": 1074.300033569336,
+        "bottom": 2021.692626953125,
+        "width": 993.2512817382812,
+        "height": 691.534912109375
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 134,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "뭐라고 답장하지?",
+            "chars": 9,
+            "bounds": {
+              "left": 214.52178955078125,
+              "top": 229.14418029785156,
+              "right": 1027.4781494140625,
+              "bottom": 383.190673828125,
+              "width": 812.9563598632812,
+              "height": 154.04649353027344
+            }
+          },
+          {
+            "text": "캡처 한 장이면 끝",
+            "chars": 10,
+            "bounds": {
+              "left": 223.2019500732422,
+              "top": 372.34423828125,
+              "right": 1018.7829437255859,
+              "bottom": 526.3907470703125,
+              "width": 795.5809936523438,
+              "height": 154.0465087890625
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 45,
+        "bounds": {
+          "left": 387.4931640625,
+          "top": 549.2420043945312,
+          "right": 854.5067749023438,
+          "bottom": 601.232666015625,
+          "width": 467.01361083984375,
+          "height": 51.99066162109375
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/05-studio-woman.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/05-studio-woman.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 88.76872253417969,
+            "top": 1418.3974609375,
+            "right": 1074.300033569336,
+            "bottom": 2021.692626953125,
+            "width": 985.5313110351562,
+            "height": 603.295166015625
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "S-2.html",
+      "format": "iOS",
+      "viewport": {
+        "width": 1290,
+        "height": 2796
+      },
+      "designScale": 1,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1290,
+        "bottom": 2796,
+        "width": 1290,
+        "height": 2796
+      },
+      "header": {
+        "left": 55,
+        "top": 272,
+        "right": 1235,
+        "bottom": 692.578125,
+        "width": 1180,
+        "height": 420.578125
+      },
+      "brand": {
+        "left": 502.4140625,
+        "top": 164,
+        "right": 787.5859375,
+        "bottom": 209,
+        "width": 285.171875,
+        "height": 45
+      },
+      "footer": {
+        "left": 86,
+        "top": 2612,
+        "right": 1204,
+        "bottom": 2647,
+        "width": 1118,
+        "height": 35
+      },
+      "phone": {
+        "left": 313.3938903808594,
+        "top": 861.0196533203125,
+        "right": 1201.6060485839844,
+        "bottom": 2595.27734375,
+        "width": 888.212158203125,
+        "height": 1734.2576904296875,
+        "heightRatio": 0.6202638377788582
+      },
+      "feature": {
+        "left": 63.942466735839844,
+        "top": 1819.235107421875,
+        "right": 1171.0574569702148,
+        "bottom": 2552.749267578125,
+        "width": 1107.114990234375,
+        "height": 733.51416015625
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 140,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "실전 전에",
+            "chars": 5,
+            "bounds": {
+              "left": 406.125,
+              "top": 268,
+              "right": 883.875,
+              "bottom": 435,
+              "width": 477.75,
+              "height": 167
+            }
+          },
+          {
+            "text": "AI랑 카톡 연습",
+            "chars": 9,
+            "bounds": {
+              "left": 276.046875,
+              "top": 427.59375,
+              "right": 1013.9375,
+              "bottom": 594.59375,
+              "width": 737.890625,
+              "height": 167
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 48,
+        "bounds": {
+          "left": 365.5,
+          "top": 632.1875,
+          "right": 924.484375,
+          "bottom": 690.1875,
+          "width": 558.984375,
+          "height": 58
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/04-studio-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/04-studio-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 71.9607925415039,
+            "top": 1910.885009765625,
+            "right": 1171.057472229004,
+            "bottom": 2552.749267578125,
+            "width": 1099.0966796875,
+            "height": 641.8642578125
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "S-2.html",
+      "format": "Play",
+      "viewport": {
+        "width": 1242,
+        "height": 2208
+      },
+      "designScale": 0.9627906976744186,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1242,
+        "bottom": 2207.994873046875,
+        "width": 1242,
+        "height": 2207.994873046875
+      },
+      "header": {
+        "left": 52.953487396240234,
+        "top": 234.92092895507812,
+        "right": 1189.0465049743652,
+        "bottom": 603.6396484375,
+        "width": 1136.093017578125,
+        "height": 368.7187194824219
+      },
+      "brand": {
+        "left": 495.8070983886719,
+        "top": 150.19534301757812,
+        "right": 746.19287109375,
+        "bottom": 193.5209197998047,
+        "width": 250.38577270507812,
+        "height": 43.32557678222656
+      },
+      "footer": {
+        "left": 82.79999542236328,
+        "top": 2044.320556640625,
+        "right": 1159.1998977661133,
+        "bottom": 2074.1669921875,
+        "width": 1076.39990234375,
+        "height": 29.846435546875
+      },
+      "phone": {
+        "left": 453.5760192871094,
+        "top": 636.6533203125,
+        "right": 1154.2842712402344,
+        "bottom": 2009.6219482421875,
+        "width": 700.708251953125,
+        "height": 1372.9686279296875,
+        "heightRatio": 0.6218155017797498
+      },
+      "feature": {
+        "left": 82.28121948242188,
+        "top": 1358.385986328125,
+        "right": 1073.0675964355469,
+        "bottom": 2021.7464599609375,
+        "width": 990.786376953125,
+        "height": 663.3604736328125
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 134,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "실전 전에",
+            "chars": 5,
+            "bounds": {
+              "left": 401.66424560546875,
+              "top": 229.14418029785156,
+              "right": 840.3357543945312,
+              "bottom": 383.190673828125,
+              "width": 438.6715087890625,
+              "height": 154.04649353027344
+            }
+          },
+          {
+            "text": "AI랑 카톡 연습",
+            "chars": 9,
+            "bounds": {
+              "left": 282.4286193847656,
+              "top": 372.34423828125,
+              "right": 959.5563049316406,
+              "bottom": 526.3907470703125,
+              "width": 677.127685546875,
+              "height": 154.0465087890625
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 45,
+        "bounds": {
+          "left": 369.546142578125,
+          "top": 549.2420043945312,
+          "right": 872.4537963867188,
+          "bottom": 601.232666015625,
+          "width": 502.90765380859375,
+          "height": 51.99066162109375
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/04-studio-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/04-studio-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 90.00119018554688,
+            "top": 1446.6256103515625,
+            "right": 1073.0675964355469,
+            "bottom": 2021.7464599609375,
+            "width": 983.06640625,
+            "height": 575.120849609375
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "S-3.html",
+      "format": "iOS",
+      "viewport": {
+        "width": 1290,
+        "height": 2796
+      },
+      "designScale": 1,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1290,
+        "bottom": 2796,
+        "width": 1290,
+        "height": 2796
+      },
+      "header": {
+        "left": 55,
+        "top": 272,
+        "right": 1235,
+        "bottom": 692.578125,
+        "width": 1180,
+        "height": 420.578125
+      },
+      "brand": {
+        "left": 502.4140625,
+        "top": 164,
+        "right": 787.5859375,
+        "bottom": 209,
+        "width": 285.171875,
+        "height": 45
+      },
+      "footer": {
+        "left": 86,
+        "top": 2612,
+        "right": 1204,
+        "bottom": 2647,
+        "width": 1118,
+        "height": 35
+      },
+      "phone": {
+        "left": 313.3938903808594,
+        "top": 861.0196533203125,
+        "right": 1201.6060485839844,
+        "bottom": 2595.27734375,
+        "width": 888.212158203125,
+        "height": 1734.2576904296875,
+        "heightRatio": 0.6202638377788582
+      },
+      "feature": {
+        "left": 50.568145751953125,
+        "top": 1512.9127197265625,
+        "right": 1184.4319152832031,
+        "bottom": 2552.165283203125,
+        "width": 1133.86376953125,
+        "height": 1039.2525634765625
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 140,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "그 사람 속마음",
+            "chars": 8,
+            "bounds": {
+              "left": 280.53125,
+              "top": 268,
+              "right": 1009.453125,
+              "bottom": 435,
+              "width": 728.921875,
+              "height": 167
+            }
+          },
+          {
+            "text": "가능성은 몇 %?",
+            "chars": 9,
+            "bounds": {
+              "left": 240.015625,
+              "top": 427.59375,
+              "right": 1049.96875,
+              "bottom": 594.59375,
+              "width": 809.953125,
+              "height": 167
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 48,
+        "bounds": {
+          "left": 370.5625,
+          "top": 632.1875,
+          "right": 919.421875,
+          "bottom": 690.1875,
+          "width": 548.859375,
+          "height": 58
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/05-studio-woman.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/05-studio-woman.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 58.58647537231445,
+            "top": 1604.5626220703125,
+            "right": 1184.4319343566895,
+            "bottom": 2552.165283203125,
+            "width": 1125.845458984375,
+            "height": 947.6026611328125
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "S-3.html",
+      "format": "Play",
+      "viewport": {
+        "width": 1242,
+        "height": 2208
+      },
+      "designScale": 0.9627906976744186,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1242,
+        "bottom": 2207.994873046875,
+        "width": 1242,
+        "height": 2207.994873046875
+      },
+      "header": {
+        "left": 52.953487396240234,
+        "top": 234.92092895507812,
+        "right": 1189.0465049743652,
+        "bottom": 603.6396484375,
+        "width": 1136.093017578125,
+        "height": 368.7187194824219
+      },
+      "brand": {
+        "left": 495.8070983886719,
+        "top": 150.19534301757812,
+        "right": 746.19287109375,
+        "bottom": 193.5209197998047,
+        "width": 250.38577270507812,
+        "height": 43.32557678222656
+      },
+      "footer": {
+        "left": 82.79999542236328,
+        "top": 2044.320556640625,
+        "right": 1159.1998977661133,
+        "bottom": 2074.1669921875,
+        "width": 1076.39990234375,
+        "height": 29.846435546875
+      },
+      "phone": {
+        "left": 453.5760192871094,
+        "top": 636.6533203125,
+        "right": 1154.2842712402344,
+        "bottom": 2009.6219482421875,
+        "width": 700.708251953125,
+        "height": 1372.9686279296875,
+        "heightRatio": 0.6218155017797498
+      },
+      "feature": {
+        "left": 70.34856414794922,
+        "top": 1085.083251953125,
+        "right": 1085.0002365112305,
+        "bottom": 2021.2254638671875,
+        "width": 1014.6516723632812,
+        "height": 936.1422119140625
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 134,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "그 사람 속마음",
+            "chars": 8,
+            "bounds": {
+              "left": 286.4151916503906,
+              "top": 229.14418029785156,
+              "right": 955.5847473144531,
+              "bottom": 383.190673828125,
+              "width": 669.1695556640625,
+              "height": 154.04649353027344
+            }
+          },
+          {
+            "text": "가능성은 몇 %?",
+            "chars": 9,
+            "bounds": {
+              "left": 249.22738647460938,
+              "top": 372.34423828125,
+              "right": 992.7575378417969,
+              "bottom": 526.3907470703125,
+              "width": 743.5301513671875,
+              "height": 154.0465087890625
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 45,
+        "bounds": {
+          "left": 374.0592041015625,
+          "top": 549.2420043945312,
+          "right": 867.9257202148438,
+          "bottom": 601.232666015625,
+          "width": 493.86651611328125,
+          "height": 51.99066162109375
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/05-studio-woman.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/05-studio-woman.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 78.06854248046875,
+            "top": 1173.322998046875,
+            "right": 1085.000244140625,
+            "bottom": 2021.2254638671875,
+            "width": 1006.9317016601562,
+            "height": 847.9024658203125
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "S-4.html",
+      "format": "iOS",
+      "viewport": {
+        "width": 1290,
+        "height": 2796
+      },
+      "designScale": 1,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1290,
+        "bottom": 2796,
+        "width": 1290,
+        "height": 2796
+      },
+      "header": {
+        "left": 55,
+        "top": 272,
+        "right": 1235,
+        "bottom": 692.578125,
+        "width": 1180,
+        "height": 420.578125
+      },
+      "brand": {
+        "left": 502.4140625,
+        "top": 164,
+        "right": 787.5859375,
+        "bottom": 209,
+        "width": 285.171875,
+        "height": 45
+      },
+      "footer": {
+        "left": 86,
+        "top": 2612,
+        "right": 1204,
+        "bottom": 2647,
+        "width": 1118,
+        "height": 35
+      },
+      "phone": {
+        "left": 313.3938903808594,
+        "top": 861.0196533203125,
+        "right": 1201.6060485839844,
+        "bottom": 2595.27734375,
+        "width": 888.212158203125,
+        "height": 1734.2576904296875,
+        "heightRatio": 0.6202638377788582
+      },
+      "feature": {
+        "left": 56.32655334472656,
+        "top": 1644.802001953125,
+        "right": 1178.6734771728516,
+        "bottom": 2552.416748046875,
+        "width": 1122.346923828125,
+        "height": 907.61474609375
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 140,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "대화 속에 담긴",
+            "chars": 8,
+            "bounds": {
+              "left": 280.53125,
+              "top": 268,
+              "right": 1009.453125,
+              "bottom": 435,
+              "width": 728.921875,
+              "height": 167
+            }
+          },
+          {
+            "text": "우리 호감 온도",
+            "chars": 8,
+            "bounds": {
+              "left": 280.53125,
+              "top": 427.59375,
+              "right": 1009.453125,
+              "bottom": 594.59375,
+              "width": 728.921875,
+              "height": 167
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 48,
+        "bounds": {
+          "left": 325.625,
+          "top": 632.1875,
+          "right": 964.375,
+          "bottom": 690.1875,
+          "width": 638.75,
+          "height": 58
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/04-studio-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/04-studio-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 64.34487915039062,
+            "top": 1736.451904296875,
+            "right": 1178.6734924316406,
+            "bottom": 2552.416748046875,
+            "width": 1114.32861328125,
+            "height": 815.96484375
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "S-4.html",
+      "format": "Play",
+      "viewport": {
+        "width": 1242,
+        "height": 2208
+      },
+      "designScale": 0.9627906976744186,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1242,
+        "bottom": 2207.994873046875,
+        "width": 1242,
+        "height": 2207.994873046875
+      },
+      "header": {
+        "left": 52.953487396240234,
+        "top": 234.92092895507812,
+        "right": 1189.0465049743652,
+        "bottom": 603.6396484375,
+        "width": 1136.093017578125,
+        "height": 368.7187194824219
+      },
+      "brand": {
+        "left": 495.8070983886719,
+        "top": 150.19534301757812,
+        "right": 746.19287109375,
+        "bottom": 193.5209197998047,
+        "width": 250.38577270507812,
+        "height": 43.32557678222656
+      },
+      "footer": {
+        "left": 82.79999542236328,
+        "top": 2044.320556640625,
+        "right": 1159.1998977661133,
+        "bottom": 2074.1669921875,
+        "width": 1076.39990234375,
+        "height": 29.846435546875
+      },
+      "phone": {
+        "left": 453.5760192871094,
+        "top": 636.6533203125,
+        "right": 1154.2842712402344,
+        "bottom": 2009.6219482421875,
+        "width": 700.708251953125,
+        "height": 1372.9686279296875,
+        "heightRatio": 0.6218155017797498
+      },
+      "feature": {
+        "left": 75.48625946044922,
+        "top": 1202.755615234375,
+        "right": 1079.8625411987305,
+        "bottom": 2021.44970703125,
+        "width": 1004.3762817382812,
+        "height": 818.694091796875
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 134,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "대화 속에 담긴",
+            "chars": 8,
+            "bounds": {
+              "left": 286.4151916503906,
+              "top": 229.14418029785156,
+              "right": 955.5847473144531,
+              "bottom": 383.190673828125,
+              "width": 669.1695556640625,
+              "height": 154.04649353027344
+            }
+          },
+          {
+            "text": "우리 호감 온도",
+            "chars": 8,
+            "bounds": {
+              "left": 286.4151916503906,
+              "top": 372.34423828125,
+              "right": 955.5848693847656,
+              "bottom": 526.3907470703125,
+              "width": 669.169677734375,
+              "height": 154.0465087890625
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 45,
+        "bounds": {
+          "left": 333.6370544433594,
+          "top": 549.2420043945312,
+          "right": 908.3478698730469,
+          "bottom": 601.232666015625,
+          "width": 574.7108154296875,
+          "height": 51.99066162109375
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/04-studio-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/04-studio-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 83.20622253417969,
+            "top": 1290.995361328125,
+            "right": 1079.862533569336,
+            "bottom": 2021.44970703125,
+            "width": 996.6563110351562,
+            "height": 730.454345703125
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "S-5.html",
+      "format": "iOS",
+      "viewport": {
+        "width": 1290,
+        "height": 2796
+      },
+      "designScale": 1,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1290,
+        "bottom": 2796,
+        "width": 1290,
+        "height": 2796
+      },
+      "header": {
+        "left": 55,
+        "top": 272,
+        "right": 1235,
+        "bottom": 692.578125,
+        "width": 1180,
+        "height": 420.578125
+      },
+      "brand": {
+        "left": 502.4140625,
+        "top": 164,
+        "right": 787.5859375,
+        "bottom": 209,
+        "width": 285.171875,
+        "height": 45
+      },
+      "footer": {
+        "left": 86,
+        "top": 2612,
+        "right": 1204,
+        "bottom": 2647,
+        "width": 1118,
+        "height": 35
+      },
+      "phone": {
+        "left": 313.3938903808594,
+        "top": 861.0196533203125,
+        "right": 1201.6060485839844,
+        "bottom": 2595.27734375,
+        "width": 888.212158203125,
+        "height": 1734.2576904296875,
+        "heightRatio": 0.6202638377788582
+      },
+      "feature": {
+        "left": 56.14066696166992,
+        "top": 1640.54443359375,
+        "right": 1178.85941696167,
+        "bottom": 2552.40869140625,
+        "width": 1122.71875,
+        "height": 911.8642578125
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 140,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "카톡 습관 속",
+            "chars": 7,
+            "bounds": {
+              "left": 337.1875,
+              "top": 268,
+              "right": 952.8125,
+              "bottom": 435,
+              "width": 615.625,
+              "height": 167
+            }
+          },
+          {
+            "text": "나의 연애 유형",
+            "chars": 8,
+            "bounds": {
+              "left": 280.53125,
+              "top": 427.59375,
+              "right": 1009.453125,
+              "bottom": 594.59375,
+              "width": 728.921875,
+              "height": 167
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 48,
+        "bounds": {
+          "left": 370.6875,
+          "top": 632.1875,
+          "right": 919.296875,
+          "bottom": 690.1875,
+          "width": 548.609375,
+          "height": 58
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/05-studio-woman.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/05-studio-woman.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 64.15899658203125,
+            "top": 1732.1943359375,
+            "right": 1178.8594360351562,
+            "bottom": 2552.40869140625,
+            "width": 1114.700439453125,
+            "height": 820.21435546875
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "S-5.html",
+      "format": "Play",
+      "viewport": {
+        "width": 1242,
+        "height": 2208
+      },
+      "designScale": 0.9627906976744186,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1242,
+        "bottom": 2207.994873046875,
+        "width": 1242,
+        "height": 2207.994873046875
+      },
+      "header": {
+        "left": 52.953487396240234,
+        "top": 234.92092895507812,
+        "right": 1189.0465049743652,
+        "bottom": 603.6396484375,
+        "width": 1136.093017578125,
+        "height": 368.7187194824219
+      },
+      "brand": {
+        "left": 495.8070983886719,
+        "top": 150.19534301757812,
+        "right": 746.19287109375,
+        "bottom": 193.5209197998047,
+        "width": 250.38577270507812,
+        "height": 43.32557678222656
+      },
+      "footer": {
+        "left": 82.79999542236328,
+        "top": 2044.320556640625,
+        "right": 1159.1998977661133,
+        "bottom": 2074.1669921875,
+        "width": 1076.39990234375,
+        "height": 29.846435546875
+      },
+      "phone": {
+        "left": 453.5760192871094,
+        "top": 636.6533203125,
+        "right": 1154.2842712402344,
+        "bottom": 2009.6219482421875,
+        "width": 700.708251953125,
+        "height": 1372.9686279296875,
+        "heightRatio": 0.6218155017797498
+      },
+      "feature": {
+        "left": 75.32039642333984,
+        "top": 1198.9569091796875,
+        "right": 1080.028465270996,
+        "bottom": 2021.4425048828125,
+        "width": 1004.7080688476562,
+        "height": 822.485595703125
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 134,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "카톡 습관 속",
+            "chars": 7,
+            "bounds": {
+              "left": 338.4510192871094,
+              "top": 229.14418029785156,
+              "right": 903.5339050292969,
+              "bottom": 383.190673828125,
+              "width": 565.0828857421875,
+              "height": 154.04649353027344
+            }
+          },
+          {
+            "text": "나의 연애 유형",
+            "chars": 8,
+            "bounds": {
+              "left": 286.4151916503906,
+              "top": 372.34423828125,
+              "right": 955.5848693847656,
+              "bottom": 526.3907470703125,
+              "width": 669.169677734375,
+              "height": 154.0465087890625
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 45,
+        "bounds": {
+          "left": 374.3149719238281,
+          "top": 549.2420043945312,
+          "right": 867.6699829101562,
+          "bottom": 601.232666015625,
+          "width": 493.3550109863281,
+          "height": 51.99066162109375
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/05-studio-woman.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/05-studio-woman.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 83.04037475585938,
+            "top": 1287.196533203125,
+            "right": 1080.0284118652344,
+            "bottom": 2021.4425048828125,
+            "width": 996.988037109375,
+            "height": 734.2459716796875
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "S-6.html",
+      "format": "iOS",
+      "viewport": {
+        "width": 1290,
+        "height": 2796
+      },
+      "designScale": 1,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1290,
+        "bottom": 2796,
+        "width": 1290,
+        "height": 2796
+      },
+      "header": {
+        "left": 55,
+        "top": 272,
+        "right": 1235,
+        "bottom": 692.578125,
+        "width": 1180,
+        "height": 420.578125
+      },
+      "brand": {
+        "left": 502.4140625,
+        "top": 164,
+        "right": 787.5859375,
+        "bottom": 209,
+        "width": 285.171875,
+        "height": 45
+      },
+      "footer": {
+        "left": 86,
+        "top": 2612,
+        "right": 1204,
+        "bottom": 2647,
+        "width": 1118,
+        "height": 35
+      },
+      "phone": {
+        "left": 313.3938903808594,
+        "top": 861.0196533203125,
+        "right": 1201.6060485839844,
+        "bottom": 2595.27734375,
+        "width": 888.212158203125,
+        "height": 1734.2576904296875,
+        "heightRatio": 0.6202638377788582
+      },
+      "feature": {
+        "left": 51.756324768066406,
+        "top": 1540.12646484375,
+        "right": 1183.2436294555664,
+        "bottom": 2552.21728515625,
+        "width": 1131.4873046875,
+        "height": 1012.0908203125
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 140,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "캡처 없이",
+            "chars": 5,
+            "bounds": {
+              "left": 406.125,
+              "top": 268,
+              "right": 883.875,
+              "bottom": 435,
+              "width": 477.75,
+              "height": 167
+            }
+          },
+          {
+            "text": "상황만 적어도 OK",
+            "chars": 10,
+            "bounds": {
+              "left": 189.109375,
+              "top": 427.59375,
+              "right": 1100.875,
+              "bottom": 594.59375,
+              "width": 911.765625,
+              "height": 167
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 48,
+        "bounds": {
+          "left": 339.5625,
+          "top": 632.1875,
+          "right": 950.421875,
+          "bottom": 690.1875,
+          "width": 610.859375,
+          "height": 58
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/04-studio-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/04-studio-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 59.77465057373047,
+            "top": 1631.7763671875,
+            "right": 1163.329948425293,
+            "bottom": 2324.602294921875,
+            "width": 1103.5552978515625,
+            "height": 692.825927734375
+          }
+        },
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 114.08766174316406,
+            "top": 2252.576904296875,
+            "right": 1183.243667602539,
+            "bottom": 2552.21728515625,
+            "width": 1069.156005859375,
+            "height": 299.640380859375
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "S-6.html",
+      "format": "Play",
+      "viewport": {
+        "width": 1242,
+        "height": 2208
+      },
+      "designScale": 0.9627906976744186,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1242,
+        "bottom": 2207.994873046875,
+        "width": 1242,
+        "height": 2207.994873046875
+      },
+      "header": {
+        "left": 52.953487396240234,
+        "top": 234.92092895507812,
+        "right": 1189.0465049743652,
+        "bottom": 603.6396484375,
+        "width": 1136.093017578125,
+        "height": 368.7187194824219
+      },
+      "brand": {
+        "left": 495.8070983886719,
+        "top": 150.19534301757812,
+        "right": 746.19287109375,
+        "bottom": 193.5209197998047,
+        "width": 250.38577270507812,
+        "height": 43.32557678222656
+      },
+      "footer": {
+        "left": 82.79999542236328,
+        "top": 2044.320556640625,
+        "right": 1159.1998977661133,
+        "bottom": 2074.1669921875,
+        "width": 1076.39990234375,
+        "height": 29.846435546875
+      },
+      "phone": {
+        "left": 453.5760192871094,
+        "top": 636.6533203125,
+        "right": 1154.2842712402344,
+        "bottom": 2009.6219482421875,
+        "width": 700.708251953125,
+        "height": 1372.9686279296875,
+        "heightRatio": 0.6218155017797498
+      },
+      "feature": {
+        "left": 71.26374053955078,
+        "top": 1106.044189453125,
+        "right": 1084.0849685668945,
+        "bottom": 2021.2655029296875,
+        "width": 1012.8212280273438,
+        "height": 915.2213134765625
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 134,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "캡처 없이",
+            "chars": 5,
+            "bounds": {
+              "left": 401.66424560546875,
+              "top": 229.14418029785156,
+              "right": 840.3357543945312,
+              "bottom": 383.190673828125,
+              "width": 438.6715087890625,
+              "height": 154.04649353027344
+            }
+          },
+          {
+            "text": "상황만 적어도 OK",
+            "chars": 10,
+            "bounds": {
+              "left": 202.47186279296875,
+              "top": 372.34423828125,
+              "right": 1039.5130615234375,
+              "bottom": 526.3907470703125,
+              "width": 837.0411987304688,
+              "height": 154.0465087890625
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 45,
+        "bounds": {
+          "left": 346.2285461425781,
+          "top": 549.2420043945312,
+          "right": 895.7713928222656,
+          "bottom": 601.232666015625,
+          "width": 549.5428466796875,
+          "height": 51.99066162109375
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/04-studio-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/04-studio-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 78.98371124267578,
+            "top": 1194.283935546875,
+            "right": 1066.0280838012695,
+            "bottom": 1814.873291015625,
+            "width": 987.0443725585938,
+            "height": 620.58935546875
+          }
+        },
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 127.76192474365234,
+            "top": 1751.8214111328125,
+            "right": 1084.0849838256836,
+            "bottom": 2021.2655029296875,
+            "width": 956.3230590820312,
+            "height": 269.444091796875
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "N-1.html",
+      "format": "iOS",
+      "viewport": {
+        "width": 1290,
+        "height": 2796
+      },
+      "designScale": 1,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1290,
+        "bottom": 2796,
+        "width": 1290,
+        "height": 2796
+      },
+      "header": {
+        "left": 86,
+        "top": 272,
+        "right": 1220,
+        "bottom": 688.015625,
+        "width": 1134,
+        "height": 416.015625
+      },
+      "brand": {
+        "left": 86,
+        "top": 164,
+        "right": 371.171875,
+        "bottom": 209,
+        "width": 285.171875,
+        "height": 45
+      },
+      "footer": {
+        "left": 86,
+        "top": 2612,
+        "right": 1204,
+        "bottom": 2647,
+        "width": 1118,
+        "height": 35
+      },
+      "phone": {
+        "left": 433.48388671875,
+        "top": 982.3927612304688,
+        "right": 1256.51611328125,
+        "bottom": 2593.1071166992188,
+        "width": 823.0322265625,
+        "height": 1610.71435546875,
+        "heightRatio": 0.5760780956612125
+      },
+      "feature": {
+        "left": 63.644874572753906,
+        "top": 1818.5635986328125,
+        "right": 1106.355079650879,
+        "bottom": 2521.983154296875,
+        "width": 1042.710205078125,
+        "height": 703.4195556640625
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 138,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "뭐라고 답장하지?",
+            "chars": 9,
+            "bounds": {
+              "left": 86,
+              "top": 268,
+              "right": 963.9375,
+              "bottom": 432,
+              "width": 877.9375,
+              "height": 164
+            }
+          },
+          {
+            "text": "캡처 한 장이면 끝",
+            "chars": 10,
+            "bounds": {
+              "left": 86,
+              "top": 425.3125,
+              "right": 946.296875,
+              "bottom": 589.3125,
+              "width": 860.296875,
+              "height": 164
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 48,
+        "bounds": {
+          "left": 86,
+          "top": 627.625,
+          "right": 605.203125,
+          "bottom": 685.625,
+          "width": 519.203125,
+          "height": 58
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/02-neon-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/02-neon-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 68.45978546142578,
+            "top": 1910.4375,
+            "right": 1106.3550491333008,
+            "bottom": 2521.983154296875,
+            "width": 1037.895263671875,
+            "height": 611.545654296875
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "N-1.html",
+      "format": "Play",
+      "viewport": {
+        "width": 1242,
+        "height": 2208
+      },
+      "designScale": 0.9627906976744186,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1242,
+        "bottom": 2207.994873046875,
+        "width": 1242,
+        "height": 2207.994873046875
+      },
+      "header": {
+        "left": 82.79999542236328,
+        "top": 234.92092895507812,
+        "right": 1174.6045608520508,
+        "bottom": 603.6396484375,
+        "width": 1091.8045654296875,
+        "height": 368.7187194824219
+      },
+      "brand": {
+        "left": 82.79999542236328,
+        "top": 150.19534301757812,
+        "right": 333.1857681274414,
+        "bottom": 193.5209197998047,
+        "width": 250.38577270507812,
+        "height": 43.32557678222656
+      },
+      "footer": {
+        "left": 82.79999542236328,
+        "top": 2044.320556640625,
+        "right": 1159.1998977661133,
+        "bottom": 2074.1669921875,
+        "width": 1076.39990234375,
+        "height": 29.846435546875
+      },
+      "phone": {
+        "left": 524.822509765625,
+        "top": 636.6533203125,
+        "right": 1225.5308837890625,
+        "bottom": 2009.6219482421875,
+        "width": 700.7083740234375,
+        "height": 1372.9686279296875,
+        "heightRatio": 0.6218155017797498
+      },
+      "feature": {
+        "left": 51.016143798828125,
+        "top": 1383.924072265625,
+        "right": 956.0628967285156,
+        "bottom": 2004.2716064453125,
+        "width": 905.0467529296875,
+        "height": 620.3475341796875
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 134,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "뭐라고 답장하지?",
+            "chars": 9,
+            "bounds": {
+              "left": 82.79999542236328,
+              "top": 229.14418029785156,
+              "right": 901.818977355957,
+              "bottom": 383.190673828125,
+              "width": 819.0189819335938,
+              "height": 154.04649353027344
+            }
+          },
+          {
+            "text": "캡처 한 장이면 끝",
+            "chars": 10,
+            "bounds": {
+              "left": 82.79999542236328,
+              "top": 372.34423828125,
+              "right": 885.1355667114258,
+              "bottom": 526.3907470703125,
+              "width": 802.3355712890625,
+              "height": 154.0465087890625
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 45,
+        "bounds": {
+          "left": 82.79999542236328,
+          "top": 549.2420043945312,
+          "right": 549.8136672973633,
+          "bottom": 601.232666015625,
+          "width": 467.013671875,
+          "height": 51.99066162109375
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/02-neon-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/02-neon-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 55.651893615722656,
+            "top": 1472.37939453125,
+            "right": 956.0628433227539,
+            "bottom": 2004.2716064453125,
+            "width": 900.4109497070312,
+            "height": 531.8922119140625
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "N-2.html",
+      "format": "iOS",
+      "viewport": {
+        "width": 1290,
+        "height": 2796
+      },
+      "designScale": 1,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1290,
+        "bottom": 2796,
+        "width": 1290,
+        "height": 2796
+      },
+      "header": {
+        "left": 86,
+        "top": 272,
+        "right": 1220,
+        "bottom": 688.015625,
+        "width": 1134,
+        "height": 416.015625
+      },
+      "brand": {
+        "left": 86,
+        "top": 164,
+        "right": 371.171875,
+        "bottom": 209,
+        "width": 285.171875,
+        "height": 45
+      },
+      "footer": {
+        "left": 86,
+        "top": 2612,
+        "right": 1204,
+        "bottom": 2647,
+        "width": 1118,
+        "height": 35
+      },
+      "phone": {
+        "left": 433.48388671875,
+        "top": 982.3927612304688,
+        "right": 1256.51611328125,
+        "bottom": 2593.1071166992188,
+        "width": 823.0322265625,
+        "height": 1610.71435546875,
+        "heightRatio": 0.5760780956612125
+      },
+      "feature": {
+        "left": 64.4380874633789,
+        "top": 1848.8553466796875,
+        "right": 1105.561866760254,
+        "bottom": 2522.004150390625,
+        "width": 1041.123779296875,
+        "height": 673.1488037109375
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 138,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "실전 전에",
+            "chars": 5,
+            "bounds": {
+              "left": 86,
+              "top": 268,
+              "right": 559.875,
+              "bottom": 432,
+              "width": 473.875,
+              "height": 164
+            }
+          },
+          {
+            "text": "AI랑 카톡 연습",
+            "chars": 9,
+            "bounds": {
+              "left": 86,
+              "top": 425.3125,
+              "right": 818.65625,
+              "bottom": 589.3125,
+              "width": 732.65625,
+              "height": 164
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 48,
+        "bounds": {
+          "left": 86,
+          "top": 627.625,
+          "right": 644.984375,
+          "bottom": 685.625,
+          "width": 558.984375,
+          "height": 58
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/08-sofa-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/08-sofa-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 69.25299835205078,
+            "top": 1940.729248046875,
+            "right": 1105.5618362426758,
+            "bottom": 2522.004150390625,
+            "width": 1036.308837890625,
+            "height": 581.27490234375
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "N-2.html",
+      "format": "Play",
+      "viewport": {
+        "width": 1242,
+        "height": 2208
+      },
+      "designScale": 0.9627906976744186,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1242,
+        "bottom": 2207.994873046875,
+        "width": 1242,
+        "height": 2207.994873046875
+      },
+      "header": {
+        "left": 82.79999542236328,
+        "top": 234.92092895507812,
+        "right": 1174.6045608520508,
+        "bottom": 603.6396484375,
+        "width": 1091.8045654296875,
+        "height": 368.7187194824219
+      },
+      "brand": {
+        "left": 82.79999542236328,
+        "top": 150.19534301757812,
+        "right": 333.1857681274414,
+        "bottom": 193.5209197998047,
+        "width": 250.38577270507812,
+        "height": 43.32557678222656
+      },
+      "footer": {
+        "left": 82.79999542236328,
+        "top": 2044.320556640625,
+        "right": 1159.1998977661133,
+        "bottom": 2074.1669921875,
+        "width": 1076.39990234375,
+        "height": 29.846435546875
+      },
+      "phone": {
+        "left": 524.822509765625,
+        "top": 636.6533203125,
+        "right": 1225.5308837890625,
+        "bottom": 2009.6219482421875,
+        "width": 700.7083740234375,
+        "height": 1372.9686279296875,
+        "heightRatio": 0.6218155017797498
+      },
+      "feature": {
+        "left": 51.70151138305664,
+        "top": 1410.096923828125,
+        "right": 955.3774757385254,
+        "bottom": 2004.2896728515625,
+        "width": 903.6759643554688,
+        "height": 594.1927490234375
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 134,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "실전 전에",
+            "chars": 5,
+            "bounds": {
+              "left": 82.79999542236328,
+              "top": 229.14418029785156,
+              "right": 524.8412551879883,
+              "bottom": 383.190673828125,
+              "width": 442.041259765625,
+              "height": 154.04649353027344
+            }
+          },
+          {
+            "text": "AI랑 카톡 연습",
+            "chars": 9,
+            "bounds": {
+              "left": 82.79999542236328,
+              "top": 372.34423828125,
+              "right": 765.9902420043945,
+              "bottom": 526.3907470703125,
+              "width": 683.1902465820312,
+              "height": 154.0465087890625
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 45,
+        "bounds": {
+          "left": 82.79999542236328,
+          "top": 549.2420043945312,
+          "right": 585.7077102661133,
+          "bottom": 601.232666015625,
+          "width": 502.90771484375,
+          "height": 51.99066162109375
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/08-sofa-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/08-sofa-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 56.337257385253906,
+            "top": 1498.5523681640625,
+            "right": 955.3774795532227,
+            "bottom": 2004.2896728515625,
+            "width": 899.0402221679688,
+            "height": 505.7373046875
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/2-practice.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "N-3.html",
+      "format": "iOS",
+      "viewport": {
+        "width": 1290,
+        "height": 2796
+      },
+      "designScale": 1,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1290,
+        "bottom": 2796,
+        "width": 1290,
+        "height": 2796
+      },
+      "header": {
+        "left": 86,
+        "top": 272,
+        "right": 1220,
+        "bottom": 688.015625,
+        "width": 1134,
+        "height": 416.015625
+      },
+      "brand": {
+        "left": 86,
+        "top": 164,
+        "right": 371.171875,
+        "bottom": 209,
+        "width": 285.171875,
+        "height": 45
+      },
+      "footer": {
+        "left": 86,
+        "top": 2612,
+        "right": 1204,
+        "bottom": 2647,
+        "width": 1118,
+        "height": 35
+      },
+      "phone": {
+        "left": 433.48388671875,
+        "top": 982.3927612304688,
+        "right": 1256.51611328125,
+        "bottom": 2593.1071166992188,
+        "width": 823.0322265625,
+        "height": 1610.71435546875,
+        "heightRatio": 0.5760780956612125
+      },
+      "feature": {
+        "left": 56.7602424621582,
+        "top": 1555.650146484375,
+        "right": 1113.2397346496582,
+        "bottom": 2521.802978515625,
+        "width": 1056.4794921875,
+        "height": 966.15283203125
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 138,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "그 사람 속마음",
+            "chars": 8,
+            "bounds": {
+              "left": 86,
+              "top": 268,
+              "right": 809.21875,
+              "bottom": 432,
+              "width": 723.21875,
+              "height": 164
+            }
+          },
+          {
+            "text": "가능성은 몇 %?",
+            "chars": 9,
+            "bounds": {
+              "left": 86,
+              "top": 425.3125,
+              "right": 889.6875,
+              "bottom": 589.3125,
+              "width": 803.6875,
+              "height": 164
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 48,
+        "bounds": {
+          "left": 86,
+          "top": 627.625,
+          "right": 634.859375,
+          "bottom": 685.625,
+          "width": 548.859375,
+          "height": 58
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/03-lamplight-woman.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/03-lamplight-woman.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 61.57514953613281,
+            "top": 1647.5240478515625,
+            "right": 1113.2397003173828,
+            "bottom": 2521.802978515625,
+            "width": 1051.66455078125,
+            "height": 874.2789306640625
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "N-3.html",
+      "format": "Play",
+      "viewport": {
+        "width": 1242,
+        "height": 2208
+      },
+      "designScale": 0.9627906976744186,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1242,
+        "bottom": 2207.994873046875,
+        "width": 1242,
+        "height": 2207.994873046875
+      },
+      "header": {
+        "left": 82.79999542236328,
+        "top": 234.92092895507812,
+        "right": 1174.6045608520508,
+        "bottom": 603.6396484375,
+        "width": 1091.8045654296875,
+        "height": 368.7187194824219
+      },
+      "brand": {
+        "left": 82.79999542236328,
+        "top": 150.19534301757812,
+        "right": 333.1857681274414,
+        "bottom": 193.5209197998047,
+        "width": 250.38577270507812,
+        "height": 43.32557678222656
+      },
+      "footer": {
+        "left": 82.79999542236328,
+        "top": 2044.320556640625,
+        "right": 1159.1998977661133,
+        "bottom": 2074.1669921875,
+        "width": 1076.39990234375,
+        "height": 29.846435546875
+      },
+      "phone": {
+        "left": 524.822509765625,
+        "top": 636.6533203125,
+        "right": 1225.5308837890625,
+        "bottom": 2009.6219482421875,
+        "width": 700.7083740234375,
+        "height": 1372.9686279296875,
+        "heightRatio": 0.6218155017797498
+      },
+      "feature": {
+        "left": 45.06557083129883,
+        "top": 1156.6807861328125,
+        "right": 962.0134468078613,
+        "bottom": 2004.115966796875,
+        "width": 916.9478759765625,
+        "height": 847.4351806640625
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 134,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "그 사람 속마음",
+            "chars": 8,
+            "bounds": {
+              "left": 82.79999542236328,
+              "top": 229.14418029785156,
+              "right": 757.370246887207,
+              "bottom": 383.190673828125,
+              "width": 674.5702514648438,
+              "height": 154.04649353027344
+            }
+          },
+          {
+            "text": "가능성은 몇 %?",
+            "chars": 9,
+            "bounds": {
+              "left": 82.79999542236328,
+              "top": 372.34423828125,
+              "right": 832.392707824707,
+              "bottom": 526.3907470703125,
+              "width": 749.5927124023438,
+              "height": 154.0465087890625
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 45,
+        "bounds": {
+          "left": 82.79999542236328,
+          "top": 549.2420043945312,
+          "right": 576.6665115356445,
+          "bottom": 601.232666015625,
+          "width": 493.86651611328125,
+          "height": 51.99066162109375
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/03-lamplight-woman.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/03-lamplight-woman.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 49.701316833496094,
+            "top": 1245.1361083984375,
+            "right": 962.0134506225586,
+            "bottom": 2004.115966796875,
+            "width": 912.3121337890625,
+            "height": 758.9798583984375
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/3-mind.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "N-4.html",
+      "format": "iOS",
+      "viewport": {
+        "width": 1290,
+        "height": 2796
+      },
+      "designScale": 1,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1290,
+        "bottom": 2796,
+        "width": 1290,
+        "height": 2796
+      },
+      "header": {
+        "left": 86,
+        "top": 272,
+        "right": 1220,
+        "bottom": 688.015625,
+        "width": 1134,
+        "height": 416.015625
+      },
+      "brand": {
+        "left": 86,
+        "top": 164,
+        "right": 371.171875,
+        "bottom": 209,
+        "width": 285.171875,
+        "height": 45
+      },
+      "footer": {
+        "left": 86,
+        "top": 2612,
+        "right": 1204,
+        "bottom": 2647,
+        "width": 1118,
+        "height": 35
+      },
+      "phone": {
+        "left": 433.48388671875,
+        "top": 982.3927612304688,
+        "right": 1256.51611328125,
+        "bottom": 2593.1071166992188,
+        "width": 823.0322265625,
+        "height": 1610.71435546875,
+        "heightRatio": 0.5760780956612125
+      },
+      "feature": {
+        "left": 60.06599426269531,
+        "top": 1681.8917236328125,
+        "right": 1109.9339141845703,
+        "bottom": 2521.8896484375,
+        "width": 1049.867919921875,
+        "height": 839.9979248046875
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 138,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "대화 속에 담긴",
+            "chars": 8,
+            "bounds": {
+              "left": 86,
+              "top": 268,
+              "right": 809.21875,
+              "bottom": 432,
+              "width": 723.21875,
+              "height": 164
+            }
+          },
+          {
+            "text": "우리 호감 온도",
+            "chars": 8,
+            "bounds": {
+              "left": 86,
+              "top": 425.3125,
+              "right": 809.21875,
+              "bottom": 589.3125,
+              "width": 723.21875,
+              "height": 164
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 48,
+        "bounds": {
+          "left": 86,
+          "top": 627.625,
+          "right": 724.75,
+          "bottom": 685.625,
+          "width": 638.75,
+          "height": 58
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/06-riverside-couple.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/06-riverside-couple.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 64.88090515136719,
+            "top": 1773.765625,
+            "right": 1109.9340057373047,
+            "bottom": 2521.8896484375,
+            "width": 1045.0531005859375,
+            "height": 748.1240234375
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "N-4.html",
+      "format": "Play",
+      "viewport": {
+        "width": 1242,
+        "height": 2208
+      },
+      "designScale": 0.9627906976744186,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1242,
+        "bottom": 2207.994873046875,
+        "width": 1242,
+        "height": 2207.994873046875
+      },
+      "header": {
+        "left": 82.79999542236328,
+        "top": 234.92092895507812,
+        "right": 1174.6045608520508,
+        "bottom": 603.6396484375,
+        "width": 1091.8045654296875,
+        "height": 368.7187194824219
+      },
+      "brand": {
+        "left": 82.79999542236328,
+        "top": 150.19534301757812,
+        "right": 333.1857681274414,
+        "bottom": 193.5209197998047,
+        "width": 250.38577270507812,
+        "height": 43.32557678222656
+      },
+      "footer": {
+        "left": 82.79999542236328,
+        "top": 2044.320556640625,
+        "right": 1159.1998977661133,
+        "bottom": 2074.1669921875,
+        "width": 1076.39990234375,
+        "height": 29.846435546875
+      },
+      "phone": {
+        "left": 524.822509765625,
+        "top": 636.6533203125,
+        "right": 1225.5308837890625,
+        "bottom": 2009.6219482421875,
+        "width": 700.7083740234375,
+        "height": 1372.9686279296875,
+        "heightRatio": 0.6218155017797498
+      },
+      "feature": {
+        "left": 47.922760009765625,
+        "top": 1265.7923583984375,
+        "right": 959.1562805175781,
+        "bottom": 2004.1907958984375,
+        "width": 911.2335205078125,
+        "height": 738.3984375
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 134,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "대화 속에 담긴",
+            "chars": 8,
+            "bounds": {
+              "left": 82.79999542236328,
+              "top": 229.14418029785156,
+              "right": 757.370246887207,
+              "bottom": 383.190673828125,
+              "width": 674.5702514648438,
+              "height": 154.04649353027344
+            }
+          },
+          {
+            "text": "우리 호감 온도",
+            "chars": 8,
+            "bounds": {
+              "left": 82.79999542236328,
+              "top": 372.34423828125,
+              "right": 757.370246887207,
+              "bottom": 526.3907470703125,
+              "width": 674.5702514648438,
+              "height": 154.0465087890625
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 45,
+        "bounds": {
+          "left": 82.79999542236328,
+          "top": 549.2420043945312,
+          "right": 657.5108108520508,
+          "bottom": 601.232666015625,
+          "width": 574.7108154296875,
+          "height": 51.99066162109375
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/06-riverside-couple.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/06-riverside-couple.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 52.55850601196289,
+            "top": 1354.247802734375,
+            "right": 959.1562843322754,
+            "bottom": 2004.1907958984375,
+            "width": 906.5977783203125,
+            "height": 649.9429931640625
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "N-5.html",
+      "format": "iOS",
+      "viewport": {
+        "width": 1290,
+        "height": 2796
+      },
+      "designScale": 1,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1290,
+        "bottom": 2796,
+        "width": 1290,
+        "height": 2796
+      },
+      "header": {
+        "left": 86,
+        "top": 272,
+        "right": 1220,
+        "bottom": 688.015625,
+        "width": 1134,
+        "height": 416.015625
+      },
+      "brand": {
+        "left": 86,
+        "top": 164,
+        "right": 371.171875,
+        "bottom": 209,
+        "width": 285.171875,
+        "height": 45
+      },
+      "footer": {
+        "left": 86,
+        "top": 2612,
+        "right": 1204,
+        "bottom": 2647,
+        "width": 1118,
+        "height": 35
+      },
+      "phone": {
+        "left": 433.48388671875,
+        "top": 982.3927612304688,
+        "right": 1256.51611328125,
+        "bottom": 2593.1071166992188,
+        "width": 823.0322265625,
+        "height": 1610.71435546875,
+        "heightRatio": 0.5760780956612125
+      },
+      "feature": {
+        "left": 59.95927810668945,
+        "top": 1677.81640625,
+        "right": 1110.0408210754395,
+        "bottom": 2521.88671875,
+        "width": 1050.08154296875,
+        "height": 844.0703125
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 138,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "카톡 습관 속",
+            "chars": 7,
+            "bounds": {
+              "left": 86,
+              "top": 268,
+              "right": 696.953125,
+              "bottom": 432,
+              "width": 610.953125,
+              "height": 164
+            }
+          },
+          {
+            "text": "나의 연애 유형",
+            "chars": 8,
+            "bounds": {
+              "left": 86,
+              "top": 425.3125,
+              "right": 809.21875,
+              "bottom": 589.3125,
+              "width": 723.21875,
+              "height": 164
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 48,
+        "bounds": {
+          "left": 86,
+          "top": 627.625,
+          "right": 634.609375,
+          "bottom": 685.625,
+          "width": 548.609375,
+          "height": 58
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/07-friends.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/07-friends.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 64.77418518066406,
+            "top": 1769.6903076171875,
+            "right": 1110.040786743164,
+            "bottom": 2521.88671875,
+            "width": 1045.2666015625,
+            "height": 752.1964111328125
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "N-5.html",
+      "format": "Play",
+      "viewport": {
+        "width": 1242,
+        "height": 2208
+      },
+      "designScale": 0.9627906976744186,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1242,
+        "bottom": 2207.994873046875,
+        "width": 1242,
+        "height": 2207.994873046875
+      },
+      "header": {
+        "left": 82.79999542236328,
+        "top": 234.92092895507812,
+        "right": 1174.6045608520508,
+        "bottom": 603.6396484375,
+        "width": 1091.8045654296875,
+        "height": 368.7187194824219
+      },
+      "brand": {
+        "left": 82.79999542236328,
+        "top": 150.19534301757812,
+        "right": 333.1857681274414,
+        "bottom": 193.5209197998047,
+        "width": 250.38577270507812,
+        "height": 43.32557678222656
+      },
+      "footer": {
+        "left": 82.79999542236328,
+        "top": 2044.320556640625,
+        "right": 1159.1998977661133,
+        "bottom": 2074.1669921875,
+        "width": 1076.39990234375,
+        "height": 29.846435546875
+      },
+      "phone": {
+        "left": 524.822509765625,
+        "top": 636.6533203125,
+        "right": 1225.5308837890625,
+        "bottom": 2009.6219482421875,
+        "width": 700.7083740234375,
+        "height": 1372.9686279296875,
+        "heightRatio": 0.6218155017797498
+      },
+      "feature": {
+        "left": 47.83064270019531,
+        "top": 1262.274658203125,
+        "right": 959.2483673095703,
+        "bottom": 2004.1883544921875,
+        "width": 911.417724609375,
+        "height": 741.9136962890625
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 134,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "카톡 습관 속",
+            "chars": 7,
+            "bounds": {
+              "left": 82.79999542236328,
+              "top": 229.14418029785156,
+              "right": 652.606575012207,
+              "bottom": 383.190673828125,
+              "width": 569.8065795898438,
+              "height": 154.04649353027344
+            }
+          },
+          {
+            "text": "나의 연애 유형",
+            "chars": 8,
+            "bounds": {
+              "left": 82.79999542236328,
+              "top": 372.34423828125,
+              "right": 757.370246887207,
+              "bottom": 526.3907470703125,
+              "width": 674.5702514648438,
+              "height": 154.0465087890625
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 45,
+        "bounds": {
+          "left": 82.79999542236328,
+          "top": 549.2420043945312,
+          "right": 576.1549758911133,
+          "bottom": 601.232666015625,
+          "width": 493.35498046875,
+          "height": 51.99066162109375
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/07-friends.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/07-friends.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 52.466392517089844,
+            "top": 1350.72998046875,
+            "right": 959.2483749389648,
+            "bottom": 2004.1883544921875,
+            "width": 906.781982421875,
+            "height": 653.4583740234375
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/5-kkti.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "N-6.html",
+      "format": "iOS",
+      "viewport": {
+        "width": 1290,
+        "height": 2796
+      },
+      "designScale": 1,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1290,
+        "bottom": 2796,
+        "width": 1290,
+        "height": 2796
+      },
+      "header": {
+        "left": 86,
+        "top": 272,
+        "right": 1220,
+        "bottom": 688.015625,
+        "width": 1134,
+        "height": 416.015625
+      },
+      "brand": {
+        "left": 86,
+        "top": 164,
+        "right": 371.171875,
+        "bottom": 209,
+        "width": 285.171875,
+        "height": 45
+      },
+      "footer": {
+        "left": 86,
+        "top": 2612,
+        "right": 1204,
+        "bottom": 2647,
+        "width": 1118,
+        "height": 35
+      },
+      "phone": {
+        "left": 433.48388671875,
+        "top": 982.3927612304688,
+        "right": 1256.51611328125,
+        "bottom": 2593.1071166992188,
+        "width": 823.0322265625,
+        "height": 1610.71435546875,
+        "heightRatio": 0.5760780956612125
+      },
+      "feature": {
+        "left": 57.388275146484375,
+        "top": 1579.6336669921875,
+        "right": 1112.6116638183594,
+        "bottom": 2521.8193359375,
+        "width": 1055.223388671875,
+        "height": 942.1856689453125
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 138,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "캡처 없이",
+            "chars": 5,
+            "bounds": {
+              "left": 86,
+              "top": 268,
+              "right": 559.875,
+              "bottom": 432,
+              "width": 473.875,
+              "height": 164
+            }
+          },
+          {
+            "text": "상황만 적어도 OK",
+            "chars": 10,
+            "bounds": {
+              "left": 86,
+              "top": 425.3125,
+              "right": 990.640625,
+              "bottom": 589.3125,
+              "width": 904.640625,
+              "height": 164
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 48,
+        "bounds": {
+          "left": 86,
+          "top": 627.625,
+          "right": 696.859375,
+          "bottom": 685.625,
+          "width": 610.859375,
+          "height": 58
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/02-neon-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/02-neon-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 62.203182220458984,
+            "top": 1671.507568359375,
+            "right": 1101.0717124938965,
+            "bottom": 2301.62158203125,
+            "width": 1038.8685302734375,
+            "height": 630.114013671875
+          }
+        },
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 93.5025405883789,
+            "top": 2268.73486328125,
+            "right": 1112.611671447754,
+            "bottom": 2521.8193359375,
+            "width": 1019.109130859375,
+            "height": 253.08447265625
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "N-6.html",
+      "format": "Play",
+      "viewport": {
+        "width": 1242,
+        "height": 2208
+      },
+      "designScale": 0.9627906976744186,
+      "stage": {
+        "left": 0,
+        "top": 0,
+        "right": 1242,
+        "bottom": 2207.994873046875,
+        "width": 1242,
+        "height": 2207.994873046875
+      },
+      "header": {
+        "left": 82.79999542236328,
+        "top": 234.92092895507812,
+        "right": 1174.6045608520508,
+        "bottom": 603.6396484375,
+        "width": 1091.8045654296875,
+        "height": 368.7187194824219
+      },
+      "brand": {
+        "left": 82.79999542236328,
+        "top": 150.19534301757812,
+        "right": 333.1857681274414,
+        "bottom": 193.5209197998047,
+        "width": 250.38577270507812,
+        "height": 43.32557678222656
+      },
+      "footer": {
+        "left": 82.79999542236328,
+        "top": 2044.320556640625,
+        "right": 1159.1998977661133,
+        "bottom": 2074.1669921875,
+        "width": 1076.39990234375,
+        "height": 29.846435546875
+      },
+      "phone": {
+        "left": 524.822509765625,
+        "top": 636.6533203125,
+        "right": 1225.5308837890625,
+        "bottom": 2009.6219482421875,
+        "width": 700.7083740234375,
+        "height": 1372.9686279296875,
+        "heightRatio": 0.6218155017797498
+      },
+      "feature": {
+        "left": 45.487178802490234,
+        "top": 1172.7813720703125,
+        "right": 961.591854095459,
+        "bottom": 2004.1268310546875,
+        "width": 916.1046752929688,
+        "height": 831.345458984375
+      },
+      "headline": {
+        "fontFamily": "Pretendard, sans-serif",
+        "fontSize": 134,
+        "fontWeight": "700",
+        "lines": [
+          {
+            "text": "캡처 없이",
+            "chars": 5,
+            "bounds": {
+              "left": 82.79999542236328,
+              "top": 229.14418029785156,
+              "right": 524.8412551879883,
+              "bottom": 383.190673828125,
+              "width": 442.041259765625,
+              "height": 154.04649353027344
+            }
+          },
+          {
+            "text": "상황만 적어도 OK",
+            "chars": 10,
+            "bounds": {
+              "left": 82.79999542236328,
+              "top": 372.34423828125,
+              "right": 926.580696105957,
+              "bottom": 526.3907470703125,
+              "width": 843.7807006835938,
+              "height": 154.0465087890625
+            }
+          }
+        ]
+      },
+      "subtitle": {
+        "fontSize": 45,
+        "bounds": {
+          "left": 82.79999542236328,
+          "top": 549.2420043945312,
+          "right": 632.3428421020508,
+          "bottom": 601.232666015625,
+          "width": 549.5428466796875,
+          "height": 51.99066162109375
+        }
+      },
+      "fonts": {
+        "bold": true,
+        "medium": true,
+        "faces": [
+          {
+            "family": "Pretendard",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Pretendard",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ]
+      },
+      "images": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/02-neon-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/candidates-20261025/_photos/02-neon-man.png",
+          "loaded": true,
+          "naturalWidth": 1024,
+          "naturalHeight": 1536
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "loaded": true,
+          "naturalWidth": 1290,
+          "naturalHeight": 2796
+        }
+      ],
+      "cards": [
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 50.12293243408203,
+            "top": 1261.2366943359375,
+            "right": 951.3748245239258,
+            "bottom": 1809.173583984375,
+            "width": 901.2518920898438,
+            "height": 547.9368896484375
+          }
+        },
+        {
+          "imageCount": 1,
+          "renderedText": "",
+          "allowedElements": true,
+          "bounds": {
+            "left": 77.44377136230469,
+            "top": 1782.5494384765625,
+            "right": 961.5918426513672,
+            "bottom": 2004.1268310546875,
+            "width": 884.1480712890625,
+            "height": 221.577392578125
+          }
+        }
+      ],
+      "appImages": [
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/6-home.png",
+          "allowed": true
+        },
+        {
+          "src": "file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/1-chat-replies.png",
+          "allowed": true
+        }
+      ],
+      "actualAppPixelsPresent": true,
+      "cardPixelsOnly": true,
+      "errors": [],
+      "passed": true
+    }
+  ],
+  "sourceHashes": {
+    "1-chat-replies": {
+      "expected": "65a852f691a2e1e0a88a1328334d5e249c280916b78843e9be2c17b56771edf1",
+      "actual": "65a852f691a2e1e0a88a1328334d5e249c280916b78843e9be2c17b56771edf1",
+      "matches": true
+    },
+    "2-practice": {
+      "expected": "edf43f3b9db2dc2cdb1e3fca611f6f5f7a39e70eca8ed3ffed6eebfe799a9224",
+      "actual": "edf43f3b9db2dc2cdb1e3fca611f6f5f7a39e70eca8ed3ffed6eebfe799a9224",
+      "matches": true
+    },
+    "3-mind": {
+      "expected": "d95c12608c85e81456626dcf9b9d0e87548b8d055ed43be12e29e00bc31e2d4b",
+      "actual": "d95c12608c85e81456626dcf9b9d0e87548b8d055ed43be12e29e00bc31e2d4b",
+      "matches": true
+    },
+    "4-report": {
+      "expected": "6691df5dca38e132a8c9ed19e0ab2e71c380a27e49cbdb999326c1057b31c177",
+      "actual": "6691df5dca38e132a8c9ed19e0ab2e71c380a27e49cbdb999326c1057b31c177",
+      "matches": true
+    },
+    "5-kkti": {
+      "expected": "c01b35a1aeec629766a0314a080522d87a012d0958f7355fc01799c65e68094e",
+      "actual": "c01b35a1aeec629766a0314a080522d87a012d0958f7355fc01799c65e68094e",
+      "matches": true
+    },
+    "6-home": {
+      "expected": "8d708e1e551aed026b5a7a31fa0384beca72d25fec46e46b0b8c5620f93e2201",
+      "actual": "8d708e1e551aed026b5a7a31fa0384beca72d25fec46e46b0b8c5620f93e2201",
+      "matches": true
+    }
+  },
+  "errors": [],
+  "limitations": [
+    "DOM checks do not substitute for visual inspection of faces, compositing, thumbnail readability or photographic contrast."
+  ],
+  "summary": {
+    "expected": 36,
+    "checked": 36,
+    "passed": 36,
+    "errorCount": 0,
+    "allPassed": true
+  }
+}

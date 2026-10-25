@@ -1,0 +1,112 @@
+<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>S-4 · 나만의 연애코치</title><style>
+@font-face{font-family:Pretendard;src:url("file:///C:/Users/shsop/mylovecoach-codex-shots/api/_assets/fonts/Pretendard-Bold.otf");font-weight:700}@font-face{font-family:Pretendard;src:url("file:///C:/Users/shsop/mylovecoach-codex-shots/api/_assets/fonts/Pretendard-Medium.otf");font-weight:500}
+
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}
+body{font-family:Pretendard,sans-serif;background:#101017;color:#fff}
+.stage{width:1290px;height:var(--h);position:relative;overflow:hidden;transform:scale(var(--scale));transform-origin:0 0;isolation:isolate;background:#21191b}
+.backdrop{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:100% center;z-index:-5}
+.wash{position:absolute;inset:0;z-index:-4;background:linear-gradient(180deg,rgba(28,14,18,.92) 0%,rgba(28,14,18,.84) 22%,rgba(36,20,20,.09) 44%,rgba(29,17,23,.2) 66%,rgba(26,16,23,.9) 100%)}
+.light{position:absolute;z-index:-3;inset:25% -35% -20%;background:radial-gradient(ellipse at 80% 62%,#ff9b6a55,transparent 55%);mix-blend-mode:screen}
+.brand{position:absolute;top:164px;left:86px;display:flex;gap:19px;align-items:center;font-size:37px;letter-spacing:-1.4px;font-weight:700}
+.brand svg{width:45px;height:45px;color:var(--accent)}
+header{position:absolute;top:272px;left:86px;right:70px;z-index:6}
+h1{margin:0;font-size:138px;line-height:1.14;letter-spacing:-7px;font-weight:700;word-break:keep-all;text-shadow:0 3px 30px #0002}
+h1 span{display:block;white-space:nowrap}em{font-style:normal;color:var(--accent)}
+.sub{font-size:48px;line-height:1.3;letter-spacing:-1.6px;margin:39px 0 0;white-space:nowrap;color:#fff}
+.phone{position:absolute;top:calc(var(--h) - 1850px);right:72px;width:740px;padding:18px;background:linear-gradient(110deg,#5d5d62,#131316 12%,#35343b 84%,#737077);border-radius:109px;transform:rotate(7deg);box-shadow:0 72px 110px #08030e66,0 20px 35px #08030e44,inset 0 0 0 3px #d5d0da99;z-index:1}
+.phone:before{content:'';position:absolute;left:-5px;top:340px;width:7px;height:125px;border-radius:4px;background:#77717c}
+.phone:after{content:'';position:absolute;right:-5px;top:380px;width:7px;height:158px;border-radius:4px;background:#77717c}
+.screen{position:relative;overflow:hidden;border-radius:91px;background:white;padding-top:74px;padding-bottom:29px}
+.screen>img{width:100%;height:auto;display:block}
+.island{position:absolute;top:20px;left:50%;transform:translateX(-50%);width:204px;height:48px;border-radius:40px;background:#060608;z-index:3}
+.island:after{content:'';position:absolute;right:15px;top:16px;width:15px;height:15px;background:#172338;border-radius:50%;box-shadow:inset 2px 2px 4px #05050b}
+.homebar{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);width:210px;height:8px;border-radius:8px;background:#101015}
+.feature{position:absolute;left:76px;bottom:300px;width:970px;z-index:4;transform:rotate(-4deg);filter:drop-shadow(0 36px 33px #11091955)}
+.caption{display:inline-block;border:1.5px solid #ffffff85;border-radius:100px;background:#ffffffdd;backdrop-filter:blur(20px);color:#292137;font-size:32px;line-height:1;padding:19px 27px;margin:0 0 20px 12px;font-weight:700;letter-spacing:-.6px}
+.card{border:16px solid #fff;overflow:hidden;border-radius:42px;background:white;box-shadow:0 2px 2px #fff8}
+.crop{width:100%;aspect-ratio:var(--cw)/var(--ch);position:relative;overflow:hidden;background:#fff}
+.crop img{position:absolute;max-width:none;width:calc(1290 / var(--cw) * 100%);height:auto;left:calc(-1 * var(--cx) / var(--cw) * 100%);top:calc(-1 * var(--cy) / var(--ch) * 100%)}
+.input-card{margin-top:20px;border:13px solid #fff;border-radius:34px;overflow:hidden;background:#fff}
+.footer{position:absolute;left:86px;right:86px;bottom:149px;display:flex;justify-content:space-between;align-items:center;font-size:29px;letter-spacing:-.4px;color:#fff;z-index:9}
+.footer .page{opacity:.65;letter-spacing:3px;font-size:27px}
+.heart-line{position:absolute;width:190px;height:190px;left:81px;top:calc(var(--h) - 1220px);transform:rotate(-13deg);color:var(--accent);filter:drop-shadow(0 7px 7px #0002);z-index:2}
+.photo-bubble,.sticker,.ribbon,.orb{display:none}
+.P .backdrop{filter:saturate(.94);object-position:135% center;transform:translateY(-160px);mask-image:linear-gradient(90deg,#000 65%,#000c 74%,transparent 84%)}
+.P[data-page="2"] .backdrop,.P[data-page="6"] .backdrop{object-position:95% center;transform:translateY(200px);mask-image:none}
+.P[data-page="3"] .backdrop{object-position:105% center;transform:translateY(110px);mask-image:none}
+.P .wash{background:linear-gradient(180deg,rgba(28,14,18,.94) 0%,rgba(28,14,18,.87) 22%,rgba(36,20,20,.03) 40%,rgba(29,17,23,.12) 65%,rgba(26,16,23,.98) 96%),linear-gradient(90deg,transparent 77%,#21191b 100%)}
+.P .phone{width:680px;top:calc(var(--h) - 1720px);right:76px;transform:rotate(6deg)}
+.P[data-page="4"] .backdrop{object-position:55% center;transform:translateY(10px);mask-image:none}
+.P[data-page="5"] .backdrop{object-position:65% center;transform:none;mask-image:none}
+.P[data-page="5"] .feature{bottom:300px}
+.P[data-page="6"] .feature{bottom:300px;width:940px}
+.S{background:var(--bg)}
+.S .backdrop{display:none}
+.S .wash{background:linear-gradient(135deg,#ffffff0c,transparent 45%,#1e004842)}
+.S .light{background:radial-gradient(ellipse at 70% 45%,#ff7eff80,transparent 62%);mix-blend-mode:soft-light}
+.S header{text-align:center;left:55px;right:55px}
+.S .brand{left:50%;transform:translateX(-50%);white-space:nowrap}
+.S h1{font-size:140px;letter-spacing:-7.7px}
+.S .photo-bubble{display:block;position:absolute;top:780px;left:37px;width:625px;height:720px;border:17px solid white;border-radius:50% 50% 46% 20%;overflow:hidden;transform:rotate(-11deg);z-index:0;box-shadow:20px 32px 0 #200a3230}
+.photo-bubble img{width:100%;height:100%;object-fit:cover;object-position:center 32%}
+.S .phone{top:calc(var(--h) - 1790px);right:160px;width:745px;transform:rotate(5deg)}
+.S .feature{left:90px;bottom:288px;width:1055px;transform:rotate(-5deg)}
+.S .sticker{display:block;position:absolute;z-index:3;filter:drop-shadow(0 8px 0 #24103155)}
+.S .sticker.star{right:23px;top:780px;width:220px;height:220px;color:#ffe779;transform:rotate(9deg)}
+.S .sticker.heart{right:45px;top:1540px;width:180px;height:180px;transform:rotate(15deg);color:#ff94bf}
+.S .sticker.chat{left:40px;top:1530px;width:230px;height:210px;transform:rotate(-13deg);color:#bcf6d2}
+.S .heart-line{display:none}
+.S .ribbon{display:block;position:absolute;inset:0;z-index:-1;opacity:.24}
+.N{background:#080911}
+.N .backdrop{object-position:115% center;filter:saturate(.9) brightness(.9)}
+.N .wash{background:linear-gradient(180deg,#090913f5 0%,#090913ef 23%,#0909130d 40%,#09091377 65%,#090913 100%)}
+.N .light{inset:20% -40% -20%;background:radial-gradient(ellipse at 75% 65%,#b127ff66,transparent 55%),radial-gradient(ellipse at 20% 65%,#ff286633,transparent 40%);mix-blend-mode:screen}
+.N .phone{top:calc(var(--h) - 1840px);right:100px;transform:rotate(5deg);box-shadow:0 0 0 2px #ea8aff,0 0 32px #de40ff77,0 0 150px #843af777,0 55px 100px #000b}
+.N .feature{left:80px;width:1010px;bottom:300px;transform:rotate(-3deg);filter:drop-shadow(0 0 16px #c975ff55) drop-shadow(0 28px 30px #04000a88)}
+.N .caption{background:#21152ce6;border-color:#eca5ff80;color:#f5d9ff;box-shadow:0 0 30px #c649ff33}
+.N .card{border-color:#f7e7ff;box-shadow:0 0 0 2px #ca6bff}
+.N .heart-line{color:#f19bff;filter:drop-shadow(0 0 18px #ee4cfa88)}
+.N .orb{display:block;position:absolute;top:840px;right:70px;width:240px;height:240px;border:2px solid #ffb8e3aa;border-radius:50%;box-shadow:0 0 55px #e72bab66,inset 0 0 55px #bf49f24d;z-index:0}
+.N[data-page="4"] .backdrop{object-position:55% center}
+.N[data-page="5"] .backdrop{object-position:70% center}
+.N[data-page="2"] .backdrop{object-position:95% center;transform:translateY(150px)}
+.P[data-page] .backdrop,.N .backdrop{mask-image:linear-gradient(180deg,transparent 0%,#000 14%,#000 86%,transparent 100%)}
+.P[data-page="1"] .backdrop{mask-image:linear-gradient(180deg,transparent 0%,#000 14%,#000 86%,transparent 100%),linear-gradient(90deg,#000 63%,transparent 83%);mask-composite:intersect}
+.P[data-page="3"] .backdrop,.N .backdrop{mask-image:linear-gradient(180deg,transparent 0%,#000 14%,#000 86%,transparent 100%),linear-gradient(90deg,#000 77%,transparent 91%);mask-composite:intersect}
+.feature.compact{bottom:300px}
+.P .phone,.S .phone,.N .phone{top:auto;bottom:230px}
+.N .phone{width:690px}
+@media(max-aspect-ratio:1/2){.stage{--short:0}}
+@media(min-aspect-ratio:1/2){
+ .brand{top:156px;font-size:33px}
+ header{top:244px}h1{font-size:134px;line-height:1.11}.sub{margin-top:27px;font-size:45px}
+ .S h1{font-size:134px}
+ .phone,.N .phone{top:calc(var(--h) - 1510px);width:630px;right:76px;border-radius:93px;padding:15px}
+ .P .phone{width:580px;right:76px}
+ .P .backdrop{object-position:200% center;transform:translateY(-75px)}
+ .P[data-page="2"] .backdrop,.P[data-page="6"] .backdrop{object-position:145% center;transform:translateY(230px)}
+ .P[data-page="3"] .backdrop{object-position:155% center;transform:translateY(200px)}
+ .P[data-page="4"] .backdrop{object-position:55% center;transform:translateY(80px)}
+ .P[data-page="5"] .backdrop{object-position:65% center;transform:translateY(60px)}
+ .screen{border-radius:78px;padding-top:62px}.island{top:17px;width:175px;height:42px}
+ .feature,.N .feature{width:910px;bottom:235px;left:68px}
+ .S .phone{width:610px;right:150px}
+ .N .phone{width:610px}
+ .P .phone,.S .phone,.N .phone{top:auto;bottom:230px}
+ .S .feature{width:980px;bottom:235px;left:110px}
+ .S .photo-bubble{top:690px;width:545px;height:620px;left:35px}
+ .S .sticker.star{top:680px;width:180px;height:180px}
+ .S .sticker.chat{top:1260px;left:34px;width:190px;height:175px}
+ .S .sticker.heart{top:1260px;width:160px;height:160px;right:30px}
+ .heart-line{top:calc(var(--h) - 1000px);width:150px;height:150px}
+ .footer{bottom:139px;font-size:26px}.footer .page{font-size:25px}
+ .P[data-page="5"] .feature,.P[data-page="6"] .feature{bottom:235px;width:910px}
+ .N .orb{top:700px;width:200px;height:200px}
+}
+</style><div class="stage S" data-page="4" style="--accent:#fff18e;--bg:#9d300e">
+<img class="backdrop" src="../_photos/04-studio-man.png" alt="AI로 생성한 가상 성인 인물 사진"><div class="wash"></div><div class="light"></div><div class="ribbon"><svg viewBox="0 0 1290 2796" preserveAspectRatio="none"><path d="M-100 1630C500 800 700 1950 1390 1000M-100 1680C500 850 700 2000 1390 1050" fill="none" stroke="#ffdb89" stroke-width="26"/></svg></div><div class="orb"></div>
+<div class="brand"><svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M100 169C72 147 21 109 22 66C23 20 77 14 100 53C125 12 179 24 178 67C177 111 125 151 100 169Z" stroke="currentColor" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/></svg>나만의 연애코치</div><header><h1><span>대화 속에 담긴</span><span>우리 <em>호감 온도</em></span></h1><p class="sub">온도 변화부터 상대 분석 보고서까지</p></header>
+<div class="photo-bubble"><img src="../_photos/04-studio-man.png" alt="가상 성인 스튜디오 인물"></div>
+<div class="phone "><div class="screen"><div class="island"></div><img src="file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png" alt="실제 앱 원본 캡처"><div class="homebar"></div></div></div><div class="heart-line"><svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M100 169C72 147 21 109 22 66C23 20 77 14 100 53C125 12 179 24 178 67C177 111 125 151 100 169Z" stroke="currentColor" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="sticker star"><svg viewBox="0 0 200 200"><path d="M100 6L120 62L173 28L149 83L197 101L143 120L173 174L119 147L100 197L80 147L26 175L53 121L4 101L56 81L29 28L81 58Z" fill="currentColor" stroke="white" stroke-width="8" stroke-linejoin="round"/></svg></div><div class="sticker heart"><svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M100 169C72 147 21 109 22 66C23 20 77 14 100 53C125 12 179 24 178 67C177 111 125 151 100 169Z" stroke="currentColor" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="sticker chat"><svg viewBox="0 0 230 210"><path d="M23 17H196Q216 17 216 40V139Q216 160 193 160H91L42 195L47 160H28Q8 160 8 140V40Q8 17 23 17Z" fill="currentColor" stroke="white" stroke-width="10" stroke-linejoin="round"/><path d="M62 72Q78 54 94 72M137 72Q153 54 169 72M84 108Q115 135 147 108" stroke="#20362a" stroke-width="10" fill="none" stroke-linecap="round"/></svg></div><div class="feature"><div class="caption">실제 상대 분석 보고서</div><div class="card"><div class="crop" style="--cx:45;--cy:220;--cw:1200;--ch:815"><img src="file:///C:/Users/shsop/mylovecoach-codex-shots/docs/store-assets/ios-6.7/4-report.png" alt="원본 앱 화면 크롭"></div></div></div>
+<div class="footer"><span>실제 앱 화면 · 코칭 예시</span><span class="page">04 / 06</span></div></div>
+<script>const s=innerWidth/1290;document.querySelector('.stage').style.setProperty('--scale',s);document.querySelector('.stage').style.setProperty('--h',(innerHeight/s)+'px');</script></html>

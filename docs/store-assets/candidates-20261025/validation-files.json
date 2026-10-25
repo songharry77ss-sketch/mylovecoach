@@ -1,0 +1,1381 @@
+{
+  "generated_at_utc": "2026-10-25T03:25:34.102261+00:00",
+  "pillow_version": "12.1.1",
+  "limit_bytes": 3000000,
+  "manifest_sha256": "6bc7f1e0dfc0e994bf32a56b7f113eea60065644079c31ff3ecaf435189a84b0",
+  "notes": [
+    "Files already at or below 3,000,000 bytes are left byte-for-byte unchanged.",
+    "Only oversize PNGs are losslessly optimized; MEDIANCUT 256-color Floyd-Steinberg quantization is the fallback.",
+    "Pixel dimensions and source SHA-256 checks do not replace visual layout review."
+  ],
+  "sources": [
+    {
+      "path": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\ios-6.7\\1-chat-replies.png",
+      "manifest_sha256": "65a852f691a2e1e0a88a1328334d5e249c280916b78843e9be2c17b56771edf1",
+      "actual_sha256": "65a852f691a2e1e0a88a1328334d5e249c280916b78843e9be2c17b56771edf1",
+      "matches": true
+    },
+    {
+      "path": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\ios-6.7\\2-practice.png",
+      "manifest_sha256": "edf43f3b9db2dc2cdb1e3fca611f6f5f7a39e70eca8ed3ffed6eebfe799a9224",
+      "actual_sha256": "edf43f3b9db2dc2cdb1e3fca611f6f5f7a39e70eca8ed3ffed6eebfe799a9224",
+      "matches": true
+    },
+    {
+      "path": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\ios-6.7\\3-mind.png",
+      "manifest_sha256": "d95c12608c85e81456626dcf9b9d0e87548b8d055ed43be12e29e00bc31e2d4b",
+      "actual_sha256": "d95c12608c85e81456626dcf9b9d0e87548b8d055ed43be12e29e00bc31e2d4b",
+      "matches": true
+    },
+    {
+      "path": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\ios-6.7\\4-report.png",
+      "manifest_sha256": "6691df5dca38e132a8c9ed19e0ab2e71c380a27e49cbdb999326c1057b31c177",
+      "actual_sha256": "6691df5dca38e132a8c9ed19e0ab2e71c380a27e49cbdb999326c1057b31c177",
+      "matches": true
+    },
+    {
+      "path": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\ios-6.7\\5-kkti.png",
+      "manifest_sha256": "c01b35a1aeec629766a0314a080522d87a012d0958f7355fc01799c65e68094e",
+      "actual_sha256": "c01b35a1aeec629766a0314a080522d87a012d0958f7355fc01799c65e68094e",
+      "matches": true
+    },
+    {
+      "path": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\ios-6.7\\6-home.png",
+      "manifest_sha256": "8d708e1e551aed026b5a7a31fa0384beca72d25fec46e46b0b8c5620f93e2201",
+      "actual_sha256": "8d708e1e551aed026b5a7a31fa0384beca72d25fec46e46b0b8c5620f93e2201",
+      "matches": true
+    }
+  ],
+  "files": [
+    {
+      "path": "_photos/01-cafe-woman.png",
+      "category": "photo",
+      "expected_dimensions": [
+        1024,
+        1536
+      ],
+      "exists": true,
+      "bytes_before": 2005416,
+      "sha256_before": "20ad0faf03de13020d6b70067b22e6299daa498be6689516edf695a924922609",
+      "dimensions": [
+        1024,
+        1536
+      ],
+      "mode_before": "RGB",
+      "bytes": 2005416,
+      "sha256": "20ad0faf03de13020d6b70067b22e6299daa498be6689516edf695a924922609",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "_photos/02-neon-man.png",
+      "category": "photo",
+      "expected_dimensions": [
+        1024,
+        1536
+      ],
+      "exists": true,
+      "bytes_before": 2134634,
+      "sha256_before": "a7c07b17733c420e6e9b04553bed66a3d7ff29ad9d3b9027cd64f22a3d0a0472",
+      "dimensions": [
+        1024,
+        1536
+      ],
+      "mode_before": "RGB",
+      "bytes": 2134634,
+      "sha256": "a7c07b17733c420e6e9b04553bed66a3d7ff29ad9d3b9027cd64f22a3d0a0472",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "_photos/03-lamplight-woman.png",
+      "category": "photo",
+      "expected_dimensions": [
+        1024,
+        1536
+      ],
+      "exists": true,
+      "bytes_before": 2017743,
+      "sha256_before": "7d49de1f6d41e11d8387d3653dc9b2fbdb55f19c1da6084c45e24419c11ffb7d",
+      "dimensions": [
+        1024,
+        1536
+      ],
+      "mode_before": "RGB",
+      "bytes": 2017743,
+      "sha256": "7d49de1f6d41e11d8387d3653dc9b2fbdb55f19c1da6084c45e24419c11ffb7d",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "_photos/04-studio-man.png",
+      "category": "photo",
+      "expected_dimensions": [
+        1024,
+        1536
+      ],
+      "exists": true,
+      "bytes_before": 2143675,
+      "sha256_before": "8d3f7437508b8cbef5d01fe6bf8750a1ae2e3c0b0538a0f0dbe1d205468375b9",
+      "dimensions": [
+        1024,
+        1536
+      ],
+      "mode_before": "RGB",
+      "bytes": 2143675,
+      "sha256": "8d3f7437508b8cbef5d01fe6bf8750a1ae2e3c0b0538a0f0dbe1d205468375b9",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "_photos/05-studio-woman.png",
+      "category": "photo",
+      "expected_dimensions": [
+        1024,
+        1536
+      ],
+      "exists": true,
+      "bytes_before": 2232028,
+      "sha256_before": "0aaea0425f2ed8be34fef6dece2cf256524df03e1917cccc2e14e7e7adf93431",
+      "dimensions": [
+        1024,
+        1536
+      ],
+      "mode_before": "RGB",
+      "bytes": 2232028,
+      "sha256": "0aaea0425f2ed8be34fef6dece2cf256524df03e1917cccc2e14e7e7adf93431",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "_photos/06-riverside-couple.png",
+      "category": "photo",
+      "expected_dimensions": [
+        1024,
+        1536
+      ],
+      "exists": true,
+      "bytes_before": 2085182,
+      "sha256_before": "b3d2cc6ef5eeb88942754e18789828aa67fdb8c1b9c746c97596cfcd58b4ed8f",
+      "dimensions": [
+        1024,
+        1536
+      ],
+      "mode_before": "RGB",
+      "bytes": 2085182,
+      "sha256": "b3d2cc6ef5eeb88942754e18789828aa67fdb8c1b9c746c97596cfcd58b4ed8f",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "_photos/07-friends.png",
+      "category": "photo",
+      "expected_dimensions": [
+        1024,
+        1536
+      ],
+      "exists": true,
+      "bytes_before": 2060502,
+      "sha256_before": "e0278cc01623903e4c47bd342430455931107ab39af6a2966c0834c85d1252e5",
+      "dimensions": [
+        1024,
+        1536
+      ],
+      "mode_before": "RGB",
+      "bytes": 2060502,
+      "sha256": "e0278cc01623903e4c47bd342430455931107ab39af6a2966c0834c85d1252e5",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "_photos/08-sofa-man.png",
+      "category": "photo",
+      "expected_dimensions": [
+        1024,
+        1536
+      ],
+      "exists": true,
+      "bytes_before": 2170998,
+      "sha256_before": "28d97d6cb7eecd40eeb9190320204b584e2286f5eb38dc18b37700e84e3caa21",
+      "dimensions": [
+        1024,
+        1536
+      ],
+      "mode_before": "RGB",
+      "bytes": 2170998,
+      "sha256": "28d97d6cb7eecd40eeb9190320204b584e2286f5eb38dc18b37700e84e3caa21",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "P/1.png",
+      "category": "ios",
+      "expected_dimensions": [
+        1290,
+        2796
+      ],
+      "exists": true,
+      "bytes_before": 1969500,
+      "sha256_before": "902361c40a085b1cd04edfe47f63e91ece39df98076ca18f1220bb303231c711",
+      "dimensions": [
+        1290,
+        2796
+      ],
+      "mode_before": "RGB",
+      "bytes": 1969500,
+      "sha256": "902361c40a085b1cd04edfe47f63e91ece39df98076ca18f1220bb303231c711",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "P/play-1.png",
+      "category": "play",
+      "expected_dimensions": [
+        1242,
+        2208
+      ],
+      "exists": true,
+      "bytes_before": 1587398,
+      "sha256_before": "177dfc7aafb93c5bea5534c8ef93961a8f916a1fc7c7966bfe32480b0ed8ea52",
+      "dimensions": [
+        1242,
+        2208
+      ],
+      "mode_before": "RGB",
+      "bytes": 1587398,
+      "sha256": "177dfc7aafb93c5bea5534c8ef93961a8f916a1fc7c7966bfe32480b0ed8ea52",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "P/2.png",
+      "category": "ios",
+      "expected_dimensions": [
+        1290,
+        2796
+      ],
+      "exists": true,
+      "bytes_before": 2021674,
+      "sha256_before": "d15ab0c5a94dd7879576402ef7ca1efec717d351d69036f9e309a0f32bbbb038",
+      "dimensions": [
+        1290,
+        2796
+      ],
+      "mode_before": "RGB",
+      "bytes": 2021674,
+      "sha256": "d15ab0c5a94dd7879576402ef7ca1efec717d351d69036f9e309a0f32bbbb038",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "P/play-2.png",
+      "category": "play",
+      "expected_dimensions": [
+        1242,
+        2208
+      ],
+      "exists": true,
+      "bytes_before": 1643604,
+      "sha256_before": "60e5344eab2a6064b1f3366c044e5644844a69448b3cf4edca5d8563efac8c98",
+      "dimensions": [
+        1242,
+        2208
+      ],
+      "mode_before": "RGB",
+      "bytes": 1643604,
+      "sha256": "60e5344eab2a6064b1f3366c044e5644844a69448b3cf4edca5d8563efac8c98",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "P/3.png",
+      "category": "ios",
+      "expected_dimensions": [
+        1290,
+        2796
+      ],
+      "exists": true,
+      "bytes_before": 1903686,
+      "sha256_before": "6283d36e885cc55e66e00ba16217db4fc3286ffbcac1fae2fa4345c4c44a0b00",
+      "dimensions": [
+        1290,
+        2796
+      ],
+      "mode_before": "RGB",
+      "bytes": 1903686,
+      "sha256": "6283d36e885cc55e66e00ba16217db4fc3286ffbcac1fae2fa4345c4c44a0b00",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "P/play-3.png",
+      "category": "play",
+      "expected_dimensions": [
+        1242,
+        2208
+      ],
+      "exists": true,
+      "bytes_before": 1481310,
+      "sha256_before": "00e95a9fe34655735f8c5efba1111519f53a386a1e4af881bc29d5c3102a0115",
+      "dimensions": [
+        1242,
+        2208
+      ],
+      "mode_before": "RGB",
+      "bytes": 1481310,
+      "sha256": "00e95a9fe34655735f8c5efba1111519f53a386a1e4af881bc29d5c3102a0115",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "P/4.png",
+      "category": "ios",
+      "expected_dimensions": [
+        1290,
+        2796
+      ],
+      "exists": true,
+      "bytes_before": 2028254,
+      "sha256_before": "60e132ece73887bd2a59b58f9bf8cbbac13a306470e23702a7d075a1456d632f",
+      "dimensions": [
+        1290,
+        2796
+      ],
+      "mode_before": "RGB",
+      "bytes": 2028254,
+      "sha256": "60e132ece73887bd2a59b58f9bf8cbbac13a306470e23702a7d075a1456d632f",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "P/play-4.png",
+      "category": "play",
+      "expected_dimensions": [
+        1242,
+        2208
+      ],
+      "exists": true,
+      "bytes_before": 1622952,
+      "sha256_before": "42f0dac20eedbb295a19cc44e58edea78830e7c04d605ab00fce5a123782c4a8",
+      "dimensions": [
+        1242,
+        2208
+      ],
+      "mode_before": "RGB",
+      "bytes": 1622952,
+      "sha256": "42f0dac20eedbb295a19cc44e58edea78830e7c04d605ab00fce5a123782c4a8",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "P/5.png",
+      "category": "ios",
+      "expected_dimensions": [
+        1290,
+        2796
+      ],
+      "exists": true,
+      "bytes_before": 1984211,
+      "sha256_before": "35deb0d88d54488601952bae84769aae62b7f499dcfe470ee683b5468aa0db26",
+      "dimensions": [
+        1290,
+        2796
+      ],
+      "mode_before": "RGB",
+      "bytes": 1984211,
+      "sha256": "35deb0d88d54488601952bae84769aae62b7f499dcfe470ee683b5468aa0db26",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "P/play-5.png",
+      "category": "play",
+      "expected_dimensions": [
+        1242,
+        2208
+      ],
+      "exists": true,
+      "bytes_before": 1580817,
+      "sha256_before": "682dee2606b80c57b5f2dfbc0714a6b9b7208526c4508a52753ecfc250ddbdf8",
+      "dimensions": [
+        1242,
+        2208
+      ],
+      "mode_before": "RGB",
+      "bytes": 1580817,
+      "sha256": "682dee2606b80c57b5f2dfbc0714a6b9b7208526c4508a52753ecfc250ddbdf8",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "P/6.png",
+      "category": "ios",
+      "expected_dimensions": [
+        1290,
+        2796
+      ],
+      "exists": true,
+      "bytes_before": 1998670,
+      "sha256_before": "5714861f43f85c523238b5dc9ebec2d5cacabdfcc08b7fa9055e3023425c9040",
+      "dimensions": [
+        1290,
+        2796
+      ],
+      "mode_before": "RGB",
+      "bytes": 1998670,
+      "sha256": "5714861f43f85c523238b5dc9ebec2d5cacabdfcc08b7fa9055e3023425c9040",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "P/play-6.png",
+      "category": "play",
+      "expected_dimensions": [
+        1242,
+        2208
+      ],
+      "exists": true,
+      "bytes_before": 1570888,
+      "sha256_before": "63fc4185ac18cd58705c4ffbfb46d9b7faae17b88411d8ba79094d1d0d81c65f",
+      "dimensions": [
+        1242,
+        2208
+      ],
+      "mode_before": "RGB",
+      "bytes": 1570888,
+      "sha256": "63fc4185ac18cd58705c4ffbfb46d9b7faae17b88411d8ba79094d1d0d81c65f",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "S/1.png",
+      "category": "ios",
+      "expected_dimensions": [
+        1290,
+        2796
+      ],
+      "exists": true,
+      "bytes_before": 1301778,
+      "sha256_before": "25658d5db62474caccb6f0a667f36ed52a0b55057dcb007e4cbee92693500a15",
+      "dimensions": [
+        1290,
+        2796
+      ],
+      "mode_before": "RGB",
+      "bytes": 1301778,
+      "sha256": "25658d5db62474caccb6f0a667f36ed52a0b55057dcb007e4cbee92693500a15",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "S/play-1.png",
+      "category": "play",
+      "expected_dimensions": [
+        1242,
+        2208
+      ],
+      "exists": true,
+      "bytes_before": 1158760,
+      "sha256_before": "cc67771445e1934c15ab1a77e61ce00e71e0fba9c625288a0b34c446a0842e58",
+      "dimensions": [
+        1242,
+        2208
+      ],
+      "mode_before": "RGB",
+      "bytes": 1158760,
+      "sha256": "cc67771445e1934c15ab1a77e61ce00e71e0fba9c625288a0b34c446a0842e58",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "S/2.png",
+      "category": "ios",
+      "expected_dimensions": [
+        1290,
+        2796
+      ],
+      "exists": true,
+      "bytes_before": 1398517,
+      "sha256_before": "a353c0fa5808285e10c95a893cdcf8c1e773a93d8f3769558c0b7be19d4f1a9c",
+      "dimensions": [
+        1290,
+        2796
+      ],
+      "mode_before": "RGB",
+      "bytes": 1398517,
+      "sha256": "a353c0fa5808285e10c95a893cdcf8c1e773a93d8f3769558c0b7be19d4f1a9c",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "S/play-2.png",
+      "category": "play",
+      "expected_dimensions": [
+        1242,
+        2208
+      ],
+      "exists": true,
+      "bytes_before": 1215621,
+      "sha256_before": "1fdcb69e1092fde0cb45bfc1e4e53e152507555644de3c24bb91eeeea6b07a84",
+      "dimensions": [
+        1242,
+        2208
+      ],
+      "mode_before": "RGB",
+      "bytes": 1215621,
+      "sha256": "1fdcb69e1092fde0cb45bfc1e4e53e152507555644de3c24bb91eeeea6b07a84",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "S/3.png",
+      "category": "ios",
+      "expected_dimensions": [
+        1290,
+        2796
+      ],
+      "exists": true,
+      "bytes_before": 1358207,
+      "sha256_before": "b7789f7db2264dc817a89209f5014dee84e83e70287c7044138f44abc687d538",
+      "dimensions": [
+        1290,
+        2796
+      ],
+      "mode_before": "RGB",
+      "bytes": 1358207,
+      "sha256": "b7789f7db2264dc817a89209f5014dee84e83e70287c7044138f44abc687d538",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "S/play-3.png",
+      "category": "play",
+      "expected_dimensions": [
+        1242,
+        2208
+      ],
+      "exists": true,
+      "bytes_before": 1169392,
+      "sha256_before": "fb7dc2c94166296caa0949760eb6b302f20c71080f7182b96e6a087687a8681f",
+      "dimensions": [
+        1242,
+        2208
+      ],
+      "mode_before": "RGB",
+      "bytes": 1169392,
+      "sha256": "fb7dc2c94166296caa0949760eb6b302f20c71080f7182b96e6a087687a8681f",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "S/4.png",
+      "category": "ios",
+      "expected_dimensions": [
+        1290,
+        2796
+      ],
+      "exists": true,
+      "bytes_before": 1420308,
+      "sha256_before": "cba051bcbb4e2ee643c2db96a24087c169c21faab0b9b5f7242b74fb159a185e",
+      "dimensions": [
+        1290,
+        2796
+      ],
+      "mode_before": "RGB",
+      "bytes": 1420308,
+      "sha256": "cba051bcbb4e2ee643c2db96a24087c169c21faab0b9b5f7242b74fb159a185e",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "S/play-4.png",
+      "category": "play",
+      "expected_dimensions": [
+        1242,
+        2208
+      ],
+      "exists": true,
+      "bytes_before": 1191283,
+      "sha256_before": "8845974d3dd4e8a1ea6abaff2b518b506e0756359e3ca2bd3489ae951e891c40",
+      "dimensions": [
+        1242,
+        2208
+      ],
+      "mode_before": "RGB",
+      "bytes": 1191283,
+      "sha256": "8845974d3dd4e8a1ea6abaff2b518b506e0756359e3ca2bd3489ae951e891c40",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "S/5.png",
+      "category": "ios",
+      "expected_dimensions": [
+        1290,
+        2796
+      ],
+      "exists": true,
+      "bytes_before": 1430260,
+      "sha256_before": "f475a4f5c3b63043c44ee7720038258101e577860c8a982158a6a9bc35856de6",
+      "dimensions": [
+        1290,
+        2796
+      ],
+      "mode_before": "RGB",
+      "bytes": 1430260,
+      "sha256": "f475a4f5c3b63043c44ee7720038258101e577860c8a982158a6a9bc35856de6",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "S/play-5.png",
+      "category": "play",
+      "expected_dimensions": [
+        1242,
+        2208
+      ],
+      "exists": true,
+      "bytes_before": 1238369,
+      "sha256_before": "e73d57934872cd3328c112e8b22a75dc5ce18908a3eaad92b6691393138557f3",
+      "dimensions": [
+        1242,
+        2208
+      ],
+      "mode_before": "RGB",
+      "bytes": 1238369,
+      "sha256": "e73d57934872cd3328c112e8b22a75dc5ce18908a3eaad92b6691393138557f3",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "S/6.png",
+      "category": "ios",
+      "expected_dimensions": [
+        1290,
+        2796
+      ],
+      "exists": true,
+      "bytes_before": 1506175,
+      "sha256_before": "a62a62a61291e26609538ac2598032487872f52ab6a33b314f13ca6a67966096",
+      "dimensions": [
+        1290,
+        2796
+      ],
+      "mode_before": "RGB",
+      "bytes": 1506175,
+      "sha256": "a62a62a61291e26609538ac2598032487872f52ab6a33b314f13ca6a67966096",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "S/play-6.png",
+      "category": "play",
+      "expected_dimensions": [
+        1242,
+        2208
+      ],
+      "exists": true,
+      "bytes_before": 1241972,
+      "sha256_before": "96085422cc5e2b638d7c216531a774a26a978e5584acb4869887abb5e7bf0175",
+      "dimensions": [
+        1242,
+        2208
+      ],
+      "mode_before": "RGB",
+      "bytes": 1241972,
+      "sha256": "96085422cc5e2b638d7c216531a774a26a978e5584acb4869887abb5e7bf0175",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "N/1.png",
+      "category": "ios",
+      "expected_dimensions": [
+        1290,
+        2796
+      ],
+      "exists": true,
+      "bytes_before": 1864865,
+      "sha256_before": "673836ebc9e2199fc10eb7d59ed19973cbb1e3b499bca0f5a3cc04a36affe056",
+      "dimensions": [
+        1290,
+        2796
+      ],
+      "mode_before": "RGB",
+      "bytes": 1864865,
+      "sha256": "673836ebc9e2199fc10eb7d59ed19973cbb1e3b499bca0f5a3cc04a36affe056",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "N/play-1.png",
+      "category": "play",
+      "expected_dimensions": [
+        1242,
+        2208
+      ],
+      "exists": true,
+      "bytes_before": 1467811,
+      "sha256_before": "51a89e5072b4ada4dfcbe4a24e11e2cfc7bd96c657892853c0935e5a24a6208f",
+      "dimensions": [
+        1242,
+        2208
+      ],
+      "mode_before": "RGB",
+      "bytes": 1467811,
+      "sha256": "51a89e5072b4ada4dfcbe4a24e11e2cfc7bd96c657892853c0935e5a24a6208f",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "N/2.png",
+      "category": "ios",
+      "expected_dimensions": [
+        1290,
+        2796
+      ],
+      "exists": true,
+      "bytes_before": 1903370,
+      "sha256_before": "b38b9ccd5bc349cef30e05fcee3253410285b0d4d51c9c561f12b3092799641b",
+      "dimensions": [
+        1290,
+        2796
+      ],
+      "mode_before": "RGB",
+      "bytes": 1903370,
+      "sha256": "b38b9ccd5bc349cef30e05fcee3253410285b0d4d51c9c561f12b3092799641b",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "N/play-2.png",
+      "category": "play",
+      "expected_dimensions": [
+        1242,
+        2208
+      ],
+      "exists": true,
+      "bytes_before": 1552797,
+      "sha256_before": "f55426ccb37852a958f1681bb585d7f2076c882f3c5c081b9fb25234fbc10c6a",
+      "dimensions": [
+        1242,
+        2208
+      ],
+      "mode_before": "RGB",
+      "bytes": 1552797,
+      "sha256": "f55426ccb37852a958f1681bb585d7f2076c882f3c5c081b9fb25234fbc10c6a",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "N/3.png",
+      "category": "ios",
+      "expected_dimensions": [
+        1290,
+        2796
+      ],
+      "exists": true,
+      "bytes_before": 1802016,
+      "sha256_before": "05927710bf2905a441ffef64665b42b9976dc23ce38e18c04280272b9fe3f01c",
+      "dimensions": [
+        1290,
+        2796
+      ],
+      "mode_before": "RGB",
+      "bytes": 1802016,
+      "sha256": "05927710bf2905a441ffef64665b42b9976dc23ce38e18c04280272b9fe3f01c",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "N/play-3.png",
+      "category": "play",
+      "expected_dimensions": [
+        1242,
+        2208
+      ],
+      "exists": true,
+      "bytes_before": 1456409,
+      "sha256_before": "08f90f913e2ffee9de5d4dcaaa98fb7b8a6fa1373eae811d1f1c2dff4ab6b45b",
+      "dimensions": [
+        1242,
+        2208
+      ],
+      "mode_before": "RGB",
+      "bytes": 1456409,
+      "sha256": "08f90f913e2ffee9de5d4dcaaa98fb7b8a6fa1373eae811d1f1c2dff4ab6b45b",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "N/4.png",
+      "category": "ios",
+      "expected_dimensions": [
+        1290,
+        2796
+      ],
+      "exists": true,
+      "bytes_before": 1874767,
+      "sha256_before": "1cac7b79b59e099544484e3ab51aca3461381fe5814e7dc670a7365a91e33b19",
+      "dimensions": [
+        1290,
+        2796
+      ],
+      "mode_before": "RGB",
+      "bytes": 1874767,
+      "sha256": "1cac7b79b59e099544484e3ab51aca3461381fe5814e7dc670a7365a91e33b19",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "N/play-4.png",
+      "category": "play",
+      "expected_dimensions": [
+        1242,
+        2208
+      ],
+      "exists": true,
+      "bytes_before": 1482901,
+      "sha256_before": "a94e1e46342b1362b1b6aac54a88137a4ef438d63b7d038b32e57ef208fe4d9f",
+      "dimensions": [
+        1242,
+        2208
+      ],
+      "mode_before": "RGB",
+      "bytes": 1482901,
+      "sha256": "a94e1e46342b1362b1b6aac54a88137a4ef438d63b7d038b32e57ef208fe4d9f",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "N/5.png",
+      "category": "ios",
+      "expected_dimensions": [
+        1290,
+        2796
+      ],
+      "exists": true,
+      "bytes_before": 1837465,
+      "sha256_before": "e4e9260800bc555580b2425d1de52a3d25225576c1ff76b89836809e39829424",
+      "dimensions": [
+        1290,
+        2796
+      ],
+      "mode_before": "RGB",
+      "bytes": 1837465,
+      "sha256": "e4e9260800bc555580b2425d1de52a3d25225576c1ff76b89836809e39829424",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "N/play-5.png",
+      "category": "play",
+      "expected_dimensions": [
+        1242,
+        2208
+      ],
+      "exists": true,
+      "bytes_before": 1455663,
+      "sha256_before": "d6f9891b4e4fc19ae0db81a871f44ac019a2d909e622e820b7a49cb6165e05cb",
+      "dimensions": [
+        1242,
+        2208
+      ],
+      "mode_before": "RGB",
+      "bytes": 1455663,
+      "sha256": "d6f9891b4e4fc19ae0db81a871f44ac019a2d909e622e820b7a49cb6165e05cb",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "N/6.png",
+      "category": "ios",
+      "expected_dimensions": [
+        1290,
+        2796
+      ],
+      "exists": true,
+      "bytes_before": 1980933,
+      "sha256_before": "a6f2bc820ccc4f056eefe499f1cd1d18e3575275a6ab732ffc5c3947604c028d",
+      "dimensions": [
+        1290,
+        2796
+      ],
+      "mode_before": "RGB",
+      "bytes": 1980933,
+      "sha256": "a6f2bc820ccc4f056eefe499f1cd1d18e3575275a6ab732ffc5c3947604c028d",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "N/play-6.png",
+      "category": "play",
+      "expected_dimensions": [
+        1242,
+        2208
+      ],
+      "exists": true,
+      "bytes_before": 1511191,
+      "sha256_before": "27adc10d40add3662129c1d65c69aee800ba0e1c67be4fdd9b2562e5d06dc5f4",
+      "dimensions": [
+        1242,
+        2208
+      ],
+      "mode_before": "RGB",
+      "bytes": 1511191,
+      "sha256": "27adc10d40add3662129c1d65c69aee800ba0e1c67be4fdd9b2562e5d06dc5f4",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "P/contact.png",
+      "category": "comparison",
+      "expected_dimensions": [
+        2490,
+        900
+      ],
+      "exists": true,
+      "bytes_before": 1606285,
+      "sha256_before": "acfd5620b5b5a4cae1efa3fce618344ab0e66a471a45a71183b48abf12f305d3",
+      "dimensions": [
+        2490,
+        900
+      ],
+      "mode_before": "RGB",
+      "bytes": 1606285,
+      "sha256": "acfd5620b5b5a4cae1efa3fce618344ab0e66a471a45a71183b48abf12f305d3",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "P/contact-230.png",
+      "category": "comparison",
+      "expected_dimensions": [
+        1380,
+        499
+      ],
+      "exists": true,
+      "bytes_before": 603034,
+      "sha256_before": "332ab3c8dafca6d54bd54999edbdeb835601715bb1184d3784e9086dc06784e5",
+      "dimensions": [
+        1380,
+        499
+      ],
+      "mode_before": "RGB",
+      "bytes": 603034,
+      "sha256": "332ab3c8dafca6d54bd54999edbdeb835601715bb1184d3784e9086dc06784e5",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "P/contact-play.png",
+      "category": "comparison",
+      "expected_dimensions": [
+        3036,
+        900
+      ],
+      "exists": true,
+      "bytes_before": 1832041,
+      "sha256_before": "12fda8210f0a9398197a683469fd8269b882180d4d43a0c0fdc1006c679566b0",
+      "dimensions": [
+        3036,
+        900
+      ],
+      "mode_before": "RGB",
+      "bytes": 1832041,
+      "sha256": "12fda8210f0a9398197a683469fd8269b882180d4d43a0c0fdc1006c679566b0",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "S/contact.png",
+      "category": "comparison",
+      "expected_dimensions": [
+        2490,
+        900
+      ],
+      "exists": true,
+      "bytes_before": 1245822,
+      "sha256_before": "f505859f2e3c51c8f76e7b240545eed7446f8ae90d5f168919661ce17f1f60c8",
+      "dimensions": [
+        2490,
+        900
+      ],
+      "mode_before": "RGB",
+      "bytes": 1245822,
+      "sha256": "f505859f2e3c51c8f76e7b240545eed7446f8ae90d5f168919661ce17f1f60c8",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "S/contact-230.png",
+      "category": "comparison",
+      "expected_dimensions": [
+        1380,
+        499
+      ],
+      "exists": true,
+      "bytes_before": 485577,
+      "sha256_before": "258f6ab3cca1c4e9104eff328eed8b95efe4c7389b80ff468c10588eef4ecd29",
+      "dimensions": [
+        1380,
+        499
+      ],
+      "mode_before": "RGB",
+      "bytes": 485577,
+      "sha256": "258f6ab3cca1c4e9104eff328eed8b95efe4c7389b80ff468c10588eef4ecd29",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "S/contact-play.png",
+      "category": "comparison",
+      "expected_dimensions": [
+        3036,
+        900
+      ],
+      "exists": true,
+      "bytes_before": 1447335,
+      "sha256_before": "81302119108fb2ef93153bd3eab07e2dbc55e53ff9e3b0549b7fd34ea5c61fa8",
+      "dimensions": [
+        3036,
+        900
+      ],
+      "mode_before": "RGB",
+      "bytes": 1447335,
+      "sha256": "81302119108fb2ef93153bd3eab07e2dbc55e53ff9e3b0549b7fd34ea5c61fa8",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "N/contact.png",
+      "category": "comparison",
+      "expected_dimensions": [
+        2490,
+        900
+      ],
+      "exists": true,
+      "bytes_before": 1476185,
+      "sha256_before": "4bfa8a8b674508d07a1ec97ec4273d88b14be0e34227c32d435b4de05410a7c6",
+      "dimensions": [
+        2490,
+        900
+      ],
+      "mode_before": "RGB",
+      "bytes": 1476185,
+      "sha256": "4bfa8a8b674508d07a1ec97ec4273d88b14be0e34227c32d435b4de05410a7c6",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "N/contact-230.png",
+      "category": "comparison",
+      "expected_dimensions": [
+        1380,
+        499
+      ],
+      "exists": true,
+      "bytes_before": 560307,
+      "sha256_before": "b7a1eab70459ab3f2306058aee326df1c549bb9e109c7fe1277da6ceaade492f",
+      "dimensions": [
+        1380,
+        499
+      ],
+      "mode_before": "RGB",
+      "bytes": 560307,
+      "sha256": "b7a1eab70459ab3f2306058aee326df1c549bb9e109c7fe1277da6ceaade492f",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "N/contact-play.png",
+      "category": "comparison",
+      "expected_dimensions": [
+        3036,
+        900
+      ],
+      "exists": true,
+      "bytes_before": 1716270,
+      "sha256_before": "7a32925b444db251dd215fee8d1e508cb1e66a85d1890ba09adf988009c8f198",
+      "dimensions": [
+        3036,
+        900
+      ],
+      "mode_before": "RGB",
+      "bytes": 1716270,
+      "sha256": "7a32925b444db251dd215fee8d1e508cb1e66a85d1890ba09adf988009c8f198",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "overview.png",
+      "category": "comparison",
+      "expected_dimensions": [
+        1245,
+        900
+      ],
+      "exists": true,
+      "bytes_before": 816737,
+      "sha256_before": "d93d5f80ef02b208e7466930c60f8c0e2fcc2a3fcd2c9ca9ea019edd8e416ffe",
+      "dimensions": [
+        1245,
+        900
+      ],
+      "mode_before": "RGB",
+      "bytes": 816737,
+      "sha256": "d93d5f80ef02b208e7466930c60f8c0e2fcc2a3fcd2c9ca9ea019edd8e416ffe",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    },
+    {
+      "path": "overview-play.png",
+      "category": "comparison",
+      "expected_dimensions": [
+        1518,
+        900
+      ],
+      "exists": true,
+      "bytes_before": 944547,
+      "sha256_before": "86abdf29ed4b6cc4d13473305e0751b257412dd343eb53307252cdd0df1d7d7b",
+      "dimensions": [
+        1518,
+        900
+      ],
+      "mode_before": "RGB",
+      "bytes": 944547,
+      "sha256": "86abdf29ed4b6cc4d13473305e0751b257412dd343eb53307252cdd0df1d7d7b",
+      "mode": "RGB",
+      "operation": "unchanged_under_limit",
+      "quantization": null,
+      "palette_color_count": null,
+      "within_3mb": true,
+      "valid": true
+    }
+  ],
+  "errors": [],
+  "warnings": [],
+  "counts": {
+    "photo": 8,
+    "ios": 18,
+    "play": 18,
+    "comparison": 11
+  },
+  "max_png_bytes": 2232028,
+  "passed": true
+}
