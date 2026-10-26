@@ -181,6 +181,22 @@ describe('GET /k/코드', () => {
 });
 
 describe('배포 설정', () => {
+  it('사람·검색 로봇은 /kkti·/kkti/result 에서 KKTI 머리말이 든 앱 화면을 받는다 (미리보기 수집기 규칙 뒤, 앱 화면 넘기기 앞)', () => {
+    const rw = vercelConfig.rewrites as { source: string; destination: string; has?: unknown[] }[];
+    const fallback = rw.findIndex((r) => r.destination === '/index.html');
+    for (const [source, dest] of [
+      ['/kkti', '/kkti.html'],
+      ['/kkti/result', '/kkti-result.html'],
+    ]) {
+      const bot = rw.findIndex((r) => r.source === source && r.has);
+      const plain = rw.findIndex((r) => r.source === source && !r.has);
+      expect(bot).toBeGreaterThanOrEqual(0);
+      expect(plain).toBeGreaterThan(bot);
+      expect(plain).toBeLessThan(fallback);
+      expect(rw[plain].destination).toBe(dest);
+    }
+  });
+
   it('공유 주소(/k)는 앱 화면으로 넘기는 규칙보다 먼저 서버 함수로 간다', () => {
     const sources = vercelConfig.rewrites.map((r) => r.source);
     const fallback = vercelConfig.rewrites.findIndex((r) => r.destination === '/index.html');

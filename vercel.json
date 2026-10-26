@@ -58,6 +58,22 @@
       "destination": "/api/kkti-card?route=stat"
     },
     {
+      "source": "/kkti",
+      "destination": "/kkti.html"
+    },
+    {
+      "source": "/kkti/result",
+      "destination": "/kkti-result.html"
+    },
+    {
+      "source": "/kkti/types",
+      "destination": "/kkti/types/index.html"
+    },
+    {
+      "source": "/kkti/type/:mbti",
+      "destination": "/kkti/type/:mbti/index.html"
+    },
+    {
       "source": "/api/kkti-share",
       "destination": "/api/kkti-card?route=share"
     },
