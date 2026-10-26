@@ -27,6 +27,11 @@ on:
         required: false
         default: '0'
         type: string
+      replace_screenshots:
+        description: '이 버전의 6.7" 스크린샷을 지우고 docs/store-assets/ios-6.7-framed 로 다시 올림'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -76,12 +81,14 @@ jobs:
           SUBMIT: ${{ inputs.submit }}
           WAIT: ${{ inputs.wait_minutes }}
           RETRY: ${{ inputs.retry_minutes }}
+          REPLACE_SHOTS: ${{ inputs.replace_screenshots }}
         run: |
           set -euo pipefail
           args=(--secrets "$RUNNER_TEMP/asc")
           [ -n "$BUILD" ] && args+=(--build "$BUILD")
           [ -n "$WAIT" ] && [ "$WAIT" != "0" ] && args+=(--wait "$WAIT")
           [ -n "$RETRY" ] && [ "$RETRY" != "0" ] && args+=(--retry "$RETRY")
+          [ "$REPLACE_SHOTS" = "true" ] && args+=(--replace-screenshots)
           [ "$SUBMIT" = "true" ] && args+=(--submit)
           node tools/asc-listing.mjs "${args[@]}" 2>&1 | tee asc.log
           {
