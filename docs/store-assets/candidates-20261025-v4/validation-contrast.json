@@ -1,0 +1,3214 @@
+{
+  "checkedAt": "2026-10-26T10:14:43.067Z",
+  "method": "Measure each visible text-node rectangle against every composited background pixel with audited text made transparent. Text shadows and antialiasing are excluded. Conservative rectangles include spaces between glyphs. Rotated stickers use a black/white glyph mask to exclude exterior bounding-box corners, sampling only background pixels beneath the actual rotated text.",
+  "checks": [
+    {
+      "file": "P2-1.html",
+      "format": "iOS",
+      "text": "실제 답장 예시",
+      "selector": "div.caption",
+      "color": "rgb(56, 39, 33)",
+      "masked": false,
+      "qaNodeId": "0",
+      "rect": {
+        "x": 94,
+        "y": 1894,
+        "width": 178,
+        "height": 51
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-1-iOS-0.png",
+      "foregroundRGB": [
+        56,
+        39,
+        33
+      ],
+      "worstBackgroundRGB": [
+        255,
+        248,
+        233
+      ],
+      "minimumContrast": 13.4131,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-1.html",
+      "format": "iOS",
+      "text": "나만의 연애코치",
+      "selector": "div.brand",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "1",
+      "rect": {
+        "x": 148,
+        "y": 164,
+        "width": 222,
+        "height": 45
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-1-iOS-1.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        42,
+        29,
+        32
+      ],
+      "minimumContrast": 16.2156,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-1.html",
+      "format": "iOS",
+      "text": "뭐라고 답장하지?",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "2",
+      "rect": {
+        "x": 86,
+        "y": 276,
+        "width": 878,
+        "height": 164
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-1-iOS-2.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        49,
+        36,
+        39
+      ],
+      "minimumContrast": 14.87,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-1.html",
+      "format": "iOS",
+      "text": "캡처 한 장",
+      "selector": "em.",
+      "color": "rgb(255, 231, 134)",
+      "masked": false,
+      "qaNodeId": "3",
+      "rect": {
+        "x": 86,
+        "y": 433,
+        "width": 499,
+        "height": 165
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-1-iOS-3.png",
+      "foregroundRGB": [
+        255,
+        231,
+        134
+      ],
+      "worstBackgroundRGB": [
+        53,
+        41,
+        43
+      ],
+      "minimumContrast": 11.3251,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-1.html",
+      "format": "iOS",
+      "text": "이면 끝",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "4",
+      "rect": {
+        "x": 584,
+        "y": 433,
+        "width": 363,
+        "height": 165
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-1-iOS-4.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        43,
+        30,
+        33
+      ],
+      "minimumContrast": 16.0258,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-1.html",
+      "format": "iOS",
+      "text": "호칭·말투 그대로, 답장 3가지",
+      "selector": "p.sub",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "5",
+      "rect": {
+        "x": 86,
+        "y": 634,
+        "width": 497,
+        "height": 56
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-1-iOS-5.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        80,
+        65,
+        62
+      ],
+      "minimumContrast": 9.6918,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-1.html",
+      "format": "iOS",
+      "text": "실제 앱 화면 · 코칭 예시",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "6",
+      "rect": {
+        "x": 86,
+        "y": 2612,
+        "width": 252,
+        "height": 34
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-1-iOS-6.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        33,
+        22,
+        27
+      ],
+      "minimumContrast": 17.5694,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-1.html",
+      "format": "iOS",
+      "text": "01 / 06",
+      "selector": "span.page",
+      "color": "rgb(230, 215, 204)",
+      "masked": false,
+      "qaNodeId": "7",
+      "rect": {
+        "x": 1098,
+        "y": 2612,
+        "width": 106,
+        "height": 34
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-1-iOS-7.png",
+      "foregroundRGB": [
+        230,
+        215,
+        204
+      ],
+      "worstBackgroundRGB": [
+        54,
+        34,
+        34
+      ],
+      "minimumContrast": 10.6169,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-1.html",
+      "format": "Play",
+      "text": "실제 답장 예시",
+      "selector": "div.caption",
+      "color": "rgb(56, 39, 33)",
+      "masked": false,
+      "qaNodeId": "0",
+      "rect": {
+        "x": 84,
+        "y": 1427,
+        "width": 171,
+        "height": 49
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-1-Play-0.png",
+      "foregroundRGB": [
+        56,
+        39,
+        33
+      ],
+      "worstBackgroundRGB": [
+        255,
+        248,
+        233
+      ],
+      "minimumContrast": 13.4131,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-1.html",
+      "format": "Play",
+      "text": "나만의 연애코치",
+      "selector": "div.brand",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "1",
+      "rect": {
+        "x": 142,
+        "y": 153,
+        "width": 202,
+        "height": 41
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-1-Play-1.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        42,
+        28,
+        32
+      ],
+      "minimumContrast": 16.3372,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-1.html",
+      "format": "Play",
+      "text": "뭐라고 답장하지?",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "2",
+      "rect": {
+        "x": 82,
+        "y": 239,
+        "width": 820,
+        "height": 155
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-1-Play-2.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        51,
+        38,
+        40
+      ],
+      "minimumContrast": 14.4963,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-1.html",
+      "format": "Play",
+      "text": "캡처 한 장",
+      "selector": "em.",
+      "color": "rgb(255, 231, 134)",
+      "masked": false,
+      "qaNodeId": "3",
+      "rect": {
+        "x": 82,
+        "y": 384,
+        "width": 466,
+        "height": 155
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-1-Play-3.png",
+      "foregroundRGB": [
+        255,
+        231,
+        134
+      ],
+      "worstBackgroundRGB": [
+        79,
+        67,
+        68
+      ],
+      "minimumContrast": 7.6738,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-1.html",
+      "format": "Play",
+      "text": "이면 끝",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "4",
+      "rect": {
+        "x": 547,
+        "y": 384,
+        "width": 339,
+        "height": 155
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-1-Play-4.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        57,
+        41,
+        41
+      ],
+      "minimumContrast": 13.7871,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-1.html",
+      "format": "Play",
+      "text": "호칭·말투 그대로, 답장 3가지",
+      "selector": "p.sub",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "5",
+      "rect": {
+        "x": 82,
+        "y": 562,
+        "width": 457,
+        "height": 52
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-1-Play-5.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        113,
+        103,
+        105
+      ],
+      "minimumContrast": 5.4599,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-1.html",
+      "format": "Play",
+      "text": "실제 앱 화면 · 코칭 예시",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "6",
+      "rect": {
+        "x": 82,
+        "y": 2041,
+        "width": 235,
+        "height": 33
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-1-Play-6.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        38,
+        27,
+        30
+      ],
+      "minimumContrast": 16.694,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-1.html",
+      "format": "Play",
+      "text": "01 / 06",
+      "selector": "span.page",
+      "color": "rgb(230, 215, 204)",
+      "masked": false,
+      "qaNodeId": "7",
+      "rect": {
+        "x": 1057,
+        "y": 2041,
+        "width": 103,
+        "height": 33
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-1-Play-7.png",
+      "foregroundRGB": [
+        230,
+        215,
+        204
+      ],
+      "worstBackgroundRGB": [
+        52,
+        34,
+        34
+      ],
+      "minimumContrast": 10.6992,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-2.html",
+      "format": "iOS",
+      "text": "+10°",
+      "selector": "div.sticker",
+      "color": "rgb(52, 32, 20)",
+      "masked": true,
+      "qaNodeId": "0",
+      "rect": {
+        "x": 951,
+        "y": 1367,
+        "width": 228,
+        "height": 144
+      },
+      "maskFiles": [
+        "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-iOS-0-mask-black.png",
+        "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-iOS-0-mask-white.png"
+      ],
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-iOS-0.png",
+      "maskSamplePixels": 5642,
+      "foregroundRGB": [
+        52,
+        32,
+        20
+      ],
+      "worstBackgroundRGB": [
+        255,
+        231,
+        134
+      ],
+      "minimumContrast": 12.4946,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-2.html",
+      "format": "iOS",
+      "text": "실제 연습 피드백",
+      "selector": "div.caption",
+      "color": "rgb(56, 39, 33)",
+      "masked": false,
+      "qaNodeId": "1",
+      "rect": {
+        "x": 114,
+        "y": 1567,
+        "width": 203,
+        "height": 39
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-iOS-1.png",
+      "foregroundRGB": [
+        56,
+        39,
+        33
+      ],
+      "worstBackgroundRGB": [
+        255,
+        248,
+        233
+      ],
+      "minimumContrast": 13.4131,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-2.html",
+      "format": "iOS",
+      "text": "나만의 연애코치",
+      "selector": "div.brand",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "2",
+      "rect": {
+        "x": 148,
+        "y": 164,
+        "width": 222,
+        "height": 45
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-iOS-2.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        99,
+        72,
+        48
+      ],
+      "minimumContrast": 8.3995,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-2.html",
+      "format": "iOS",
+      "text": "실전 전에",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "3",
+      "rect": {
+        "x": 86,
+        "y": 974,
+        "width": 474,
+        "height": 165
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-iOS-3.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        84,
+        63,
+        54
+      ],
+      "minimumContrast": 9.8074,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-2.html",
+      "format": "iOS",
+      "text": "AI랑",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "4",
+      "rect": {
+        "x": 86,
+        "y": 1131,
+        "width": 259,
+        "height": 165
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-iOS-4.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        54,
+        36,
+        35
+      ],
+      "minimumContrast": 14.6497,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-2.html",
+      "format": "iOS",
+      "text": "카톡 연습",
+      "selector": "em.",
+      "color": "rgb(255, 231, 134)",
+      "masked": false,
+      "qaNodeId": "5",
+      "rect": {
+        "x": 344,
+        "y": 1131,
+        "width": 475,
+        "height": 165
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-iOS-5.png",
+      "foregroundRGB": [
+        255,
+        231,
+        134
+      ],
+      "worstBackgroundRGB": [
+        55,
+        39,
+        40
+      ],
+      "minimumContrast": 11.4789,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-2.html",
+      "format": "iOS",
+      "text": "보낼 때마다 코치가 바로 피드백",
+      "selector": "p.sub",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "6",
+      "rect": {
+        "x": 86,
+        "y": 1333,
+        "width": 535,
+        "height": 56
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-iOS-6.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        45,
+        28,
+        29
+      ],
+      "minimumContrast": 16.2109,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-2.html",
+      "format": "iOS",
+      "text": "실제 앱 화면 · 코칭 예시",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "7",
+      "rect": {
+        "x": 86,
+        "y": 2612,
+        "width": 252,
+        "height": 34
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-iOS-7.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        42,
+        26,
+        28
+      ],
+      "minimumContrast": 16.6274,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-2.html",
+      "format": "iOS",
+      "text": "02 / 06",
+      "selector": "span.page",
+      "color": "rgb(230, 215, 204)",
+      "masked": false,
+      "qaNodeId": "8",
+      "rect": {
+        "x": 1094,
+        "y": 2612,
+        "width": 110,
+        "height": 34
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-iOS-8.png",
+      "foregroundRGB": [
+        230,
+        215,
+        204
+      ],
+      "worstBackgroundRGB": [
+        62,
+        39,
+        35
+      ],
+      "minimumContrast": 9.8444,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-2.html",
+      "format": "Play",
+      "text": "+10°",
+      "selector": "div.sticker",
+      "color": "rgb(52, 32, 20)",
+      "masked": true,
+      "qaNodeId": "0",
+      "rect": {
+        "x": 951,
+        "y": 1126,
+        "width": 183,
+        "height": 115
+      },
+      "maskFiles": [
+        "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-Play-0-mask-black.png",
+        "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-Play-0-mask-white.png"
+      ],
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-Play-0.png",
+      "maskSamplePixels": 3726,
+      "foregroundRGB": [
+        52,
+        32,
+        20
+      ],
+      "worstBackgroundRGB": [
+        255,
+        231,
+        134
+      ],
+      "minimumContrast": 12.4946,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-2.html",
+      "format": "Play",
+      "text": "실제 연습 피드백",
+      "selector": "div.caption",
+      "color": "rgb(56, 39, 33)",
+      "masked": false,
+      "qaNodeId": "1",
+      "rect": {
+        "x": 109,
+        "y": 1207,
+        "width": 196,
+        "height": 38
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-Play-1.png",
+      "foregroundRGB": [
+        56,
+        39,
+        33
+      ],
+      "worstBackgroundRGB": [
+        255,
+        248,
+        233
+      ],
+      "minimumContrast": 13.4131,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-2.html",
+      "format": "Play",
+      "text": "나만의 연애코치",
+      "selector": "div.brand",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "2",
+      "rect": {
+        "x": 142,
+        "y": 153,
+        "width": 202,
+        "height": 41
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-Play-2.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        114,
+        85,
+        55
+      ],
+      "minimumContrast": 6.8403,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-2.html",
+      "format": "Play",
+      "text": "실전 전에",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "3",
+      "rect": {
+        "x": 82,
+        "y": 745,
+        "width": 443,
+        "height": 155
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-Play-3.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        101,
+        76,
+        60
+      ],
+      "minimumContrast": 7.9175,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-2.html",
+      "format": "Play",
+      "text": "AI랑",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "4",
+      "rect": {
+        "x": 82,
+        "y": 890,
+        "width": 242,
+        "height": 155
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-Play-4.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        61,
+        44,
+        40
+      ],
+      "minimumContrast": 13.2131,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-2.html",
+      "format": "Play",
+      "text": "카톡 연습",
+      "selector": "em.",
+      "color": "rgb(255, 231, 134)",
+      "masked": false,
+      "qaNodeId": "5",
+      "rect": {
+        "x": 323,
+        "y": 890,
+        "width": 443,
+        "height": 155
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-Play-5.png",
+      "foregroundRGB": [
+        255,
+        231,
+        134
+      ],
+      "worstBackgroundRGB": [
+        62,
+        44,
+        43
+      ],
+      "minimumContrast": 10.6417,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-2.html",
+      "format": "Play",
+      "text": "보낼 때마다 코치가 바로 피드백",
+      "selector": "p.sub",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "6",
+      "rect": {
+        "x": 82,
+        "y": 1068,
+        "width": 492,
+        "height": 52
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-Play-6.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        45,
+        28,
+        29
+      ],
+      "minimumContrast": 16.2109,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-2.html",
+      "format": "Play",
+      "text": "실제 앱 화면 · 코칭 예시",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "7",
+      "rect": {
+        "x": 82,
+        "y": 2041,
+        "width": 235,
+        "height": 33
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-Play-7.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        41,
+        26,
+        28
+      ],
+      "minimumContrast": 16.6824,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-2.html",
+      "format": "Play",
+      "text": "02 / 06",
+      "selector": "span.page",
+      "color": "rgb(230, 215, 204)",
+      "masked": false,
+      "qaNodeId": "8",
+      "rect": {
+        "x": 1053,
+        "y": 2041,
+        "width": 107,
+        "height": 33
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-Play-8.png",
+      "foregroundRGB": [
+        230,
+        215,
+        204
+      ],
+      "worstBackgroundRGB": [
+        62,
+        39,
+        35
+      ],
+      "minimumContrast": 9.8444,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-3.html",
+      "format": "iOS",
+      "text": "50",
+      "selector": "div.stat",
+      "color": "rgb(255, 231, 134)",
+      "masked": false,
+      "qaNodeId": "0",
+      "rect": {
+        "x": 72,
+        "y": 557,
+        "width": 400,
+        "height": 406
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-3-iOS-0.png",
+      "foregroundRGB": [
+        255,
+        231,
+        134
+      ],
+      "worstBackgroundRGB": [
+        60,
+        37,
+        37
+      ],
+      "minimumContrast": 11.4775,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-3.html",
+      "format": "iOS",
+      "text": "%",
+      "selector": "small.",
+      "color": "rgb(255, 231, 134)",
+      "masked": false,
+      "qaNodeId": "1",
+      "rect": {
+        "x": 471,
+        "y": 710,
+        "width": 162,
+        "height": 214
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-3-iOS-1.png",
+      "foregroundRGB": [
+        255,
+        231,
+        134
+      ],
+      "worstBackgroundRGB": [
+        66,
+        44,
+        40
+      ],
+      "minimumContrast": 10.4937,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-3.html",
+      "format": "iOS",
+      "text": "호감 및 친근감 표현",
+      "selector": "div.meaning",
+      "color": "rgb(255, 243, 211)",
+      "masked": false,
+      "qaNodeId": "2",
+      "rect": {
+        "x": 88,
+        "y": 949,
+        "width": 345,
+        "height": 54
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-3-iOS-2.png",
+      "foregroundRGB": [
+        255,
+        243,
+        211
+      ],
+      "worstBackgroundRGB": [
+        48,
+        30,
+        31
+      ],
+      "minimumContrast": 14.2828,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-3.html",
+      "format": "iOS",
+      "text": "실제 속마음 분석 예시",
+      "selector": "div.caption",
+      "color": "rgb(56, 39, 33)",
+      "masked": false,
+      "qaNodeId": "3",
+      "rect": {
+        "x": 108,
+        "y": 1292,
+        "width": 265,
+        "height": 48
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-3-iOS-3.png",
+      "foregroundRGB": [
+        56,
+        39,
+        33
+      ],
+      "worstBackgroundRGB": [
+        255,
+        248,
+        233
+      ],
+      "minimumContrast": 13.4131,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-3.html",
+      "format": "iOS",
+      "text": "나만의 연애코치",
+      "selector": "div.brand",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "4",
+      "rect": {
+        "x": 148,
+        "y": 164,
+        "width": 222,
+        "height": 45
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-3-iOS-4.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        36,
+        22,
+        27
+      ],
+      "minimumContrast": 17.4187,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-3.html",
+      "format": "iOS",
+      "text": "그 사람 속마음",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "5",
+      "rect": {
+        "x": 86,
+        "y": 2099,
+        "width": 724,
+        "height": 165
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-3-iOS-5.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        54,
+        34,
+        34
+      ],
+      "minimumContrast": 14.9067,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-3.html",
+      "format": "iOS",
+      "text": "가능성은",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "6",
+      "rect": {
+        "x": 86,
+        "y": 2256,
+        "width": 474,
+        "height": 165
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-3-iOS-6.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        47,
+        30,
+        31
+      ],
+      "minimumContrast": 15.8328,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-3.html",
+      "format": "iOS",
+      "text": "몇 %?",
+      "selector": "em.",
+      "color": "rgb(255, 231, 134)",
+      "masked": false,
+      "qaNodeId": "7",
+      "rect": {
+        "x": 559,
+        "y": 2256,
+        "width": 331,
+        "height": 165
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-3-iOS-7.png",
+      "foregroundRGB": [
+        255,
+        231,
+        134
+      ],
+      "worstBackgroundRGB": [
+        56,
+        35,
+        35
+      ],
+      "minimumContrast": 11.8832,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-3.html",
+      "format": "iOS",
+      "text": "하나의 상황을 여러 가능성으로",
+      "selector": "p.sub",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "8",
+      "rect": {
+        "x": 86,
+        "y": 2458,
+        "width": 525,
+        "height": 56
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-3-iOS-8.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        48,
+        30,
+        32
+      ],
+      "minimumContrast": 15.7629,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-3.html",
+      "format": "iOS",
+      "text": "실제 앱 화면 · 코칭 예시",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "9",
+      "rect": {
+        "x": 86,
+        "y": 2612,
+        "width": 252,
+        "height": 34
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-3-iOS-9.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        41,
+        25,
+        29
+      ],
+      "minimumContrast": 16.7855,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-3.html",
+      "format": "iOS",
+      "text": "03 / 06",
+      "selector": "span.page",
+      "color": "rgb(230, 215, 204)",
+      "masked": false,
+      "qaNodeId": "10",
+      "rect": {
+        "x": 1093,
+        "y": 2612,
+        "width": 111,
+        "height": 34
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-3-iOS-10.png",
+      "foregroundRGB": [
+        230,
+        215,
+        204
+      ],
+      "worstBackgroundRGB": [
+        60,
+        37,
+        35
+      ],
+      "minimumContrast": 10.0989,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-3.html",
+      "format": "Play",
+      "text": "50",
+      "selector": "div.stat",
+      "color": "rgb(255, 231, 134)",
+      "masked": false,
+      "qaNodeId": "0",
+      "rect": {
+        "x": 69,
+        "y": 369,
+        "width": 361,
+        "height": 369
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-3-Play-0.png",
+      "foregroundRGB": [
+        255,
+        231,
+        134
+      ],
+      "worstBackgroundRGB": [
+        52,
+        42,
+        53
+      ],
+      "minimumContrast": 11.1386,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-3.html",
+      "format": "Play",
+      "text": "%",
+      "selector": "small.",
+      "color": "rgb(255, 231, 134)",
+      "masked": false,
+      "qaNodeId": "1",
+      "rect": {
+        "x": 429,
+        "y": 498,
+        "width": 156,
+        "height": 207
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-3-Play-1.png",
+      "foregroundRGB": [
+        255,
+        231,
+        134
+      ],
+      "worstBackgroundRGB": [
+        72,
+        48,
+        42
+      ],
+      "minimumContrast": 9.832,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-3.html",
+      "format": "Play",
+      "text": "호감 및 친근감 표현",
+      "selector": "div.meaning",
+      "color": "rgb(255, 243, 211)",
+      "masked": false,
+      "qaNodeId": "2",
+      "rect": {
+        "x": 84,
+        "y": 725,
+        "width": 318,
+        "height": 51
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-3-Play-2.png",
+      "foregroundRGB": [
+        255,
+        243,
+        211
+      ],
+      "worstBackgroundRGB": [
+        45,
+        29,
+        31
+      ],
+      "minimumContrast": 14.5457,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-3.html",
+      "format": "Play",
+      "text": "실제 속마음 분석 예시",
+      "selector": "div.caption",
+      "color": "rgb(56, 39, 33)",
+      "masked": false,
+      "qaNodeId": "3",
+      "rect": {
+        "x": 105,
+        "y": 945,
+        "width": 255,
+        "height": 46
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-3-Play-3.png",
+      "foregroundRGB": [
+        56,
+        39,
+        33
+      ],
+      "worstBackgroundRGB": [
+        255,
+        248,
+        233
+      ],
+      "minimumContrast": 13.4131,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-3.html",
+      "format": "Play",
+      "text": "나만의 연애코치",
+      "selector": "div.brand",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "4",
+      "rect": {
+        "x": 142,
+        "y": 153,
+        "width": 202,
+        "height": 41
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-3-Play-4.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        36,
+        23,
+        27
+      ],
+      "minimumContrast": 17.3068,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-3.html",
+      "format": "Play",
+      "text": "그 사람 속마음",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "5",
+      "rect": {
+        "x": 82,
+        "y": 1591,
+        "width": 676,
+        "height": 155
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-3-Play-5.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        55,
+        36,
+        36
+      ],
+      "minimumContrast": 14.5806,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-3.html",
+      "format": "Play",
+      "text": "가능성은",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "6",
+      "rect": {
+        "x": 82,
+        "y": 1735,
+        "width": 443,
+        "height": 156
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-3-Play-6.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        46,
+        29,
+        31
+      ],
+      "minimumContrast": 16.0098,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-3.html",
+      "format": "Play",
+      "text": "몇 %?",
+      "selector": "em.",
+      "color": "rgb(255, 231, 134)",
+      "masked": false,
+      "qaNodeId": "7",
+      "rect": {
+        "x": 524,
+        "y": 1735,
+        "width": 309,
+        "height": 156
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-3-Play-7.png",
+      "foregroundRGB": [
+        255,
+        231,
+        134
+      ],
+      "worstBackgroundRGB": [
+        55,
+        35,
+        34
+      ],
+      "minimumContrast": 11.9405,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-3.html",
+      "format": "Play",
+      "text": "하나의 상황을 여러 가능성으로",
+      "selector": "p.sub",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "8",
+      "rect": {
+        "x": 82,
+        "y": 1914,
+        "width": 484,
+        "height": 52
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-3-Play-8.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        47,
+        30,
+        31
+      ],
+      "minimumContrast": 15.8328,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-3.html",
+      "format": "Play",
+      "text": "실제 앱 화면 · 코칭 예시",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "9",
+      "rect": {
+        "x": 82,
+        "y": 2041,
+        "width": 235,
+        "height": 33
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-3-Play-9.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        40,
+        25,
+        27
+      ],
+      "minimumContrast": 16.8661,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-3.html",
+      "format": "Play",
+      "text": "03 / 06",
+      "selector": "span.page",
+      "color": "rgb(230, 215, 204)",
+      "masked": false,
+      "qaNodeId": "10",
+      "rect": {
+        "x": 1052,
+        "y": 2041,
+        "width": 108,
+        "height": 33
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-3-Play-10.png",
+      "foregroundRGB": [
+        230,
+        215,
+        204
+      ],
+      "worstBackgroundRGB": [
+        60,
+        37,
+        35
+      ],
+      "minimumContrast": 10.0989,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-4.html",
+      "format": "iOS",
+      "text": "실제 상대 분석 보고서",
+      "selector": "div.caption",
+      "color": "rgb(56, 39, 33)",
+      "masked": false,
+      "qaNodeId": "0",
+      "rect": {
+        "x": 128,
+        "y": 1676,
+        "width": 263,
+        "height": 38
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-4-iOS-0.png",
+      "foregroundRGB": [
+        56,
+        39,
+        33
+      ],
+      "worstBackgroundRGB": [
+        255,
+        248,
+        233
+      ],
+      "minimumContrast": 13.4131,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-4.html",
+      "format": "iOS",
+      "text": "0°",
+      "selector": "div.stat",
+      "color": "rgb(255, 231, 134)",
+      "masked": false,
+      "qaNodeId": "1",
+      "rect": {
+        "x": 309,
+        "y": 2312,
+        "width": 194,
+        "height": 227
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-4-iOS-1.png",
+      "foregroundRGB": [
+        255,
+        231,
+        134
+      ],
+      "worstBackgroundRGB": [
+        47,
+        30,
+        30
+      ],
+      "minimumContrast": 12.8471,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-4.html",
+      "format": "iOS",
+      "text": "→",
+      "selector": "span.",
+      "color": "rgb(255, 231, 134)",
+      "masked": false,
+      "qaNodeId": "2",
+      "rect": {
+        "x": 538,
+        "y": 2369,
+        "width": 112,
+        "height": 155
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-4-iOS-2.png",
+      "foregroundRGB": [
+        255,
+        231,
+        134
+      ],
+      "worstBackgroundRGB": [
+        51,
+        32,
+        31
+      ],
+      "minimumContrast": 12.4541,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-4.html",
+      "format": "iOS",
+      "text": "25°",
+      "selector": "div.stat",
+      "color": "rgb(255, 231, 134)",
+      "masked": false,
+      "qaNodeId": "3",
+      "rect": {
+        "x": 685,
+        "y": 2312,
+        "width": 296,
+        "height": 227
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-4-iOS-3.png",
+      "foregroundRGB": [
+        255,
+        231,
+        134
+      ],
+      "worstBackgroundRGB": [
+        60,
+        38,
+        35
+      ],
+      "minimumContrast": 11.3994,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-4.html",
+      "format": "iOS",
+      "text": "나만의 연애코치",
+      "selector": "div.brand",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "4",
+      "rect": {
+        "x": 148,
+        "y": 164,
+        "width": 222,
+        "height": 45
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-4-iOS-4.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        56,
+        42,
+        39
+      ],
+      "minimumContrast": 13.7378,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-4.html",
+      "format": "iOS",
+      "text": "대화 속에 담긴",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "5",
+      "rect": {
+        "x": 283,
+        "y": 1106,
+        "width": 724,
+        "height": 164
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-4-iOS-5.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        70,
+        53,
+        45
+      ],
+      "minimumContrast": 11.6179,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-4.html",
+      "format": "iOS",
+      "text": "우리",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "6",
+      "rect": {
+        "x": 283,
+        "y": 1263,
+        "width": 250,
+        "height": 165
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-4-iOS-6.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        47,
+        32,
+        30
+      ],
+      "minimumContrast": 15.5992,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-4.html",
+      "format": "iOS",
+      "text": "호감 온도",
+      "selector": "em.",
+      "color": "rgb(255, 231, 134)",
+      "masked": false,
+      "qaNodeId": "7",
+      "rect": {
+        "x": 532,
+        "y": 1263,
+        "width": 475,
+        "height": 165
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-4-iOS-7.png",
+      "foregroundRGB": [
+        255,
+        231,
+        134
+      ],
+      "worstBackgroundRGB": [
+        55,
+        36,
+        35
+      ],
+      "minimumContrast": 11.8317,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-4.html",
+      "format": "iOS",
+      "text": "온도 변화부터 상대 분석 보고서까지",
+      "selector": "p.sub",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "8",
+      "rect": {
+        "x": 339,
+        "y": 1464,
+        "width": 612,
+        "height": 56
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-4-iOS-8.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        55,
+        36,
+        34
+      ],
+      "minimumContrast": 14.6047,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-4.html",
+      "format": "iOS",
+      "text": "실제 앱 화면 · 코칭 예시",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "9",
+      "rect": {
+        "x": 86,
+        "y": 2612,
+        "width": 252,
+        "height": 34
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-4-iOS-9.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        42,
+        26,
+        28
+      ],
+      "minimumContrast": 16.6274,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-4.html",
+      "format": "iOS",
+      "text": "04 / 06",
+      "selector": "span.page",
+      "color": "rgb(230, 215, 204)",
+      "masked": false,
+      "qaNodeId": "10",
+      "rect": {
+        "x": 1093,
+        "y": 2612,
+        "width": 111,
+        "height": 34
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-4-iOS-10.png",
+      "foregroundRGB": [
+        230,
+        215,
+        204
+      ],
+      "worstBackgroundRGB": [
+        62,
+        39,
+        35
+      ],
+      "minimumContrast": 9.8444,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-4.html",
+      "format": "Play",
+      "text": "실제 상대 분석 보고서",
+      "selector": "div.caption",
+      "color": "rgb(56, 39, 33)",
+      "masked": false,
+      "qaNodeId": "0",
+      "rect": {
+        "x": 132,
+        "y": 1363,
+        "width": 254,
+        "height": 37
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-4-Play-0.png",
+      "foregroundRGB": [
+        56,
+        39,
+        33
+      ],
+      "worstBackgroundRGB": [
+        255,
+        248,
+        233
+      ],
+      "minimumContrast": 13.4131,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-4.html",
+      "format": "Play",
+      "text": "0°",
+      "selector": "div.stat",
+      "color": "rgb(255, 231, 134)",
+      "masked": false,
+      "qaNodeId": "1",
+      "rect": {
+        "x": 344,
+        "y": 1793,
+        "width": 155,
+        "height": 184
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-4-Play-1.png",
+      "foregroundRGB": [
+        255,
+        231,
+        134
+      ],
+      "worstBackgroundRGB": [
+        47,
+        30,
+        30
+      ],
+      "minimumContrast": 12.8471,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-4.html",
+      "format": "Play",
+      "text": "→",
+      "selector": "span.",
+      "color": "rgb(255, 231, 134)",
+      "masked": false,
+      "qaNodeId": "2",
+      "rect": {
+        "x": 533,
+        "y": 1834,
+        "width": 95,
+        "height": 133
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-4-Play-2.png",
+      "foregroundRGB": [
+        255,
+        231,
+        134
+      ],
+      "worstBackgroundRGB": [
+        51,
+        32,
+        32
+      ],
+      "minimumContrast": 12.4443,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-4.html",
+      "format": "Play",
+      "text": "25°",
+      "selector": "div.stat",
+      "color": "rgb(255, 231, 134)",
+      "masked": false,
+      "qaNodeId": "3",
+      "rect": {
+        "x": 661,
+        "y": 1793,
+        "width": 237,
+        "height": 184
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-4-Play-3.png",
+      "foregroundRGB": [
+        255,
+        231,
+        134
+      ],
+      "worstBackgroundRGB": [
+        59,
+        37,
+        35
+      ],
+      "minimumContrast": 11.5446,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-4.html",
+      "format": "Play",
+      "text": "나만의 연애코치",
+      "selector": "div.brand",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "4",
+      "rect": {
+        "x": 142,
+        "y": 153,
+        "width": 202,
+        "height": 41
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-4-Play-4.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        61,
+        44,
+        40
+      ],
+      "minimumContrast": 13.2131,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-4.html",
+      "format": "Play",
+      "text": "대화 속에 담긴",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "5",
+      "rect": {
+        "x": 283,
+        "y": 890,
+        "width": 676,
+        "height": 155
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-4-Play-5.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        59,
+        43,
+        38
+      ],
+      "minimumContrast": 13.4659,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-4.html",
+      "format": "Play",
+      "text": "우리",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "6",
+      "rect": {
+        "x": 283,
+        "y": 1035,
+        "width": 234,
+        "height": 155
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-4-Play-6.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        45,
+        29,
+        30
+      ],
+      "minimumContrast": 16.0788,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-4.html",
+      "format": "Play",
+      "text": "호감 온도",
+      "selector": "em.",
+      "color": "rgb(255, 231, 134)",
+      "masked": false,
+      "qaNodeId": "7",
+      "rect": {
+        "x": 516,
+        "y": 1035,
+        "width": 443,
+        "height": 155
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-4-Play-7.png",
+      "foregroundRGB": [
+        255,
+        231,
+        134
+      ],
+      "worstBackgroundRGB": [
+        55,
+        36,
+        34
+      ],
+      "minimumContrast": 11.8414,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-4.html",
+      "format": "Play",
+      "text": "온도 변화부터 상대 분석 보고서까지",
+      "selector": "p.sub",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "8",
+      "rect": {
+        "x": 340,
+        "y": 1213,
+        "width": 562,
+        "height": 52
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-4-Play-8.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        55,
+        37,
+        34
+      ],
+      "minimumContrast": 14.4811,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-4.html",
+      "format": "Play",
+      "text": "실제 앱 화면 · 코칭 예시",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "9",
+      "rect": {
+        "x": 82,
+        "y": 2041,
+        "width": 235,
+        "height": 33
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-4-Play-9.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        41,
+        26,
+        28
+      ],
+      "minimumContrast": 16.6824,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-4.html",
+      "format": "Play",
+      "text": "04 / 06",
+      "selector": "span.page",
+      "color": "rgb(230, 215, 204)",
+      "masked": false,
+      "qaNodeId": "10",
+      "rect": {
+        "x": 1052,
+        "y": 2041,
+        "width": 108,
+        "height": 33
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-4-Play-10.png",
+      "foregroundRGB": [
+        230,
+        215,
+        204
+      ],
+      "worstBackgroundRGB": [
+        62,
+        39,
+        35
+      ],
+      "minimumContrast": 9.8444,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-5.html",
+      "format": "iOS",
+      "text": "실제 KKTI 결과 예시",
+      "selector": "div.caption",
+      "color": "rgb(56, 39, 33)",
+      "masked": false,
+      "qaNodeId": "0",
+      "rect": {
+        "x": 124,
+        "y": 1716,
+        "width": 252,
+        "height": 48
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-5-iOS-0.png",
+      "foregroundRGB": [
+        56,
+        39,
+        33
+      ],
+      "worstBackgroundRGB": [
+        255,
+        248,
+        233
+      ],
+      "minimumContrast": 13.4131,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-5.html",
+      "format": "iOS",
+      "text": "나만의 연애코치",
+      "selector": "div.brand",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "1",
+      "rect": {
+        "x": 148,
+        "y": 164,
+        "width": 222,
+        "height": 45
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-5-iOS-1.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        55,
+        34,
+        31
+      ],
+      "minimumContrast": 14.8826,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-5.html",
+      "format": "iOS",
+      "text": "카톡 습관 속",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "2",
+      "rect": {
+        "x": 86,
+        "y": 1271,
+        "width": 611,
+        "height": 164
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-5-iOS-2.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        81,
+        53,
+        42
+      ],
+      "minimumContrast": 11.0962,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-5.html",
+      "format": "iOS",
+      "text": "나의",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "3",
+      "rect": {
+        "x": 86,
+        "y": 1428,
+        "width": 250,
+        "height": 165
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-5-iOS-3.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        54,
+        34,
+        31
+      ],
+      "minimumContrast": 14.9418,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-5.html",
+      "format": "iOS",
+      "text": "연애 유형",
+      "selector": "em.",
+      "color": "rgb(255, 231, 134)",
+      "masked": false,
+      "qaNodeId": "4",
+      "rect": {
+        "x": 335,
+        "y": 1428,
+        "width": 475,
+        "height": 165
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-5-iOS-4.png",
+      "foregroundRGB": [
+        255,
+        231,
+        134
+      ],
+      "worstBackgroundRGB": [
+        83,
+        55,
+        43
+      ],
+      "minimumContrast": 8.7354,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-5.html",
+      "format": "iOS",
+      "text": "16가지 유형 · 나만의 연애 컬러",
+      "selector": "p.sub",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "5",
+      "rect": {
+        "x": 86,
+        "y": 1629,
+        "width": 525,
+        "height": 56
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-5-iOS-5.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        69,
+        43,
+        35
+      ],
+      "minimumContrast": 12.9401,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-5.html",
+      "format": "iOS",
+      "text": "실제 앱 화면 · 코칭 예시",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "6",
+      "rect": {
+        "x": 86,
+        "y": 2612,
+        "width": 252,
+        "height": 34
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-5-iOS-6.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        42,
+        27,
+        28
+      ],
+      "minimumContrast": 16.5096,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-5.html",
+      "format": "iOS",
+      "text": "05 / 06",
+      "selector": "span.page",
+      "color": "rgb(230, 215, 204)",
+      "masked": false,
+      "qaNodeId": "7",
+      "rect": {
+        "x": 1093,
+        "y": 2612,
+        "width": 111,
+        "height": 34
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-5-iOS-7.png",
+      "foregroundRGB": [
+        230,
+        215,
+        204
+      ],
+      "worstBackgroundRGB": [
+        67,
+        42,
+        37
+      ],
+      "minimumContrast": 9.3681,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-5.html",
+      "format": "Play",
+      "text": "실제 KKTI 결과 예시",
+      "selector": "div.caption",
+      "color": "rgb(56, 39, 33)",
+      "masked": false,
+      "qaNodeId": "0",
+      "rect": {
+        "x": 213,
+        "y": 1343,
+        "width": 243,
+        "height": 46
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-5-Play-0.png",
+      "foregroundRGB": [
+        56,
+        39,
+        33
+      ],
+      "worstBackgroundRGB": [
+        255,
+        248,
+        233
+      ],
+      "minimumContrast": 13.4131,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-5.html",
+      "format": "Play",
+      "text": "나만의 연애코치",
+      "selector": "div.brand",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "1",
+      "rect": {
+        "x": 142,
+        "y": 153,
+        "width": 202,
+        "height": 41
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-5-Play-1.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        55,
+        34,
+        31
+      ],
+      "minimumContrast": 14.8826,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-5.html",
+      "format": "Play",
+      "text": "카톡 습관 속",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "2",
+      "rect": {
+        "x": 82,
+        "y": 919,
+        "width": 571,
+        "height": 155
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-5-Play-2.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        82,
+        53,
+        42
+      ],
+      "minimumContrast": 11.0442,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-5.html",
+      "format": "Play",
+      "text": "나의",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "3",
+      "rect": {
+        "x": 82,
+        "y": 1063,
+        "width": 234,
+        "height": 156
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-5-Play-3.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        54,
+        34,
+        31
+      ],
+      "minimumContrast": 14.9418,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-5.html",
+      "format": "Play",
+      "text": "연애 유형",
+      "selector": "em.",
+      "color": "rgb(255, 231, 134)",
+      "masked": false,
+      "qaNodeId": "4",
+      "rect": {
+        "x": 315,
+        "y": 1063,
+        "width": 443,
+        "height": 156
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-5-Play-4.png",
+      "foregroundRGB": [
+        255,
+        231,
+        134
+      ],
+      "worstBackgroundRGB": [
+        83,
+        55,
+        43
+      ],
+      "minimumContrast": 8.7354,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-5.html",
+      "format": "Play",
+      "text": "16가지 유형 · 나만의 연애 컬러",
+      "selector": "p.sub",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "5",
+      "rect": {
+        "x": 82,
+        "y": 1242,
+        "width": 483,
+        "height": 52
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-5-Play-5.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        68,
+        43,
+        36
+      ],
+      "minimumContrast": 12.9885,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-5.html",
+      "format": "Play",
+      "text": "실제 앱 화면 · 코칭 예시",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "6",
+      "rect": {
+        "x": 82,
+        "y": 2041,
+        "width": 235,
+        "height": 33
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-5-Play-6.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        40,
+        25,
+        27
+      ],
+      "minimumContrast": 16.8661,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-5.html",
+      "format": "Play",
+      "text": "05 / 06",
+      "selector": "span.page",
+      "color": "rgb(230, 215, 204)",
+      "masked": false,
+      "qaNodeId": "7",
+      "rect": {
+        "x": 1053,
+        "y": 2041,
+        "width": 107,
+        "height": 33
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-5-Play-7.png",
+      "foregroundRGB": [
+        230,
+        215,
+        204
+      ],
+      "worstBackgroundRGB": [
+        67,
+        42,
+        37
+      ],
+      "minimumContrast": 9.3681,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-6.html",
+      "format": "iOS",
+      "text": "실제 앱 입력·메뉴",
+      "selector": "div.caption",
+      "color": "rgb(56, 39, 33)",
+      "masked": false,
+      "qaNodeId": "0",
+      "rect": {
+        "x": 110,
+        "y": 1656,
+        "width": 211,
+        "height": 38
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-6-iOS-0.png",
+      "foregroundRGB": [
+        56,
+        39,
+        33
+      ],
+      "worstBackgroundRGB": [
+        255,
+        248,
+        233
+      ],
+      "minimumContrast": 13.4131,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-6.html",
+      "format": "iOS",
+      "text": "나만의 연애코치",
+      "selector": "div.brand",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "1",
+      "rect": {
+        "x": 148,
+        "y": 164,
+        "width": 222,
+        "height": 45
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-6-iOS-1.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        64,
+        41,
+        35
+      ],
+      "minimumContrast": 13.4663,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-6.html",
+      "format": "iOS",
+      "text": "캡처 없이",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "2",
+      "rect": {
+        "x": 86,
+        "y": 1196,
+        "width": 474,
+        "height": 164
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-6-iOS-2.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        77,
+        50,
+        40
+      ],
+      "minimumContrast": 11.6509,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-6.html",
+      "format": "iOS",
+      "text": "상황만",
+      "selector": "em.",
+      "color": "rgb(255, 231, 134)",
+      "masked": false,
+      "qaNodeId": "3",
+      "rect": {
+        "x": 86,
+        "y": 1353,
+        "width": 337,
+        "height": 165
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-6-iOS-3.png",
+      "foregroundRGB": [
+        255,
+        231,
+        134
+      ],
+      "worstBackgroundRGB": [
+        60,
+        38,
+        34
+      ],
+      "minimumContrast": 11.4083,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-6.html",
+      "format": "iOS",
+      "text": "적어도 OK",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "4",
+      "rect": {
+        "x": 422,
+        "y": 1353,
+        "width": 569,
+        "height": 165
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-6-iOS-4.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        76,
+        50,
+        40
+      ],
+      "minimumContrast": 11.7045,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-6.html",
+      "format": "iOS",
+      "text": "연습·속마음·비밀 상담까지 한 앱에",
+      "selector": "p.sub",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "5",
+      "rect": {
+        "x": 86,
+        "y": 1554,
+        "width": 585,
+        "height": 56
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-6-iOS-5.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        70,
+        45,
+        38
+      ],
+      "minimumContrast": 12.622,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-6.html",
+      "format": "iOS",
+      "text": "실제 앱 화면 · 코칭 예시",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "6",
+      "rect": {
+        "x": 86,
+        "y": 2612,
+        "width": 252,
+        "height": 34
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-6-iOS-6.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        43,
+        27,
+        29
+      ],
+      "minimumContrast": 16.4418,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-6.html",
+      "format": "iOS",
+      "text": "06 / 06",
+      "selector": "span.page",
+      "color": "rgb(230, 215, 204)",
+      "masked": false,
+      "qaNodeId": "7",
+      "rect": {
+        "x": 1093,
+        "y": 2612,
+        "width": 111,
+        "height": 34
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-6-iOS-7.png",
+      "foregroundRGB": [
+        230,
+        215,
+        204
+      ],
+      "worstBackgroundRGB": [
+        62,
+        39,
+        35
+      ],
+      "minimumContrast": 9.8444,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-6.html",
+      "format": "Play",
+      "text": "실제 앱 입력·메뉴",
+      "selector": "div.caption",
+      "color": "rgb(56, 39, 33)",
+      "masked": false,
+      "qaNodeId": "0",
+      "rect": {
+        "x": 147,
+        "y": 1228,
+        "width": 203,
+        "height": 38
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-6-Play-0.png",
+      "foregroundRGB": [
+        56,
+        39,
+        33
+      ],
+      "worstBackgroundRGB": [
+        255,
+        248,
+        233
+      ],
+      "minimumContrast": 13.4131,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-6.html",
+      "format": "Play",
+      "text": "나만의 연애코치",
+      "selector": "div.brand",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "1",
+      "rect": {
+        "x": 142,
+        "y": 153,
+        "width": 202,
+        "height": 41
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-6-Play-1.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        63,
+        40,
+        35
+      ],
+      "minimumContrast": 13.644,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-6.html",
+      "format": "Play",
+      "text": "캡처 없이",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "2",
+      "rect": {
+        "x": 82,
+        "y": 813,
+        "width": 443,
+        "height": 155
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-6-Play-2.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        79,
+        51,
+        40
+      ],
+      "minimumContrast": 11.434,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-6.html",
+      "format": "Play",
+      "text": "상황만",
+      "selector": "em.",
+      "color": "rgb(255, 231, 134)",
+      "masked": false,
+      "qaNodeId": "3",
+      "rect": {
+        "x": 82,
+        "y": 958,
+        "width": 316,
+        "height": 155
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-6-Play-3.png",
+      "foregroundRGB": [
+        255,
+        231,
+        134
+      ],
+      "worstBackgroundRGB": [
+        62,
+        40,
+        35
+      ],
+      "minimumContrast": 11.1095,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-6.html",
+      "format": "Play",
+      "text": "적어도 OK",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "4",
+      "rect": {
+        "x": 397,
+        "y": 958,
+        "width": 530,
+        "height": 155
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-6-Play-4.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        81,
+        52,
+        41
+      ],
+      "minimumContrast": 11.2115,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-6.html",
+      "format": "Play",
+      "text": "연습·속마음·비밀 상담까지 한 앱에",
+      "selector": "p.sub",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "5",
+      "rect": {
+        "x": 82,
+        "y": 1136,
+        "width": 538,
+        "height": 52
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-6-Play-5.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        74,
+        47,
+        39
+      ],
+      "minimumContrast": 12.1593,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-6.html",
+      "format": "Play",
+      "text": "실제 앱 화면 · 코칭 예시",
+      "selector": "span.",
+      "color": "rgb(255, 255, 255)",
+      "masked": false,
+      "qaNodeId": "6",
+      "rect": {
+        "x": 82,
+        "y": 2041,
+        "width": 235,
+        "height": 33
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-6-Play-6.png",
+      "foregroundRGB": [
+        255,
+        255,
+        255
+      ],
+      "worstBackgroundRGB": [
+        42,
+        27,
+        29
+      ],
+      "minimumContrast": 16.4969,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    },
+    {
+      "file": "P2-6.html",
+      "format": "Play",
+      "text": "06 / 06",
+      "selector": "span.page",
+      "color": "rgb(230, 215, 204)",
+      "masked": false,
+      "qaNodeId": "7",
+      "rect": {
+        "x": 1052,
+        "y": 2041,
+        "width": 108,
+        "height": 33
+      },
+      "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-6-Play-7.png",
+      "foregroundRGB": [
+        230,
+        215,
+        204
+      ],
+      "worstBackgroundRGB": [
+        62,
+        39,
+        35
+      ],
+      "minimumContrast": 9.8444,
+      "passed": true,
+      "qaScreenshotRemoved": true
+    }
+  ],
+  "errors": [],
+  "summary": {
+    "textRegions": 110,
+    "configurations": 12,
+    "minimumContrast": 5.4599,
+    "failedRegions": 0,
+    "allPassed": true
+  }
+}
