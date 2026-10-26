@@ -10,7 +10,7 @@ NAMES = ['1-chat-replies','2-practice','3-mind','4-report','5-kkti','6-home']
 FONT = ROOT / 'api/_assets/fonts'
 HEART = '<svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M100 169C72 147 21 109 22 66C23 20 77 14 100 53C125 12 179 24 178 67C177 111 125 151 100 169Z" stroke="currentColor" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 COPY = [
- ('뭐라고 답장하지?', '<em>캡처 한 장</em>이면 끝', '호칭·말투 그대로, 답장 3가지'),
+ ('뭐라고 답장하지?', '<em>캡처 한 장</em>이면 끝', '호칭·말투 그대로, 답장 추천 3가지'),
  ('실전 전에', 'AI랑 <em>카톡 연습</em>', '보낼 때마다 코치가 바로 피드백'),
  ('그 사람 속마음', '가능성은 <em>몇 %?</em>', '하나의 상황을 여러 가능성으로'),
  ('대화 속에 담긴', '우리 <em>호감 온도</em>', '온도 변화부터 상대 분석 보고서까지'),
@@ -155,7 +155,7 @@ def shot(n):
     elif n==4:
         content=photo('09-riverside-wide',new=True)+photo('09-riverside-wide','scenic',new=True)+feature(4,(90,495,1200,815),'실제 상대 분석 보고서')+'<div class="stat" data-contrast>0°<span>→</span>25°</div>'
     elif n==5:
-        content='<div class="polaroid a"><div class="photo-window">'+photo('07-friends','')+'</div></div><div class="polaroid b"><div class="photo-window">'+photo('07-friends','')+'</div></div>'+feature(5,(45,630,1245,1450),'실제 KKTI 결과 예시')
+        content='<div class="polaroid a"><div class="photo-window">'+photo('07-friends','')+'</div></div><div class="polaroid b"><div class="photo-window">'+photo('06-riverside-couple','')+'</div></div>'+feature(5,(45,630,1245,1450),'실제 KKTI 결과 예시')
     else:
         content='<div class="mosaic">'
         for cls,name,new in [('a','01-cafe-woman',False),('b','11-window-man',True),('c','10-sunset-woman',True),('d','02-neon-man',False)]:
@@ -164,7 +164,7 @@ def shot(n):
     first,second,sub=COPY[n-1]
     return f'''<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>P2-{n} · 나만의 연애코치</title><style>
 @font-face{{font-family:Pretendard;src:url('../../../..//api/_assets/fonts/Pretendard-Bold.otf');font-weight:700}}@font-face{{font-family:Pretendard;src:url('../../../..//api/_assets/fonts/Pretendard-Medium.otf');font-weight:500}}
-{CSS}</style><div class="stage s{n}" data-page="{n}">{content}<div class="shade"></div><div class="glow"></div><div class="brand" data-contrast>{HEART}나만의 연애코치</div><header><h1><span>{first}</span><span>{second}</span></h1><p class="sub">{sub}</p></header><div class="heart">{HEART}</div><div class="footer" data-contrast><span>실제 앱 화면 · 코칭 예시</span><span class="page">{n:02d} / 06</span></div></div><script>const s=innerWidth/1290;document.querySelector('.stage').style.setProperty('--scale',s);document.querySelector('.stage').style.setProperty('--h',innerHeight/s+'px');</script></html>'''
+{CSS}</style><div class="stage s{n}" data-page="{n}">{content}<div class="shade"></div><div class="glow"></div><div class="brand" data-contrast>{HEART}나만의 연애코치</div><header><h1><span>{first}</span><span>{second}</span></h1><p class="sub">{sub}</p></header><div class="heart">{HEART}</div><div class="footer" data-contrast><span>실제 앱 화면 · 인물은 AI로 만든 가상 인물</span><span class="page">{n:02d} / 06</span></div></div><script>const s=innerWidth/1290;document.querySelector('.stage').style.setProperty('--scale',s);document.querySelector('.stage').style.setProperty('--h',innerHeight/s+'px');</script></html>'''
 
 def main():
     (BASE/'html').mkdir(parents=True,exist_ok=True)

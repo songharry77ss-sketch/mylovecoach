@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-26T10:14:43.067Z",
+  "checkedAt": "2026-10-26T11:13:13.142Z",
   "method": "Measure each visible text-node rectangle against every composited background pixel with audited text made transparent. Text shadows and antialiasing are excluded. Conservative rectangles include spaces between glyphs. Rotated stickers use a black/white glyph mask to exclude exterior bounding-box corners, sampling only background pixels beneath the actual rotated text.",
   "checks": [
     {
@@ -150,7 +150,7 @@
     {
       "file": "P2-1.html",
       "format": "iOS",
-      "text": "호칭·말투 그대로, 답장 3가지",
+      "text": "호칭·말투 그대로, 답장 추천 3가지",
       "selector": "p.sub",
       "color": "rgb(255, 255, 255)",
       "masked": false,
@@ -158,7 +158,7 @@
       "rect": {
         "x": 86,
         "y": 634,
-        "width": 497,
+        "width": 583,
         "height": 56
       },
       "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-1-iOS-5.png",
@@ -179,7 +179,7 @@
     {
       "file": "P2-1.html",
       "format": "iOS",
-      "text": "실제 앱 화면 · 코칭 예시",
+      "text": "실제 앱 화면 · 인물은 AI로 만든 가상 인물",
       "selector": "span.",
       "color": "rgb(255, 255, 255)",
       "masked": false,
@@ -187,7 +187,7 @@
       "rect": {
         "x": 86,
         "y": 2612,
-        "width": 252,
+        "width": 438,
         "height": 34
       },
       "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-1-iOS-6.png",
@@ -197,11 +197,11 @@
         255
       ],
       "worstBackgroundRGB": [
-        33,
+        36,
         22,
         27
       ],
-      "minimumContrast": 17.5694,
+      "minimumContrast": 17.4187,
       "passed": true,
       "qaScreenshotRemoved": true
     },
@@ -382,7 +382,7 @@
     {
       "file": "P2-1.html",
       "format": "Play",
-      "text": "호칭·말투 그대로, 답장 3가지",
+      "text": "호칭·말투 그대로, 답장 추천 3가지",
       "selector": "p.sub",
       "color": "rgb(255, 255, 255)",
       "masked": false,
@@ -390,7 +390,7 @@
       "rect": {
         "x": 82,
         "y": 562,
-        "width": 457,
+        "width": 536,
         "height": 52
       },
       "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-1-Play-5.png",
@@ -411,7 +411,7 @@
     {
       "file": "P2-1.html",
       "format": "Play",
-      "text": "실제 앱 화면 · 코칭 예시",
+      "text": "실제 앱 화면 · 인물은 AI로 만든 가상 인물",
       "selector": "span.",
       "color": "rgb(255, 255, 255)",
       "masked": false,
@@ -419,7 +419,7 @@
       "rect": {
         "x": 82,
         "y": 2041,
-        "width": 235,
+        "width": 407,
         "height": 33
       },
       "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-1-Play-6.png",
@@ -429,11 +429,11 @@
         255
       ],
       "worstBackgroundRGB": [
-        38,
-        27,
-        30
+        44,
+        29,
+        31
       ],
-      "minimumContrast": 16.694,
+      "minimumContrast": 16.1213,
       "passed": true,
       "qaScreenshotRemoved": true
     },
@@ -485,19 +485,19 @@
         "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-iOS-0-mask-white.png"
       ],
       "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-iOS-0.png",
-      "maskSamplePixels": 5642,
+      "maskSamplePixels": 5648,
       "foregroundRGB": [
         52,
         32,
         20
       ],
       "worstBackgroundRGB": [
-        255,
-        231,
-        134
+        47,
+        29,
+        28
       ],
-      "minimumContrast": 12.4946,
-      "passed": true,
+      "minimumContrast": 1.0376,
+      "passed": false,
       "qaScreenshotRemoved": true
     },
     {
@@ -677,7 +677,7 @@
     {
       "file": "P2-2.html",
       "format": "iOS",
-      "text": "실제 앱 화면 · 코칭 예시",
+      "text": "실제 앱 화면 · 인물은 AI로 만든 가상 인물",
       "selector": "span.",
       "color": "rgb(255, 255, 255)",
       "masked": false,
@@ -685,7 +685,7 @@
       "rect": {
         "x": 86,
         "y": 2612,
-        "width": 252,
+        "width": 438,
         "height": 34
       },
       "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-iOS-7.png",
@@ -695,11 +695,11 @@
         255
       ],
       "worstBackgroundRGB": [
-        42,
-        26,
-        28
+        47,
+        30,
+        30
       ],
-      "minimumContrast": 16.6274,
+      "minimumContrast": 15.8452,
       "passed": true,
       "qaScreenshotRemoved": true
     },
@@ -943,7 +943,7 @@
     {
       "file": "P2-2.html",
       "format": "Play",
-      "text": "실제 앱 화면 · 코칭 예시",
+      "text": "실제 앱 화면 · 인물은 AI로 만든 가상 인물",
       "selector": "span.",
       "color": "rgb(255, 255, 255)",
       "masked": false,
@@ -951,7 +951,7 @@
       "rect": {
         "x": 82,
         "y": 2041,
-        "width": 235,
+        "width": 407,
         "height": 33
       },
       "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-2-Play-7.png",
@@ -961,11 +961,11 @@
         255
       ],
       "worstBackgroundRGB": [
-        41,
-        26,
-        28
+        47,
+        29,
+        30
       ],
-      "minimumContrast": 16.6824,
+      "minimumContrast": 15.9652,
       "passed": true,
       "qaScreenshotRemoved": true
     },
@@ -1262,7 +1262,7 @@
     {
       "file": "P2-3.html",
       "format": "iOS",
-      "text": "실제 앱 화면 · 코칭 예시",
+      "text": "실제 앱 화면 · 인물은 AI로 만든 가상 인물",
       "selector": "span.",
       "color": "rgb(255, 255, 255)",
       "masked": false,
@@ -1270,7 +1270,7 @@
       "rect": {
         "x": 86,
         "y": 2612,
-        "width": 252,
+        "width": 438,
         "height": 34
       },
       "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-3-iOS-9.png",
@@ -1280,11 +1280,11 @@
         255
       ],
       "worstBackgroundRGB": [
-        41,
-        25,
-        29
+        46,
+        29,
+        31
       ],
-      "minimumContrast": 16.7855,
+      "minimumContrast": 16.0098,
       "passed": true,
       "qaScreenshotRemoved": true
     },
@@ -1541,11 +1541,11 @@
         134
       ],
       "worstBackgroundRGB": [
-        55,
+        56,
         35,
         34
       ],
-      "minimumContrast": 11.9405,
+      "minimumContrast": 11.8929,
       "passed": true,
       "qaScreenshotRemoved": true
     },
@@ -1581,7 +1581,7 @@
     {
       "file": "P2-3.html",
       "format": "Play",
-      "text": "실제 앱 화면 · 코칭 예시",
+      "text": "실제 앱 화면 · 인물은 AI로 만든 가상 인물",
       "selector": "span.",
       "color": "rgb(255, 255, 255)",
       "masked": false,
@@ -1589,7 +1589,7 @@
       "rect": {
         "x": 82,
         "y": 2041,
-        "width": 235,
+        "width": 407,
         "height": 33
       },
       "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-3-Play-9.png",
@@ -1599,11 +1599,11 @@
         255
       ],
       "worstBackgroundRGB": [
-        40,
-        25,
-        27
+        45,
+        28,
+        30
       ],
-      "minimumContrast": 16.8661,
+      "minimumContrast": 16.1984,
       "passed": true,
       "qaScreenshotRemoved": true
     },
@@ -1860,11 +1860,11 @@
         134
       ],
       "worstBackgroundRGB": [
-        55,
-        36,
-        35
+        53,
+        37,
+        36
       ],
-      "minimumContrast": 11.8317,
+      "minimumContrast": 11.8119,
       "passed": true,
       "qaScreenshotRemoved": true
     },
@@ -1900,7 +1900,7 @@
     {
       "file": "P2-4.html",
       "format": "iOS",
-      "text": "실제 앱 화면 · 코칭 예시",
+      "text": "실제 앱 화면 · 인물은 AI로 만든 가상 인물",
       "selector": "span.",
       "color": "rgb(255, 255, 255)",
       "masked": false,
@@ -1908,7 +1908,7 @@
       "rect": {
         "x": 86,
         "y": 2612,
-        "width": 252,
+        "width": 438,
         "height": 34
       },
       "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-4-iOS-9.png",
@@ -1918,11 +1918,11 @@
         255
       ],
       "worstBackgroundRGB": [
-        42,
-        26,
-        28
+        47,
+        30,
+        30
       ],
-      "minimumContrast": 16.6274,
+      "minimumContrast": 15.8452,
       "passed": true,
       "qaScreenshotRemoved": true
     },
@@ -2219,7 +2219,7 @@
     {
       "file": "P2-4.html",
       "format": "Play",
-      "text": "실제 앱 화면 · 코칭 예시",
+      "text": "실제 앱 화면 · 인물은 AI로 만든 가상 인물",
       "selector": "span.",
       "color": "rgb(255, 255, 255)",
       "masked": false,
@@ -2227,7 +2227,7 @@
       "rect": {
         "x": 82,
         "y": 2041,
-        "width": 235,
+        "width": 407,
         "height": 33
       },
       "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-4-Play-9.png",
@@ -2237,11 +2237,11 @@
         255
       ],
       "worstBackgroundRGB": [
-        41,
-        26,
-        28
+        47,
+        29,
+        30
       ],
-      "minimumContrast": 16.6824,
+      "minimumContrast": 15.9652,
       "passed": true,
       "qaScreenshotRemoved": true
     },
@@ -2451,7 +2451,7 @@
     {
       "file": "P2-5.html",
       "format": "iOS",
-      "text": "실제 앱 화면 · 코칭 예시",
+      "text": "실제 앱 화면 · 인물은 AI로 만든 가상 인물",
       "selector": "span.",
       "color": "rgb(255, 255, 255)",
       "masked": false,
@@ -2459,7 +2459,7 @@
       "rect": {
         "x": 86,
         "y": 2612,
-        "width": 252,
+        "width": 438,
         "height": 34
       },
       "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-5-iOS-6.png",
@@ -2469,11 +2469,11 @@
         255
       ],
       "worstBackgroundRGB": [
-        42,
-        27,
-        28
+        51,
+        33,
+        31
       ],
-      "minimumContrast": 16.5096,
+      "minimumContrast": 15.2385,
       "passed": true,
       "qaScreenshotRemoved": true
     },
@@ -2643,11 +2643,11 @@
         134
       ],
       "worstBackgroundRGB": [
-        83,
+        84,
         55,
         43
       ],
-      "minimumContrast": 8.7354,
+      "minimumContrast": 8.6945,
       "passed": true,
       "qaScreenshotRemoved": true
     },
@@ -2683,7 +2683,7 @@
     {
       "file": "P2-5.html",
       "format": "Play",
-      "text": "실제 앱 화면 · 코칭 예시",
+      "text": "실제 앱 화면 · 인물은 AI로 만든 가상 인물",
       "selector": "span.",
       "color": "rgb(255, 255, 255)",
       "masked": false,
@@ -2691,7 +2691,7 @@
       "rect": {
         "x": 82,
         "y": 2041,
-        "width": 235,
+        "width": 407,
         "height": 33
       },
       "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-5-Play-6.png",
@@ -2701,11 +2701,11 @@
         255
       ],
       "worstBackgroundRGB": [
-        40,
-        25,
-        27
+        48,
+        30,
+        29
       ],
-      "minimumContrast": 16.8661,
+      "minimumContrast": 15.7998,
       "passed": true,
       "qaScreenshotRemoved": true
     },
@@ -2915,7 +2915,7 @@
     {
       "file": "P2-6.html",
       "format": "iOS",
-      "text": "실제 앱 화면 · 코칭 예시",
+      "text": "실제 앱 화면 · 인물은 AI로 만든 가상 인물",
       "selector": "span.",
       "color": "rgb(255, 255, 255)",
       "masked": false,
@@ -2923,7 +2923,7 @@
       "rect": {
         "x": 86,
         "y": 2612,
-        "width": 252,
+        "width": 438,
         "height": 34
       },
       "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-6-iOS-6.png",
@@ -2933,11 +2933,11 @@
         255
       ],
       "worstBackgroundRGB": [
-        43,
-        27,
-        29
+        49,
+        31,
+        30
       ],
-      "minimumContrast": 16.4418,
+      "minimumContrast": 15.6095,
       "passed": true,
       "qaScreenshotRemoved": true
     },
@@ -3147,7 +3147,7 @@
     {
       "file": "P2-6.html",
       "format": "Play",
-      "text": "실제 앱 화면 · 코칭 예시",
+      "text": "실제 앱 화면 · 인물은 AI로 만든 가상 인물",
       "selector": "span.",
       "color": "rgb(255, 255, 255)",
       "masked": false,
@@ -3155,7 +3155,7 @@
       "rect": {
         "x": 82,
         "y": 2041,
-        "width": 235,
+        "width": 407,
         "height": 33
       },
       "png": "C:\\Users\\shsop\\mylovecoach-codex-shots\\docs\\store-assets\\candidates-20261025-v4\\_qa\\contrast-P2-6-Play-6.png",
@@ -3165,11 +3165,11 @@
         255
       ],
       "worstBackgroundRGB": [
-        42,
-        27,
-        29
+        48,
+        31,
+        31
       ],
-      "minimumContrast": 16.4969,
+      "minimumContrast": 15.6546,
       "passed": true,
       "qaScreenshotRemoved": true
     },
@@ -3207,8 +3207,8 @@
   "summary": {
     "textRegions": 110,
     "configurations": 12,
-    "minimumContrast": 5.4599,
-    "failedRegions": 0,
-    "allPassed": true
+    "minimumContrast": 1.0376,
+    "failedRegions": 1,
+    "allPassed": false
   }
 }
