@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Allow: /api/kkti-card
+Disallow: /api/
+
+Sitemap: https://mylovecoach.vercel.app/sitemap.xml
