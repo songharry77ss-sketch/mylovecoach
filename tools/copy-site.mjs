@@ -22,7 +22,7 @@ for (const [file, content] of Object.entries(staticPages())) {
   mkdirSync(path.dirname(`dist/${file}`), { recursive: true });
   writeFileSync(`dist/${file}`, content);
 }
-console.log('seo pages written: /kkti/types, /kkti/type/*, sitemap.xml');
+console.log('seo pages written: /kkti/types, /kkti/type/*, /guide, /guide/*, sitemap.xml');
 
 // /kkti · /kkti/result 자리에 정적 파일이 생기면 rewrites 보다 먼저 나가 카톡 미리보기 규칙이 죽는다
 for (const p of ['dist/kkti/index.html', 'dist/kkti/result', 'dist/kkti/result.html', 'dist/k']) {

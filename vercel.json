@@ -74,6 +74,14 @@
       "destination": "/kkti/type/:mbti/index.html"
     },
     {
+      "source": "/guide",
+      "destination": "/guide/index.html"
+    },
+    {
+      "source": "/guide/:slug",
+      "destination": "/guide/:slug/index.html"
+    },
+    {
       "source": "/api/kkti-share",
       "destination": "/api/kkti-card?route=share"
     },
