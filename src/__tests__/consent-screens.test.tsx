@@ -39,7 +39,8 @@ jest.mock('@/lib/config', () => ({
   },
 }));
 const mockRouter = { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: () => true };
-jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useFocusEffect: () => {} }));
+let mockParams: Record<string, string> = {};
+jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => mockParams, useFocusEffect: () => {} }));
 // Reanimated(네이티브 worklets)는 테스트 환경에서 띄울 수 없어서 바로 끝나는 흉내로 바꾼다 (paywall-tracking.test.tsx 와 같은 방식)
 jest.mock('react-native-reanimated', () => {
   const RN = jest.requireActual('react-native');
@@ -136,6 +137,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockParams = {};
   useAppStore.getState().resetAll();
   useAppStore.setState({ hydrated: true, pendingDeletion: null, deviceId: 'd_screen_test', member: null, user: null, crushes: {}, privacyNoticeSeen: 0, legacyServerRecords: false });
 });
@@ -171,6 +173,26 @@ describe('첫 화면 — 캡처 없이 상황만 적기', () => {
     act(() => pressable(t, '모두 동의하고 시작').props.onPress());
     expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/crush/[id]', params: expect.objectContaining({ pendingText: '썸남이 3시간째 답이 없어' }) });
     expect(tracked).toHaveBeenCalledWith('start', expect.objectContaining({ mode: 'text', typed: true, example: false }));
+  });
+
+  it('검색 가이드에서 ?q= 로 들어오면 그 상황이 채워져 있고, 고치지 않고 보내면 prefilled 로 남는다', () => {
+    useAppStore.setState({ termsAgreedAt: Date.now() });
+    mockParams = { q: '  읽씹 하루째인데 다시 선톡해도 될까? 뭐라고 보내지?  ' };
+    const t = mount(<Start />);
+    expect(t.root.findByProps({ accessibilityLabel: '지금 상황 적기' }).props.value).toBe('읽씹 하루째인데 다시 선톡해도 될까? 뭐라고 보내지?');
+    act(() => askButton(t).props.onPress());
+    expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/crush/[id]', params: expect.objectContaining({ pendingText: '읽씹 하루째인데 다시 선톡해도 될까? 뭐라고 보내지?' }) });
+    expect(tracked).toHaveBeenCalledWith('start', expect.objectContaining({ mode: 'text', typed: true, prefilled: true }));
+  });
+
+  it('?q= 가 너무 길면 200자에서 자르고, 직접 고치면 prefilled 를 떼어 낸다', () => {
+    useAppStore.setState({ termsAgreedAt: Date.now() });
+    mockParams = { q: '가'.repeat(500) };
+    const t = mount(<Start />);
+    expect(t.root.findByProps({ accessibilityLabel: '지금 상황 적기' }).props.value).toHaveLength(200);
+    act(() => t.root.findByProps({ accessibilityLabel: '지금 상황 적기' }).props.onChangeText('내가 다시 적은 상황'));
+    act(() => askButton(t).props.onPress());
+    expect(tracked).toHaveBeenCalledWith('start', expect.not.objectContaining({ prefilled: true }));
   });
 });
 

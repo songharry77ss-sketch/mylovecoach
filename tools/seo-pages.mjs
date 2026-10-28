@@ -5,12 +5,13 @@
  *      kkti.html        /kkti — KKTI 테스트 제목·설명·16유형 링크 (vercel.json 이 /kkti 를 여기로 넘긴다)
  *      kkti-result.html /kkti/result — 사람마다 다른 결과라 noindex
  *    <div id="root"> 안의 본문은 JS 가 뜨면 React(createRoot)가 지우고 앱을 그린다. 사람·로봇 모두 같은 HTML 을 받는다.
- *  - staticPages(): /kkti/types, /kkti/type/<mbti> 16개, sitemap.xml
+ *  - staticPages(): /kkti/types, /kkti/type/<mbti> 16개, /guide · /guide/<slug> 상황별 가이드(tools/seo-guides.mjs), sitemap.xml
  * 주의: dist/kkti/index.html · dist/kkti/result/… 는 만들지 않는다 — 정적 파일이 rewrites 보다 먼저라
  *       카톡 미리보기(수집기 → api/kkti-card) 규칙이 죽는다. 유형 페이지는 dist/kkti/type/ 아래에만 둔다.
  * src/lib/kkti.ts 를 그대로 불러온다 (Node 22.18+ 는 타입만 지우고 .ts 를 바로 읽는다).
  */
 import { KKTI_AXES, KKTI_QUESTIONS, KKTI_TYPES, cardUrl, computeKkti, matchReason } from '../src/lib/kkti.ts';
+import { GUIDES } from './seo-guides.mjs';
 
 export const SITE = (process.env.SITE_URL || 'https://mylovecoach.vercel.app').replace(/\/+$/, '');
 export const MARK = '<!-- mylovecoach:head -->';
@@ -129,6 +130,8 @@ const HOME = {
 <li><b>연애 연습</b> — AI 상대와 소개팅·썸 대화를 미리 연습</li>
 <li><b><a href="/kkti">KKTI 연애 MBTI 테스트</a></b> — 카톡 습관 12문항으로 보는 16가지 연애 유형</li>
 </ul>
+<h2>상황별 연애 카톡 가이드</h2>
+<ul>${GUIDES.map((g) => `<li><a href="/guide/${g.slug}">${e(g.h1)}</a></li>`).join('')}</ul>
 <p class="cta"><a href="/start">웹에서 바로 써 보기</a><a href="${APP_STORE_URL}">App Store에서 받기</a><a href="${PLAY_URL}">Google Play에서 받기</a></p>
 <p><a href="/support.html">고객지원·자주 묻는 질문</a> · <a href="/privacy.html">개인정보 처리방침</a> · <a href="/terms.html">이용약관</a></p>
 </main>`,
@@ -196,13 +199,14 @@ export function appVariants(expoHtml) {
 // ───────── 정적 페이지 (유형 16개 + 모아 보기) ─────────
 const PAGE_CSS = `:root{color-scheme:light dark}*{box-sizing:border-box}body{margin:0;background:#FFF1F5;color:#191F28;font:16px/1.7 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif}main{max-width:640px;margin:0 auto;padding:32px 20px 72px}nav{font-size:14px;color:#6B7684}nav a,main a{color:#C2185B}h1{font-size:26px;line-height:1.35;margin:12px 0}h2{font-size:19px;margin-top:32px}.card{background:#fff;border-radius:20px;padding:18px 20px;margin:12px 0}.cta{display:block;text-align:center;background:#FF5C8A;color:#fff!important;text-decoration:none;font-weight:700;border-radius:16px;padding:16px;margin:28px 0}img{width:100%;height:auto;border-radius:16px}ul.grid{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}ul.grid a{display:block;background:#fff;border-radius:14px;padding:10px 12px;text-decoration:none}small{color:#6B7684}@media (prefers-color-scheme:dark){body{background:#17121A;color:#EDE7EE}.card,ul.grid a{background:#241C27}nav,small{color:#A99FAD}main a{color:#FF8FB1}}`;
 
-function page({ path, title, description, image, size = [1200, 630], jsonLd, main }) {
+const KKTI_FOOTER = `KKTI는 카톡 습관으로 보는 재미용 연애 유형 테스트예요. 공식 MBTI® 검사와는 관계가 없어요. · <a href="/">${BRAND}</a> · <a href="/privacy.html">개인정보 처리방침</a>`;
+function page({ path, title, description, image, size = [1200, 630], jsonLd, main, siteName = 'KKTI', footer = KKTI_FOOTER }) {
   return `<!doctype html>
 <html lang="ko">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-${headTags({ title, description, path, image, size, siteName: 'KKTI' }).replace(`${MARK}\n`, '')}
+${headTags({ title, description, path, image, size, siteName }).replace(`${MARK}\n`, '')}
 <link rel="icon" href="/favicon.ico">
 ${jsonLd.map(ld).join('\n')}
 <style>${PAGE_CSS}</style>
@@ -210,7 +214,7 @@ ${jsonLd.map(ld).join('\n')}
 <body>
 <main>
 ${main}
-<p><small>KKTI는 카톡 습관으로 보는 재미용 연애 유형 테스트예요. 공식 MBTI® 검사와는 관계가 없어요. · <a href="/">${BRAND}</a> · <a href="/privacy.html">개인정보 처리방침</a></small></p>
+<p><small>${footer}</small></p>
 </main>
 </body>
 </html>
@@ -279,6 +283,68 @@ ${TYPES.map((t) => `<div class="card"><h2>${typeLink(t)}</h2><p>${e(t.oneLiner)}
   });
 }
 
+// ───────── 상황별 연애 카톡 가이드 (tools/seo-guides.mjs) ─────────
+const guidePath = (g) => `/guide/${g.slug}`;
+const GUIDE_FOOTER = `답장 예시와 해석은 참고용이에요. 상대의 마음과 속도를 존중하는 대화를 응원해요. · <a href="/">${BRAND}</a> · <a href="/privacy.html">개인정보 처리방침</a>`;
+const storeLinks = `<p><a href="${APP_STORE_URL}">App Store에서 받기</a> · <a href="${PLAY_URL}">Google Play에서 받기</a></p>`;
+
+function guidePage(g) {
+  const cta = `/start?q=${encodeURIComponent(g.q)}&utm_source=seo&utm_medium=guide&utm_campaign=${g.slug}`;
+  return page({
+    path: guidePath(g),
+    title: `${g.title} | ${BRAND}`,
+    description: g.description,
+    image: `${SITE}/og.png`,
+    size: [1024, 500],
+    siteName: BRAND,
+    footer: GUIDE_FOOTER,
+    jsonLd: [
+      crumbs([[BRAND, '/'], ['연애 카톡 가이드', '/guide'], [g.h1, guidePath(g)]]),
+      { '@context': 'https://schema.org', '@type': 'Article', headline: g.h1, description: g.description, inLanguage: 'ko-KR', mainEntityOfPage: `${SITE}${guidePath(g)}`, image: `${SITE}/og.png`, author: ORG, publisher: ORG },
+      { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: g.faq.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
+    ],
+    main: `<nav><a href="/">${BRAND}</a> › <a href="/guide">연애 카톡 가이드</a></nav>
+<h1>${e(g.h1)}</h1>
+<p>${e(g.intro)}</p>
+<h2>먼저 이것부터 봐요</h2>
+<ul>${g.read.map((r) => `<li>${e(r)}</li>`).join('')}</ul>
+<h2>이렇게 보내 보세요</h2>
+${g.replies.map((r) => `<div class="card"><p><b>${e(r.tone)}</b></p><p>「${e(r.text)}」</p><p><small>${e(r.why)}</small></p></div>`).join('\n')}
+<h2>이런 말은 피해요</h2>
+<ul>${g.avoid.map((a) => `<li>${e(a)}</li>`).join('')}</ul>
+<a class="cta" href="${e(cta)}">내 상황에 맞는 답장 3가지 받기</a>
+<p>캡처 한 장이나 상황 한 줄이면 AI 연애코치가 호칭·말투를 살린 답장 3가지와 호감 온도를 알려 줘요.</p>
+${storeLinks}
+<h2>자주 묻는 질문</h2>
+${g.faq.map((f) => `<h3>${e(f.q)}</h3><p>${e(f.a)}</p>`).join('\n')}
+<h2>다른 상황 가이드</h2>
+<ul>${GUIDES.filter((x) => x.slug !== g.slug).map((x) => `<li><a href="${guidePath(x)}">${e(x.h1)}</a></li>`).join('')}</ul>
+<p><a href="/kkti">카톡 습관으로 보는 연애 유형 테스트(KKTI) 해 보기</a></p>`,
+  });
+}
+
+function guidesHub() {
+  return page({
+    path: '/guide',
+    title: `연애 카톡 가이드 · 읽씹·선톡·애프터·고백 상황별 답장 예시 | ${BRAND}`,
+    description: '읽씹, 선톡, 소개팅 애프터, 「뭐해?」 답장, 고백 타이밍까지. 썸·연애 카톡 고민을 상황별로 정리하고 바로 쓸 수 있는 답장 예시를 모았어요.',
+    image: `${SITE}/og.png`,
+    size: [1024, 500],
+    siteName: BRAND,
+    footer: GUIDE_FOOTER,
+    jsonLd: [
+      crumbs([[BRAND, '/'], ['연애 카톡 가이드', '/guide']]),
+      { '@context': 'https://schema.org', '@type': 'ItemList', itemListElement: GUIDES.map((g, i) => ({ '@type': 'ListItem', position: i + 1, url: `${SITE}${guidePath(g)}`, name: g.h1 })) },
+    ],
+    main: `<nav><a href="/">${BRAND}</a> › 연애 카톡 가이드</nav>
+<h1>연애 카톡 가이드 · 상황별 답장 예시</h1>
+<p>썸·소개팅·짝사랑에서 가장 많이 막히는 순간을 골라, 상황을 읽는 법과 바로 보낼 수 있는 답장 예시를 정리했어요.</p>
+${GUIDES.map((g) => `<div class="card"><h2><a href="${guidePath(g)}">${e(g.h1)}</a></h2><p>${e(g.description)}</p></div>`).join('\n')}
+<a class="cta" href="/start?utm_source=seo&utm_medium=guide&utm_campaign=hub">내 상황 적고 답장 받기</a>
+${storeLinks}`,
+  });
+}
+
 function sitemap(paths) {
   const urls = paths.map((p) => `  <url><loc>${SITE}${p}</loc></url>`).join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
@@ -286,8 +352,9 @@ function sitemap(paths) {
 
 /** dist/ 아래 경로 → 내용 */
 export function staticPages() {
-  const files = { 'kkti/types/index.html': typesHub() };
+  const files = { 'kkti/types/index.html': typesHub(), 'guide/index.html': guidesHub() };
+  for (const g of GUIDES) files[`guide/${g.slug}/index.html`] = guidePage(g);
   for (const t of TYPES) files[`kkti/type/${slugOf(t.code)}/index.html`] = typePage(t);
-  files['sitemap.xml'] = sitemap(['/', '/kkti', '/kkti/types', ...TYPES.map((t) => typePath(t.code)), '/support.html', '/privacy.html', '/terms.html']);
+  files['sitemap.xml'] = sitemap(['/', '/kkti', '/kkti/types', ...TYPES.map((t) => typePath(t.code)), '/guide', ...GUIDES.map(guidePath), '/support.html', '/privacy.html', '/terms.html']);
   return files;
 }

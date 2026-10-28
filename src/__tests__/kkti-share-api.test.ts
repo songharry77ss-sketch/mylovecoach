@@ -197,6 +197,22 @@ describe('배포 설정', () => {
     }
   });
 
+  it('검색용 정적 페이지(/kkti/types·/kkti/type/:mbti·/guide·/guide/:slug)는 앱 화면 넘기기보다 먼저 제 파일로 간다', () => {
+    const rw = vercelConfig.rewrites as { source: string; destination: string; has?: unknown[] }[];
+    const fallback = rw.findIndex((r) => r.destination === '/index.html');
+    for (const [source, dest] of [
+      ['/kkti/types', '/kkti/types/index.html'],
+      ['/kkti/type/:mbti', '/kkti/type/:mbti/index.html'],
+      ['/guide', '/guide/index.html'],
+      ['/guide/:slug', '/guide/:slug/index.html'],
+    ]) {
+      const index = rw.findIndex((r) => r.source === source && !r.has);
+      expect(index).toBeGreaterThanOrEqual(0);
+      expect(index).toBeLessThan(fallback);
+      expect(rw[index].destination).toBe(dest);
+    }
+  });
+
   it('공유 주소(/k)는 앱 화면으로 넘기는 규칙보다 먼저 서버 함수로 간다', () => {
     const sources = vercelConfig.rewrites.map((r) => r.source);
     const fallback = vercelConfig.rewrites.findIndex((r) => r.destination === '/index.html');

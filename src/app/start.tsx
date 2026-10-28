@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
@@ -25,6 +25,9 @@ import { useAppStore } from '@/store/app-store';
 
 type StartMode = 'image' | 'text' | 'secret';
 
+/** 검색 가이드(/guide/…)의 「답장 받기」로 들어오면 그 상황을 입력칸에 채워 둔다 (?q=). 너무 길면 자른다 */
+const prefillOf = (q: string | string[] | undefined) => (Array.isArray(q) ? q[0] : q)?.trim().slice(0, 200) ?? '';
+
 /** 눌러서 바로 채우는 상황 예시 — 무엇을 적을지 막막하지 않게 */
 const EXAMPLES = ['썸남이 「뭐해?」라고 보냈어. 뭐라고 답하지?', '소개팅 다음 날, 먼저 연락해도 될까?', '읽씹 3시간째… 한 번 더 보내도 돼?'];
 
@@ -47,8 +50,10 @@ export default function Start() {
   // 동의 창이 떠 있으면 그 창을 띄운 버튼 (답하면 그 일을 이어서 한다)
   const [asking, setAsking] = useState<StartMode | null>(null);
   // 캡처 없이 바로 적는 지금 상황 — 첫 코칭까지 가장 짧은 길 (캡처는 고르기 번거로워 여기서 많이 떠났다)
-  const [situation, setSituation] = useState('');
+  const params = useLocalSearchParams<{ q?: string }>();
+  const [situation, setSituation] = useState(() => prefillOf(params.q));
   const [fromExample, setFromExample] = useState(false);
+  const [prefilled, setPrefilled] = useState(() => prefillOf(params.q).length > 0);
   const typed = situation.trim();
 
   // 메인 버튼이 은은하게 빛나며 숨 쉰다
@@ -59,7 +64,7 @@ export default function Start() {
   const glowStyle = useAnimatedStyle(() => ({ opacity: 0.25 + glow.value * 0.35, transform: [{ scale: 1 + glow.value * 0.04 }] }));
 
   const begin = (mode: StartMode) => {
-    track('start', { mode, content: useAppStore.getState().contentConsent === true, ...(mode === 'text' ? { typed: typed.length > 0, example: fromExample } : {}) });
+    track('start', { mode, content: useAppStore.getState().contentConsent === true, ...(mode === 'text' ? { typed: typed.length > 0, example: fromExample, ...(prefilled ? { prefilled: true } : {}) } : {}) });
     return mode === 'secret' ? createSecretChat() : quickStart();
   };
 
@@ -89,6 +94,7 @@ export default function Start() {
     haptic.select();
     setSituation(example);
     setFromExample(true);
+    setPrefilled(false);
   };
 
   const secret = () => {
@@ -154,6 +160,7 @@ export default function Start() {
             onChangeText={(value) => {
               setSituation(value);
               setFromExample(false);
+              setPrefilled(false);
             }}
             placeholder={'예) 소개팅 다음 날인데 먼저 연락해도 될까?\n상대가 한 말을 그대로 적어도 좋아요'}
             placeholderTextColor={theme.textTertiary}
