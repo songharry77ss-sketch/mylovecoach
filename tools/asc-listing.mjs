@@ -105,6 +105,9 @@ async function main() {
     let attributes = {};
     for (const k of ENUMS) if (present.includes(k)) attributes[k] = k === 'matureOrSuggestiveThemes' ? 'INFREQUENT_OR_MILD' : 'NONE';
     for (const k of BOOLS) if (present.includes(k)) attributes[k] = false;
+    // 2026-09부터 제출에 꼭 필요한 「소셜 미디어」 질문: 남이 쓴 글을 피드로 퍼뜨리거나 반응하는 기능 — 이 앱엔 없다.
+    // 조회 응답에 이 칸이 안 보여도 보내야 409(You must provide a value for 'socialMedia')가 안 난다.
+    attributes.socialMedia = false;
     // Apple 이 속성 구성을 바꾸면 거부된 항목만 빼고 다시 시도한다
     for (let i = 0; i < 6; i++) {
       try {
