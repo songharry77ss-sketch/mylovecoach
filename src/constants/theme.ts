@@ -2,8 +2,8 @@ import { Platform } from 'react-native';
 
 /**
  * 나만의 연애코치 디자인 토큰.
- * 토스 UI 문법(넉넉한 여백, 큰 타이틀, 둥근 카드, 단색 CTA)을 따르되
- * 색상은 하늘색·연분홍 파스텔 톤으로 구성합니다.
+ * 토스 UI 문법(넉넉한 여백, 큰 타이틀, 둥근 카드, 단색 CTA)을 따르되,
+ * 색은 스토어 상세 페이지와 같은 결 — 따뜻한 로즈 · 라벤더, 무대 화면은 에스프레소 바탕에 골드 강조.
  */
 export const palette = {
   sky50: '#EEF7FF',
@@ -42,6 +42,25 @@ export const palette = {
   gray800: '#333D4B',
   gray900: '#191F28',
 
+  // 2026-10 개편: 스토어 상세 페이지와 같은 따뜻한 색
+  rose50: '#FFF1F4',
+  rose100: '#FFE0E8',
+  rose200: '#FFC2D1',
+  rose400: '#FF6B8A',
+  rose500: '#E8436A',
+  rose600: '#D9365F',
+  violet50: '#F4F0FF',
+  violet500: '#7C5CFA',
+  gold100: '#FFF4D1',
+  gold300: '#FFE08A',
+  gold400: '#FFD666',
+  gold500: '#F5B83D',
+  espresso950: '#120A0C',
+  espresso900: '#1C1113',
+  espresso800: '#2B1B1D',
+  espresso700: '#3B2628',
+  espresso600: '#5A3E3F',
+
   white: '#FFFFFF',
   black: '#000000',
   red500: '#F04452',
@@ -72,45 +91,45 @@ export interface ThemeColors {
 export const Colors: Record<'light' | 'dark', ThemeColors> = {
   light: {
     background: palette.white,
-    surface: palette.gray50,
+    surface: '#FAF7F5',
     surfaceElevated: palette.white,
-    surfaceSelected: palette.gray100,
-    border: palette.gray100,
-    text: palette.gray900,
-    textSecondary: palette.gray600,
-    textTertiary: palette.gray500,
-    primary: palette.sky500,
-    primarySoft: palette.sky50,
+    surfaceSelected: '#F3EEEA',
+    border: '#F0EAE6',
+    text: '#1F1416',
+    textSecondary: '#6B5D60',
+    textTertiary: '#8F8285',
+    primary: palette.rose600,
+    primarySoft: palette.rose50,
     primaryText: palette.white,
-    accent: palette.pink400,
-    accentSoft: palette.pink50,
+    accent: palette.violet500,
+    accentSoft: palette.violet50,
     danger: palette.red500,
     success: palette.mint500,
     warning: palette.peach500,
-    bubbleUser: palette.sky100,
+    bubbleUser: palette.rose100,
     bubbleCoach: palette.white,
     tabBar: palette.white,
   },
   dark: {
-    background: '#0F1419',
-    surface: '#161C24',
-    surfaceElevated: '#1C232D',
-    surfaceSelected: '#242C37',
-    border: '#242C37',
-    text: '#F5F7FA',
-    textSecondary: '#AEB7C2',
-    textTertiary: '#7C8794',
-    primary: palette.sky400,
-    primarySoft: '#16324A',
+    background: palette.espresso950,
+    surface: '#1C1315',
+    surfaceElevated: '#24191B',
+    surfaceSelected: '#2E2124',
+    border: '#33252A',
+    text: '#FBF5F3',
+    textSecondary: '#C4B5B7',
+    textTertiary: '#9A8A8D',
+    primary: palette.rose400,
+    primarySoft: '#3A1A24',
     primaryText: palette.white,
-    accent: palette.pink400,
-    accentSoft: '#3A2230',
+    accent: '#A594F9',
+    accentSoft: '#2A2140',
     danger: '#FF6B76',
     success: palette.mint500,
     warning: palette.peach500,
-    bubbleUser: '#1E3A52',
-    bubbleCoach: '#1C232D',
-    tabBar: '#0F1419',
+    bubbleUser: '#3A1F28',
+    bubbleCoach: '#24191B',
+    tabBar: palette.espresso950,
   },
 };
 
@@ -141,6 +160,8 @@ export const Radius = {
 } as const;
 
 export const Typography = {
+  /** 무대 화면(첫 화면·홈 머리말·결제)의 큰 제목 — 스토어 이미지처럼 굵게 */
+  hero: { fontSize: 34, lineHeight: 42, fontWeight: '900' as const, letterSpacing: -1.2 },
   display: { fontSize: 30, lineHeight: 40, fontWeight: '800' as const, letterSpacing: -0.5 },
   title1: { fontSize: 24, lineHeight: 32, fontWeight: '700' as const, letterSpacing: -0.4 },
   title2: { fontSize: 20, lineHeight: 28, fontWeight: '700' as const, letterSpacing: -0.3 },
@@ -164,3 +185,25 @@ export const Shadow = Platform.select({
 }) as object;
 
 export const MaxContentWidth = 640;
+
+/**
+ * 무대 화면 — 스토어 상세 페이지와 같은 에스프레소 바탕 · 흰 글자 · 골드 강조.
+ * 첫 화면 소개, 홈 머리말, 탐색, 결제처럼 「보여 주는」 화면에 쓴다 (채팅·설정은 밝은 화면 그대로).
+ */
+export const Stage = {
+  /** 위에서 아래로 짙어지는 바탕 */
+  bg: ['#33201F', '#1E1214', palette.espresso950] as [string, string, string],
+  /** 따뜻한 조명 같은 은은한 빛 */
+  glow: 'rgba(255, 176, 120, 0.22)',
+  gold: palette.gold400,
+  goldSoft: palette.gold300,
+  text: '#FFFFFF',
+  textDim: 'rgba(255,255,255,0.76)',
+  textFaint: 'rgba(255,255,255,0.52)',
+  chip: 'rgba(255,255,255,0.10)',
+  chipBorder: 'rgba(255,255,255,0.18)',
+  card: '#FFFFFF',
+  cardText: palette.espresso800,
+  /** 골드 버튼 위 글자 */
+  onGold: palette.espresso800,
+} as const;

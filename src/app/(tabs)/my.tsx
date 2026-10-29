@@ -30,6 +30,7 @@ import { isDemoMode } from '@/lib/demo';
 import * as Floating from '@/lib/floating';
 import { dateLabel } from '@/lib/format';
 import { haptic, setHapticsEnabled } from '@/lib/haptics';
+import { track } from '@/lib/analytics';
 import { cleanupOrphanImages, clearImageCaches } from '@/lib/images';
 import { genderLabel, toneLabel } from '@/lib/labels';
 import { useAppStore } from '@/store/app-store';
@@ -59,6 +60,8 @@ export default function MyScreen() {
   const setHapticsOn = useAppStore((s) => s.setHapticsOn);
   const hidePreviews = useAppStore((s) => s.hidePreviews);
   const setHidePreviews = useAppStore((s) => s.setHidePreviews);
+  const practiceEnabled = useAppStore((s) => s.practiceEnabled);
+  const setPracticeEnabled = useAppStore((s) => s.setPracticeEnabled);
   const createSecretChat = useAppStore((s) => s.createSecretChat);
   const quota = useQuota();
   const aiReport = useAiReport();
@@ -327,7 +330,27 @@ export default function MyScreen() {
 
       <SectionHeader title="재미" />
       <ListRow icon="flask-outline" title="KKTI 테스트" subtitle="카톡으로 보는 진짜 연애 MBTI" value={kkti ? `${kkti.emoji} ${kkti.code}` : undefined} onPress={() => router.push('/kkti')} />
-      <ListRow icon="game-controller-outline" title="연애 연습" subtitle="AI 상대와 카톡 리허설" onPress={() => router.push('/(tabs)/practice')} />
+
+      <SectionHeader title="추가 기능" subtitle="켜면 탭과 탐색에 나타나요" />
+      <ListRow
+        icon="game-controller-outline"
+        title="연애 연습 (베타)"
+        subtitle="AI 상대와 카톡 리허설 · 보낼 때마다 코치 피드백"
+        right={
+          <Switch
+            accessibilityLabel="연애 연습 켜기"
+            value={practiceEnabled}
+            onValueChange={(v) => {
+              setPracticeEnabled(v);
+              track('practice_toggle', { on: v });
+              if (v) {
+                haptic.celebrate();
+                toast.show('연애 연습을 켰어요. 아래 탭에서 바로 시작해 보세요 🎮', 'success');
+              }
+            }}
+          />
+        }
+      />
 
       <SectionHeader title="프라이버시" />
       <ListRow

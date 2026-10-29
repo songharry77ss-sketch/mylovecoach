@@ -30,7 +30,7 @@ export function ToastProvider({ children }: PropsWithChildren) {
   }, []);
 
   const value = useMemo(() => ({ show }), [show]);
-  const bg = toast?.tone === 'success' ? palette.sky600 : toast?.tone === 'error' ? palette.pink600 : palette.gray800;
+  const bg = toast?.tone === 'success' ? palette.espresso800 : toast?.tone === 'error' ? palette.pink600 : palette.gray800;
 
   return (
     <ToastContext.Provider value={value}>

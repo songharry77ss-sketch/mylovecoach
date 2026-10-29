@@ -16,6 +16,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { coachReportContent } from '@/lib/ai-report';
 import { haptic } from '@/lib/haptics';
 import { TEMPERATURES } from '@/lib/labels';
+import { noteWinAndMaybeAskReview } from '@/lib/store-review';
 import type { ChatMessage, CoachAnalysis, Tone } from '@/lib/types';
 
 interface AnalysisCardProps {
@@ -74,6 +75,8 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
     onSelectReply(index);
     celebrate({ kind: 'hearts', x: at?.x, y: at?.y, count: 12 });
     toast.show('복사했어요. 카톡에 붙여넣기만 하면 끝!', 'success');
+    // 가장 만족한 순간 — 여러 번 쌓이면 가끔 스토어 별점을 부탁한다
+    noteWinAndMaybeAskReview('reply_copy');
   };
 
   // 복사 대신 카톡 등으로 바로 보내고 싶을 때 (웹에서는 공유 기능이 없으면 복사로 대체)
