@@ -8,6 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 
 import Paywall from '@/app/paywall';
+import { track } from '@/lib/analytics';
 
 jest.mock('@react-native-async-storage/async-storage', () => {
   const mem = new Map<string, string>();
@@ -53,7 +54,12 @@ jest.mock('@/lib/analytics', () => ({ track: jest.fn() }));
 jest.mock('@/lib/supabase', () => ({ authAvailable: false }));
 jest.mock('@/components/ui/toast', () => ({ useToast: () => ({ show: jest.fn() }) }));
 jest.mock('@/lib/haptics', () => ({ haptic: { thud: jest.fn(), select: jest.fn(), celebrate: jest.fn() } }));
-jest.mock('@/lib/billing/iap', () => ({ billingSupported: true, purchasePlan: jest.fn(), restorePremium: jest.fn() }));
+jest.mock('@/lib/billing/iap', () => ({
+  billingSupported: true,
+  purchasePlan: jest.fn(),
+  restorePremium: jest.fn(),
+  lastStoreProblem: () => ({ code: 'query-product', responseCode: 3 }),
+}));
 
 const CONFIRMED = [
   { plan: 'day', productId: 'p.day', displayPrice: '₩2,700', available: true },
@@ -91,6 +97,7 @@ const buyLabel = () => {
 };
 
 beforeEach(() => {
+  jest.mocked(track).mockClear();
   mockProducts = CONFIRMED;
   mockAttempts.length = 0;
 });
@@ -124,8 +131,16 @@ it('스토어 확인 실패면 주간 구독이 아닌 평생권이 골라지고
   expect(Math.max(...mockAttempts)).toBe(1);
 });
 
+it('스토어 확인 실패면 그 원인(오류 코드·Google Play 응답 코드)을 이용 기록에 남긴다', () => {
+  mockReason = 'quota';
+  mockProducts = UNCONFIRMED;
+  mount();
+  expect(track).toHaveBeenCalledWith('store_unavailable', { reason: 'quota', code: 'query-product', rc: 3 });
+});
+
 it('스토어에서 확인되면 다시 불러오기를 보여 주지 않는다', () => {
   mockReason = 'quota';
   mount();
   expect(allText()).not.toContain('다시 불러오기');
+  expect(track).not.toHaveBeenCalledWith('store_unavailable', expect.anything());
 });
