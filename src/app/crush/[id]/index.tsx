@@ -374,8 +374,14 @@ export default function CrushChat() {
                   <AppText variant="small" color="danger">
                     {item.error}
                   </AppText>
+                  {/* 캡처를 읽지 못했으면 같은 파일로 다시 해도 안 되니 캡처를 다시 고르게 한다 */}
+                  {item.text === 'image' ? (
+                    <View style={styles.errorActions}>
+                      <Button title="캡처 다시 올리기" size="sm" variant="secondary" fullWidth={false} onPress={chooseImage} icon={<Ionicons name="image" size={16} color={theme.primary} />} />
+                    </View>
+                  ) : null}
                   {/* 캡처가 너무 크면 같은 캡처로 다시 해도 또 막히니 안내만 남긴다 */}
-                  {item.text !== 'too_large' ? (
+                  {item.text !== 'too_large' && item.text !== 'image' ? (
                     <View style={styles.errorActions}>
                       <Button title="다시 시도" size="sm" variant="secondary" fullWidth={false} onPress={() => retry(item)} />
                       {item.text === 'not_configured' || item.text === 'auth' ? (

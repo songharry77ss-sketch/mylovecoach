@@ -14,7 +14,7 @@ import { EMPTY_USAGE, EMPTY_WALLET } from '@/lib/billing/quota';
 import { CoachError, requestCoaching } from '@/lib/coach-client';
 import * as coachClient from '@/lib/coach-client';
 import { IMAGE_TOO_LARGE_MESSAGE, MAX_IMAGE_BASE64_LENGTH, crushToRequest, userToRequest } from '@/lib/coach-schema';
-import { encodeForModel, modelResizeWidth } from '@/lib/images';
+import { encodeForModel, IMAGE_UNREADABLE_MESSAGE, modelResizeWidth } from '@/lib/images';
 import type { ChatMessage, CoachAnalysis, Crush, CrushReport, Gender, MindReading, UserProfile } from '@/lib/types';
 import { hasNewSessionsSince, mindCacheKey, reportProfileKey, reportRefresh, useAppStore } from '@/store/app-store';
 
@@ -77,7 +77,8 @@ jest.mock('@/components/ui/button', () => {
       createElement(RNText, { accessibilityRole: 'button', accessibilityState: { disabled: Boolean(disabled) }, onPress }, title),
   };
 });
-jest.mock('expo-file-system', () => ({ Directory: class {}, File: class {}, Paths: {} }));
+// 저장된 캡처는 있다고 본다 (없을 때·변환 실패 때는 images.test.ts)
+jest.mock('expo-file-system', () => ({ Directory: class {}, File: class { exists = true; size = 1000; async base64() { return ''; } }, Paths: {} }));
 jest.mock('expo-image-picker', () => ({}));
 /**
  * 이미지 조작 흉내 — 파일 이름의 w숫자가 원본 폭. resize 를 부르면 그 폭으로 바뀐다.
@@ -488,7 +489,8 @@ describe('캡처 인코딩은 작은 캡처를 키우지 않는다', () => {
     const context = { resize: jest.fn(), renderAsync: jest.fn().mockResolvedValueOnce(measured).mockRejectedValueOnce(new Error('축소 실패')) };
     context.resize.mockReturnValue(context);
     manipulate().mockReturnValueOnce(context);
-    await expect(encodeForModel('file:///w1080.jpg')).rejects.toThrow('축소 실패');
+    // 변환이 실패하면 원본을 보내 보고, 그것도 안 되면 「다른 캡처로 다시 올려 주세요」 안내로 바꾼다
+    await expect(encodeForModel('file:///w1080.jpg')).rejects.toThrow(IMAGE_UNREADABLE_MESSAGE);
     expect(measured.release).toHaveBeenCalledTimes(1);
   });
 });

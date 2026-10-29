@@ -115,6 +115,8 @@ export default function RootLayout() {
   useEffect(() => {
     if (!hydrated) return;
     const t = setTimeout(() => {
+      // 저장소를 실제로 다 읽은 뒤에만 지운다 — 2.5초 안전장치로 먼저 열린 경우 대화 목록이 비어 있어 모든 캡처를 지울 수 있다
+      if (!useAppStore.persist.hasHydrated()) return;
       const s = useAppStore.getState();
       const keep = new Set<string>();
       Object.values(s.messages).forEach((list) => list.forEach((m) => m.imageUri && keep.add(m.imageUri)));
