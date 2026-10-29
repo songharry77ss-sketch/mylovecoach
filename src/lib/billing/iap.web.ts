@@ -25,6 +25,11 @@ export async function initBilling(_handlers: {
 }): Promise<PremiumState | null | undefined> {
   return undefined;
 }
+export interface StoreProblem {
+  code: string;
+  responseCode?: number;
+}
+export const lastStoreProblem = (): StoreProblem | null => null;
 export function endBilling() {}
 export async function loadPlanProducts(): Promise<PlanProduct[]> {
   return (['day', 'weekly', 'lifetime', 'credits'] as PlanKey[]).map((plan) => ({ plan, productId: PRODUCT_IDS[plan], displayPrice: FALLBACK_PRICES[plan] }));

@@ -17,7 +17,7 @@ import { paywallClosed } from '@/hooks/use-resume-after-paywall';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { STORE_LABEL, STORE_URL, downloadDevice, type DownloadStore } from '@/lib/app-download';
-import { billingSupported, purchasePlan, restorePremium, type PlanProduct } from '@/lib/billing/iap';
+import { billingSupported, lastStoreProblem, purchasePlan, restorePremium, type PlanProduct } from '@/lib/billing/iap';
 import { CREDITS_PER_PACK, FALLBACK_PRICES, PRODUCT_IDS, SIGNUP_BONUS, freeRules, isConsumablePlan, type PlanKey } from '@/lib/billing/plans';
 import { isPremiumActive, quotaLabel, quotaStatus } from '@/lib/billing/quota';
 import { haptic } from '@/lib/haptics';
@@ -106,6 +106,12 @@ export default function Paywall() {
   const chosen = visible.some((p) => p.plan === selected) ? selected : (visible.find((p) => p.plan !== 'weekly')?.plan ?? visible[0]?.plan ?? 'lifetime');
   // 앱에서 스토어 상품을 하나도 확인하지 못했으면 다시 불러오기를 권한다
   const storeUnreachable = billingSupported && !previewStore && products != null && !confirmed;
+  // 스토어 상품을 하나도 확인하지 못했으면 그 이유(스토어 오류 코드·Google Play 응답 코드)를 남긴다 — 결제가 막힌 원인을 찾게
+  useEffect(() => {
+    if (!storeUnreachable) return;
+    const problem = lastStoreProblem();
+    track('store_unavailable', { reason, code: problem?.code ?? 'none', ...(problem?.responseCode != null ? { rc: problem.responseCode } : {}) });
+  }, [storeUnreachable, reason]);
   const dayPrice = onSalePrice(products, 'day');
   const subtitle = reason === 'quota' && dayPrice ? `하루 이용권이면 ${dayPrice}으로 지금 바로 이어서 코칭받을 수 있어요.` : HEADLINES[reason].subtitle;
   const active = isPremiumActive(premium, Date.now());

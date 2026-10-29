@@ -61,11 +61,42 @@ const settle = (outcome: PurchaseOutcome) => {
   inflight = null;
 };
 
-/** 에러 객체에서 스토어 오류 코드를 꺼낸다 (원인 파악용으로 안내 문구에 붙인다) */
-const codeOf = (error: unknown): string => {
-  const code = (error as { code?: unknown } | null)?.code;
-  return typeof code === 'string' && code ? ` (${code})` : '';
+/** 스토어가 알려 준 오류 원인 (결제 화면이 이용 기록에 남겨 원인을 찾을 수 있게) */
+export interface StoreProblem {
+  code: string;
+  /** Google Play 결제 응답 코드 (BillingResponseCode) — iOS 에는 없다 */
+  responseCode?: number;
+}
+
+const problemOf = (error: unknown): StoreProblem => {
+  const e = error as { code?: unknown; responseCode?: unknown } | null;
+  return {
+    code: typeof e?.code === 'string' && e.code ? e.code : 'unknown',
+    ...(typeof e?.responseCode === 'number' ? { responseCode: e.responseCode } : {}),
+  };
 };
+
+/** 에러 객체에서 스토어 오류 코드를 꺼낸다 (원인 파악용으로 안내 문구에 붙인다). Google Play 응답 코드도 함께: 「(query-product · 3)」 */
+const codeOf = (error: unknown): string => {
+  const { code, responseCode } = problemOf(error);
+  const parts = [code === 'unknown' ? null : code, responseCode == null ? null : String(responseCode)].filter(Boolean);
+  return parts.length ? ` (${parts.join(' · ')})` : '';
+};
+
+/**
+ * 상품 조회 실패를 사람이 할 수 있는 조치로 바꾼다.
+ * Google Play 응답 코드: -1 결제 서비스 끊김, 2 서비스 사용 불가, 3 결제 사용 불가(Play 스토어 로그인·업데이트·국가), 12 네트워크
+ */
+const storeHint = (error: unknown): string => {
+  const { responseCode } = problemOf(error);
+  if (responseCode === 3) return '이 기기에서 스토어 결제를 쓸 수 없는 상태예요. 스토어 앱을 열어 로그인·업데이트한 뒤 다시 시도해주세요.';
+  if (responseCode === -1 || responseCode === 2 || responseCode === 12) return '스토어에 잠시 연결되지 않아요. 네트워크를 확인하고 다시 시도해주세요.';
+  return '상품 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.';
+};
+
+let lastProblem: StoreProblem | null = null;
+/** 마지막 상품 조회에서 실패한 이유 — 조회를 새로 시작할 때 지운다 (원인을 이용 기록에 남기는 용도) */
+export const lastStoreProblem = (): StoreProblem | null => lastProblem;
 
 /**
  * 스토어 연결을 보장한다. 앱 시작 때 연결이 실패했어도(네트워크·스토어 지연) 결제 직전에 다시 시도한다.
@@ -111,6 +142,38 @@ async function ensureConnected(): Promise<boolean> {
   return connected;
 }
 
+/**
+ * 스토어 연결을 끊고 새로 맺는다. Android 결제 서비스가 중간에 끊기거나(Play 스토어 자체 업데이트 등)
+ * 앱 시작 때 덜 준비된 채로 연결되면, 다시 맺기 전까지 상품 조회가 계속 실패한다.
+ * 구매 이벤트 리스너(subscriptions)는 JS 쪽 구독이라 그대로 두고, 네이티브 쪽은 initConnection 이 다시 붙인다.
+ */
+async function reconnect(): Promise<boolean> {
+  if (!IAP) return false;
+  await IAP.endConnection().catch(() => {});
+  connected = false;
+  return ensureConnected();
+}
+
+type FetchRequest = Parameters<IapModule['fetchProducts']>[0];
+
+/** 상품 조회. 실패하면 스토어 연결을 새로 맺고 한 번 더 묻는다. 그래도 실패하면 오류를 그대로 던진다 */
+async function fetchWithReconnect(request: FetchRequest) {
+  const iap = IAP;
+  if (!iap) throw new Error('billing unavailable');
+  try {
+    return (await iap.fetchProducts(request)) ?? [];
+  } catch (first) {
+    lastProblem = problemOf(first);
+    if (!(await reconnect())) throw first;
+    try {
+      return (await iap.fetchProducts(request)) ?? [];
+    } catch (second) {
+      lastProblem = problemOf(second);
+      throw second;
+    }
+  }
+}
+
 /** 같은 결제를 구분하는 키 (iOS 거래 ID / Android 구매 토큰) */
 const transactionKey = (purchase: { id?: string | null; purchaseToken?: string | null; transactionDate?: number; productId: string }) =>
   purchase.id || purchase.purchaseToken || `${purchase.productId}:${purchase.transactionDate ?? ''}`;
@@ -134,9 +197,21 @@ export function endBilling() {
 export async function loadPlanProducts(): Promise<PlanProduct[]> {
   const order: PlanKey[] = ['day', 'weekly', 'lifetime', 'credits'];
   const fallback: PlanProduct[] = order.map((plan) => ({ plan, productId: PRODUCT_IDS[plan], displayPrice: FALLBACK_PRICES[plan] }));
-  if (!IAP || !(await ensureConnected())) return fallback;
+  if (!IAP) return fallback;
+  lastProblem = null;
+  if (!(await ensureConnected())) {
+    lastProblem = { code: 'not-connected' };
+    return fallback;
+  }
+  // 일회성 상품과 구독을 따로 묻는다 — 한쪽 조회가 실패해도(구독 미지원 기기 등) 다른 쪽 상품은 팔 수 있게
+  const oneTime = order.filter((plan) => plan !== 'weekly').map((plan) => PRODUCT_IDS[plan]);
+  const results = [
+    await fetchWithReconnect({ skus: oneTime, type: 'in-app' }).catch(() => null),
+    await fetchWithReconnect({ skus: [PRODUCT_IDS.weekly], type: 'subs' }).catch(() => null),
+  ];
+  if (results.every((r) => r == null)) return fallback;
   try {
-    const items = (await IAP.fetchProducts({ skus: Object.values(PRODUCT_IDS), type: 'all' })) ?? [];
+    const items = results.flatMap((r) => r ?? []);
     return fallback.map((f) => {
       const item = items.find((i) => i.id === f.productId);
       if (!item) return { ...f, available: false };
@@ -160,12 +235,14 @@ export async function purchasePlan(product: PlanProduct): Promise<PurchaseOutcom
   if (!IAP || !(await ensureConnected())) return { status: 'error', message: '스토어에 연결하지 못했어요. 네트워크를 확인하고 다시 시도해주세요.' };
   const iap = IAP;
   // 스토어가 이 상품을 내려주지 않으면 결제 시트가 뜨지 않는다 — 조용히 실패하지 말고 이유를 알린다
+  // 조회가 실패하면 연결을 새로 맺고 한 번 더 묻는다 (Android 결제 서비스 끊김)
+  lastProblem = null;
   try {
-    const found = (await iap.fetchProducts({ skus: [product.productId], type: product.plan === 'weekly' ? 'subs' : 'in-app' })) ?? [];
+    const found = await fetchWithReconnect({ skus: [product.productId], type: product.plan === 'weekly' ? 'subs' : 'in-app' });
     if (!found.some((i) => i.id === product.productId))
       return { status: 'error', message: `스토어에서 이 상품을 찾지 못했어요. 잠시 후 다시 시도해주세요. (${product.productId})` };
   } catch (error) {
-    return { status: 'error', message: `상품 정보를 불러오지 못했어요.${codeOf(error)}` };
+    return { status: 'error', message: `${storeHint(error)}${codeOf(error)}` };
   }
   settle({ status: 'cancelled' });
   return new Promise<PurchaseOutcome>((resolve) => {
