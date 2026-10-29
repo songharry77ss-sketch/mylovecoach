@@ -119,6 +119,13 @@ export interface AppState {
   hapticsOn: boolean;
   /** 채팅방 목록에서 대화 미리보기 숨기기 */
   hidePreviews: boolean;
+  /** 처음 실행 소개(사용법 슬라이드)를 끝냈거나 건너뛰었는지 */
+  onboardingSeen: boolean;
+  /** 연애 연습을 켰는지 — 기본은 숨김, 마이 → 추가 기능에서 켠다 (예전에 연습한 기록이 있으면 켠 채로 읽는다) */
+  practiceEnabled: boolean;
+  /** 별점 요청용 — 답장 복사 같은 좋은 순간의 횟수와 별점을 부탁한 시각들 (lib/store-review) */
+  reviewWins: number;
+  reviewAsks: number[];
   /** KKTI 검사 결과 */
   kkti: KktiSaved | null;
   /** 연애 연습 기록 (최근 12개) */
@@ -186,6 +193,10 @@ export interface AppState {
   snoozeUpdate: (snooze: { version: string; until: number } | null) => void;
   setHapticsOn: (on: boolean) => void;
   setHidePreviews: (on: boolean) => void;
+  setOnboardingSeen: () => void;
+  setPracticeEnabled: (on: boolean) => void;
+  noteReviewWin: () => void;
+  markReviewAsked: (at: number) => void;
   setKkti: (kkti: KktiSaved | null) => void;
 
   startPractice: (persona: PracticePersona) => string;
@@ -293,6 +304,10 @@ export const useAppStore = create<AppState>()(
       acquisition: null,
       hapticsOn: true,
       hidePreviews: false,
+      onboardingSeen: false,
+      practiceEnabled: false,
+      reviewWins: 0,
+      reviewAsks: [],
       kkti: null,
       practice: {},
       mindHistory: [],
@@ -473,6 +488,10 @@ export const useAppStore = create<AppState>()(
       snoozeUpdate: (updateSnooze) => set({ updateSnooze }),
       setHapticsOn: (hapticsOn) => set({ hapticsOn }),
       setHidePreviews: (hidePreviews) => set({ hidePreviews }),
+      setOnboardingSeen: () => set({ onboardingSeen: true }),
+      setPracticeEnabled: (practiceEnabled) => set({ practiceEnabled }),
+      noteReviewWin: () => set((s) => ({ reviewWins: s.reviewWins + 1 })),
+      markReviewAsked: (at) => set((s) => ({ reviewAsks: [...s.reviewAsks, at].slice(-6) })),
       setKkti: (kkti) => set({ kkti }),
 
       startPractice: (persona) => {
@@ -608,6 +627,10 @@ export const useAppStore = create<AppState>()(
           acquisition: s.acquisition,
           hapticsOn: s.hapticsOn,
           hidePreviews: s.hidePreviews,
+          onboardingSeen: s.onboardingSeen,
+          practiceEnabled: s.practiceEnabled,
+          reviewWins: s.reviewWins,
+          reviewAsks: s.reviewAsks,
           kkti: s.kkti,
           practice: s.practice,
           mindHistory: s.mindHistory,
@@ -664,6 +687,10 @@ export const useAppStore = create<AppState>()(
           ...legacyDeletion,
           ...withdrawnMeanwhile,
           ...(prechecked ? { legacyServerRecords: true } : {}),
+          // 연애 연습을 숨기기 전(10-29 이전 판)에 연습해 본 사람은 켠 채로 둔다
+          practiceEnabled: typeof saved.practiceEnabled === 'boolean' ? saved.practiceEnabled : Object.keys(saved.practice ?? {}).length > 0,
+          // 소개를 넣기 전부터 쓰던 사람은 소개를 다시 보지 않는다
+          onboardingSeen: saved.onboardingSeen === true || current.onboardingSeen || Boolean(saved.user) || Object.keys(saved.crushes ?? {}).length > 0,
           legacyDeletionChecked: true,
         };
       },

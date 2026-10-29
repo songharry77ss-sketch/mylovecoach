@@ -1,15 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SignupCard } from '@/components/auth/signup-card';
+import { GoldSticker, HeartMark, Highlight, Polaroid } from '@/components/stage/stage';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { useToast } from '@/components/ui/toast';
-import { Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing, Stage, palette } from '@/constants/theme';
 import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
 import { paywallClosed } from '@/hooks/use-resume-after-paywall';
 import { useTheme } from '@/hooks/use-theme';
@@ -27,27 +29,27 @@ type Reason = 'quota' | 'regenerate' | 'my' | 'banner' | 'upsell' | 'report' | '
 
 const HEADLINES: Record<Reason, { title: string; subtitle: string }> = {
   // 하루 이용권이 스토어에 있으면 화면에서 가격을 넣은 문구로 바꾼다
-  quota: { title: '오늘의 무료 코칭을\n다 썼어요', subtitle: '이용권이면 횟수 제한 없이 지금 바로 이어서 코칭받을 수 있어요.' },
-  regenerate: { title: '마음에 드는 답장이\n나올 때까지', subtitle: '이용권이면 다른 버전도 횟수 제한 없이 넘겨 볼 수 있어요.' },
-  my: { title: '답장 고민,\n이제 무제한으로', subtitle: '횟수 걱정 없이 필요한 순간마다 코치를 불러보세요.' },
-  banner: { title: '답장 고민,\n이제 무제한으로', subtitle: '횟수 걱정 없이 필요한 순간마다 코치를 불러보세요.' },
+  quota: { title: '오늘의 무료 코칭을\n*다 썼어요*', subtitle: '이용권이면 횟수 제한 없이 지금 바로 이어서 코칭받을 수 있어요.' },
+  regenerate: { title: '마음에 드는 답장이\n*나올 때까지*', subtitle: '이용권이면 다른 버전도 횟수 제한 없이 넘겨 볼 수 있어요.' },
+  my: { title: '답장 고민,\n이제 *무제한*으로', subtitle: '횟수 걱정 없이 필요한 순간마다 코치를 불러보세요.' },
+  banner: { title: '답장 고민,\n이제 *무제한*으로', subtitle: '횟수 걱정 없이 필요한 순간마다 코치를 불러보세요.' },
   // 채팅 속 「답장이 도움이 됐나요?」 카드 — 결과를 받아 본 뒤
-  upsell: { title: '마음에 드는 답장이\n나올 때까지', subtitle: '이용권이면 횟수 걱정 없이 답장을 계속 받아볼 수 있어요.' },
-  report: { title: '그 사람 분석 보고서,\n지금 열어볼까요?', subtitle: '성향·호감 신호·공략법·궁합까지 한 번에 정리해 드려요.' },
-  practice: { title: '연애 연습,\n실전처럼 계속해요', subtitle: '이용권이면 AI 상대와 마음껏 리허설할 수 있어요.' },
-  mind: { title: '그 사람 속마음,\n더 들여다볼까요?', subtitle: '이용권이면 궁금한 상황을 횟수 걱정 없이 물어볼 수 있어요.' },
+  upsell: { title: '마음에 드는 답장이\n*나올 때까지*', subtitle: '이용권이면 횟수 걱정 없이 답장을 계속 받아볼 수 있어요.' },
+  report: { title: '그 사람 *분석 보고서*,\n지금 열어볼까요?', subtitle: '성향·호감 신호·공략법·궁합까지 한 번에 정리해 드려요.' },
+  practice: { title: '연애 연습,\n*실전처럼* 계속해요', subtitle: '이용권이면 AI 상대와 마음껏 리허설할 수 있어요.' },
+  mind: { title: '그 사람 *속마음*,\n더 들여다볼까요?', subtitle: '이용권이면 궁금한 상황을 횟수 걱정 없이 물어볼 수 있어요.' },
 };
 
 const BENEFITS: { icon: keyof typeof Ionicons.glyphMap; title: string; body: string }[] = [
   { icon: 'infinite-outline', title: '코칭 무제한', body: '캡처를 올릴 때마다 답장 여러 버전과 호감 온도를 받아요' },
-  { icon: 'game-controller-outline', title: '연애 연습 · 속마음 풀이', body: 'AI 상대와 카톡 리허설, 「그 사람 속마음」도 마음껏' },
+  { icon: 'sparkles-outline', title: '속마음 풀이 · 다른 답장 더 보기', body: '「그 사람 속마음」도, 마음에 드는 답장이 나올 때까지도 마음껏' },
   { icon: 'analytics-outline', title: '상대 분석 보고서', body: '성향·호감 신호·공략법·궁합을 언제든 새로 분석해요' },
 ];
 
 const PLAN_TEXT: Record<PlanKey, { title: string; caption: string; badge?: string }> = {
   day: { title: '하루 이용권', caption: '지금부터 24시간 무제한 · 자동 결제 없음', badge: '부담 없이' },
   weekly: { title: '주간 구독', caption: '매주 자동 갱신 · 언제든 해지', badge: '인기' },
-  lifetime: { title: '평생권', caption: '한 번 결제하면 계속 · 자동 결제 없음', badge: '주간 구독 3주 가격' },
+  lifetime: { title: '평생권', caption: '한 번 결제로 서비스가 운영되는 동안 계속 · 자동 결제 없음', badge: '주간 구독 3주 가격' },
   credits: { title: `횟수권 ${CREDITS_PER_PACK}회`, caption: '필요할 때만 한 번씩 · 기간 제한 없음' },
 };
 
@@ -174,27 +176,37 @@ export default function Paywall() {
 
   const headline =
     offerSignup && status.kind === 'exhausted'
-      ? { title: '무료 맛보기를\n다 썼어요', subtitle: `가입하면 무료 코칭 ${SIGNUP_BONUS}회를 더 드려요. 이용권으로 바로 이어서 할 수도 있어요.` }
+      ? { title: '무료 맛보기를\n*다 썼어요*', subtitle: `가입하면 무료 코칭 ${SIGNUP_BONUS}회를 더 드려요. 이용권으로 바로 이어서 할 수도 있어요.` }
       : HEADLINES[reason];
 
   return (
     <Screen safeTop safeBottom contentStyle={styles.content}>
-      <View style={styles.topBar}>
-        <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={close} hitSlop={12} style={[styles.close, { backgroundColor: theme.surface }]}>
-          <Ionicons name="close" size={20} color={theme.textSecondary} />
-        </Pressable>
-      </View>
+      <LinearGradient colors={Stage.bg} start={{ x: 0, y: 0 }} end={{ x: 0.4, y: 1 }} style={styles.stage}>
+        <View style={styles.topBar}>
+          <View style={styles.brand}>
+            <Ionicons name="heart-outline" size={16} color={Stage.gold} />
+            <Text style={styles.brandText}>나만의 연애코치 프리미엄</Text>
+          </View>
+          <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={close} hitSlop={12} style={styles.close}>
+            <Ionicons name="close" size={20} color={Stage.text} />
+          </Pressable>
+        </View>
+        <View style={styles.stageRow}>
+          <View style={styles.stageTexts}>
+            <Highlight variant="title1" text={active ? '프리미엄 *이용 중*이에요' : headline.title} />
+            <Text style={styles.stageSub}>
+              {active ? (premium?.plan === 'lifetime' ? '평생권으로 모든 기능을 무제한으로 쓰고 있어요.' : '주간 구독으로 모든 기능을 무제한으로 쓰고 있어요.') : offerSignup && status.kind === 'exhausted' ? headline.subtitle : subtitle}
+            </Text>
+          </View>
+          <View pointerEvents="none" style={styles.stagePhoto}>
+            <Polaroid photo="windowMan" width={92} rotate={6} />
+            <GoldSticker text="∞" rotate={-10} style={styles.stageSticker} />
+            <HeartMark size={26} rotate={-14} style={styles.stageHeart} />
+          </View>
+        </View>
+      </LinearGradient>
 
       <View style={styles.hero}>
-        <View style={[styles.heroBadge, { backgroundColor: theme.accentSoft }]}>
-          <AppText style={styles.heroEmoji}>💘</AppText>
-        </View>
-        <AppText variant="title1" align="center">
-          {active ? '프리미엄 이용 중이에요' : headline.title}
-        </AppText>
-        <AppText variant="body" color="textSecondary" align="center">
-          {active ? (premium?.plan === 'lifetime' ? '평생권으로 모든 기능을 무제한으로 쓰고 있어요.' : '주간 구독으로 모든 기능을 무제한으로 쓰고 있어요.') : offerSignup && status.kind === 'exhausted' ? headline.subtitle : subtitle}
-        </AppText>
         {!active && (status.kind === 'team' || status.kind === 'pass' || (status.credits ?? 0) > 0) ? (
           <View style={[styles.statusPill, { backgroundColor: theme.primarySoft }]}>
             <AppText variant="caption" color="primary" weight="700">
@@ -274,6 +286,8 @@ export default function Paywall() {
             </Pressable>
           ) : null}
 
+          {chosen === 'lifetime' ? <LifetimePromise storeName={storeName} /> : null}
+
           <Button title={buyTitle(chosen, priceOf(chosen))} onPress={buy} loading={busy === 'purchase'} disabled={busy != null} />
 
           {notice ? (
@@ -331,7 +345,8 @@ function buyTitle(plan: PlanKey, price: string): string {
 function fineText(plan: PlanKey, price: string, storeName: string): string {
   if (plan === 'weekly')
     return `주간 구독은 해지하지 않으면 매주 ${price}이 ${storeName} 계정으로 자동 결제돼요. 현재 기간이 끝나기 24시간 전까지 ${storeName} 계정 설정의 구독 메뉴에서 언제든 해지할 수 있어요.`;
-  if (plan === 'lifetime') return `평생권은 ${price} 1회 결제이며 자동으로 다시 결제되지 않아요. 같은 ${storeName} 계정이면 기기를 바꿔도 「구매 복원」으로 다시 쓸 수 있어요.`;
+  if (plan === 'lifetime')
+    return `평생권은 ${price} 1회 결제이며 자동으로 다시 결제되지 않아요. 「평생」은 서비스가 운영되는 기간을 뜻하고, 같은 ${storeName} 계정이면 기기를 바꿔도 「구매 복원」으로 다시 쓸 수 있어요. 자세한 내용은 이용약관의 평생권 조항을 확인해 주세요.`;
   const common = '자동으로 다시 결제되지 않고, 결제한 이 기기에서 쓸 수 있어요 (다른 기기로 옮기거나 복원되지 않아요).';
   if (plan === 'day') return `하루 이용권은 ${price} 1회 결제로 결제한 때부터 24시간 동안 무제한이에요. 이미 이용 중이면 24시간이 이어서 늘어나요. ${common}`;
   return `횟수권은 ${price} 1회 결제로 코칭 ${CREDITS_PER_PACK}회가 충전되고 기간 제한이 없어요. 무료 횟수를 먼저 쓰고 그다음 횟수권이 차감돼요. ${common}`;
@@ -388,6 +403,33 @@ function AppDownload({ reason }: { reason: Reason }) {
   );
 }
 
+/** 평생권을 고르면 결제 버튼 위에 약속을 또렷하게 보여 준다 (이용약관 평생권 조항의 요약) */
+function LifetimePromise({ storeName }: { storeName: string }) {
+  const theme = useTheme();
+  const items = [
+    '한 번 결제 · 자동 결제 없음',
+    '서비스가 운영되는 동안 코칭·속마음·보고서 무제한',
+    `같은 ${storeName} 계정이면 기기를 바꿔도 구매 복원`,
+    '서비스를 끝내게 되면 30일 전에 앱에서 먼저 알려 드려요',
+  ];
+  return (
+    <View style={[styles.promise, { backgroundColor: theme.surface, borderColor: palette.gold400 }]} accessibilityLabel="평생권 약속">
+      <AppText variant="smallStrong">♾️ 평생권 약속</AppText>
+      {items.map((t) => (
+        <View key={t} style={styles.promiseRow}>
+          <Ionicons name="checkmark-circle" size={16} color={palette.gold500} />
+          <AppText variant="caption" color="textSecondary" style={styles.flex}>
+            {t}
+          </AppText>
+        </View>
+      ))}
+      <AppText variant="caption" color="primary" weight="700" accessibilityRole="link" onPress={() => Linking.openURL(`${APP_CONFIG.termsUrl}#lifetime`)}>
+        평생권 약관 전문 보기 ›
+      </AppText>
+    </View>
+  );
+}
+
 interface PlanCardProps {
   selected: boolean;
   onPress: () => void;
@@ -428,11 +470,21 @@ function PlanCard({ selected, onPress, title, price, caption, badge }: PlanCardP
 
 const styles = StyleSheet.create({
   content: { gap: Spacing.xl, paddingBottom: Spacing.xl },
-  topBar: { flexDirection: 'row', justifyContent: 'flex-end' },
-  close: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  flex: { flex: 1 },
+  stage: { marginHorizontal: -Spacing.lg, marginTop: -Spacing.sm, paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, paddingBottom: Spacing.xl, borderBottomLeftRadius: Radius.xl, borderBottomRightRadius: Radius.xl, gap: Spacing.lg },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  brandText: { fontSize: 13, fontWeight: '800', color: Stage.text, letterSpacing: -0.2 },
+  close: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: Stage.chip },
+  stageRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md },
+  stageTexts: { flex: 1, gap: Spacing.sm },
+  stageSub: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: Stage.textDim },
+  stagePhoto: { width: 92, paddingTop: 4 },
+  stageSticker: { position: 'absolute', right: -10, top: -8 },
+  stageHeart: { position: 'absolute', left: -14, bottom: -16 },
   hero: { alignItems: 'center', gap: Spacing.sm },
-  heroBadge: { width: 72, height: 72, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
-  heroEmoji: { fontSize: 36, lineHeight: 44 },
+  promise: { borderRadius: Radius.lg, borderWidth: 1.5, padding: Spacing.lg, gap: Spacing.sm },
+  promiseRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
   benefits: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.lg },
   benefit: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   benefitIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },

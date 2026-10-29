@@ -8,6 +8,8 @@ export default function Index() {
   const theme = useTheme();
   const hydrated = useAppStore((s) => s.hydrated);
   const started = useAppStore((s) => Boolean(s.user) || Object.keys(s.crushes).length > 0);
+  // 처음이면 사용법 소개부터 (건너뛰었거나 본 사람은 첫 캡처 화면)
+  const onboardingSeen = useAppStore((s) => s.onboardingSeen);
   if (!hydrated) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.background }}>
@@ -15,5 +17,5 @@ export default function Index() {
       </View>
     );
   }
-  return <Redirect href={started ? '/(tabs)' : '/start'} />;
+  return <Redirect href={started ? '/(tabs)' : onboardingSeen ? '/start' : '/welcome'} />;
 }

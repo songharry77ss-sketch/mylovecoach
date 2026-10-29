@@ -2,26 +2,42 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 
+import { HeartMark, Highlight, Polaroid } from '@/components/stage/stage';
 import { AppText } from '@/components/ui/app-text';
 import { Chip } from '@/components/ui/chip';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section-header';
-import { Radius, Spacing, Typography, palette } from '@/constants/theme';
+import { Radius, Spacing, Stage, Typography, palette } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { haptic } from '@/lib/haptics';
 import { MIND_CARDS, MIND_CATEGORIES, drawMindCard, renderSituation, themLabel, type MindCategory } from '@/lib/mind-cards';
 import { TIPS, TIP_CATEGORIES } from '@/lib/tips';
 import type { Gender } from '@/lib/types';
 import { useAppStore } from '@/store/app-store';
+import { track } from '@/lib/analytics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-/** 속마음 탭 — 무작위 상황 카드로 「이럴 때 그 사람은 무슨 생각일까?」를 물어보고, 연애 팁도 본다 */
+/**
+ * 탐색 탭 — 채팅 말고 해 볼 것들. 맨 위 무대 머리말에 KKTI·비밀 상담·(켰으면) 연애 연습을 모아 두고,
+ * 그 아래는 무작위 상황 카드로 「이럴 때 그 사람은 무슨 생각일까?」를 물어보는 속마음 카드와 연애 팁.
+ */
 export default function MindTab() {
   const theme = useTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const practiceEnabled = useAppStore((s) => s.practiceEnabled);
+  const createSecretChat = useAppStore((s) => s.createSecretChat);
+  const openFeature = (key: 'kkti' | 'secret' | 'practice') => {
+    haptic.thud();
+    track('explore_open', { feature: key });
+    if (key === 'kkti') router.push('/kkti');
+    else if (key === 'practice') router.push('/(tabs)/practice');
+    else router.push({ pathname: '/crush/[id]', params: { id: createSecretChat() } });
+  };
   const user = useAppStore((s) => s.user);
   const kkti = useAppStore((s) => s.kkti);
   const history = useAppStore((s) => s.mindHistory);
@@ -61,9 +77,41 @@ export default function MindTab() {
   };
 
   return (
-    <Screen safeTop contentStyle={styles.content}>
+    <Screen contentStyle={styles.content}>
+      <LinearGradient colors={Stage.bg} start={{ x: 0, y: 0 }} end={{ x: 0.4, y: 1 }} style={[styles.stage, { paddingTop: insets.top + Spacing.lg }]}>
+        <View style={styles.stageHead}>
+          <View style={styles.flex}>
+            <Highlight variant="display" text={'연애가 더\n*재밌어지는* 것들'} />
+            <Text style={styles.stageSub}>속마음 카드 · KKTI 테스트 · 비밀 상담</Text>
+          </View>
+          <View pointerEvents="none">
+            <Polaroid photo="riversideCouple" width={88} rotate={6} />
+            <HeartMark size={28} rotate={-12} style={styles.stageHeart} />
+          </View>
+        </View>
+        <View style={styles.features}>
+          <PressableScale onPress={() => openFeature('kkti')} style={[styles.feature, styles.featureKkti]}>
+            <Text style={styles.featureEmoji}>🧪</Text>
+            <Text style={styles.featureTitle}>KKTI 테스트</Text>
+            <Text style={styles.featureBody}>카톡 습관 속 나의 연애 유형 · 1분</Text>
+          </PressableScale>
+          <PressableScale onPress={() => openFeature('secret')} style={[styles.feature, styles.featureGlass]}>
+            <Text style={styles.featureEmoji}>🕶️</Text>
+            <Text style={styles.featureTitle}>비밀 상담</Text>
+            <Text style={styles.featureBody}>기록이 남지 않아요</Text>
+          </PressableScale>
+          {practiceEnabled ? (
+            <PressableScale onPress={() => openFeature('practice')} style={[styles.feature, styles.featureGold]}>
+              <Text style={styles.featureEmoji}>🎮</Text>
+              <Text style={[styles.featureTitle, { color: Stage.onGold }]}>연애 연습</Text>
+              <Text style={[styles.featureBody, { color: Stage.onGold }]}>AI 상대와 카톡 리허설</Text>
+            </PressableScale>
+          ) : null}
+        </View>
+      </LinearGradient>
+
       <View style={styles.header}>
-        <AppText variant="display">속마음</AppText>
+        <AppText variant="title1">🔮 속마음 카드</AppText>
         <AppText variant="body" color="textSecondary">
           이럴 때 {themLabel(perspective)}는 무슨 생각을 할까?
         </AppText>
@@ -217,6 +265,18 @@ export default function MindTab() {
 const styles = StyleSheet.create({
   content: { gap: Spacing.md },
   flex: { flex: 1 },
+  stage: { marginHorizontal: -Spacing.lg, paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl, borderBottomLeftRadius: Radius.xl, borderBottomRightRadius: Radius.xl, gap: Spacing.lg },
+  stageHead: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md },
+  stageSub: { fontSize: 14, fontWeight: '600', color: Stage.textDim, marginTop: Spacing.sm },
+  stageHeart: { position: 'absolute', left: -16, bottom: -18 },
+  features: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  feature: { flexGrow: 1, flexBasis: '45%', borderRadius: Radius.lg, padding: Spacing.lg, gap: 2, minHeight: 112 },
+  featureKkti: { backgroundColor: '#E86B5F' },
+  featureGlass: { backgroundColor: Stage.chip, borderWidth: 1, borderColor: Stage.chipBorder },
+  featureGold: { backgroundColor: Stage.gold },
+  featureEmoji: { fontSize: 26, lineHeight: 32, marginBottom: 4 },
+  featureTitle: { fontSize: 16, fontWeight: '900', color: Stage.text, letterSpacing: -0.3 },
+  featureBody: { fontSize: 12, lineHeight: 16, fontWeight: '600', color: Stage.textDim },
   header: { gap: 4, marginTop: Spacing.sm },
   perspective: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
   card: { borderRadius: Radius.xl, padding: Spacing.xl, gap: Spacing.md, minHeight: 230 },

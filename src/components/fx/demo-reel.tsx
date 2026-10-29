@@ -113,7 +113,7 @@ export function DemoReel() {
 
         {/* 복사 완료 + 하트 */}
         {phase >= 5 ? (
-          <Animated.View entering={ZoomIn.springify().damping(12)} style={[styles.toast, { backgroundColor: palette.sky600 }]}>
+          <Animated.View entering={ZoomIn.springify().damping(12)} style={[styles.toast, { backgroundColor: palette.rose600 }]}>
             <AppText variant="caption" color={palette.white} weight="800">
               복사했어요 · 카톡에 붙여넣기만 하면 끝! 💖
             </AppText>
