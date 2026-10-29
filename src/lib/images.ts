@@ -80,15 +80,60 @@ export async function persistImage(sourceUri: string, dirName: string, width: nu
   const safeExt = ext && ['jpg', 'jpeg', 'png', 'webp', 'heic', 'gif'].includes(ext) ? ext : 'jpg';
   const target = new File(dir, `${createId('img_')}.${safeExt}`);
   const source = new File(sourceUri);
-  source.copy(target);
-  // 사진 선택기가 캐시 폴더에 만든 원본 사본은 바로 지운다 (같은 캡처가 두 군데 남지 않게)
+  // expo-file-system 57 부터 copy 는 비동기다. 끝나기 전에 원본을 지우면 빈 파일이 남아
+  // 캡처가 회색 칸으로 보이고 분석도 「Loading bitmap failed」로 실패한다 (갤럭시에서 확인). 그래서 끝날 때까지 기다린다
+  await source.copy(target);
+  if (!target.exists || target.size === 0) {
+    deleteImageQuietly(target.uri);
+    throw new Error(IMAGE_UNREADABLE_MESSAGE);
+  }
+  // 사진 선택기가 캐시 폴더에 만든 원본 사본은 다 옮긴 뒤에 지운다 (같은 캡처가 두 군데 남지 않게)
   deleteCacheCopy(sourceUri);
   return { uri: target.uri, width, height };
 }
 
+/** 저장해 둔 캡처 파일이 없거나 비었을 때 (예전 판에서 복사가 덜 끝난 캡처 포함) */
+export const IMAGE_MISSING_MESSAGE = '캡처 파일을 찾지 못했어요. 캡처를 다시 올려 주세요.';
+/** 사진을 읽지 못했을 때 (지원하지 않는 형식·깨진 파일) */
+export const IMAGE_UNREADABLE_MESSAGE = '이 사진을 읽지 못했어요. 다른 캡처로 다시 올려 주세요.';
+
+/** 캡처를 읽지 못해 코칭을 보낼 수 없을 때 — 같은 파일로 다시 해도 안 되므로 「캡처 다시 올리기」를 권한다 */
+export class ImageReadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ImageReadError';
+  }
+}
+
 export interface EncodedImage {
   base64: string;
-  mediaType: 'image/jpeg';
+  mediaType: 'image/jpeg' | 'image/png' | 'image/webp';
+}
+
+/** 서버가 받는 원본 크기 상한 (base64 로 늘어나도 서버 한도 4.2MB 안에 들게) */
+const ORIGINAL_MAX_BYTES = 3_000_000;
+
+/** 확장자로 서버가 받는 형식인지 본다 */
+function mediaTypeOf(uri: string): EncodedImage['mediaType'] | null {
+  const ext = uri.split('?')[0].split('.').pop()?.toLowerCase();
+  if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
+  if (ext === 'png') return 'image/png';
+  if (ext === 'webp') return 'image/webp';
+  return null;
+}
+
+/** 이미지 변환이 실패했을 때(아주 긴 캡처 등) 원본 파일을 그대로 보낸다 — 서버가 받는 형식·크기일 때만 */
+async function originalForModel(uri: string): Promise<EncodedImage | null> {
+  const mediaType = mediaTypeOf(uri);
+  if (!mediaType) return null;
+  try {
+    const file = new File(uri);
+    if (!file.exists || file.size === 0 || file.size > ORIGINAL_MAX_BYTES) return null;
+    const base64 = await file.base64();
+    return base64 ? { base64, mediaType } : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -107,6 +152,27 @@ export function modelResizeWidth(width: number): number | null {
  * 원본 폭을 모르면(0 — 다시 시도·다른 답장처럼 저장된 캡처를 다시 보낼 때) 이미지를 읽어 잰다.
  */
 export async function encodeForModel(uri: string, width?: number): Promise<EncodedImage> {
+  if (Platform.OS !== 'web') {
+    let present = false;
+    try {
+      const file = new File(uri);
+      present = file.exists && file.size > 0;
+    } catch {
+      present = false;
+    }
+    if (!present) throw new ImageReadError(IMAGE_MISSING_MESSAGE);
+  }
+  try {
+    return await encodeResized(uri, width);
+  } catch {
+    const original = Platform.OS === 'web' ? null : await originalForModel(uri);
+    if (original) return original;
+    throw new ImageReadError(IMAGE_UNREADABLE_MESSAGE);
+  }
+}
+
+/** 이미지 변환으로 폭을 줄이고 JPEG 로 압축한다 */
+async function encodeResized(uri: string, width?: number): Promise<EncodedImage> {
   const context = ImageManipulator.manipulate(uri);
   const measured = width && width > 0 ? null : await context.renderAsync();
   const target = modelResizeWidth(measured?.width ?? width ?? 0);

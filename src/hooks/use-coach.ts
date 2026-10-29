@@ -5,7 +5,7 @@ import { beginAiRequest } from '@/lib/ai-request-lifetime';
 import { currentQuota } from '@/lib/billing/gate';
 import { aiRouteOf, CoachError, requestCoaching, requireAiConsent } from '@/lib/coach-client';
 import { crushToRequest, userToRequest } from '@/lib/coach-schema';
-import { encodeForModel, type PickedImage } from '@/lib/images';
+import { encodeForModel, ImageReadError, type PickedImage } from '@/lib/images';
 import type { EmojiPref, KktiSaved, Tone } from '@/lib/types';
 import { analysisCacheKey, analyzedCaptureBefore, buildEarlierNotes, buildHistory, lastRequestAt, quickHash, useAppStore } from '@/store/app-store';
 import { loadApiKey } from '@/store/storage';
@@ -150,7 +150,8 @@ export function useCoach() {
     } catch (e) {
       if (!request.active()) return 'skipped';
       const message = e instanceof CoachError ? e.message : e instanceof Error ? e.message : '알 수 없는 오류가 발생했어요.';
-      const code = e instanceof CoachError ? e.code : 'server';
+      // 캡처를 읽지 못한 경우는 「캡처 다시 올리기」를 띄우도록 따로 표시한다 (원래 오류 문장 대신 안내 문장)
+      const code = e instanceof CoachError ? e.code : e instanceof ImageReadError ? 'image' : 'server';
       if (coachMessageId) useAppStore.getState().updateMessage(crush.id, coachMessageId, { pending: false, error: message, text: code });
       else useAppStore.getState().addMessage({ crushId: crush.id, role: 'coach', pending: false, error: message, text: code });
       track('coach_error', secret ? { code, secret: true } : { code });
