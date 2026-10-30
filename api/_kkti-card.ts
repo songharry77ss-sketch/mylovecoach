@@ -1,10 +1,14 @@
 /**
  * KKTI 결과 카드 그림 (PNG) 만들기 — 링크 미리보기(og)·인스타 스토리(story)·피드(square).
- * 혼자 결과면 그 사람의 연애 컬러로 물든 유형 카드, 둘이면 궁합 카드가 나온다.
+ * 혼자 결과면 그 사람의 연애 컬러로 물든 유형 카드, 둘이면 궁합 카드, 결과가 없으면 테스트 소개 카드가 나온다.
+ *
+ * 디자인은 채널 게시물(scripts/make-channel-assets.ts)과 같은 말투다: 프리텐다드 Black 을 크게 · 검은 테두리와
+ * 딱 떨어지는 그림자의 스티커 · 카톡 말풍선 · 3D 이모지(Fluent). 게시물에서 본 그림을 친구가 보낸 카드에서 다시 알아보게.
  *
  * - 그림에는 유형·색·궁합처럼 답 코드에서 계산되는 것만 들어간다 (이름·대화 같은 개인정보 없음).
- * - 글꼴(Pretendard, OFL)과 이모지 그림(Twemoji, CC-BY 4.0)은 api/_assets 에 넣어 두고 읽는다 — 그릴 때 외부로 나가지 않는다.
- *   유형 이모지를 바꾸면 `npx tsx scripts/make-kkti-emoji.ts` 로 이모지 그림을 다시 받아야 한다 (테스트가 빠진 이모지를 잡는다).
+ * - 글꼴(Pretendard, OFL)·3D 이모지(Microsoft Fluent Emoji, MIT)·평면 이모지(Twemoji, CC-BY 4.0)는 api/_assets 에 넣어 두고 읽는다
+ *   — 그릴 때 외부로 나가지 않는다. 3D 가 없는 이모지(글 속에 섞인 것 등)는 Twemoji 로 그린다.
+ *   유형·등급 이모지를 바꾸면 `npx tsx scripts/fetch-fluent-emoji.ts`(3D)와 `npx tsx scripts/make-kkti-emoji.ts`(평면)를 다시 돌린다.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -12,7 +16,7 @@ import path from 'node:path';
 import { Resvg } from '@resvg/resvg-js';
 import satori from 'satori';
 
-import { KKTI_FIT_LABEL, codeLetters, hexToRgba, kktiMatch, mixHex, readableTextOn, type KktiCardShape, type KktiFit, type KktiResult } from '../src/lib/kkti';
+import { KKTI_FIT_LABEL, codeLetters, kktiMatch, readableTextOn, type KktiCardShape, type KktiFit, type KktiResult } from '../src/lib/kkti';
 
 export const CARD_SIZE: Record<KktiCardShape, { width: number; height: number }> = {
   og: { width: 1200, height: 630 },
@@ -20,15 +24,19 @@ export const CARD_SIZE: Record<KktiCardShape, { width: number; height: number }>
   square: { width: 1080, height: 1080 },
 };
 
-/** 카드에 쓰는 이모지 가운데 유형·궁합 등급에 없는 것 (이모지 그림을 받을 때 함께 받는다) */
+/** 카드에 쓰는 이모지 가운데 유형·궁합 등급·축에 없는 것 (이모지 그림을 받을 때 함께 받는다) */
 export const CARD_EXTRA_EMOJI = ['💬', '💞', '🎨', '🧬', '🔢', '📲', '⚡', '🎉', '🚀', '👀', '✨'];
 
-const INK = '#191F28';
-const INK_SOFT = '#4E5968';
-const INK_FAINT = '#8B95A1';
-const WHITE = '#FFFFFF';
+const INK = '#0E0E12';
+const PAPER = '#FFFDF7';
+const PINK = '#FF3D7F';
+const LIME = '#C6FF3D';
+const LILAC = '#B9A2FF';
+const SKY = '#7FD8FF';
+const SUN = '#FFD43D';
+const MUTED = '#55555C';
 const BRAND = 'KKTI · 카톡으로 보는 진짜 연애 MBTI';
-const FIT_COLOR: Record<KktiFit, string> = { good: '#12B886', ok: '#F59F00', care: '#F06595' };
+const FIT_BG: Record<KktiFit, string> = { good: LIME, ok: SUN, care: '#FFB3CC' };
 
 // ───────────────────────── 그림 재료 ─────────────────────────
 
@@ -51,232 +59,249 @@ function assetDir(): string {
   return candidates.find((dir) => existsSync(dir)) ?? candidates[0];
 }
 
-let fonts: { name: string; data: Buffer; weight: 500 | 700; style: 'normal' }[] | null = null;
+type Weight = 500 | 700 | 800 | 900;
+let fonts: { name: string; data: Buffer; weight: Weight; style: 'normal' }[] | null = null;
 function loadFonts() {
   fonts ??= ([
     ['Pretendard-Medium.otf', 500],
     ['Pretendard-Bold.otf', 700],
+    ['Pretendard-ExtraBold.otf', 800],
+    ['Pretendard-Black.otf', 900],
   ] as const).map(([file, weight]) => ({ name: 'Pretendard', data: readFileSync(path.join(assetDir(), 'fonts', file)), weight, style: 'normal' as const }));
   return fonts;
 }
 
 let emojiSvg: Record<string, string> | null = null;
-/** 이모지 → Twemoji SVG. 받아 둔 게 없으면 null (그 자리는 비어 보인다) */
+/** 이모지 → Twemoji SVG(평면). 받아 둔 게 없으면 null */
 export function emojiImage(emoji: string): string | null {
   emojiSvg ??= JSON.parse(readFileSync(path.join(assetDir(), 'emoji.json'), 'utf8')) as Record<string, string>;
   const svg = emojiSvg[emoji];
   return svg ? `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}` : null;
 }
 
-export function emoji(value: string, size: number): Node | null {
-  const src = emojiImage(value);
-  return src ? { type: 'img', props: { src, width: size, height: size, style: { width: size, height: size } } } : null;
+/** 3D 이모지 파일 이름 — scripts/fetch-fluent-emoji.ts 의 fluentName 과 같은 규칙 */
+export const fluentName = (emoji: string) => `${[...emoji].map((c) => c.codePointAt(0)!.toString(16)).filter((c) => c !== 'fe0f').join('-')}.png`;
+const fluentCache = new Map<string, string | null>();
+/** 이모지 → Fluent 3D PNG. 받아 둔 게 없으면 null */
+export function fluentImage(emoji: string): string | null {
+  if (!fluentCache.has(emoji)) {
+    const file = path.join(assetDir(), 'fluent', fluentName(emoji));
+    fluentCache.set(emoji, existsSync(file) ? `data:image/png;base64,${readFileSync(file).toString('base64')}` : null);
+  }
+  return fluentCache.get(emoji)!;
 }
 
-/** 색 위에 얹는 은은한 빛 (위는 밝게, 아래는 살짝 어둡게) */
-export const sheen = (): Node =>
-  box({
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundImage: 'linear-gradient(160deg, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0) 45%, rgba(0,0,0,0.12) 100%)',
-  });
+/** 3D 가 있으면 3D, 없으면 평면, 둘 다 없으면 빈자리 */
+export function emoji(value: string, size: number, style: Style = {}): Node | null {
+  const src = fluentImage(value) ?? emojiImage(value);
+  return src ? { type: 'img', props: { src, width: size, height: size, style: { width: size, height: size, ...style } } } : null;
+}
 
-export interface Tone {
+/** 검은 테두리 + 딱 떨어지는 그림자 */
+const sticker = (px: number, shadow: number, shadowColor = INK): Style => ({ border: `${px}px solid ${INK}`, boxShadow: `${shadow}px ${shadow}px 0 0 ${shadowColor}` });
+
+/** 둥근 스티커 안의 3D 이모지 */
+function emojiSticker(value: string, size: number, rotate = -6, bg = PAPER): Node {
+  return box(
+    { width: size, height: size, flexShrink: 0, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', transform: `rotate(${rotate}deg)`, ...sticker(Math.max(4, Math.round(size / 48)), Math.round(size / 22)) },
+    emoji(value, Math.round(size * 0.74)),
+  );
+}
+
+/** 카톡 말풍선 (왼쪽 아래 모서리만 뾰족) */
+function bubble(value: string, fontSize: number, style: Style = {}, bg = PAPER): Node {
+  return box(
+    { padding: `${Math.round(fontSize * 0.62)}px ${Math.round(fontSize * 0.9)}px`, borderRadius: Math.round(fontSize * 1.1), borderBottomLeftRadius: Math.round(fontSize * 0.25), backgroundColor: bg, flexShrink: 0, ...sticker(Math.max(3, Math.round(fontSize / 9)), Math.round(fontSize / 5)), ...style },
+    text(value, { fontSize, fontWeight: 700, color: INK, lineHeight: 1.35, letterSpacing: -0.5 }),
+  );
+}
+
+/** 알약 모양 이름표 — 이모지를 앞에 붙일 수 있다 */
+function pill(value: string, fontSize: number, bg: string, color: string, icon?: string, style: Style = {}): Node {
+  return box(
+    { padding: `${Math.round(fontSize * 0.42)}px ${Math.round(fontSize * 0.85)}px`, borderRadius: 999, backgroundColor: bg, alignItems: 'center', flexShrink: 0, gap: Math.round(fontSize * 0.3), ...sticker(Math.max(3, Math.round(fontSize / 10)), Math.round(fontSize / 6)), ...style },
+    icon ? emoji(icon, Math.round(fontSize * 1.15)) : null,
+    text(value, { fontSize, fontWeight: 800, color, letterSpacing: -0.3, whiteSpace: 'nowrap' }),
+  );
+}
+
+/** 유형 이름 — 두 단어 이상이면 줄을 나눠 아주 크게 */
+function nameLines(name: string): string[] {
+  const words = name.split(' ');
+  return words.length === 1 ? [name] : [words[0], words.slice(1).join(' ')];
+}
+/** 가장 긴 줄이 width 안에 들어가는 글자 크기 (한글 한 글자 ≈ 0.94em) */
+const fitSize = (lines: string[], width: number, max: number) => Math.min(max, Math.floor(width / (Math.max(...lines.map((l) => l.length)) * 0.94)));
+
+function bigName(name: string, width: number, max: number, tone: Tone, oneLine = false): Node {
+  const lines = oneLine ? [name] : nameLines(name);
+  const size = fitSize(lines, width, max);
+  const shadow = Math.max(3, Math.round(size / 22));
+  return box(
+    { flexDirection: 'column', flexShrink: 0 },
+    ...lines.map((line) => text(line, { fontSize: size, fontWeight: 900, color: tone.ink, letterSpacing: -size * 0.055, lineHeight: 1.04, textShadow: `${shadow}px ${shadow}px 0 ${tone.shadow}`, whiteSpace: 'nowrap' })),
+  );
+}
+
+/** 결과 코드 네 글자 — 종이 타일 */
+function letterTiles(result: KktiResult, size: number): Node {
+  return box(
+    { gap: Math.round(size * 0.14), flexShrink: 0 },
+    ...codeLetters(result.code).map((letter, i) =>
+      box(
+        { flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: size, height: Math.round(size * 1.08), borderRadius: Math.round(size * 0.2), backgroundColor: PAPER, transform: `rotate(${[-3, 2, -2, 3][i]}deg)`, ...sticker(Math.max(3, Math.round(size / 26)), Math.round(size / 14)) },
+        text(letter, { fontSize: Math.round(size * 0.56), fontWeight: 900, color: INK, lineHeight: 1.05, letterSpacing: -2 }),
+        text(result.axes[i].pole.label, { fontSize: Math.round(size * 0.135), fontWeight: 700, color: MUTED, marginTop: 2 }),
+      ),
+    ),
+  );
+}
+
+/** 배경에 크게 깔리는 유형 코드 글자 */
+const ghost = (value: string, size: number, color: string, style: Style): Node =>
+  box({ position: 'absolute', ...style }, text(value, { fontSize: size, fontWeight: 900, color, letterSpacing: -size * 0.06, lineHeight: 1, whiteSpace: 'nowrap' }));
+
+interface Tone {
   ink: string;
-  soft: string;
-  glass: string;
+  shadow: string;
+  ghost: string;
 }
-export function toneOn(hex: string): Tone {
-  const ink = readableTextOn(hex);
-  const light = ink === WHITE;
-  return { ink, soft: light ? 'rgba(255,255,255,0.88)' : 'rgba(25,31,40,0.74)', glass: light ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.5)' };
+/** 연애 컬러 위에서 읽히는 글자색 — 밝은 바탕엔 검정 글자 + 흰 그림자, 어두운 바탕엔 그 반대 */
+function toneOn(hex: string): Tone {
+  const light = readableTextOn(hex) === '#FFFFFF';
+  return light ? { ink: PAPER, shadow: INK, ghost: 'rgba(255,255,255,0.10)' } : { ink: INK, shadow: PAPER, ghost: 'rgba(14,14,18,0.08)' };
+}
+
+const kktiTag = (fontSize: number): Node => box({ padding: `${Math.round(fontSize * 0.36)}px ${Math.round(fontSize * 0.76)}px`, borderRadius: 999, backgroundColor: INK, flexShrink: 0 }, text('KKTI', { fontSize, fontWeight: 900, color: PAPER, letterSpacing: 1 }));
+
+/** 맨 위 줄 — 처음 보는 사람도 아는 「진짜 MBTI」로 결과를 먼저 말한다 */
+const mbtiLine = (result: KktiResult) => `카톡 속 진짜 MBTI는 ${result.mbti.type}`;
+function topBar(right: Node, tagSize: number): Node {
+  return box({ justifyContent: 'space-between', alignItems: 'center', width: '100%', flexShrink: 0, gap: 16 }, kktiTag(tagSize), right);
+}
+
+/** 「너도 하면 나랑 궁합 나옴」 — 검은 알약에 흰 그림자 */
+function cta(value: string, fontSize: number, style: Style = {}): Node {
+  return box(
+    { alignItems: 'center', flexShrink: 0, gap: Math.round(fontSize * 0.34), padding: `${Math.round(fontSize * 0.5)}px ${Math.round(fontSize * 0.9)}px`, borderRadius: 999, backgroundColor: INK, boxShadow: `${Math.round(fontSize / 4)}px ${Math.round(fontSize / 4)}px 0 0 ${PAPER}`, ...style },
+    emoji('💞', Math.round(fontSize * 1.2)),
+    text(value, { fontSize, fontWeight: 900, color: PAPER, whiteSpace: 'nowrap' }),
+  );
 }
 
 // ───────────────────────── 혼자 결과 ─────────────────────────
 
-export function letterTiles(result: KktiResult, tone: Tone, size: number): Node {
-  return box(
-    { gap: Math.round(size * 0.1) },
-    ...codeLetters(result.code).map((letter, i) =>
-      box(
-        { flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: size, height: Math.round(size * 1.12), borderRadius: Math.round(size * 0.22), backgroundColor: tone.glass },
-        text(letter, { fontSize: Math.round(size * 0.56), fontWeight: 700, color: tone.ink, lineHeight: 1.1 }),
-        text(result.axes[i].pole.label, { fontSize: Math.round(size * 0.135), fontWeight: 500, color: tone.soft, marginTop: Math.round(size * 0.04) }),
-      ),
-    ),
-  );
-}
-
-/** 맨 위 띠 — 처음 보는 사람도 아는 「진짜 MBTI」로 결과를 먼저 말한다 */
-function mbtiPill(result: KktiResult, tone: Tone, fontSize: number): Node {
-  return box(
-    { alignItems: 'center', flexShrink: 0, gap: Math.round(fontSize * 0.3), padding: `${Math.round(fontSize * 0.4)}px ${Math.round(fontSize * 0.95)}px`, borderRadius: 999, backgroundColor: tone.glass },
-    emoji('🧬', Math.round(fontSize * 1.05)),
-    text(`카톡 속 진짜 MBTI는 ${result.mbti.type}`, { fontSize, fontWeight: 700, color: tone.ink }),
-  );
-}
-
-/** MBTI 는 맨 위 띠에 있으므로 여기엔 컬러·애니어그램만 */
-function chips(result: KktiResult, tone: Tone, fontSize: number): Node {
-  const items: [string, string][] = [
-    ['🎨', result.color.name],
-    ['🔢', result.enneagram.title],
-  ];
-  return box(
-    { flexWrap: 'wrap', justifyContent: 'center', gap: Math.round(fontSize * 0.4) },
-    ...items.map(([icon, label]) =>
-      box(
-        { alignItems: 'center', gap: Math.round(fontSize * 0.3), padding: `${Math.round(fontSize * 0.34)}px ${Math.round(fontSize * 0.7)}px`, borderRadius: 999, backgroundColor: tone.glass },
-        emoji(icon, Math.round(fontSize * 1.05)),
-        text(label, { fontSize, fontWeight: 700, color: tone.ink }),
-      ),
-    ),
-  );
-}
-
-function axisBars(result: KktiResult, tone: Tone, width: number): Node {
-  return box(
-    { flexDirection: 'column', width, gap: 22 },
-    ...result.axes.map((axis) => {
-      const plusSide = axis.pole.letter === axis.plus.letter;
-      return box(
-        { flexDirection: 'column', gap: 10 },
-        box(
-          { justifyContent: 'space-between' },
-          text(`${axis.plus.letter} ${axis.plus.label}`, { fontSize: 30, fontWeight: plusSide ? 700 : 500, color: plusSide ? tone.ink : tone.soft }),
-          text(`${axis.minus.label} ${axis.minus.letter}`, { fontSize: 30, fontWeight: plusSide ? 500 : 700, color: plusSide ? tone.soft : tone.ink }),
-        ),
-        box(
-          { height: 22, borderRadius: 11, backgroundColor: tone.glass, justifyContent: plusSide ? 'flex-start' : 'flex-end' },
-          box({ width: `${axis.percent}%`, height: 22, borderRadius: 11, backgroundColor: tone.ink }),
-        ),
-      );
-    }),
-  );
-}
-
 function soloStory(result: KktiResult): Node {
   const tone = toneOn(result.color.hex);
   return box(
-    { width: '100%', height: '100%', flexDirection: 'column', alignItems: 'center', backgroundColor: result.color.hex, fontFamily: 'Pretendard', padding: '170px 90px 190px' },
-    sheen(),
-    mbtiPill(result, tone, 34),
-    box({ marginTop: 40, width: 250, height: 250, flexShrink: 0, borderRadius: 125, backgroundColor: tone.glass, alignItems: 'center', justifyContent: 'center' }, emoji(result.type.emoji, 144)),
-    box({ marginTop: 40, flexShrink: 0 }, letterTiles(result, tone, 172)),
-    text(result.type.name, { marginTop: 36, flexShrink: 0, fontSize: result.type.name.length > 7 ? 88 : 104, fontWeight: 700, color: tone.ink, letterSpacing: -2 }),
-    text(result.type.oneLiner, { marginTop: 14, fontSize: 38, fontWeight: 500, color: tone.soft, textAlign: 'center', justifyContent: 'center', lineHeight: 1.4, maxWidth: 860 }),
-    box({ marginTop: 36, flexShrink: 0 }, chips(result, tone, 32)),
-    box({ marginTop: 48, flexShrink: 0 }, axisBars(result, tone, 860)),
+    { width: '100%', height: '100%', flexDirection: 'column', backgroundColor: result.color.hex, fontFamily: 'Pretendard', padding: '190px 72px 250px', overflow: 'hidden' },
+    ghost(result.code, 330, tone.ghost, { left: -30, bottom: -50, transform: 'rotate(-6deg)' }),
+    topBar(pill(mbtiLine(result), 32, PAPER, INK, '🧬'), 38),
+    box({ marginTop: 60, justifyContent: 'center', flexShrink: 0 }, emojiSticker(result.type.emoji, 300, -6)),
+    box({ marginTop: 50, justifyContent: 'center', flexShrink: 0 }, letterTiles(result, 140)),
+    box({ marginTop: 48 }, bigName(result.type.name, 936, 180, tone)),
+    box({ marginTop: 32, alignSelf: 'flex-start' }, bubble(result.type.oneLiner, 36, { maxWidth: 936 })),
+    box({ marginTop: 28, gap: 16, flexWrap: 'wrap', flexShrink: 0 }, pill(result.color.name, 28, PAPER, INK, '🎨'), pill(result.enneagram.title, 28, PAPER, INK, '🔢')),
     box({ flexGrow: 1 }),
-    box(
-      { alignItems: 'center', gap: 14, flexShrink: 0, padding: '22px 44px', borderRadius: 999, backgroundColor: tone.ink },
-      emoji('💞', 44),
-      text('너도 하면 나랑 궁합이 나와', { fontSize: 38, fontWeight: 700, color: tone.ink === WHITE ? INK : WHITE }),
-    ),
-    text(BRAND, { marginTop: 24, fontSize: 28, fontWeight: 500, color: tone.soft }),
+    cta('너도 하면 나랑 궁합 나옴', 38, { alignSelf: 'flex-start' }),
+    text(BRAND, { marginTop: 26, fontSize: 26, fontWeight: 700, color: tone.ink, flexShrink: 0 }),
   );
 }
 
 function soloSquare(result: KktiResult): Node {
   const tone = toneOn(result.color.hex);
   return box(
-    { width: '100%', height: '100%', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: result.color.hex, fontFamily: 'Pretendard', padding: 70 },
-    sheen(),
-    mbtiPill(result, tone, 30),
-    box({ marginTop: 30, width: 210, height: 210, borderRadius: 105, backgroundColor: tone.glass, alignItems: 'center', justifyContent: 'center' }, emoji(result.type.emoji, 120)),
-    box({ marginTop: 30 }, letterTiles(result, tone, 150)),
-    text(result.type.name, { marginTop: 30, fontSize: result.type.name.length > 7 ? 76 : 90, fontWeight: 700, color: tone.ink, letterSpacing: -2 }),
-    text(result.type.oneLiner, { marginTop: 10, fontSize: 32, fontWeight: 500, color: tone.soft, textAlign: 'center', justifyContent: 'center', lineHeight: 1.4, maxWidth: 880 }),
-    box({ marginTop: 30 }, chips(result, tone, 28)),
-    text(BRAND, { marginTop: 34, fontSize: 26, fontWeight: 500, color: tone.soft }),
+    { width: '100%', height: '100%', flexDirection: 'column', backgroundColor: result.color.hex, fontFamily: 'Pretendard', padding: 64, overflow: 'hidden' },
+    ghost(result.code, 330, tone.ghost, { right: -40, bottom: -70, transform: 'rotate(-8deg)' }),
+    topBar(pill(mbtiLine(result), 28, PAPER, INK, '🧬'), 34),
+    box({ marginTop: 40, alignItems: 'center', gap: 40, flexShrink: 0 }, emojiSticker(result.type.emoji, 210, -7), letterTiles(result, 110)),
+    box({ marginTop: 36 }, bigName(result.type.name, 952, 160, tone)),
+    box({ flexGrow: 1 }),
+    box({ alignSelf: 'flex-start' }, bubble(result.type.oneLiner, 30, { maxWidth: 952 })),
+    box({ marginTop: 28, justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }, cta('너도 하면 나랑 궁합 나옴', 28), text('KKTI 1분 테스트', { fontSize: 24, fontWeight: 800, color: tone.ink })),
   );
 }
 
 function soloOg(result: KktiResult): Node {
   const tone = toneOn(result.color.hex);
   return box(
-    { width: '100%', height: '100%', backgroundColor: result.color.hex, fontFamily: 'Pretendard', padding: '54px 64px', alignItems: 'center', gap: 56 },
-    sheen(),
+    { width: '100%', height: '100%', backgroundColor: result.color.hex, fontFamily: 'Pretendard', padding: '44px 56px', alignItems: 'center', gap: 48, overflow: 'hidden' },
+    ghost(result.code, 260, tone.ghost, { right: -30, bottom: -60, transform: 'rotate(-8deg)' }),
+    box({ flexDirection: 'column', alignItems: 'center', gap: 30, flexShrink: 0 }, emojiSticker(result.type.emoji, 230, -7), letterTiles(result, 72)),
     box(
-      { flexDirection: 'column', alignItems: 'center', gap: 26 },
-      box({ width: 230, height: 230, borderRadius: 115, backgroundColor: tone.glass, alignItems: 'center', justifyContent: 'center' }, emoji(result.type.emoji, 132)),
-      letterTiles(result, tone, 78),
-    ),
-    box(
-      { flexDirection: 'column', flexGrow: 1, flexShrink: 1, flexBasis: 0, gap: 14 },
-      box({ alignSelf: 'flex-start' }, mbtiPill(result, tone, 30)),
-      text(result.type.name, { fontSize: result.type.name.length > 7 ? 78 : 92, fontWeight: 700, color: tone.ink, letterSpacing: -2, lineHeight: 1.12 }),
-      text(result.type.oneLiner, { fontSize: 32, fontWeight: 500, color: tone.soft, lineHeight: 1.38 }),
-      box(
-        { marginTop: 14, alignSelf: 'flex-start', alignItems: 'center', gap: 12, padding: '16px 30px', borderRadius: 999, backgroundColor: tone.ink },
-        emoji('💞', 34),
-        text('너도 하면 나랑 궁합이 나와', { fontSize: 30, fontWeight: 700, color: tone.ink === WHITE ? INK : WHITE }),
-      ),
-      text(`KKTI ${result.code} · 1분 · 12문항`, { fontSize: 22, fontWeight: 500, color: tone.soft }),
+      { flexDirection: 'column', flexGrow: 1, flexShrink: 1, flexBasis: 0, gap: 18 },
+      box({ gap: 12, alignItems: 'center' }, kktiTag(24), pill(mbtiLine(result), 24, PAPER, INK, '🧬')),
+      bigName(result.type.name, 700, 112, tone),
+      box({ alignSelf: 'flex-start' }, bubble(result.type.oneLiner, 24, { maxWidth: 700 })),
+      cta('너도 하면 나랑 궁합 나옴', 26, { marginTop: 6, alignSelf: 'flex-start' }),
     ),
   );
 }
 
 // ───────────────────────── 둘의 궁합 ─────────────────────────
 
-function person(result: KktiResult, circle: number, nameSize: number): Node {
+/** 대각선으로 반씩 두 사람의 연애 컬러 */
+const pairBackground = (a: KktiResult, b: KktiResult) => `linear-gradient(135deg, ${a.color.hex} 0%, ${a.color.hex} 50%, ${b.color.hex} 50%, ${b.color.hex} 100%)`;
+
+function person(result: KktiResult, size: number, nameSize: number, rotate: number): Node {
   return box(
-    { flexDirection: 'column', alignItems: 'center', gap: Math.round(circle * 0.1), width: Math.round(circle * 1.7) },
-    box(
-      { width: circle, height: circle, flexShrink: 0, borderRadius: circle / 2, backgroundColor: mixHex(result.color.hex, WHITE, 0.45), alignItems: 'center', justifyContent: 'center', border: `${Math.max(5, Math.round(circle * 0.04))}px solid ${result.color.hex}` },
-      emoji(result.type.emoji, Math.round(circle * 0.56)),
-    ),
-    text(result.type.name, { fontSize: nameSize, fontWeight: 700, color: INK, textAlign: 'center', justifyContent: 'center' }),
-    text(`${result.mbti.type} · ${result.code}`, { fontSize: Math.round(nameSize * 0.7), fontWeight: 500, color: INK_FAINT }),
+    { flexDirection: 'column', alignItems: 'center', gap: Math.round(size * 0.08), width: Math.round(size * 1.6), flexShrink: 0 },
+    emojiSticker(result.type.emoji, size, rotate, result.color.hex),
+    text(result.type.name, { marginTop: Math.round(size * 0.06), fontSize: nameSize, fontWeight: 900, color: INK, letterSpacing: -1, textAlign: 'center', justifyContent: 'center' }),
+    text(`${result.mbti.type} · ${result.code}`, { fontSize: Math.round(nameSize * 0.72), fontWeight: 700, color: MUTED }),
   );
 }
 
-const pairBackground = (a: KktiResult, b: KktiResult) => `linear-gradient(140deg, ${a.color.hex} 0%, ${mixHex(a.color.hex, b.color.hex, 0.5)} 50%, ${b.color.hex} 100%)`;
+function percent(value: number, size: number): Node {
+  const shadow = Math.round(size / 24);
+  return box(
+    { alignItems: 'flex-end', flexShrink: 0 },
+    text(String(value), { fontSize: size, fontWeight: 900, color: INK, letterSpacing: -size * 0.06, lineHeight: 1, textShadow: `${shadow}px ${shadow}px 0 ${PINK}` }),
+    text('%', { fontSize: Math.round(size * 0.44), fontWeight: 900, color: INK, marginBottom: Math.round(size * 0.1), marginLeft: 4 }),
+  );
+}
 
 function matchRows(a: KktiResult, b: KktiResult, width: number): Node {
   const match = kktiMatch(a, b);
   return box(
-    { flexDirection: 'column', width, gap: 16 },
+    { flexDirection: 'column', width, gap: 14, flexShrink: 0 },
     ...match.axes.map((axis) =>
       box(
-        { alignItems: 'center', gap: 22, padding: '18px 26px', borderRadius: 30, backgroundColor: '#F4F6F8' },
-        emoji(axis.emoji, 46),
+        { alignItems: 'center', gap: 18, padding: '12px 22px', borderRadius: 26, backgroundColor: PAPER, border: `3px solid ${INK}` },
+        emoji(axis.emoji, 48),
         box(
           { flexDirection: 'column', flexGrow: 1, flexShrink: 1, flexBasis: 0, gap: 6 },
           box(
             { alignItems: 'center', gap: 12 },
-            text(axis.label, { fontSize: 30, fontWeight: 700, color: INK }),
-            box({ padding: '4px 16px', borderRadius: 999, backgroundColor: hexToRgba(FIT_COLOR[axis.fit], 0.16) }, text(KKTI_FIT_LABEL[axis.fit], { fontSize: 22, fontWeight: 700, color: FIT_COLOR[axis.fit] })),
+            text(axis.label, { fontSize: 28, fontWeight: 900, color: INK }),
+            box({ padding: '3px 14px', borderRadius: 999, backgroundColor: FIT_BG[axis.fit], border: `2px solid ${INK}` }, text(KKTI_FIT_LABEL[axis.fit], { fontSize: 20, fontWeight: 800, color: INK })),
           ),
-          text(axis.line, { fontSize: 26, fontWeight: 500, color: INK_SOFT, lineHeight: 1.36 }),
+          text(axis.line, { fontSize: 24, fontWeight: 700, color: MUTED, lineHeight: 1.35 }),
         ),
       ),
     ),
   );
 }
 
+/** 흰 종이 판 (검은 테두리 + 그림자) */
+const paperCard = (style: Style, ...children: Child[]): Node =>
+  box({ flexDirection: 'column', alignItems: 'center', backgroundColor: PAPER, ...sticker(6, 16), ...style }, ...children);
+
 function pairStory(a: KktiResult, b: KktiResult): Node {
   const match = kktiMatch(a, b);
   return box(
-    { width: '100%', height: '100%', flexDirection: 'column', alignItems: 'center', backgroundImage: pairBackground(a, b), fontFamily: 'Pretendard', padding: '180px 60px 200px' },
-    box(
-      { flexDirection: 'column', alignItems: 'center', width: '100%', flexGrow: 1, borderRadius: 64, backgroundColor: WHITE, padding: '54px 50px 46px' },
-      box({ alignItems: 'center', gap: 12, padding: '12px 30px', borderRadius: 999, backgroundColor: '#F4F6F8' }, emoji('💬', 34), text('KKTI · 카톡 MBTI 궁합', { fontSize: 32, fontWeight: 700, color: INK })),
-      box({ marginTop: 34, flexShrink: 0, alignItems: 'flex-start', justifyContent: 'center' }, person(a, 180, 36), text('×', { fontSize: 60, fontWeight: 500, color: INK_FAINT, marginTop: 52 }), person(b, 180, 36)),
-      box(
-        { marginTop: 18, flexShrink: 0, alignItems: 'flex-end' },
-        text(String(match.percent), { fontSize: 200, fontWeight: 700, color: INK, letterSpacing: -7, lineHeight: 1 }),
-        text('%', { fontSize: 84, fontWeight: 700, color: INK, marginBottom: 24, marginLeft: 6 }),
-      ),
-      box({ marginTop: 6, flexShrink: 0, alignItems: 'center', gap: 14, padding: '14px 36px', borderRadius: 999, backgroundColor: INK }, emoji(match.tier.emoji, 44), text(match.tier.label, { fontSize: 44, fontWeight: 700, color: WHITE })),
-      text(match.tier.line, { marginTop: 18, flexShrink: 0, fontSize: 32, fontWeight: 500, color: INK_SOFT, textAlign: 'center', justifyContent: 'center' }),
-      box({ marginTop: 28, flexShrink: 0 }, matchRows(a, b, 860)),
+    { width: '100%', height: '100%', flexDirection: 'column', backgroundImage: pairBackground(a, b), fontFamily: 'Pretendard', padding: '180px 56px 236px' },
+    paperCard(
+      { width: '100%', flexGrow: 1, borderRadius: 56, padding: '44px 44px 40px' },
+      topBar(pill('카톡 MBTI 궁합', 30, PAPER, INK, '💬'), 34),
+      box({ marginTop: 26, alignItems: 'flex-start', justifyContent: 'center', gap: 6, flexShrink: 0 }, person(a, 176, 32, -7), text('×', { fontSize: 72, fontWeight: 900, color: INK, marginTop: 50 }), person(b, 176, 32, 7)),
+      box({ marginTop: 6 }, percent(match.percent, 210)),
+      pill(match.tier.label, 46, INK, PAPER, match.tier.emoji, { marginTop: 8 }),
+      box({ marginTop: 22 }, bubble(match.tier.line, 30)),
+      box({ marginTop: 26 }, matchRows(a, b, 880)),
       box({ flexGrow: 1 }),
-      text('너도 1분 테스트 하고 나랑 궁합 보기', { flexShrink: 0, fontSize: 32, fontWeight: 700, color: INK }),
-      text(BRAND, { marginTop: 8, flexShrink: 0, fontSize: 26, fontWeight: 500, color: INK_FAINT }),
+      text('너도 1분 테스트 하고 나랑 궁합 보기', { marginTop: 20, flexShrink: 0, fontSize: 32, fontWeight: 900, color: INK }),
+      text(BRAND, { marginTop: 8, flexShrink: 0, fontSize: 24, fontWeight: 700, color: MUTED }),
     ),
   );
 }
@@ -284,19 +309,15 @@ function pairStory(a: KktiResult, b: KktiResult): Node {
 function pairSquare(a: KktiResult, b: KktiResult): Node {
   const match = kktiMatch(a, b);
   return box(
-    { width: '100%', height: '100%', backgroundImage: pairBackground(a, b), fontFamily: 'Pretendard', padding: 56 },
-    box(
-      { flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', borderRadius: 60, backgroundColor: WHITE, padding: 44 },
-      box({ alignItems: 'center', gap: 12, padding: '12px 30px', borderRadius: 999, backgroundColor: '#F4F6F8' }, emoji('💬', 32), text('KKTI · 카톡 MBTI 궁합', { fontSize: 30, fontWeight: 700, color: INK })),
-      box({ marginTop: 34, alignItems: 'flex-start', justifyContent: 'center' }, person(a, 190, 34), text('×', { fontSize: 60, fontWeight: 500, color: INK_FAINT, marginTop: 56 }), person(b, 190, 34)),
-      box(
-        { marginTop: 18, alignItems: 'flex-end' },
-        text(String(match.percent), { fontSize: 210, fontWeight: 700, color: INK, letterSpacing: -8, lineHeight: 1 }),
-        text('%', { fontSize: 88, fontWeight: 700, color: INK, marginBottom: 26, marginLeft: 6 }),
-      ),
-      box({ marginTop: 6, alignItems: 'center', gap: 14, padding: '14px 34px', borderRadius: 999, backgroundColor: INK }, emoji(match.tier.emoji, 40), text(match.tier.label, { fontSize: 40, fontWeight: 700, color: WHITE })),
-      text(match.tier.line, { marginTop: 20, fontSize: 30, fontWeight: 500, color: INK_SOFT, textAlign: 'center', justifyContent: 'center' }),
-      text(BRAND, { marginTop: 26, fontSize: 24, fontWeight: 500, color: INK_FAINT }),
+    { width: '100%', height: '100%', flexDirection: 'column', backgroundImage: pairBackground(a, b), fontFamily: 'Pretendard', padding: 52 },
+    paperCard(
+      { width: '100%', height: '100%', justifyContent: 'center', borderRadius: 52, padding: '36px 40px' },
+      topBar(pill('카톡 MBTI 궁합', 26, PAPER, INK, '💬'), 30),
+      box({ marginTop: 20, alignItems: 'flex-start', justifyContent: 'center', gap: 4, flexShrink: 0 }, person(a, 170, 30, -7), text('×', { fontSize: 64, fontWeight: 900, color: INK, marginTop: 50 }), person(b, 170, 30, 7)),
+      percent(match.percent, 200),
+      pill(match.tier.label, 42, INK, PAPER, match.tier.emoji, { marginTop: 4 }),
+      box({ marginTop: 20 }, bubble(match.tier.line, 26)),
+      text('너도 1분 테스트 하고 나랑 궁합 보기', { marginTop: 22, flexShrink: 0, fontSize: 26, fontWeight: 900, color: INK }),
     ),
   );
 }
@@ -304,43 +325,52 @@ function pairSquare(a: KktiResult, b: KktiResult): Node {
 function pairOg(a: KktiResult, b: KktiResult): Node {
   const match = kktiMatch(a, b);
   return box(
-    { width: '100%', height: '100%', backgroundImage: pairBackground(a, b), fontFamily: 'Pretendard', padding: 40 },
-    box(
-      { alignItems: 'center', justifyContent: 'space-between', width: '100%', height: '100%', borderRadius: 48, backgroundColor: WHITE, padding: '30px 36px' },
-      person(a, 170, 32),
+    { width: '100%', height: '100%', backgroundImage: pairBackground(a, b), fontFamily: 'Pretendard', padding: 36 },
+    paperCard(
+      { flexDirection: 'row', justifyContent: 'space-between', width: '100%', height: '100%', borderRadius: 44, padding: '26px 30px' },
+      person(a, 168, 30, -7),
       box(
         { flexDirection: 'column', alignItems: 'center', flexGrow: 1 },
-        text('KKTI · 카톡 MBTI 궁합', { fontSize: 28, fontWeight: 700, color: INK_FAINT }),
-        box(
-          { alignItems: 'flex-end' },
-          text(String(match.percent), { fontSize: 190, fontWeight: 700, color: INK, letterSpacing: -6, lineHeight: 1.05 }),
-          text('%', { fontSize: 80, fontWeight: 700, color: INK, marginBottom: 26, marginLeft: 4 }),
-        ),
-        box({ alignItems: 'center', gap: 12, padding: '12px 30px', borderRadius: 999, backgroundColor: INK }, emoji(match.tier.emoji, 36), text(match.tier.label, { fontSize: 36, fontWeight: 700, color: WHITE })),
-        text('너도 테스트 하고 나랑 궁합 보기', { marginTop: 22, fontSize: 26, fontWeight: 700, color: INK_SOFT }),
+        box({ gap: 10, alignItems: 'center' }, kktiTag(22), pill('카톡 MBTI 궁합', 22, PAPER, INK, '💬')),
+        box({ marginTop: 6 }, percent(match.percent, 190)),
+        pill(match.tier.label, 34, INK, PAPER, match.tier.emoji),
+        text('너도 테스트 하고 나랑 궁합 보기', { marginTop: 22, fontSize: 24, fontWeight: 900, color: INK }),
       ),
-      person(b, 170, 32),
+      person(b, 168, 30, 7),
     ),
   );
 }
 
 // ───────────────────────── 결과가 없을 때 (테스트 소개) ─────────────────────────
 
-const INTRO_BACKGROUND = 'linear-gradient(135deg, #FFD9E4 0%, #E6DEFF 50%, #D6ECFF 100%)';
-
+/** 캐러셀 표지와 같은 그림 — 검은 바탕에 연두 KKTI, 카톡 말풍선과 동물 스티커 */
 function intro(shape: KktiCardShape): Node {
-  const tall = shape !== 'og';
-  const scale = shape === 'story' ? 1.25 : shape === 'square' ? 1.1 : 1;
-  const px = (n: number) => Math.round(n * scale);
+  const wide = shape === 'og';
+  const k = shape === 'story' ? 1.25 : 1;
+  const px = (n: number) => Math.round(n * k);
+  const deco: [Style, Node][] = wide
+    ? [
+        [{ right: 330, top: 58, transform: 'rotate(-8deg)' }, bubble('뭐해?', 34)],
+        [{ right: 60, top: 96, transform: 'rotate(6deg)' }, bubble('ㅋㅋㅋㅋㅋㅋ', 34, {}, LIME)],
+        [{ right: 90, bottom: 70, transform: 'rotate(-5deg)' }, bubble('자니…?', 34, {}, LILAC)],
+        [{ right: 210, top: 250 }, emojiSticker('🦊', 150, -10, SKY)],
+        [{ right: 360, bottom: 64 }, emojiSticker('🐹', 120, 8, SUN)],
+      ]
+    : [
+        [{ left: px(60), top: px(shape === 'story' ? 240 : 70), transform: 'rotate(-8deg)' }, bubble('뭐해?', px(40))],
+        [{ right: px(60), top: px(shape === 'story' ? 330 : 120), transform: 'rotate(6deg)' }, bubble('ㅋㅋㅋㅋㅋㅋ', px(40), {}, LIME)],
+        [{ right: px(110), bottom: px(shape === 'story' ? 330 : 110), transform: 'rotate(-5deg)' }, bubble('자니…?', px(40), {}, LILAC)],
+        [{ left: px(70), bottom: px(shape === 'story' ? 360 : 120) }, emojiSticker('🦊', px(150), -10, SKY)],
+        [{ left: px(250), bottom: px(shape === 'story' ? 300 : 70) }, emojiSticker('🐹', px(120), 8, SUN)],
+      ];
+  const big = wide ? 230 : px(300);
   return box(
-    { width: '100%', height: '100%', flexDirection: tall ? 'column' : 'row', alignItems: 'center', justifyContent: 'center', gap: px(tall ? 36 : 60), backgroundImage: INTRO_BACKGROUND, fontFamily: 'Pretendard', padding: px(70) },
-    box({ width: px(230), height: px(230), borderRadius: px(115), backgroundImage: 'linear-gradient(135deg, #FF7EA5 0%, #9B8CFF 100%)', alignItems: 'center', justifyContent: 'center' }, emoji('💬', px(124))),
-    box(
-      { flexDirection: 'column', alignItems: tall ? 'center' : 'flex-start', gap: px(12) },
-      text('KKTI', { fontSize: px(150), fontWeight: 700, color: INK, letterSpacing: -4, lineHeight: 1 }),
-      text('카톡으로 보는 진짜 연애 MBTI', { fontSize: px(46), fontWeight: 700, color: INK }),
-      text('1분 · 12문항 · 친구랑 궁합까지', { fontSize: px(32), fontWeight: 500, color: INK_SOFT }),
-    ),
+    { width: '100%', height: '100%', flexDirection: 'column', justifyContent: 'center', backgroundColor: INK, fontFamily: 'Pretendard', padding: wide ? '0 70px' : shape === 'story' ? '220px 80px 280px' : 70, overflow: 'hidden' },
+    ...deco.map(([style, node]) => box({ position: 'absolute', ...style }, node)),
+    text('KKTI', { fontSize: big, fontWeight: 900, color: LIME, letterSpacing: -Math.round(big * 0.06), lineHeight: 0.95, textShadow: `${Math.round(big / 30)}px ${Math.round(big / 30)}px 0 ${PINK}` }),
+    text('카톡으로 보는', { marginTop: px(20), fontSize: wide ? 54 : px(64), fontWeight: 900, color: PAPER, letterSpacing: -2 }),
+    text('진짜 연애 MBTI', { fontSize: wide ? 54 : px(64), fontWeight: 900, color: PAPER, letterSpacing: -2 }),
+    box({ marginTop: px(30), alignSelf: 'flex-start' }, pill('1분 · 12문항 · 친구랑 궁합까지 →', wide ? 28 : px(34), PINK, PAPER)),
   );
 }
 
@@ -353,14 +383,14 @@ export function cardTree(shape: KktiCardShape, a: KktiResult | null, w: KktiResu
   return shape === 'story' ? soloStory(a) : shape === 'square' ? soloSquare(a) : soloOg(a);
 }
 
-/** 뼈대를 PNG 로 (게시용 그림을 만드는 scripts/make-channel-assets.ts 도 이걸 쓴다) */
+/** 뼈대를 PNG 로 */
 export async function renderTree(tree: Node, width: number, height: number): Promise<Buffer> {
   const svg = await satori(tree as unknown as Parameters<typeof satori>[0], {
     width,
     height,
     fonts: loadFonts(),
-    // 글 안에 섞인 이모지는 받아 둔 그림으로 (없으면 빈 그림)
-    loadAdditionalAsset: async (code, segment) => (code === 'emoji' ? (emojiImage(segment) ?? '') : ''),
+    // 글 안에 섞인 이모지는 받아 둔 그림으로 (3D → 평면 → 빈 그림)
+    loadAdditionalAsset: async (code, segment) => (code === 'emoji' ? (fluentImage(segment) ?? emojiImage(segment) ?? '') : ''),
   });
   return Buffer.from(new Resvg(svg, { fitTo: { mode: 'width', value: width } }).render().asPng());
 }

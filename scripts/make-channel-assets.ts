@@ -4,7 +4,7 @@
  *   npx tsx scripts/make-channel-assets.ts
  *
  * 디자인: 프리텐다드 Black·ExtraBold 를 크게 · 검은 테두리와 딱 떨어지는 그림자의 스티커 · 카톡 말풍선 · 3D 이모지(Fluent).
- * 앱 안의 공유 카드(api/_kkti-card)와는 따로 그린다 (그쪽은 서버에서 그리는 가벼운 판).
+ * 앱 안의 공유 카드(api/_kkti-card)도 같은 디자인이지만 코드는 따로다 (서버 함수는 api/_assets 의 글꼴·3D 이모지만 읽는다).
  *
  * - types-square/01-esfj.png … : 16유형 소개 카드 (1080×1080 — 인스타 캐러셀·X·스레드). 번호는 KKTI_CODES 순서
  * - types-story/… : 같은 카드의 세로판 (1080×1920 — 인스타 스토리·틱톡 포토)
