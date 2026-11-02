@@ -1,0 +1,366 @@
+{
+  "results": [
+    {
+      "file": "screen-1-home",
+      "fontsLoaded": true,
+      "minTextPx": 33,
+      "buttons": [
+        {
+          "label": "알림",
+          "x": 987,
+          "y": 156,
+          "width": 120,
+          "height": 120,
+          "bottom": 276
+        },
+        {
+          "label": "캡처 올리기",
+          "x": 144,
+          "y": 1043,
+          "width": 891,
+          "height": 156,
+          "bottom": 1199
+        },
+        {
+          "label": "상황 보내기",
+          "x": 948,
+          "y": 1599,
+          "width": 120,
+          "height": 120,
+          "bottom": 1719
+        },
+        {
+          "label": "전체 보기",
+          "x": 938,
+          "y": 1809,
+          "width": 169,
+          "height": 120,
+          "bottom": 1929
+        },
+        {
+          "label": "홈",
+          "x": 90,
+          "y": 2331,
+          "width": 210,
+          "height": 144,
+          "bottom": 2475
+        },
+        {
+          "label": "탐색",
+          "x": 485,
+          "y": 2331,
+          "width": 210,
+          "height": 144,
+          "bottom": 2475
+        },
+        {
+          "label": "마이",
+          "x": 879,
+          "y": 2331,
+          "width": 210,
+          "height": 144,
+          "bottom": 2475
+        }
+      ],
+      "images": [
+        {
+          "src": "assets/bubble-3d.png",
+          "loaded": true
+        }
+      ],
+      "textOutsideCanvas": [],
+      "sections": [
+        {
+          "class": "recent",
+          "x": 72,
+          "y": 1809,
+          "width": 1035,
+          "height": 456,
+          "bottom": 2265
+        },
+        {
+          "class": "tabbar",
+          "x": 0,
+          "y": 2298,
+          "width": 1179,
+          "height": 258,
+          "bottom": 2556
+        }
+      ]
+    },
+    {
+      "file": "screen-2-result",
+      "fontsLoaded": true,
+      "minTextPx": 36,
+      "buttons": [
+        {
+          "label": "뒤로",
+          "x": 42,
+          "y": 156,
+          "width": 120,
+          "height": 120,
+          "bottom": 276
+        },
+        {
+          "label": "더 보기",
+          "x": 1017,
+          "y": 156,
+          "width": 120,
+          "height": 120,
+          "bottom": 276
+        },
+        {
+          "label": "복사",
+          "x": 945,
+          "y": 1269,
+          "width": 132,
+          "height": 120,
+          "bottom": 1389
+        },
+        {
+          "label": "복사",
+          "x": 945,
+          "y": 1620,
+          "width": 132,
+          "height": 120,
+          "bottom": 1740
+        },
+        {
+          "label": "복사",
+          "x": 945,
+          "y": 1971,
+          "width": 132,
+          "height": 120,
+          "bottom": 2091
+        }
+      ],
+      "images": [
+        {
+          "src": "assets/bubble-3d.png",
+          "loaded": true
+        }
+      ],
+      "textOutsideCanvas": [],
+      "sections": [
+        {
+          "class": "temperature",
+          "x": 72,
+          "y": 2160,
+          "width": 1035,
+          "height": 189,
+          "bottom": 2349
+        }
+      ]
+    },
+    {
+      "file": "screen-3-kkti",
+      "fontsLoaded": true,
+      "minTextPx": 33,
+      "buttons": [
+        {
+          "label": "뒤로",
+          "x": 42,
+          "y": 156,
+          "width": 120,
+          "height": 120,
+          "bottom": 276
+        },
+        {
+          "label": "닫기",
+          "x": 1017,
+          "y": 156,
+          "width": 120,
+          "height": 120,
+          "bottom": 276
+        },
+        {
+          "label": "평생 이용권 시작하기",
+          "x": 72,
+          "y": 2169,
+          "width": 1035,
+          "height": 156,
+          "bottom": 2325
+        }
+      ],
+      "images": [
+        {
+          "src": "assets/bubble-3d.png",
+          "loaded": true
+        }
+      ],
+      "textOutsideCanvas": [],
+      "sections": [
+        {
+          "class": "plan-features",
+          "x": 72,
+          "y": 1845,
+          "width": 1035,
+          "height": 131,
+          "bottom": 1976
+        },
+        {
+          "class": "pay-action",
+          "x": 72,
+          "y": 2169,
+          "width": 1035,
+          "height": 237,
+          "bottom": 2406
+        }
+      ]
+    },
+    {
+      "file": "store-1",
+      "fontsLoaded": true,
+      "minTextPx": 36,
+      "buttons": [],
+      "images": [
+        {
+          "src": "assets/cafe-couple.png",
+          "loaded": true
+        },
+        {
+          "src": "assets/bubble-3d.png",
+          "loaded": true
+        }
+      ],
+      "textOutsideCanvas": [],
+      "sections": [
+        {
+          "class": "store-ui",
+          "x": 123,
+          "y": 1935,
+          "width": 1044,
+          "height": 707,
+          "bottom": 2642
+        }
+      ]
+    },
+    {
+      "file": "board",
+      "fontsLoaded": true,
+      "minTextPx": 26,
+      "buttons": [],
+      "images": [
+        {
+          "src": "icon.png",
+          "loaded": true
+        },
+        {
+          "src": "store-1.png",
+          "loaded": true
+        },
+        {
+          "src": "screen-1-home.png",
+          "loaded": true
+        },
+        {
+          "src": "screen-2-result.png",
+          "loaded": true
+        },
+        {
+          "src": "screen-3-kkti.png",
+          "loaded": true
+        }
+      ],
+      "textOutsideCanvas": [],
+      "sections": [
+        {
+          "class": "device store-device",
+          "x": 708,
+          "y": 272,
+          "width": 376,
+          "height": 816,
+          "bottom": 1088
+        },
+        {
+          "class": "device ",
+          "x": 1120,
+          "y": 272,
+          "width": 376,
+          "height": 816,
+          "bottom": 1088
+        },
+        {
+          "class": "device ",
+          "x": 1532,
+          "y": 272,
+          "width": 376,
+          "height": 816,
+          "bottom": 1088
+        },
+        {
+          "class": "device ",
+          "x": 1944,
+          "y": 272,
+          "width": 376,
+          "height": 816,
+          "bottom": 1088
+        }
+      ]
+    }
+  ],
+  "contrastPairs": [
+    {
+      "fg": "#191F28",
+      "bg": "#FFFFFF",
+      "ratio": 16.56
+    },
+    {
+      "fg": "#626B78",
+      "bg": "#FFFFFF",
+      "ratio": 5.39
+    },
+    {
+      "fg": "#626B78",
+      "bg": "#F2F4F6",
+      "ratio": 4.89
+    },
+    {
+      "fg": "#5B47FF",
+      "bg": "#FFFFFF",
+      "ratio": 5.54
+    },
+    {
+      "fg": "#5B47FF",
+      "bg": "#F0EEFF",
+      "ratio": 4.85
+    },
+    {
+      "fg": "#626B78",
+      "bg": "#F5F3FF",
+      "ratio": 4.92
+    }
+  ],
+  "pngs": [
+    {
+      "file": "icon.png",
+      "width": 1024,
+      "height": 1024
+    },
+    {
+      "file": "store-1.png",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "screen-1-home.png",
+      "width": 1179,
+      "height": 2556
+    },
+    {
+      "file": "screen-2-result.png",
+      "width": 1179,
+      "height": 2556
+    },
+    {
+      "file": "screen-3-kkti.png",
+      "width": 1179,
+      "height": 2556
+    },
+    {
+      "file": "board.png",
+      "width": 2400,
+      "height": 1350
+    }
+  ]
+}
