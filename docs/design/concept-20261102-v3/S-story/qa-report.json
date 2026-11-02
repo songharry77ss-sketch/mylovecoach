@@ -1,0 +1,228 @@
+[
+  {
+    "label": "screen-1-home",
+    "width": 1179,
+    "height": 2556,
+    "fontReady": true,
+    "textIssues": [],
+    "smallControls": [],
+    "brokenImages": [],
+    "lowestTextContrast": 5.32,
+    "contrastIssues": [],
+    "bounds": {
+      ".home-indicator": {
+        "top": 2518,
+        "bottom": 2532
+      }
+    }
+  },
+  {
+    "label": "screen-2-result",
+    "width": 1179,
+    "height": 2556,
+    "fontReady": true,
+    "textIssues": [],
+    "smallControls": [],
+    "brokenImages": [],
+    "lowestTextContrast": 5.93,
+    "contrastIssues": [],
+    "bounds": {
+      ".home-indicator": {
+        "top": 2518,
+        "bottom": 2532
+      },
+      ".story-note": {
+        "top": 2247.265625,
+        "bottom": 2281.265625
+      },
+      ".story-nav": {
+        "top": 2095.265625,
+        "bottom": 2223.265625
+      }
+    }
+  },
+  {
+    "label": "screen-3-kkti",
+    "width": 1179,
+    "height": 2556,
+    "fontReady": true,
+    "textIssues": [],
+    "smallControls": [],
+    "brokenImages": [],
+    "lowestTextContrast": 5.93,
+    "contrastIssues": [],
+    "bounds": {
+      ".kkti-note": {
+        "top": 2327.1875,
+        "bottom": 2361.1875
+      },
+      ".share-actions": {
+        "top": 2007.1875,
+        "bottom": 2299.1875
+      },
+      ".home-indicator": {
+        "top": 2518,
+        "bottom": 2532
+      }
+    }
+  },
+  {
+    "label": "store-1",
+    "width": 1290,
+    "height": 2796,
+    "fontReady": true,
+    "textIssues": [],
+    "smallControls": [],
+    "brokenImages": [],
+    "lowestTextContrast": 5.93,
+    "contrastIssues": [],
+    "bounds": {}
+  },
+  {
+    "label": "share-kkti",
+    "width": 1080,
+    "height": 1920,
+    "fontReady": true,
+    "textIssues": [],
+    "smallControls": [],
+    "brokenImages": [],
+    "lowestTextContrast": 8.66,
+    "contrastIssues": [],
+    "bounds": {}
+  },
+  {
+    "label": "story-step-1",
+    "width": 1179,
+    "height": 2556,
+    "fontReady": true,
+    "textIssues": [],
+    "smallControls": [],
+    "brokenImages": [],
+    "lowestTextContrast": 9.59,
+    "contrastIssues": [],
+    "bounds": {
+      ".home-indicator": {
+        "top": 2518,
+        "bottom": 2532
+      },
+      ".story-note": {
+        "top": 2286,
+        "bottom": 2320
+      },
+      ".story-nav": {
+        "top": 2134,
+        "bottom": 2262
+      }
+    }
+  },
+  {
+    "label": "story-step-2",
+    "width": 1179,
+    "height": 2556,
+    "fontReady": true,
+    "textIssues": [],
+    "smallControls": [],
+    "brokenImages": [],
+    "lowestTextContrast": 5.93,
+    "contrastIssues": [],
+    "bounds": {
+      ".home-indicator": {
+        "top": 2518,
+        "bottom": 2532
+      },
+      ".story-note": {
+        "top": 2286,
+        "bottom": 2320
+      },
+      ".story-nav": {
+        "top": 2134,
+        "bottom": 2262
+      }
+    }
+  },
+  {
+    "label": "story-step-3",
+    "width": 1179,
+    "height": 2556,
+    "fontReady": true,
+    "textIssues": [],
+    "smallControls": [],
+    "brokenImages": [],
+    "lowestTextContrast": 5.93,
+    "contrastIssues": [],
+    "bounds": {
+      ".home-indicator": {
+        "top": 2518,
+        "bottom": 2532
+      },
+      ".story-note": {
+        "top": 2247.265625,
+        "bottom": 2281.265625
+      },
+      ".story-nav": {
+        "top": 2095.265625,
+        "bottom": 2223.265625
+      }
+    }
+  },
+  {
+    "label": "story-step-4",
+    "width": 1179,
+    "height": 2556,
+    "fontReady": true,
+    "textIssues": [],
+    "smallControls": [],
+    "brokenImages": [],
+    "lowestTextContrast": 8.66,
+    "contrastIssues": [],
+    "bounds": {
+      ".home-indicator": {
+        "top": 2518,
+        "bottom": 2532
+      },
+      ".story-note": {
+        "top": 2286,
+        "bottom": 2320
+      },
+      ".story-nav": {
+        "top": 2134,
+        "bottom": 2262
+      }
+    }
+  },
+  {
+    "label": "story-step-5",
+    "width": 1179,
+    "height": 2556,
+    "fontReady": true,
+    "textIssues": [],
+    "smallControls": [],
+    "brokenImages": [],
+    "lowestTextContrast": 5.93,
+    "contrastIssues": [],
+    "bounds": {
+      ".home-indicator": {
+        "top": 2518,
+        "bottom": 2532
+      },
+      ".story-note": {
+        "top": 2286,
+        "bottom": 2320
+      },
+      ".story-nav": {
+        "top": 2134,
+        "bottom": 2262
+      }
+    }
+  },
+  {
+    "label": "interaction",
+    "steps": 5,
+    "keyboardNavigation": true,
+    "copyText": "전시 보고 맛있는 거까지? 토요일 코스 완벽한데 ㅎㅎ",
+    "selectedReplySynced": true,
+    "finalText": "좋아. 사실 전시보다\n너 만나는 게 더 기대돼.",
+    "finalScore": "직진 · 성공 확률 76%",
+    "toast": "답장을 복사했어요. 내 말투로 보내요!"
+  }
+]

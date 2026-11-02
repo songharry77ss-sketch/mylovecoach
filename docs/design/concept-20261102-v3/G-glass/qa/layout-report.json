@@ -1,0 +1,2318 @@
+{
+  "results": [
+    {
+      "name": "screen-1-home",
+      "width": 1179,
+      "height": 2556,
+      "errors": [],
+      "fontsLoaded": true,
+      "minTextPx": 28,
+      "textOutsideCanvas": [],
+      "buttons": [
+        {
+          "label": "캡처 올리기",
+          "x": 90,
+          "y": 1467,
+          "width": 999,
+          "height": 154,
+          "right": 1089,
+          "bottom": 1621
+        },
+        {
+          "label": "캡처가 없어도 괜찮아요상황만 적어볼래요",
+          "x": 90,
+          "y": 1707,
+          "width": 999,
+          "height": 132,
+          "right": 1089,
+          "bottom": 1839
+        },
+        {
+          "label": "홈",
+          "x": 206,
+          "y": 2308,
+          "width": 247.65625,
+          "height": 146,
+          "right": 453.65625,
+          "bottom": 2454
+        },
+        {
+          "label": "탐색",
+          "x": 465.65625,
+          "y": 2308,
+          "width": 247.671875,
+          "height": 146,
+          "right": 713.328125,
+          "bottom": 2454
+        },
+        {
+          "label": "마이",
+          "x": 725.328125,
+          "y": 2308,
+          "width": 247.671875,
+          "height": 146,
+          "right": 973,
+          "bottom": 2454
+        }
+      ],
+      "images": [
+        {
+          "src": "assets/riverside-couple.png",
+          "loaded": true
+        },
+        {
+          "src": "icon.png",
+          "loaded": true
+        },
+        {
+          "src": "assets/riverside-couple.png",
+          "loaded": true
+        },
+        {
+          "src": "assets/riverside-couple.png",
+          "loaded": true
+        }
+      ],
+      "glass": [
+        {
+          "class": "quiet-pill glass",
+          "fill": "rgba(255, 255, 255, 0.24)",
+          "filter": "blur(36px) saturate(1.8)"
+        },
+        {
+          "class": "start-panel glass",
+          "fill": "rgba(255, 255, 255, 0.24)",
+          "filter": "blur(36px) saturate(1.8)"
+        },
+        {
+          "class": "tabs glass",
+          "fill": "rgba(255, 255, 255, 0.28)",
+          "filter": "blur(36px) saturate(1.8)"
+        }
+      ],
+      "text": [
+        {
+          "text": "9:41",
+          "fontPx": 43,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 94,
+              "y": 63.5,
+              "width": 83.765625,
+              "height": 51,
+              "right": 177.765625,
+              "bottom": 114.5
+            }
+          ]
+        },
+        {
+          "text": "청신호",
+          "fontPx": 64,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 158,
+              "y": 195,
+              "width": 156.9375,
+              "height": 76,
+              "right": 314.9375,
+              "bottom": 271
+            }
+          ]
+        },
+        {
+          "text": "답장 코치",
+          "fontPx": 32,
+          "color": "rgb(32, 56, 48)",
+          "rects": [
+            {
+              "x": 958.5625,
+              "y": 214,
+              "width": 118.4375,
+              "height": 38,
+              "right": 1077,
+              "bottom": 252
+            }
+          ]
+        },
+        {
+          "text": "지수님, 안녕하세요",
+          "fontPx": 38,
+          "color": "rgb(51, 71, 65)",
+          "rects": [
+            {
+              "x": 72,
+              "y": 360,
+              "width": 281.765625,
+              "height": 45,
+              "right": 353.765625,
+              "bottom": 405
+            }
+          ]
+        },
+        {
+          "text": "그 사람,",
+          "fontPx": 90,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 72,
+              "y": 423,
+              "width": 254.9375,
+              "height": 108,
+              "right": 326.9375,
+              "bottom": 531
+            }
+          ]
+        },
+        {
+          "text": "청신호일까요?",
+          "fontPx": 90,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 72,
+              "y": 523.796875,
+              "width": 480.140625,
+              "height": 108,
+              "right": 552.140625,
+              "bottom": 631.796875
+            }
+          ]
+        },
+        {
+          "text": "답장 고민, 여기까지.",
+          "fontPx": 43,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 96,
+              "y": 1386,
+              "width": 319.84375,
+              "height": 51,
+              "right": 415.84375,
+              "bottom": 1437
+            }
+          ]
+        },
+        {
+          "text": "캡처 한 장이면 돼요",
+          "fontPx": 29,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 861.25,
+              "y": 1394,
+              "width": 221.75,
+              "height": 35,
+              "right": 1083,
+              "bottom": 1429
+            }
+          ]
+        },
+        {
+          "text": "캡처 올리기",
+          "fontPx": 44,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 215,
+              "y": 1517.5,
+              "width": 200.28125,
+              "height": 53,
+              "right": 415.28125,
+              "bottom": 1570.5
+            }
+          ]
+        },
+        {
+          "text": "오늘 무료",
+          "fontPx": 30,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 452.671875,
+              "y": 1645,
+              "width": 118.359375,
+              "height": 36,
+              "right": 571.03125,
+              "bottom": 1681
+            }
+          ]
+        },
+        {
+          "text": "2회",
+          "fontPx": 30,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 571.03125,
+              "y": 1645,
+              "width": 44.25,
+              "height": 36,
+              "right": 615.28125,
+              "bottom": 1681
+            }
+          ]
+        },
+        {
+          "text": "남았어요",
+          "fontPx": 30,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 615.28125,
+              "y": 1645,
+              "width": 111.046875,
+              "height": 36,
+              "right": 726.328125,
+              "bottom": 1681
+            }
+          ]
+        },
+        {
+          "text": "캡처가 없어도 괜찮아요",
+          "fontPx": 28,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 120,
+              "y": 1731.5,
+              "width": 255.671875,
+              "height": 34,
+              "right": 375.671875,
+              "bottom": 1765.5
+            }
+          ]
+        },
+        {
+          "text": "상황만 적어볼래요",
+          "fontPx": 36,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 120,
+              "y": 1771.5,
+              "width": 257.203125,
+              "height": 43,
+              "right": 377.203125,
+              "bottom": 1814.5
+            }
+          ]
+        },
+        {
+          "text": "최근 상담",
+          "fontPx": 44,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 72,
+              "y": 1945,
+              "width": 154.75,
+              "height": 53,
+              "right": 226.75,
+              "bottom": 1998
+            }
+          ]
+        },
+        {
+          "text": "이어 이야기해요",
+          "fontPx": 29,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 924.46875,
+              "y": 1954,
+              "width": 182.53125,
+              "height": 35,
+              "right": 1107,
+              "bottom": 1989
+            }
+          ]
+        },
+        {
+          "text": "수연",
+          "fontPx": 38,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 197,
+              "y": 2042,
+              "width": 65.6875,
+              "height": 45,
+              "right": 262.6875,
+              "bottom": 2087
+            }
+          ]
+        },
+        {
+          "text": "토요일 약속, 뭐라고 답할까요?",
+          "fontPx": 30,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 197,
+              "y": 2096,
+              "width": 355.78125,
+              "height": 36,
+              "right": 552.78125,
+              "bottom": 2132
+            }
+          ]
+        },
+        {
+          "text": "35°",
+          "fontPx": 46,
+          "color": "rgb(7, 107, 80)",
+          "rects": [
+            {
+              "x": 1004.515625,
+              "y": 2059.5,
+              "width": 78.484375,
+              "height": 55,
+              "right": 1083,
+              "bottom": 2114.5
+            }
+          ]
+        },
+        {
+          "text": "도윤",
+          "fontPx": 38,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 197,
+              "y": 2181,
+              "width": 65.6875,
+              "height": 45,
+              "right": 262.6875,
+              "bottom": 2226
+            }
+          ]
+        },
+        {
+          "text": "다음 약속, 먼저 잡아도 될까요?",
+          "fontPx": 30,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 197,
+              "y": 2235,
+              "width": 363.09375,
+              "height": 36,
+              "right": 560.09375,
+              "bottom": 2271
+            }
+          ]
+        },
+        {
+          "text": "25°",
+          "fontPx": 46,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 1005.8125,
+              "y": 2198.5,
+              "width": 77.1875,
+              "height": 55,
+              "right": 1083,
+              "bottom": 2253.5
+            }
+          ]
+        },
+        {
+          "text": "홈",
+          "fontPx": 29,
+          "color": "rgb(7, 63, 48)",
+          "rects": [
+            {
+              "x": 317.28125,
+              "y": 2396,
+              "width": 25.078125,
+              "height": 35,
+              "right": 342.359375,
+              "bottom": 2431
+            }
+          ]
+        },
+        {
+          "text": "탐색",
+          "fontPx": 29,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 564.421875,
+              "y": 2396,
+              "width": 50.140625,
+              "height": 35,
+              "right": 614.5625,
+              "bottom": 2431
+            }
+          ]
+        },
+        {
+          "text": "마이",
+          "fontPx": 29,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 824.09375,
+              "y": 2396,
+              "width": 50.140625,
+              "height": 35,
+              "right": 874.234375,
+              "bottom": 2431
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "screen-2-result",
+      "width": 1179,
+      "height": 2556,
+      "errors": [],
+      "fontsLoaded": true,
+      "minTextPx": 26,
+      "textOutsideCanvas": [],
+      "buttons": [
+        {
+          "label": "뒤로",
+          "x": 64,
+          "y": 180,
+          "width": 120,
+          "height": 120,
+          "right": 184,
+          "bottom": 300
+        },
+        {
+          "label": "더 보기",
+          "x": 995,
+          "y": 180,
+          "width": 120,
+          "height": 120,
+          "right": 1115,
+          "bottom": 300
+        },
+        {
+          "label": "복사",
+          "x": 906,
+          "y": 1304,
+          "width": 170,
+          "height": 120,
+          "right": 1076,
+          "bottom": 1424
+        },
+        {
+          "label": "복사",
+          "x": 906,
+          "y": 1662,
+          "width": 170,
+          "height": 120,
+          "right": 1076,
+          "bottom": 1782
+        },
+        {
+          "label": "복사",
+          "x": 906,
+          "y": 2020,
+          "width": 170,
+          "height": 120,
+          "right": 1076,
+          "bottom": 2140
+        }
+      ],
+      "images": [
+        {
+          "src": "assets/riverside-couple.png",
+          "loaded": true
+        },
+        {
+          "src": "assets/riverside-couple.png",
+          "loaded": true
+        }
+      ],
+      "glass": [
+        {
+          "class": "round glass",
+          "fill": "rgba(255, 255, 255, 0.24)",
+          "filter": "blur(36px) saturate(1.8)"
+        },
+        {
+          "class": "round glass",
+          "fill": "rgba(255, 255, 255, 0.24)",
+          "filter": "blur(36px) saturate(1.8)"
+        },
+        {
+          "class": "message glass",
+          "fill": "rgba(255, 255, 255, 0.28)",
+          "filter": "blur(36px) saturate(1.8)"
+        },
+        {
+          "class": "mind-card glass",
+          "fill": "rgba(255, 255, 255, 0.24)",
+          "filter": "blur(36px) saturate(1.8)"
+        },
+        {
+          "class": "answer-card glass ",
+          "fill": "rgba(255, 255, 255, 0.28)",
+          "filter": "blur(36px) saturate(1.8)"
+        },
+        {
+          "class": "answer-card glass recommended",
+          "fill": "rgba(255, 255, 255, 0.28)",
+          "filter": "blur(36px) saturate(1.8)"
+        },
+        {
+          "class": "answer-card glass ",
+          "fill": "rgba(255, 255, 255, 0.28)",
+          "filter": "blur(36px) saturate(1.8)"
+        },
+        {
+          "class": "temperature glass",
+          "fill": "rgba(255, 255, 255, 0.24)",
+          "filter": "blur(36px) saturate(1.8)"
+        }
+      ],
+      "text": [
+        {
+          "text": "9:41",
+          "fontPx": 43,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 94,
+              "y": 63.5,
+              "width": 83.765625,
+              "height": 51,
+              "right": 177.765625,
+              "bottom": 114.5
+            }
+          ]
+        },
+        {
+          "text": "수연과의 대화",
+          "fontPx": 42,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 479.96875,
+              "y": 215,
+              "width": 219.078125,
+              "height": 50,
+              "right": 699.046875,
+              "bottom": 265
+            }
+          ]
+        },
+        {
+          "text": "수연이 보냈어요",
+          "fontPx": 26,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 77.171875,
+              "y": 488,
+              "width": 163.65625,
+              "height": 31,
+              "right": 240.828125,
+              "bottom": 519
+            }
+          ]
+        },
+        {
+          "text": "토요일 오후 좋아!",
+          "fontPx": 45,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 316,
+              "y": 383,
+              "width": 294.53125,
+              "height": 54,
+              "right": 610.53125,
+              "bottom": 437
+            }
+          ]
+        },
+        {
+          "text": "끝나고 밥도 먹자 ㅎㅎ",
+          "fontPx": 45,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 316,
+              "y": 449.140625,
+              "width": 368.59375,
+              "height": 54,
+              "right": 684.59375,
+              "bottom": 503.140625
+            }
+          ]
+        },
+        {
+          "text": "지금은 청신호",
+          "fontPx": 36,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 148,
+              "y": 636,
+              "width": 194.984375,
+              "height": 43,
+              "right": 342.984375,
+              "bottom": 679
+            }
+          ]
+        },
+        {
+          "text": "62",
+          "fontPx": 164,
+          "color": "rgb(7, 107, 80)",
+          "rects": [
+            {
+              "x": 108,
+              "y": 673,
+              "width": 189.484375,
+              "height": 196,
+              "right": 297.484375,
+              "bottom": 869
+            }
+          ]
+        },
+        {
+          "text": "%",
+          "fontPx": 68,
+          "color": "rgb(7, 107, 80)",
+          "rects": [
+            {
+              "x": 297.484375,
+              "y": 764,
+              "width": 62.28125,
+              "height": 81,
+              "right": 359.765625,
+              "bottom": 845
+            }
+          ]
+        },
+        {
+          "text": "관심 있을 가능성",
+          "fontPx": 29,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 108,
+              "y": 859,
+              "width": 189.609375,
+              "height": 35,
+              "right": 297.609375,
+              "bottom": 894
+            }
+          ]
+        },
+        {
+          "text": "다음 약속을 함께",
+          "fontPx": 34,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 652,
+              "y": 643,
+              "width": 222.296875,
+              "height": 40,
+              "right": 874.296875,
+              "bottom": 683
+            }
+          ]
+        },
+        {
+          "text": "이어가고 싶어 해요.",
+          "fontPx": 34,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 652,
+              "y": 690.59375,
+              "width": 260.65625,
+              "height": 40,
+              "right": 912.65625,
+              "bottom": 730.59375
+            }
+          ]
+        },
+        {
+          "text": "바빠서",
+          "fontPx": 29,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 652,
+              "y": 761.1875,
+              "width": 75.203125,
+              "height": 35,
+              "right": 727.203125,
+              "bottom": 796.1875
+            }
+          ]
+        },
+        {
+          "text": "23%",
+          "fontPx": 36,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 991.46875,
+              "y": 757.1875,
+              "width": 79.53125,
+              "height": 43,
+              "right": 1071,
+              "bottom": 800.1875
+            }
+          ]
+        },
+        {
+          "text": "선 긋는 중",
+          "fontPx": 29,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 652,
+              "y": 820.1875,
+              "width": 114.421875,
+              "height": 35,
+              "right": 766.421875,
+              "bottom": 855.1875
+            }
+          ]
+        },
+        {
+          "text": "15%",
+          "fontPx": 36,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 996.984375,
+              "y": 816.1875,
+              "width": 74.015625,
+              "height": 43,
+              "right": 1071,
+              "bottom": 859.1875
+            }
+          ]
+        },
+        {
+          "text": "이렇게 답장해요",
+          "fontPx": 44,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 74,
+              "y": 1035,
+              "width": 264.34375,
+              "height": 53,
+              "right": 338.34375,
+              "bottom": 1088
+            }
+          ]
+        },
+        {
+          "text": "내 말투에 맞춘 3가지",
+          "fontPx": 29,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 865.140625,
+              "y": 1044,
+              "width": 239.859375,
+              "height": 35,
+              "right": 1105,
+              "bottom": 1079
+            }
+          ]
+        },
+        {
+          "text": "무난하게",
+          "fontPx": 35,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 104,
+              "y": 1153.5,
+              "width": 117,
+              "height": 41,
+              "right": 221,
+              "bottom": 1194.5
+            }
+          ]
+        },
+        {
+          "text": "좋아 ㅎㅎ 토요일에 보자.",
+          "fontPx": 42,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 104,
+              "y": 1231,
+              "width": 385.234375,
+              "height": 50,
+              "right": 489.234375,
+              "bottom": 1281
+            }
+          ]
+        },
+        {
+          "text": "맛있는 것도 같이 먹자!",
+          "fontPx": 42,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 104,
+              "y": 1294,
+              "width": 350.75,
+              "height": 50,
+              "right": 454.75,
+              "bottom": 1344
+            }
+          ]
+        },
+        {
+          "text": "성공 확률",
+          "fontPx": 26,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 967.171875,
+              "y": 1148,
+              "width": 96.234375,
+              "height": 31,
+              "right": 1063.40625,
+              "bottom": 1179
+            }
+          ]
+        },
+        {
+          "text": "84",
+          "fontPx": 88,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 918.578125,
+              "y": 1179,
+              "width": 106.46875,
+              "height": 105,
+              "right": 1025.046875,
+              "bottom": 1284
+            }
+          ]
+        },
+        {
+          "text": "%",
+          "fontPx": 41,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 1025.046875,
+              "y": 1224,
+              "width": 38.359375,
+              "height": 49,
+              "right": 1063.40625,
+              "bottom": 1273
+            }
+          ]
+        },
+        {
+          "text": "복사",
+          "fontPx": 29,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 989.921875,
+              "y": 1346.5,
+              "width": 50.140625,
+              "height": 35,
+              "right": 1040.0625,
+              "bottom": 1381.5
+            }
+          ]
+        },
+        {
+          "text": "센스 있게",
+          "fontPx": 35,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 104,
+              "y": 1511.5,
+              "width": 124.0625,
+              "height": 41,
+              "right": 228.0625,
+              "bottom": 1552.5
+            }
+          ]
+        },
+        {
+          "text": "추천",
+          "fontPx": 27,
+          "color": "rgb(6, 69, 50)",
+          "rects": [
+            {
+              "x": 263.0625,
+              "y": 1515.5,
+              "width": 46.671875,
+              "height": 33,
+              "right": 309.734375,
+              "bottom": 1548.5
+            }
+          ]
+        },
+        {
+          "text": "전시 보고 맛집까지?",
+          "fontPx": 42,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 104,
+              "y": 1589,
+              "width": 316.46875,
+              "height": 50,
+              "right": 420.46875,
+              "bottom": 1639
+            }
+          ]
+        },
+        {
+          "text": "토요일 코스 완벽한데 ㅎㅎ",
+          "fontPx": 42,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 104,
+              "y": 1652,
+              "width": 410.453125,
+              "height": 50,
+              "right": 514.453125,
+              "bottom": 1702
+            }
+          ]
+        },
+        {
+          "text": "성공 확률",
+          "fontPx": 26,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 965.078125,
+              "y": 1506,
+              "width": 96.234375,
+              "height": 31,
+              "right": 1061.3125,
+              "bottom": 1537
+            }
+          ]
+        },
+        {
+          "text": "92",
+          "fontPx": 88,
+          "color": "rgb(7, 107, 80)",
+          "rects": [
+            {
+              "x": 920.6875,
+              "y": 1537,
+              "width": 102.265625,
+              "height": 105,
+              "right": 1022.953125,
+              "bottom": 1642
+            }
+          ]
+        },
+        {
+          "text": "%",
+          "fontPx": 41,
+          "color": "rgb(7, 107, 80)",
+          "rects": [
+            {
+              "x": 1022.953125,
+              "y": 1582,
+              "width": 38.359375,
+              "height": 49,
+              "right": 1061.3125,
+              "bottom": 1631
+            }
+          ]
+        },
+        {
+          "text": "복사",
+          "fontPx": 29,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 989.921875,
+              "y": 1704.5,
+              "width": 50.140625,
+              "height": 35,
+              "right": 1040.0625,
+              "bottom": 1739.5
+            }
+          ]
+        },
+        {
+          "text": "직진",
+          "fontPx": 35,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 104,
+              "y": 1869.5,
+              "width": 58.5,
+              "height": 41,
+              "right": 162.5,
+              "bottom": 1910.5
+            }
+          ]
+        },
+        {
+          "text": "좋아. 사실 전시보다",
+          "fontPx": 42,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 104,
+              "y": 1947,
+              "width": 306.109375,
+              "height": 50,
+              "right": 410.109375,
+              "bottom": 1997
+            }
+          ]
+        },
+        {
+          "text": "너 만나는 게 더 기대돼 ㅎㅎ",
+          "fontPx": 42,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 104,
+              "y": 2010,
+              "width": 428.171875,
+              "height": 50,
+              "right": 532.171875,
+              "bottom": 2060
+            }
+          ]
+        },
+        {
+          "text": "성공 확률",
+          "fontPx": 26,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 962.96875,
+              "y": 1864,
+              "width": 96.234375,
+              "height": 31,
+              "right": 1059.203125,
+              "bottom": 1895
+            }
+          ]
+        },
+        {
+          "text": "78",
+          "fontPx": 88,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 922.796875,
+              "y": 1895,
+              "width": 98.046875,
+              "height": 105,
+              "right": 1020.84375,
+              "bottom": 2000
+            }
+          ]
+        },
+        {
+          "text": "%",
+          "fontPx": 41,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 1020.84375,
+              "y": 1940,
+              "width": 38.359375,
+              "height": 49,
+              "right": 1059.203125,
+              "bottom": 1989
+            }
+          ]
+        },
+        {
+          "text": "복사",
+          "fontPx": 29,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 989.921875,
+              "y": 2062.5,
+              "width": 50.140625,
+              "height": 35,
+              "right": 1040.0625,
+              "bottom": 2097.5
+            }
+          ]
+        },
+        {
+          "text": "호감 온도",
+          "fontPx": 34,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 102,
+              "y": 2265.5,
+              "width": 125.375,
+              "height": 40,
+              "right": 227.375,
+              "bottom": 2305.5
+            }
+          ]
+        },
+        {
+          "text": "지난 대화보다 따뜻해졌어요",
+          "fontPx": 27,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 102,
+              "y": 2316.5,
+              "width": 293.203125,
+              "height": 33,
+              "right": 395.203125,
+              "bottom": 2349.5
+            }
+          ]
+        },
+        {
+          "text": "25°",
+          "fontPx": 43,
+          "color": "rgb(82, 98, 93)",
+          "rects": [
+            {
+              "x": 715.578125,
+              "y": 2281,
+              "width": 70.21875,
+              "height": 51,
+              "right": 785.796875,
+              "bottom": 2332
+            }
+          ]
+        },
+        {
+          "text": "35°",
+          "fontPx": 75,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 848.796875,
+              "y": 2262,
+              "width": 118.96875,
+              "height": 89,
+              "right": 967.765625,
+              "bottom": 2351
+            }
+          ]
+        },
+        {
+          "text": "+10°",
+          "fontPx": 28,
+          "color": "rgb(7, 107, 80)",
+          "rects": [
+            {
+              "x": 998.765625,
+              "y": 2289.5,
+              "width": 62.234375,
+              "height": 34,
+              "right": 1061,
+              "bottom": 2323.5
+            }
+          ]
+        },
+        {
+          "text": "대화로 추정한 가능성이에요",
+          "fontPx": 26,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 448.328125,
+              "y": 2435,
+              "width": 282.34375,
+              "height": 31,
+              "right": 730.671875,
+              "bottom": 2466
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "screen-3-kkti",
+      "width": 1179,
+      "height": 2556,
+      "errors": [],
+      "fontsLoaded": true,
+      "minTextPx": 28,
+      "textOutsideCanvas": [],
+      "buttons": [
+        {
+          "label": "뒤로",
+          "x": 64,
+          "y": 180,
+          "width": 120,
+          "height": 120,
+          "right": 184,
+          "bottom": 300
+        },
+        {
+          "label": "더 보기",
+          "x": 995,
+          "y": 180,
+          "width": 120,
+          "height": 120,
+          "right": 1115,
+          "bottom": 300
+        },
+        {
+          "label": "결과 공유하기",
+          "x": 64,
+          "y": 2032,
+          "width": 1051,
+          "height": 152,
+          "right": 1115,
+          "bottom": 2184
+        },
+        {
+          "label": "친구와 궁합 보기",
+          "x": 64,
+          "y": 2214,
+          "width": 1051,
+          "height": 138,
+          "right": 1115,
+          "bottom": 2352
+        }
+      ],
+      "images": [
+        {
+          "src": "assets/riverside-couple.png",
+          "loaded": true
+        },
+        {
+          "src": "assets/riverside-couple.png",
+          "loaded": true
+        },
+        {
+          "src": "icon.png",
+          "loaded": true
+        }
+      ],
+      "glass": [
+        {
+          "class": "round glass",
+          "fill": "rgba(255, 255, 255, 0.24)",
+          "filter": "blur(36px) saturate(1.8)"
+        },
+        {
+          "class": "round glass",
+          "fill": "rgba(255, 255, 255, 0.24)",
+          "filter": "blur(36px) saturate(1.8)"
+        },
+        {
+          "class": "share-card glass",
+          "fill": "rgba(255, 255, 255, 0.28)",
+          "filter": "blur(36px) saturate(1.8)"
+        },
+        {
+          "class": "type-chip glass",
+          "fill": "rgba(255, 255, 255, 0.28)",
+          "filter": "blur(36px) saturate(1.8)"
+        },
+        {
+          "class": "sample-bubble glass",
+          "fill": "rgba(255, 255, 255, 0.28)",
+          "filter": "blur(36px) saturate(1.8)"
+        },
+        {
+          "class": "compatibility glass",
+          "fill": "rgba(255, 255, 255, 0.24)",
+          "filter": "blur(36px) saturate(1.8)"
+        }
+      ],
+      "text": [
+        {
+          "text": "9:41",
+          "fontPx": 43,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 94,
+              "y": 63.5,
+              "width": 83.765625,
+              "height": 51,
+              "right": 177.765625,
+              "bottom": 114.5
+            }
+          ]
+        },
+        {
+          "text": "나의 카톡 연애 유형",
+          "fontPx": 42,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 436.390625,
+              "y": 215,
+              "width": 306.234375,
+              "height": 50,
+              "right": 742.625,
+              "bottom": 265
+            }
+          ]
+        },
+        {
+          "text": "카톡 습관으로 알아봐요",
+          "fontPx": 34,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 78,
+              "y": 370,
+              "width": 310.453125,
+              "height": 40,
+              "right": 388.453125,
+              "bottom": 410
+            }
+          ]
+        },
+        {
+          "text": "좋아하는 마음,",
+          "fontPx": 84,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 78,
+              "y": 434,
+              "width": 447.0625,
+              "height": 100,
+              "right": 525.0625,
+              "bottom": 534
+            }
+          ]
+        },
+        {
+          "text": "티가 나는 편.",
+          "fontPx": 84,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 78,
+              "y": 531.4375,
+              "width": 393.421875,
+              "height": 100,
+              "right": 471.421875,
+              "bottom": 631.4375
+            }
+          ]
+        },
+        {
+          "text": "16가지 카톡 연애 유형",
+          "fontPx": 29,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 132,
+              "y": 786,
+              "width": 252.828125,
+              "height": 35,
+              "right": 384.828125,
+              "bottom": 821
+            }
+          ]
+        },
+        {
+          "text": "직진 불도저",
+          "fontPx": 33,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 150,
+              "y": 1383,
+              "width": 150.21875,
+              "height": 39,
+              "right": 300.21875,
+              "bottom": 1422
+            }
+          ]
+        },
+        {
+          "text": "좋으면,",
+          "fontPx": 96,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 112,
+              "y": 1435,
+              "width": 256.46875,
+              "height": 114,
+              "right": 368.46875,
+              "bottom": 1549
+            }
+          ]
+        },
+        {
+          "text": "먼저 말해요.",
+          "fontPx": 96,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 112,
+              "y": 1536.75,
+              "width": 429.0625,
+              "height": 114,
+              "right": 541.0625,
+              "bottom": 1650.75
+            }
+          ]
+        },
+        {
+          "text": "“나는 너랑 또 보고 싶은데.”",
+          "fontPx": 35,
+          "color": "rgb(31, 57, 48)",
+          "rects": [
+            {
+              "x": 142,
+              "y": 1698.5,
+              "width": 375.3125,
+              "height": 41,
+              "right": 517.3125,
+              "bottom": 1739.5
+            }
+          ]
+        },
+        {
+          "text": "마음을 숨기기보다",
+          "fontPx": 28,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 112,
+              "y": 1798.5,
+              "width": 200.4375,
+              "height": 34,
+              "right": 312.4375,
+              "bottom": 1832.5
+            }
+          ]
+        },
+        {
+          "text": "한 걸음 먼저 다가가요.",
+          "fontPx": 28,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 112,
+              "y": 1839.09375,
+              "width": 245.6875,
+              "height": 34,
+              "right": 357.6875,
+              "bottom": 1873.09375
+            }
+          ]
+        },
+        {
+          "text": "청신호",
+          "fontPx": 38,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 973.5625,
+              "y": 1813.09375,
+              "width": 93.4375,
+              "height": 45,
+              "right": 1067,
+              "bottom": 1858.09375
+            }
+          ]
+        },
+        {
+          "text": "결과 공유하기",
+          "fontPx": 44,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 511.84375,
+              "y": 2081.5,
+              "width": 238.3125,
+              "height": 53,
+              "right": 750.15625,
+              "bottom": 2134.5
+            }
+          ]
+        },
+        {
+          "text": "친구와 궁합 보기",
+          "fontPx": 37,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 435.03125,
+              "y": 2261,
+              "width": 241.921875,
+              "height": 44,
+              "right": 676.953125,
+              "bottom": 2305
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "store-1",
+      "width": 1290,
+      "height": 2796,
+      "errors": [],
+      "fontsLoaded": true,
+      "minTextPx": 26,
+      "textOutsideCanvas": [],
+      "buttons": [
+        {
+          "label": "답장 복사하기",
+          "x": 114,
+          "y": 2465.46875,
+          "width": 1062,
+          "height": 128,
+          "right": 1176,
+          "bottom": 2593.46875
+        }
+      ],
+      "images": [
+        {
+          "src": "assets/riverside-couple.png",
+          "loaded": true
+        },
+        {
+          "src": "icon.png",
+          "loaded": true
+        }
+      ],
+      "glass": [
+        {
+          "class": "store-message glass",
+          "fill": "rgba(255, 255, 255, 0.28)",
+          "filter": "blur(36px) saturate(1.8)"
+        },
+        {
+          "class": "store-result glass",
+          "fill": "rgba(255, 255, 255, 0.24)",
+          "filter": "blur(36px) saturate(1.8)"
+        }
+      ],
+      "text": [
+        {
+          "text": "청신호",
+          "fontPx": 66,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 172,
+              "y": 101,
+              "width": 162.125,
+              "height": 79,
+              "right": 334.125,
+              "bottom": 180
+            }
+          ]
+        },
+        {
+          "text": "카톡 답장 코치",
+          "fontPx": 33,
+          "color": "rgb(53, 79, 68)",
+          "rects": [
+            {
+              "x": 1020.75,
+              "y": 121.5,
+              "width": 187.25,
+              "height": 39,
+              "right": 1208,
+              "bottom": 160.5
+            }
+          ]
+        },
+        {
+          "text": "그 사람,",
+          "fontPx": 154,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 82,
+              "y": 276,
+              "width": 439,
+              "height": 184,
+              "right": 521,
+              "bottom": 460
+            }
+          ]
+        },
+        {
+          "text": "청신호일까?",
+          "fontPx": 154,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 82,
+              "y": 442.3125,
+              "width": 700.34375,
+              "height": 184,
+              "right": 782.34375,
+              "bottom": 626.3125
+            }
+          ]
+        },
+        {
+          "text": "카톡 한 장, 답장은 세 가지.",
+          "fontPx": 47,
+          "color": "rgb(51, 78, 67)",
+          "rects": [
+            {
+              "x": 82,
+              "y": 657.625,
+              "width": 467.625,
+              "height": 56,
+              "right": 549.625,
+              "bottom": 713.625
+            }
+          ]
+        },
+        {
+          "text": "수연",
+          "fontPx": 28,
+          "color": "rgb(49, 71, 62)",
+          "rects": [
+            {
+              "x": 124,
+              "y": 1886,
+              "width": 48.40625,
+              "height": 34,
+              "right": 172.40625,
+              "bottom": 1920
+            }
+          ]
+        },
+        {
+          "text": "토요일 오후 좋아! 끝나고 밥도 먹자 ㅎㅎ",
+          "fontPx": 40,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 124,
+              "y": 1932,
+              "width": 599.65625,
+              "height": 48,
+              "right": 723.65625,
+              "bottom": 1980
+            }
+          ]
+        },
+        {
+          "text": "추천 답장",
+          "fontPx": 27,
+          "color": "rgb(6, 69, 50)",
+          "rects": [
+            {
+              "x": 131,
+              "y": 2138.546875,
+              "width": 99.5625,
+              "height": 33,
+              "right": 230.5625,
+              "bottom": 2171.546875
+            }
+          ]
+        },
+        {
+          "text": "센스 있게",
+          "fontPx": 38,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 114,
+              "y": 2193.546875,
+              "width": 140.125,
+              "height": 45,
+              "right": 254.125,
+              "bottom": 2238.546875
+            }
+          ]
+        },
+        {
+          "text": "성공 확률",
+          "fontPx": 26,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 1079.765625,
+              "y": 2108,
+              "width": 96.234375,
+              "height": 31,
+              "right": 1176,
+              "bottom": 2139
+            }
+          ]
+        },
+        {
+          "text": "92",
+          "fontPx": 118,
+          "color": "rgb(7, 107, 80)",
+          "rects": [
+            {
+              "x": 985.296875,
+              "y": 2135,
+              "width": 139.859375,
+              "height": 140,
+              "right": 1125.15625,
+              "bottom": 2275
+            }
+          ]
+        },
+        {
+          "text": "%",
+          "fontPx": 54,
+          "color": "rgb(7, 107, 80)",
+          "rects": [
+            {
+              "x": 1125.15625,
+              "y": 2196,
+              "width": 50.84375,
+              "height": 64,
+              "right": 1176,
+              "bottom": 2260
+            }
+          ]
+        },
+        {
+          "text": "전시 보고 맛집까지?",
+          "fontPx": 53,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 114,
+              "y": 2290.09375,
+              "width": 398.984375,
+              "height": 63,
+              "right": 512.984375,
+              "bottom": 2353.09375
+            }
+          ]
+        },
+        {
+          "text": "토요일 코스 완벽한데 ㅎㅎ",
+          "fontPx": 53,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 114,
+              "y": 2364.28125,
+              "width": 517.484375,
+              "height": 63,
+              "right": 631.484375,
+              "bottom": 2427.28125
+            }
+          ]
+        },
+        {
+          "text": "답장 복사하기",
+          "fontPx": 38,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 576.59375,
+              "y": 2506.96875,
+              "width": 205.8125,
+              "height": 45,
+              "right": 782.40625,
+              "bottom": 2551.96875
+            }
+          ]
+        },
+        {
+          "text": "마음은 선명하게. 답장은 가볍게.",
+          "fontPx": 31,
+          "color": "rgb(49, 71, 62)",
+          "rects": [
+            {
+              "x": 470.484375,
+              "y": 2688,
+              "width": 387.015625,
+              "height": 37,
+              "right": 857.5,
+              "bottom": 2725
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "board",
+      "width": 2400,
+      "height": 1350,
+      "errors": [],
+      "fontsLoaded": true,
+      "minTextPx": 26,
+      "textOutsideCanvas": [],
+      "buttons": [],
+      "images": [
+        {
+          "src": "icon.png",
+          "loaded": true
+        },
+        {
+          "src": "store-1.png",
+          "loaded": true
+        },
+        {
+          "src": "screen-1-home.png",
+          "loaded": true
+        },
+        {
+          "src": "screen-2-result.png",
+          "loaded": true
+        },
+        {
+          "src": "screen-3-kkti.png",
+          "loaded": true
+        }
+      ],
+      "glass": [],
+      "text": [
+        {
+          "text": "청신호",
+          "fontPx": 102,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 68,
+              "y": 69,
+              "width": 246.46875,
+              "height": 122,
+              "right": 314.46875,
+              "bottom": 191
+            }
+          ]
+        },
+        {
+          "text": "그 사람,",
+          "fontPx": 53,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 68,
+              "y": 234,
+              "width": 153.359375,
+              "height": 63,
+              "right": 221.359375,
+              "bottom": 297
+            }
+          ]
+        },
+        {
+          "text": "청신호일까?",
+          "fontPx": 53,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 68,
+              "y": 296.53125,
+              "width": 243.75,
+              "height": 63,
+              "right": 311.75,
+              "bottom": 359.53125
+            }
+          ]
+        },
+        {
+          "text": "사진에 설렘을 담고,",
+          "fontPx": 30,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 68,
+              "y": 395.0625,
+              "width": 230.109375,
+              "height": 36,
+              "right": 298.109375,
+              "bottom": 431.0625
+            }
+          ]
+        },
+        {
+          "text": "대화의 신호를 읽어요.",
+          "fontPx": 30,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 68,
+              "y": 440.0625,
+              "width": 255.921875,
+              "height": 36,
+              "right": 323.921875,
+              "bottom": 476.0625
+            }
+          ]
+        },
+        {
+          "text": "#14C38E",
+          "fontPx": 26,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 68,
+              "y": 822.0625,
+              "width": 105.984375,
+              "height": 31,
+              "right": 173.984375,
+              "bottom": 853.0625
+            }
+          ]
+        },
+        {
+          "text": "#0E1116",
+          "fontPx": 26,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 214,
+              "y": 822.0625,
+              "width": 94.46875,
+              "height": 31,
+              "right": 308.46875,
+              "bottom": 853.0625
+            }
+          ]
+        },
+        {
+          "text": "#F4FAF8",
+          "fontPx": 26,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 360,
+              "y": 822.0625,
+              "width": 103.546875,
+              "height": 31,
+              "right": 463.546875,
+              "bottom": 853.0625
+            }
+          ]
+        },
+        {
+          "text": "프리텐다드",
+          "fontPx": 28,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 68,
+              "y": 902.0625,
+              "width": 121,
+              "height": 34,
+              "right": 189,
+              "bottom": 936.0625
+            }
+          ]
+        },
+        {
+          "text": "맑은 사진, 또렷한 한마디.",
+          "fontPx": 29,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 68,
+              "y": 948.0625,
+              "width": 272.78125,
+              "height": 35,
+              "right": 340.78125,
+              "bottom": 983.0625
+            }
+          ]
+        },
+        {
+          "text": "미디엄 · 볼드",
+          "fontPx": 26,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 68,
+              "y": 993.0625,
+              "width": 131.90625,
+              "height": 31,
+              "right": 199.90625,
+              "bottom": 1024.0625
+            }
+          ]
+        },
+        {
+          "text": "사진 위에 유리 한 겹.",
+          "fontPx": 28,
+          "color": "rgb(52, 77, 67)",
+          "rects": [
+            {
+              "x": 68,
+              "y": 1062.0625,
+              "width": 228.328125,
+              "height": 34,
+              "right": 296.328125,
+              "bottom": 1096.0625
+            }
+          ]
+        },
+        {
+          "text": "초록은 신호가 되는 순간에만.",
+          "fontPx": 28,
+          "color": "rgb(52, 77, 67)",
+          "rects": [
+            {
+              "x": 68,
+              "y": 1104.0625,
+              "width": 318.28125,
+              "height": 34,
+              "right": 386.28125,
+              "bottom": 1138.0625
+            }
+          ]
+        },
+        {
+          "text": "마음은 선명하게. 답장은 가볍게.",
+          "fontPx": 38,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 600,
+              "y": 106.5,
+              "width": 446.46875,
+              "height": 45,
+              "right": 1046.46875,
+              "bottom": 151.5
+            }
+          ]
+        },
+        {
+          "text": "캡처 한 장 → 답장 세 가지",
+          "fontPx": 27,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 2057.6875,
+              "y": 112.5,
+              "width": 274.3125,
+              "height": 33,
+              "right": 2332,
+              "bottom": 145.5
+            }
+          ]
+        },
+        {
+          "text": "첫인상",
+          "fontPx": 29,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 768.390625,
+              "y": 238,
+              "width": 75.203125,
+              "height": 35,
+              "right": 843.59375,
+              "bottom": 273
+            }
+          ]
+        },
+        {
+          "text": "그 사람, 청신호일까?",
+          "fontPx": 26,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 704.140625,
+              "y": 1197.5,
+              "width": 203.703125,
+              "height": 31,
+              "right": 907.84375,
+              "bottom": 1228.5
+            }
+          ]
+        },
+        {
+          "text": "홈",
+          "fontPx": 29,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 1233.453125,
+              "y": 238,
+              "width": 25.078125,
+              "height": 35,
+              "right": 1258.53125,
+              "bottom": 273
+            }
+          ]
+        },
+        {
+          "text": "캡처 한 장으로 시작해요",
+          "fontPx": 26,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 1128.671875,
+              "y": 1197.5,
+              "width": 234.65625,
+              "height": 31,
+              "right": 1363.328125,
+              "bottom": 1228.5
+            }
+          ]
+        },
+        {
+          "text": "코칭 결과",
+          "fontPx": 29,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 1632.53125,
+              "y": 238,
+              "width": 106.9375,
+              "height": 35,
+              "right": 1739.46875,
+              "bottom": 273
+            }
+          ]
+        },
+        {
+          "text": "세 가지 답장을 비교해요",
+          "fontPx": 26,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 1568.671875,
+              "y": 1197.5,
+              "width": 234.65625,
+              "height": 31,
+              "right": 1803.328125,
+              "bottom": 1228.5
+            }
+          ]
+        },
+        {
+          "text": "연애 유형",
+          "fontPx": 29,
+          "color": "rgb(14, 17, 22)",
+          "rects": [
+            {
+              "x": 2072.53125,
+              "y": 238,
+              "width": 106.9375,
+              "height": 35,
+              "right": 2179.46875,
+              "bottom": 273
+            }
+          ]
+        },
+        {
+          "text": "나를 닮은 카드로 공유해요",
+          "fontPx": 26,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 1997.78125,
+              "y": 1197.5,
+              "width": 256.421875,
+              "height": 31,
+              "right": 2254.203125,
+              "bottom": 1228.5
+            }
+          ]
+        },
+        {
+          "text": "청신호 · 브랜드와 화면",
+          "fontPx": 26,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 68,
+              "y": 1280,
+              "width": 228.140625,
+              "height": 31,
+              "right": 296.140625,
+              "bottom": 1311
+            }
+          ]
+        },
+        {
+          "text": "밝은 사진 · 투명한 유리 · 한 번의 행동",
+          "fontPx": 26,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 1050.125,
+              "y": 1280,
+              "width": 379.09375,
+              "height": 31,
+              "right": 1429.21875,
+              "bottom": 1311
+            }
+          ]
+        },
+        {
+          "text": "2026. 11. 02.",
+          "fontPx": 26,
+          "color": "rgb(69, 83, 79)",
+          "rects": [
+            {
+              "x": 2183.1875,
+              "y": 1280,
+              "width": 148.8125,
+              "height": 31,
+              "right": 2332,
+              "bottom": 1311
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "pngs": [
+    {
+      "file": "icon.png",
+      "width": 1024,
+      "height": 1024
+    },
+    {
+      "file": "store-1.png",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "file": "screen-1-home.png",
+      "width": 1179,
+      "height": 2556
+    },
+    {
+      "file": "screen-2-result.png",
+      "width": 1179,
+      "height": 2556
+    },
+    {
+      "file": "screen-3-kkti.png",
+      "width": 1179,
+      "height": 2556
+    },
+    {
+      "file": "board.png",
+      "width": 2400,
+      "height": 1350
+    }
+  ]
+}

@@ -1,0 +1,247 @@
+{
+  "pages": [
+    {
+      "name": "screen-1-home",
+      "fontLoaded": true,
+      "minimumTextPx": 30,
+      "minimumTextContrast": 4.9,
+      "contrastFailures": [],
+      "missingImages": [],
+      "appButtonsBelow120Px": [],
+      "appTextOutsideCanvas": [],
+      "keyBounds": [
+        {
+          "class": "tabs",
+          "x": 0,
+          "y": 2328,
+          "width": 1179,
+          "height": 153,
+          "right": 1179,
+          "bottom": 2481
+        }
+      ]
+    },
+    {
+      "name": "screen-2-result",
+      "fontLoaded": true,
+      "minimumTextPx": 27,
+      "minimumTextContrast": 5.2,
+      "contrastFailures": [],
+      "missingImages": [],
+      "appButtonsBelow120Px": [],
+      "appTextOutsideCanvas": [],
+      "keyBounds": [
+        {
+          "class": "mascot ",
+          "x": 951,
+          "y": 561,
+          "width": 156,
+          "height": 156,
+          "right": 1107,
+          "bottom": 717
+        },
+        {
+          "class": "mind-stats",
+          "x": 72,
+          "y": 708,
+          "width": 1035,
+          "height": 177,
+          "right": 1107,
+          "bottom": 885
+        },
+        {
+          "class": "reply ",
+          "x": 72,
+          "y": 1182,
+          "width": 1035,
+          "height": 324,
+          "right": 1107,
+          "bottom": 1506
+        },
+        {
+          "class": "reply recommended",
+          "x": 72,
+          "y": 1530,
+          "width": 1035,
+          "height": 324,
+          "right": 1107,
+          "bottom": 1854
+        },
+        {
+          "class": "reply ",
+          "x": 72,
+          "y": 1878,
+          "width": 1035,
+          "height": 324,
+          "right": 1107,
+          "bottom": 2202
+        },
+        {
+          "class": "temperature",
+          "x": 72,
+          "y": 2259,
+          "width": 1035,
+          "height": 159,
+          "right": 1107,
+          "bottom": 2418
+        }
+      ]
+    },
+    {
+      "name": "screen-3-practice",
+      "fontLoaded": true,
+      "minimumTextPx": 27,
+      "minimumTextContrast": 5.6,
+      "contrastFailures": [],
+      "missingImages": [],
+      "appButtonsBelow120Px": [],
+      "appTextOutsideCanvas": [],
+      "keyBounds": [
+        {
+          "class": "feedback",
+          "x": 72,
+          "y": 1506,
+          "width": 1035,
+          "height": 732,
+          "right": 1107,
+          "bottom": 2238
+        },
+        {
+          "class": "feedback-footer",
+          "x": 135,
+          "y": 2064,
+          "width": 909,
+          "height": 147,
+          "right": 1044,
+          "bottom": 2211
+        },
+        {
+          "class": "share-button",
+          "x": 754.6,
+          "y": 2091,
+          "width": 289.4,
+          "height": 120,
+          "right": 1044,
+          "bottom": 2211
+        },
+        {
+          "class": "composer",
+          "x": 72,
+          "y": 2283,
+          "width": 1035,
+          "height": 168,
+          "right": 1107,
+          "bottom": 2451
+        }
+      ]
+    },
+    {
+      "name": "store-1",
+      "fontLoaded": true,
+      "minimumTextPx": 27,
+      "minimumTextContrast": 5.05,
+      "contrastFailures": [],
+      "missingImages": [],
+      "appButtonsBelow120Px": [],
+      "appTextOutsideCanvas": [],
+      "keyBounds": []
+    },
+    {
+      "name": "board",
+      "fontLoaded": true,
+      "minimumTextPx": 15,
+      "minimumTextContrast": 5.6,
+      "contrastFailures": [],
+      "missingImages": [],
+      "appButtonsBelow120Px": [],
+      "appTextOutsideCanvas": [],
+      "keyBounds": [
+        {
+          "class": "device store-device",
+          "x": 600,
+          "y": 309,
+          "width": 400.5,
+          "height": 852,
+          "right": 1000.5,
+          "bottom": 1161
+        },
+        {
+          "class": "device ",
+          "x": 1039.5,
+          "y": 309,
+          "width": 400.5,
+          "height": 852,
+          "right": 1440,
+          "bottom": 1161
+        },
+        {
+          "class": "device ",
+          "x": 1479,
+          "y": 309,
+          "width": 400.5,
+          "height": 852,
+          "right": 1879.5,
+          "bottom": 1161
+        },
+        {
+          "class": "device ",
+          "x": 1918.5,
+          "y": 309,
+          "width": 400.5,
+          "height": 852,
+          "right": 2319,
+          "bottom": 1161
+        }
+      ]
+    }
+  ],
+  "pngs": [
+    {
+      "file": "icon.png",
+      "width": 1024,
+      "height": 1024,
+      "correct": true
+    },
+    {
+      "file": "screen-1-home.png",
+      "width": 1179,
+      "height": 2556,
+      "correct": true
+    },
+    {
+      "file": "screen-2-result.png",
+      "width": 1179,
+      "height": 2556,
+      "correct": true
+    },
+    {
+      "file": "screen-3-practice.png",
+      "width": 1179,
+      "height": 2556,
+      "correct": true
+    },
+    {
+      "file": "store-1.png",
+      "width": 1290,
+      "height": 2796,
+      "correct": true
+    },
+    {
+      "file": "board.png",
+      "width": 2400,
+      "height": 1350,
+      "correct": true
+    }
+  ],
+  "checks": [
+    {
+      "name": "Practice share button contained with bottom padding",
+      "pass": true
+    },
+    {
+      "name": "Practice feedback clear of composer",
+      "pass": true
+    }
+  ],
+  "pass": true
+}

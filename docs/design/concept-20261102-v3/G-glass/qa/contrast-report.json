@@ -1,0 +1,672 @@
+[
+  {
+    "name": "screen-1-home",
+    "minimum": 5.58,
+    "below4_5": [],
+    "checks": [
+      {
+        "text": "9:41",
+        "minRatio": 15.89,
+        "fontPx": 43
+      },
+      {
+        "text": "청신호",
+        "minRatio": 15.16,
+        "fontPx": 64
+      },
+      {
+        "text": "답장 코치",
+        "minRatio": 11.0,
+        "fontPx": 32
+      },
+      {
+        "text": "지수님, 안녕하세요",
+        "minRatio": 6.68,
+        "fontPx": 38
+      },
+      {
+        "text": "그 사람,",
+        "minRatio": 8.78,
+        "fontPx": 90
+      },
+      {
+        "text": "청신호일까요?",
+        "minRatio": 6.67,
+        "fontPx": 90
+      },
+      {
+        "text": "답장 고민, 여기까지.",
+        "minRatio": 11.17,
+        "fontPx": 43
+      },
+      {
+        "text": "캡처 한 장이면 돼요",
+        "minRatio": 5.69,
+        "fontPx": 29
+      },
+      {
+        "text": "캡처 올리기",
+        "minRatio": 8.31,
+        "fontPx": 44
+      },
+      {
+        "text": "오늘 무료",
+        "minRatio": 6.75,
+        "fontPx": 30
+      },
+      {
+        "text": "2회",
+        "minRatio": 15.81,
+        "fontPx": 30
+      },
+      {
+        "text": "남았어요",
+        "minRatio": 6.76,
+        "fontPx": 30
+      },
+      {
+        "text": "캡처가 없어도 괜찮아요",
+        "minRatio": 7.75,
+        "fontPx": 28
+      },
+      {
+        "text": "상황만 적어볼래요",
+        "minRatio": 18.28,
+        "fontPx": 36
+      },
+      {
+        "text": "최근 상담",
+        "minRatio": 17.59,
+        "fontPx": 44
+      },
+      {
+        "text": "이어 이야기해요",
+        "minRatio": 7.5,
+        "fontPx": 29
+      },
+      {
+        "text": "수연",
+        "minRatio": 17.74,
+        "fontPx": 38
+      },
+      {
+        "text": "토요일 약속, 뭐라고 답할까요?",
+        "minRatio": 7.57,
+        "fontPx": 30
+      },
+      {
+        "text": "35°",
+        "minRatio": 5.58,
+        "fontPx": 46
+      },
+      {
+        "text": "도윤",
+        "minRatio": 17.74,
+        "fontPx": 38
+      },
+      {
+        "text": "다음 약속, 먼저 잡아도 될까요?",
+        "minRatio": 7.5,
+        "fontPx": 30
+      },
+      {
+        "text": "25°",
+        "minRatio": 6.99,
+        "fontPx": 46
+      },
+      {
+        "text": "홈",
+        "minRatio": 10.26,
+        "fontPx": 29
+      },
+      {
+        "text": "탐색",
+        "minRatio": 7.74,
+        "fontPx": 29
+      },
+      {
+        "text": "마이",
+        "minRatio": 7.74,
+        "fontPx": 29
+      }
+    ]
+  },
+  {
+    "name": "screen-2-result",
+    "minimum": 5.3,
+    "below4_5": [],
+    "checks": [
+      {
+        "text": "9:41",
+        "minRatio": 15.86,
+        "fontPx": 43
+      },
+      {
+        "text": "수연과의 대화",
+        "minRatio": 16.12,
+        "fontPx": 42
+      },
+      {
+        "text": "수연이 보냈어요",
+        "minRatio": 6.74,
+        "fontPx": 26
+      },
+      {
+        "text": "토요일 오후 좋아!",
+        "minRatio": 17.22,
+        "fontPx": 45
+      },
+      {
+        "text": "끝나고 밥도 먹자 ㅎㅎ",
+        "minRatio": 17.22,
+        "fontPx": 45
+      },
+      {
+        "text": "지금은 청신호",
+        "minRatio": 16.37,
+        "fontPx": 36
+      },
+      {
+        "text": "62",
+        "minRatio": 5.3,
+        "fontPx": 164
+      },
+      {
+        "text": "%",
+        "minRatio": 5.44,
+        "fontPx": 68
+      },
+      {
+        "text": "관심 있을 가능성",
+        "minRatio": 6.57,
+        "fontPx": 29
+      },
+      {
+        "text": "다음 약속을 함께",
+        "minRatio": 17.15,
+        "fontPx": 34
+      },
+      {
+        "text": "이어가고 싶어 해요.",
+        "minRatio": 17.15,
+        "fontPx": 34
+      },
+      {
+        "text": "바빠서",
+        "minRatio": 7.31,
+        "fontPx": 29
+      },
+      {
+        "text": "23%",
+        "minRatio": 17.15,
+        "fontPx": 36
+      },
+      {
+        "text": "선 긋는 중",
+        "minRatio": 7.2,
+        "fontPx": 29
+      },
+      {
+        "text": "15%",
+        "minRatio": 17.1,
+        "fontPx": 36
+      },
+      {
+        "text": "이렇게 답장해요",
+        "minRatio": 15.49,
+        "fontPx": 44
+      },
+      {
+        "text": "내 말투에 맞춘 3가지",
+        "minRatio": 5.99,
+        "fontPx": 29
+      },
+      {
+        "text": "무난하게",
+        "minRatio": 16.29,
+        "fontPx": 35
+      },
+      {
+        "text": "좋아 ㅎㅎ 토요일에 보자.",
+        "minRatio": 15.8,
+        "fontPx": 42
+      },
+      {
+        "text": "맛있는 것도 같이 먹자!",
+        "minRatio": 15.83,
+        "fontPx": 42
+      },
+      {
+        "text": "성공 확률",
+        "minRatio": 6.9,
+        "fontPx": 26
+      },
+      {
+        "text": "84",
+        "minRatio": 15.72,
+        "fontPx": 88
+      },
+      {
+        "text": "%",
+        "minRatio": 16.05,
+        "fontPx": 41
+      },
+      {
+        "text": "복사",
+        "minRatio": 18.19,
+        "fontPx": 29
+      },
+      {
+        "text": "센스 있게",
+        "minRatio": 15.91,
+        "fontPx": 35
+      },
+      {
+        "text": "추천",
+        "minRatio": 7.89,
+        "fontPx": 27
+      },
+      {
+        "text": "전시 보고 맛집까지?",
+        "minRatio": 15.39,
+        "fontPx": 42
+      },
+      {
+        "text": "토요일 코스 완벽한데 ㅎㅎ",
+        "minRatio": 15.25,
+        "fontPx": 42
+      },
+      {
+        "text": "성공 확률",
+        "minRatio": 6.47,
+        "fontPx": 26
+      },
+      {
+        "text": "92",
+        "minRatio": 5.35,
+        "fontPx": 88
+      },
+      {
+        "text": "%",
+        "minRatio": 5.6,
+        "fontPx": 41
+      },
+      {
+        "text": "복사",
+        "minRatio": 18.28,
+        "fontPx": 29
+      },
+      {
+        "text": "직진",
+        "minRatio": 16.66,
+        "fontPx": 35
+      },
+      {
+        "text": "좋아. 사실 전시보다",
+        "minRatio": 15.41,
+        "fontPx": 42
+      },
+      {
+        "text": "너 만나는 게 더 기대돼 ㅎㅎ",
+        "minRatio": 15.54,
+        "fontPx": 42
+      },
+      {
+        "text": "성공 확률",
+        "minRatio": 7.07,
+        "fontPx": 26
+      },
+      {
+        "text": "78",
+        "minRatio": 16.59,
+        "fontPx": 88
+      },
+      {
+        "text": "%",
+        "minRatio": 17.0,
+        "fontPx": 41
+      },
+      {
+        "text": "복사",
+        "minRatio": 18.47,
+        "fontPx": 29
+      },
+      {
+        "text": "호감 온도",
+        "minRatio": 16.84,
+        "fontPx": 34
+      },
+      {
+        "text": "지난 대화보다 따뜻해졌어요",
+        "minRatio": 6.79,
+        "fontPx": 27
+      },
+      {
+        "text": "25°",
+        "minRatio": 5.66,
+        "fontPx": 43
+      },
+      {
+        "text": "35°",
+        "minRatio": 16.82,
+        "fontPx": 75
+      },
+      {
+        "text": "+10°",
+        "minRatio": 5.32,
+        "fontPx": 28
+      },
+      {
+        "text": "대화로 추정한 가능성이에요",
+        "minRatio": 6.36,
+        "fontPx": 26
+      }
+    ]
+  },
+  {
+    "name": "screen-3-kkti",
+    "minimum": 5.45,
+    "below4_5": [],
+    "checks": [
+      {
+        "text": "9:41",
+        "minRatio": 15.86,
+        "fontPx": 43
+      },
+      {
+        "text": "나의 카톡 연애 유형",
+        "minRatio": 15.82,
+        "fontPx": 42
+      },
+      {
+        "text": "카톡 습관으로 알아봐요",
+        "minRatio": 6.88,
+        "fontPx": 34
+      },
+      {
+        "text": "좋아하는 마음,",
+        "minRatio": 15.8,
+        "fontPx": 84
+      },
+      {
+        "text": "티가 나는 편.",
+        "minRatio": 15.77,
+        "fontPx": 84
+      },
+      {
+        "text": "16가지 카톡 연애 유형",
+        "minRatio": 5.45,
+        "fontPx": 29
+      },
+      {
+        "text": "직진 불도저",
+        "minRatio": 7.47,
+        "fontPx": 33
+      },
+      {
+        "text": "좋으면,",
+        "minRatio": 11.15,
+        "fontPx": 96
+      },
+      {
+        "text": "먼저 말해요.",
+        "minRatio": 16.08,
+        "fontPx": 96
+      },
+      {
+        "text": "“나는 너랑 또 보고 싶은데.”",
+        "minRatio": 11.95,
+        "fontPx": 35
+      },
+      {
+        "text": "마음을 숨기기보다",
+        "minRatio": 7.42,
+        "fontPx": 28
+      },
+      {
+        "text": "한 걸음 먼저 다가가요.",
+        "minRatio": 7.57,
+        "fontPx": 28
+      },
+      {
+        "text": "청신호",
+        "minRatio": 17.74,
+        "fontPx": 38
+      },
+      {
+        "text": "결과 공유하기",
+        "minRatio": 8.31,
+        "fontPx": 44
+      },
+      {
+        "text": "친구와 궁합 보기",
+        "minRatio": 15.79,
+        "fontPx": 37
+      }
+    ]
+  },
+  {
+    "name": "store-1",
+    "minimum": 5.54,
+    "below4_5": [],
+    "checks": [
+      {
+        "text": "청신호",
+        "minRatio": 16.56,
+        "fontPx": 66
+      },
+      {
+        "text": "카톡 답장 코치",
+        "minRatio": 7.82,
+        "fontPx": 33
+      },
+      {
+        "text": "그 사람,",
+        "minRatio": 16.56,
+        "fontPx": 154
+      },
+      {
+        "text": "청신호일까?",
+        "minRatio": 16.56,
+        "fontPx": 154
+      },
+      {
+        "text": "카톡 한 장, 답장은 세 가지.",
+        "minRatio": 7.74,
+        "fontPx": 47
+      },
+      {
+        "text": "수연",
+        "minRatio": 5.54,
+        "fontPx": 28
+      },
+      {
+        "text": "토요일 오후 좋아! 끝나고 밥도 먹자 ㅎㅎ",
+        "minRatio": 9.27,
+        "fontPx": 40
+      },
+      {
+        "text": "추천 답장",
+        "minRatio": 8.53,
+        "fontPx": 27
+      },
+      {
+        "text": "센스 있게",
+        "minRatio": 16.95,
+        "fontPx": 38
+      },
+      {
+        "text": "성공 확률",
+        "minRatio": 7.0,
+        "fontPx": 26
+      },
+      {
+        "text": "92",
+        "minRatio": 5.68,
+        "fontPx": 118
+      },
+      {
+        "text": "%",
+        "minRatio": 5.82,
+        "fontPx": 54
+      },
+      {
+        "text": "전시 보고 맛집까지?",
+        "minRatio": 15.59,
+        "fontPx": 53
+      },
+      {
+        "text": "토요일 코스 완벽한데 ㅎㅎ",
+        "minRatio": 16.11,
+        "fontPx": 53
+      },
+      {
+        "text": "답장 복사하기",
+        "minRatio": 8.31,
+        "fontPx": 38
+      },
+      {
+        "text": "마음은 선명하게. 답장은 가볍게.",
+        "minRatio": 9.38,
+        "fontPx": 31
+      }
+    ]
+  },
+  {
+    "name": "board",
+    "minimum": 6.6,
+    "below4_5": [],
+    "checks": [
+      {
+        "text": "청신호",
+        "minRatio": 17.9,
+        "fontPx": 102
+      },
+      {
+        "text": "그 사람,",
+        "minRatio": 17.9,
+        "fontPx": 53
+      },
+      {
+        "text": "청신호일까?",
+        "minRatio": 17.9,
+        "fontPx": 53
+      },
+      {
+        "text": "사진에 설렘을 담고,",
+        "minRatio": 7.64,
+        "fontPx": 30
+      },
+      {
+        "text": "대화의 신호를 읽어요.",
+        "minRatio": 7.64,
+        "fontPx": 30
+      },
+      {
+        "text": "#14C38E",
+        "minRatio": 17.9,
+        "fontPx": 26
+      },
+      {
+        "text": "#0E1116",
+        "minRatio": 17.9,
+        "fontPx": 26
+      },
+      {
+        "text": "#F4FAF8",
+        "minRatio": 17.56,
+        "fontPx": 26
+      },
+      {
+        "text": "프리텐다드",
+        "minRatio": 7.64,
+        "fontPx": 28
+      },
+      {
+        "text": "맑은 사진, 또렷한 한마디.",
+        "minRatio": 17.71,
+        "fontPx": 29
+      },
+      {
+        "text": "미디엄 · 볼드",
+        "minRatio": 7.64,
+        "fontPx": 26
+      },
+      {
+        "text": "사진 위에 유리 한 겹.",
+        "minRatio": 8.61,
+        "fontPx": 28
+      },
+      {
+        "text": "초록은 신호가 되는 순간에만.",
+        "minRatio": 8.59,
+        "fontPx": 28
+      },
+      {
+        "text": "마음은 선명하게. 답장은 가볍게.",
+        "minRatio": 17.0,
+        "fontPx": 38
+      },
+      {
+        "text": "캡처 한 장 → 답장 세 가지",
+        "minRatio": 6.96,
+        "fontPx": 27
+      },
+      {
+        "text": "첫인상",
+        "minRatio": 17.07,
+        "fontPx": 29
+      },
+      {
+        "text": "그 사람, 청신호일까?",
+        "minRatio": 6.68,
+        "fontPx": 26
+      },
+      {
+        "text": "홈",
+        "minRatio": 16.47,
+        "fontPx": 29
+      },
+      {
+        "text": "캡처 한 장으로 시작해요",
+        "minRatio": 6.63,
+        "fontPx": 26
+      },
+      {
+        "text": "코칭 결과",
+        "minRatio": 15.85,
+        "fontPx": 29
+      },
+      {
+        "text": "세 가지 답장을 비교해요",
+        "minRatio": 6.6,
+        "fontPx": 26
+      },
+      {
+        "text": "연애 유형",
+        "minRatio": 15.93,
+        "fontPx": 29
+      },
+      {
+        "text": "나를 닮은 카드로 공유해요",
+        "minRatio": 6.61,
+        "fontPx": 26
+      },
+      {
+        "text": "청신호 · 브랜드와 화면",
+        "minRatio": 7.64,
+        "fontPx": 26
+      },
+      {
+        "text": "밝은 사진 · 투명한 유리 · 한 번의 행동",
+        "minRatio": 7.28,
+        "fontPx": 26
+      },
+      {
+        "text": "2026. 11. 02.",
+        "minRatio": 7.3,
+        "fontPx": 26
+      }
+    ]
+  }
+]
