@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=2400, initial-scale=1">
+  <title>직진 — 게임 플랜 브랜드 컨셉</title>
+  <style>
+    @font-face{font-family:P;font-weight:700;src:url("file:///C:/Users/shsop/mylovecoach-concept-20261102/api/_assets/fonts/Pretendard-Bold.otf")}
+    @font-face{font-family:P;font-weight:500;src:url("file:///C:/Users/shsop/mylovecoach-concept-20261102/api/_assets/fonts/Pretendard-Medium.otf")}
+    *{box-sizing:border-box}
+    :root{--ink:#101410;--volt:#C5FF32;--orange:#FF6B2C;--silver:#E9ECE6}
+    html,body{width:2400px;height:1350px;margin:0;overflow:hidden;background:#fff;color:var(--ink);font-family:P,sans-serif;font-weight:500}
+    .board{position:relative;width:2400px;height:1350px;isolation:isolate}
+    .track{position:absolute;z-index:-2;width:1810px;height:1810px;border:2px solid #e8ece5;border-radius:50%;left:1315px;top:-630px}
+    .track:before,.track:after{content:"";position:absolute;border:2px solid #e8ece5;border-radius:50%;inset:90px}
+    .track:after{inset:180px}
+    .volt-corner{position:absolute;z-index:-3;right:-200px;top:-180px;width:610px;height:570px;background:var(--volt);transform:skewX(-22deg)}
+    .floor{position:absolute;z-index:-3;left:800px;right:0;bottom:0;height:310px;background:linear-gradient(180deg,#fff,#eef1eb)}
+    .eyebrow{position:absolute;left:84px;top:83px;display:flex;align-items:center;gap:21px;font-family:Bahnschrift,P,sans-serif;font-size:26px;letter-spacing:2.8px;font-weight:700}
+    .serial{padding:12px 16px;background:var(--ink);color:var(--volt);letter-spacing:1px}
+    .logo{position:absolute;left:76px;top:178px;font-size:166px;line-height:1.08;font-weight:700;font-style:italic;letter-spacing:-12px;transform:skewX(-5deg);padding-right:28px}
+    .wordmark{position:absolute;top:363px;left:87px;display:flex;align-items:center;gap:22px;font-family:Bahnschrift,P,sans-serif;font-size:34px;font-weight:700;font-style:italic;letter-spacing:7px}
+    .wordmark i{display:block;width:58px;height:12px;background:var(--orange);transform:skewX(-22deg)}
+    h1{position:absolute;left:84px;top:450px;margin:0;font-size:46px;line-height:1.3;letter-spacing:-1.8px;font-weight:700}
+    .concept{position:absolute;left:84px;top:540px;width:628px;margin:0;font-size:31px;line-height:1.65;letter-spacing:-.7px;color:#4D554D}
+    .icon-block{position:absolute;left:84px;top:698px;display:flex;align-items:center;gap:31px}
+    .app-icon{display:block;width:218px;height:218px;border-radius:49px;box-shadow:0 22px 40px #10141014,0 3px 7px #10141014}
+    .icon-copy{font-size:28px;line-height:1.65;letter-spacing:-.6px}
+    .icon-copy strong{display:block;font-family:Bahnschrift,P,sans-serif;font-size:29px;letter-spacing:1px;margin-bottom:8px}
+    .icon-copy span{color:#4D554D}
+    .palette{position:absolute;left:84px;top:1000px;width:644px;display:flex;gap:16px}
+    .swatch{width:116px}
+    .swatch-color{width:116px;height:58px;background:var(--color);border:1px solid #1014101f}
+    .swatch-label{font-family:Bahnschrift,P,sans-serif;font-size:23px;font-weight:500;letter-spacing:.1px;margin-top:13px;white-space:nowrap}
+    .type{position:absolute;left:84px;top:1142px;font-size:26px;letter-spacing:-.3px}
+    .type b{font-weight:700}.type span{display:inline-block;margin-left:16px;color:#596159}
+    .rule{position:absolute;left:84px;right:84px;bottom:91px;height:1px;background:#10141028}
+    .footer{position:absolute;bottom:42px;left:84px;right:84px;display:flex;justify-content:space-between;font-family:Bahnschrift,P,sans-serif;font-size:24px;letter-spacing:1px;color:#596159}
+    .right-title{position:absolute;top:84px;left:858px;font-family:Bahnschrift,P,sans-serif;font-size:26px;font-weight:700;letter-spacing:3px}
+    .device{position:absolute;background:linear-gradient(105deg,#51584f,#0a0d0a 15%,#20271e 86%,#737a70);padding:10px;border-radius:62px;box-shadow:0 30px 44px #1014101b,0 9px 11px #10141018,inset 0 0 0 1px #7c8379,inset 0 0 0 5px #101410}
+    .device:before{content:"";position:absolute;width:4px;height:82px;top:200px;left:-4px;border-radius:3px 0 0 3px;background:#535a51}
+    .device:after{content:"";position:absolute;width:4px;height:104px;top:228px;right:-4px;border-radius:0 3px 3px 0;background:#535a51}
+    .display{position:relative;width:100%;overflow:hidden;border-radius:51px;background:#fff}
+    .display img{display:block;width:100%;height:auto}
+    .device-label{position:absolute;left:3px;top:-52px;font-family:Bahnschrift,P,sans-serif;font-size:24px;letter-spacing:1px;white-space:nowrap;color:#485147}
+    .device-label b{font-weight:700;color:var(--ink);margin-right:10px}
+    .home{left:858px;top:294px;width:420px}
+    .result{left:1328px;top:198px;width:470px;z-index:2}
+    .kkti{left:1848px;top:294px;width:420px}
+    .result .device-label:before{content:"";display:inline-block;background:var(--orange);width:10px;height:10px;margin-right:13px;transform:skewX(-18deg)}
+  </style>
+</head>
+<body>
+  <main class="board">
+    <div class="track"></div><div class="volt-corner"></div><div class="floor"></div>
+    <div class="eyebrow"><span class="serial">C / 03</span><span>GAME PLAN</span></div>
+    <div class="logo">직진</div>
+    <div class="wordmark">JIKJIN<i></i></div>
+    <h1>망설이지 말고, 직진</h1>
+    <p class="concept">답장 고민을 다음 행동으로.<br>가볍게 열고, 자신 있게 대화하는<br>스포츠 감각의 AI 연애 코치.</p>
+    <div class="icon-block">
+      <img class="app-icon" src="icon.png" alt="직진 앱 아이콘">
+      <div class="icon-copy"><strong>YOUR NEXT MOVE.</strong><span>한 걸음, 더 확실하게.<br>상대의 페이스를 존중하는 직진.</span></div>
+    </div>
+    <div class="palette">
+      <div class="swatch"><div class="swatch-color" style="--color:#FFFFFF"></div><div class="swatch-label">#FFFFFF</div></div>
+      <div class="swatch"><div class="swatch-color" style="--color:#101410"></div><div class="swatch-label">#101410</div></div>
+      <div class="swatch"><div class="swatch-color" style="--color:#C5FF32"></div><div class="swatch-label">#C5FF32</div></div>
+      <div class="swatch"><div class="swatch-color" style="--color:#FF6B2C"></div><div class="swatch-label">#FF6B2C</div></div>
+      <div class="swatch"><div class="swatch-color" style="--color:#E9ECE6"></div><div class="swatch-label">#E9ECE6</div></div>
+    </div>
+    <div class="type"><b>Pretendard</b><span>+</span><b style="margin-left:16px;font-family:Bahnschrift,sans-serif">Bahnschrift</b></div>
+    <div class="right-title">COACHING, IN MOTION.</div>
+    <div class="device home"><div class="device-label"><b>01</b> HOME / 대화의 시작</div><div class="display"><img src="screen-1-home.png" alt="직진 홈 화면"></div></div>
+    <div class="device result"><div class="device-label"><b>02</b> COACHING / 다음 답장</div><div class="display"><img src="screen-2-result.png" alt="직진 코칭 결과 화면"></div></div>
+    <div class="device kkti"><div class="device-label"><b>03</b> KKTI / 나의 플레이</div><div class="display"><img src="screen-3-kkti.png" alt="직진 KKTI 결과 화면"></div></div>
+    <div class="rule"></div>
+    <div class="footer"><span>JIKJIN — BRAND &amp; UI CONCEPT</span><span>2026.11.02 &nbsp; / &nbsp; C-SPORT</span></div>
+  </main>
+</body>
+</html>

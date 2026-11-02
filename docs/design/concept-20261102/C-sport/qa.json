@@ -1,0 +1,215 @@
+{
+  "screens": [
+    {
+      "name": "screen-1-home",
+      "fontLoaded": true,
+      "minTextPx": 26,
+      "smallText": [],
+      "textOutsideViewport": [],
+      "buttonHeights": [
+        {
+          "label": "새 상담",
+          "height": 120
+        },
+        {
+          "label": "캡처 올리기대화 한 장 → 답장 3가지 + 호감 온도",
+          "height": 160
+        },
+        {
+          "label": "상황 보내기",
+          "height": 120
+        },
+        {
+          "label": "KKTI / MY PLAY STYLE나는 어떤 연애 플레이어?",
+          "height": 200
+        },
+        {
+          "label": "홈",
+          "height": 158
+        },
+        {
+          "label": "탐색",
+          "height": 158
+        },
+        {
+          "label": "마이",
+          "height": 158
+        }
+      ],
+      "images": [
+        {
+          "src": "icon.png",
+          "loaded": true
+        },
+        {
+          "src": "_art/velocity-object.png",
+          "loaded": true
+        },
+        {
+          "src": "_art/player-emblem.png",
+          "loaded": true
+        }
+      ],
+      "replyCardCount": 0,
+      "kktiStatCount": 0
+    },
+    {
+      "name": "screen-2-result",
+      "fontLoaded": true,
+      "minTextPx": 26,
+      "smallText": [],
+      "textOutsideViewport": [],
+      "buttonHeights": [
+        {
+          "label": "뒤로",
+          "height": 120
+        },
+        {
+          "label": "무난하게 답장 복사",
+          "height": 120
+        },
+        {
+          "label": "센스 있게 답장 복사",
+          "height": 120
+        },
+        {
+          "label": "직진 답장 복사",
+          "height": 120
+        }
+      ],
+      "images": [],
+      "replyCardCount": 3,
+      "kktiStatCount": 0
+    },
+    {
+      "name": "screen-3-kkti",
+      "fontLoaded": true,
+      "minTextPx": 26,
+      "smallText": [],
+      "textOutsideViewport": [],
+      "buttonHeights": [
+        {
+          "label": "뒤로",
+          "height": 120
+        },
+        {
+          "label": "다시 하기",
+          "height": 120
+        },
+        {
+          "label": "결과 공유하기",
+          "height": 143
+        }
+      ],
+      "images": [
+        {
+          "src": "_art/player-emblem.png",
+          "loaded": true
+        }
+      ],
+      "replyCardCount": 0,
+      "kktiStatCount": 4
+    }
+  ],
+  "sizes": [
+    {
+      "name": "icon",
+      "actual": [
+        1024,
+        1024
+      ],
+      "expected": [
+        1024,
+        1024
+      ],
+      "pass": true
+    },
+    {
+      "name": "screen-1-home",
+      "actual": [
+        1179,
+        2556
+      ],
+      "expected": [
+        1179,
+        2556
+      ],
+      "pass": true
+    },
+    {
+      "name": "screen-2-result",
+      "actual": [
+        1179,
+        2556
+      ],
+      "expected": [
+        1179,
+        2556
+      ],
+      "pass": true
+    },
+    {
+      "name": "screen-3-kkti",
+      "actual": [
+        1179,
+        2556
+      ],
+      "expected": [
+        1179,
+        2556
+      ],
+      "pass": true
+    },
+    {
+      "name": "board",
+      "actual": [
+        2400,
+        1350
+      ],
+      "expected": [
+        2400,
+        1350
+      ],
+      "pass": true
+    }
+  ],
+  "contrast": [
+    {
+      "foreground": "#101410",
+      "background": "#FFFFFF",
+      "ratio": 18.59,
+      "pass": true
+    },
+    {
+      "foreground": "#555D55",
+      "background": "#FFFFFF",
+      "ratio": 6.81,
+      "pass": true
+    },
+    {
+      "foreground": "#555D55",
+      "background": "#F3F5F0",
+      "ratio": 6.2,
+      "pass": true
+    },
+    {
+      "foreground": "#101410",
+      "background": "#C5FF32",
+      "ratio": 15.69,
+      "pass": true
+    },
+    {
+      "foreground": "#DAE2D5",
+      "background": "#101410",
+      "ratio": 14.01,
+      "pass": true
+    },
+    {
+      "foreground": "#48563C",
+      "background": "#E9EFE0",
+      "ratio": 6.69,
+      "pass": true
+    }
+  ],
+  "pass": true
+}

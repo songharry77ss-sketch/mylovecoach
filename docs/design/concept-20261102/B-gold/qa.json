@@ -1,0 +1,223 @@
+{
+  "screen-1-home": {
+    "viewport": [
+      1179,
+      2556
+    ],
+    "loadedFonts": true,
+    "missingImages": [],
+    "minimumFontSize": 26,
+    "undersizedButtons": [],
+    "textOutsideViewport": [],
+    "elementBounds": {
+      ".hello": {
+        "x": 66,
+        "y": 326,
+        "w": 1047,
+        "h": 245.90625,
+        "bottom": 571.90625
+      },
+      ".capture-hero": {
+        "x": 66,
+        "y": 617.90625,
+        "w": 1047,
+        "h": 563,
+        "bottom": 1180.90625
+      },
+      ".situation": {
+        "x": 66,
+        "y": 1208.90625,
+        "w": 1047,
+        "h": 191,
+        "bottom": 1399.90625
+      },
+      ".recent": {
+        "x": 66,
+        "y": 1534.90625,
+        "w": 1047,
+        "h": 471,
+        "bottom": 2005.90625
+      },
+      ".home-note": {
+        "x": 66,
+        "y": 2052.90625,
+        "w": 1047,
+        "h": 35,
+        "bottom": 2087.90625
+      },
+      ".nav": {
+        "x": 0,
+        "y": 2322,
+        "w": 1179,
+        "h": 170,
+        "bottom": 2492
+      }
+    }
+  },
+  "screen-2-result": {
+    "viewport": [
+      1179,
+      2556
+    ],
+    "loadedFonts": true,
+    "missingImages": [],
+    "minimumFontSize": 26,
+    "undersizedButtons": [],
+    "textOutsideViewport": [],
+    "elementBounds": {
+      ".summary": {
+        "x": 66,
+        "y": 314,
+        "w": 1047,
+        "h": 225,
+        "bottom": 539
+      },
+      ".mind": {
+        "x": 66,
+        "y": 571,
+        "w": 1047,
+        "h": 241,
+        "bottom": 812
+      },
+      ".reply-heading": {
+        "x": 66,
+        "y": 851,
+        "w": 1047,
+        "h": 58,
+        "bottom": 909
+      },
+      ".reply-list": {
+        "x": 66,
+        "y": 932,
+        "w": 1047,
+        "h": 1031,
+        "bottom": 1963
+      },
+      ".heat-panel": {
+        "x": 66,
+        "y": 1992,
+        "w": 1047,
+        "h": 258,
+        "bottom": 2250
+      },
+      ".result-footnote": {
+        "x": 66,
+        "y": 2277,
+        "w": 1047,
+        "h": 31,
+        "bottom": 2308
+      }
+    }
+  },
+  "screen-3-kkti": {
+    "viewport": [
+      1179,
+      2556
+    ],
+    "loadedFonts": true,
+    "missingImages": [],
+    "minimumFontSize": 26,
+    "undersizedButtons": [],
+    "textOutsideViewport": [],
+    "elementBounds": {
+      ".kkti-card": {
+        "x": 66,
+        "y": 316,
+        "w": 1047,
+        "h": 1665,
+        "bottom": 1981
+      },
+      ".match": {
+        "x": 66,
+        "y": 2011,
+        "w": 1047,
+        "h": 170,
+        "bottom": 2181
+      },
+      ".kkti-advice": {
+        "x": 78,
+        "y": 2207,
+        "w": 1023,
+        "h": 87,
+        "bottom": 2294
+      },
+      ".share-button": {
+        "x": 66,
+        "y": 2323,
+        "w": 1047,
+        "h": 132,
+        "bottom": 2455
+      }
+    }
+  },
+  "board": {
+    "viewport": [
+      2400,
+      1350
+    ],
+    "loadedFonts": true,
+    "missingImages": [],
+    "minimumFontSize": 26,
+    "undersizedButtons": [],
+    "textOutsideViewport": [],
+    "elementBounds": {
+      ".left": {
+        "x": 105,
+        "y": 110,
+        "w": 595,
+        "h": 1109.59375,
+        "bottom": 1219.59375
+      },
+      ".principle": {
+        "x": 105,
+        "y": 1186.59375,
+        "w": 595,
+        "h": 33,
+        "bottom": 1219.59375
+      },
+      ".footer": {
+        "x": 106,
+        "y": 1243,
+        "w": 2188,
+        "h": 35,
+        "bottom": 1278
+      },
+      ".phones": {
+        "x": 790,
+        "y": 129,
+        "w": 1514,
+        "h": 1102,
+        "bottom": 1231
+      }
+    }
+  },
+  "contrast": {
+    "ivoryOnCharcoal": 14.87,
+    "mutedOnCharcoal": 6.98,
+    "mutedOnLightestCard": 6.11,
+    "goldOnCharcoal": 9.56,
+    "buttonInkOnDarkestGold": 6.85
+  },
+  "pngSizes": {
+    "icon": [
+      1024,
+      1024
+    ],
+    "screen-1-home": [
+      1179,
+      2556
+    ],
+    "screen-2-result": [
+      1179,
+      2556
+    ],
+    "screen-3-kkti": [
+      1179,
+      2556
+    ],
+    "board": [
+      2400,
+      1350
+    ]
+  }
+}
