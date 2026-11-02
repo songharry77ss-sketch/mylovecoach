@@ -21,7 +21,7 @@ import { track } from '@/lib/analytics';
 import { APP_CONFIG } from '@/lib/config';
 import { isDemoMode } from '@/lib/demo';
 import { haptic } from '@/lib/haptics';
-import { pickImage, type PickedImage } from '@/lib/images';
+import { deleteImageQuietly, pickImage, type PickedImage } from '@/lib/images';
 import { PRIVACY_NOTICE_VERSION, sortCrushes, useAppStore } from '@/store/app-store';
 
 /**
@@ -77,7 +77,16 @@ export default function HomeScreen() {
   /** 고른 상대의 채팅방으로 — 캡처가 있으면 들어가자마자 분석하고, 없으면 입력창을 열어 둔다 */
   const openRoom = (target: WhoTarget, image: PickedImage | null) => {
     const s = useAppStore.getState();
-    const id = target.kind === 'crush' ? target.id : target.kind === 'secret' ? s.createSecretChat() : s.quickStart();
+    // 「새로운 사람」은 늘 새 방 — quickStart 는 이미 방이 있으면 가장 오래된 방을 돌려주므로 방이 하나도 없을 때만 쓴다
+    const hasRoom = Object.values(s.crushes).some((c) => !c.secret);
+    const id =
+      target.kind === 'crush'
+        ? target.id
+        : target.kind === 'secret'
+          ? s.createSecretChat()
+          : hasRoom
+            ? s.addCrush({ name: '상대', gender: 'female', relationship: 'talking', style: [], notes: '' }).id
+            : s.quickStart();
     track('home_start', { mode: image ? 'image' : 'text', target: target.kind, rooms: crushes.length });
     router.push({ pathname: '/crush/[id]', params: image ? { id, pendingImage: image.uri, pendingWidth: String(image.width) } : { id, compose: '1' } });
   };
@@ -237,7 +246,17 @@ export default function HomeScreen() {
           ) : null}
         </View>
       </ScrollView>
-      <WhoSheet visible={who != null} crushes={crushes} imageUri={who?.image?.uri} onPick={pickWho} onClose={() => setWho(null)} />
+      <WhoSheet
+        visible={who != null}
+        crushes={crushes}
+        imageUri={who?.image?.uri}
+        onPick={pickWho}
+        onClose={() => {
+          // 고르지 않고 닫으면 방금 고른 캡처 사본(대화 내용)을 바로 지운다
+          deleteImageQuietly(who?.image?.uri);
+          setWho(null);
+        }}
+      />
     </View>
   );
 }

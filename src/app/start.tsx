@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -66,6 +66,10 @@ export default function Start() {
   const [prefilled, setPrefilled] = useState(() => prefillOf(params.q).length > 0);
   const [writing, setWriting] = useState(() => prefillOf(params.q).length > 0);
   const typed = situation.trim();
+  const scroller = useRef<ScrollView>(null);
+  const askInput = useRef<TextInput>(null);
+  // 펼친 「상황만 적기」 칸의 위치 — 키보드가 올라와도 입력칸이 보이게 이만큼 내린다
+  const askY = useRef(0);
 
   // 캡처 버튼이 은은하게 빛나며 숨 쉰다
   const glow = useSharedValue(0);
@@ -103,9 +107,10 @@ export default function Start() {
     router.replace({ pathname: '/crush/[id]', params: { id: crushId, pendingText: typed } });
   };
 
-  // 아직 캡처할 대화가 없으면 홈부터 둘러본다 — 다음에 열어도 이 화면으로 되돌아오지 않게 빈 프로필을 만들어 둔다
+  // 아직 캡처할 대화가 없으면 홈부터 둘러본다 — 다음에 열어도 이 화면으로 되돌아오지 않게 빈 프로필을 만들어 둔다.
+  // 퍼널의 「첫 화면 통과」(start 이벤트)에 섞이지 않게 따로 남긴다
   const browse = () => {
-    begin('browse');
+    track('start_browse', { content: useAppStore.getState().contentConsent === true });
     const s = useAppStore.getState();
     if (!s.user) s.setUser({ name: '', gender: 'other', style: [], defaultTone: 'natural', emoji: 'on', createdAt: Date.now() });
     router.replace('/(tabs)');
@@ -122,6 +127,12 @@ export default function Start() {
     haptic.select();
     track('start_write_open');
     setWriting(true);
+    // 칸이 그려진 뒤 위로 올리고 커서를 둔다 (바로 autoFocus 하면 키보드가 아래쪽 칸을 덮는다)
+    setTimeout(() => askInput.current?.focus(), 120);
+  };
+
+  const revealAsk = () => {
+    setTimeout(() => scroller.current?.scrollTo({ y: Math.max(0, askY.current - Spacing.md), animated: true }), Platform.OS === 'android' ? 250 : 80);
   };
 
   const run = (mode: StartMode) => {
@@ -153,7 +164,9 @@ export default function Start() {
 
   return (
     <StageBackground>
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
       <ScrollView
+        ref={scroller}
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + Spacing.md, paddingBottom: insets.bottom + Spacing.xl }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -210,7 +223,7 @@ export default function Start() {
         </Animated.View>
 
         {writing ? (
-          <Animated.View entering={FadeInDown.duration(260)} style={styles.ask}>
+          <Animated.View entering={FadeInDown.duration(260)} style={styles.ask} onLayout={(e) => (askY.current = e.nativeEvent.layout.y)}>
             <Text style={styles.askTitle}>✏️ 캡처 없이 상황만 적기</Text>
             <TextInput
               value={situation}
@@ -222,7 +235,8 @@ export default function Start() {
               placeholder={'예) 소개팅 다음 날인데 먼저 연락해도 될까?\n상대가 한 말을 그대로 적어도 좋아요'}
               placeholderTextColor={Stage.textFaint}
               accessibilityLabel="지금 상황 적기"
-              autoFocus={!prefilled}
+              ref={askInput}
+              onFocus={revealAsk}
               multiline
               maxLength={800}
               style={styles.askInput}
@@ -269,6 +283,7 @@ export default function Start() {
           </Text>
         </Text>
       </ScrollView>
+      </KeyboardAvoidingView>
       <StartConsentSheet visible={asking != null} onAgree={onAgree} onClose={() => setAsking(null)} />
     </StageBackground>
   );

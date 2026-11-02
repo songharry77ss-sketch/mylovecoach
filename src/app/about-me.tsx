@@ -1,17 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { BackHandler, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { Easing, FadeInUp, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { StageBackground } from '@/components/stage/stage';
 import { Button } from '@/components/ui/button';
 import { MaxContentWidth, Radius, Spacing, Stage } from '@/constants/theme';
+import { useKeyboardVisible } from '@/hooks/use-keyboard';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
+import { josa } from '@/lib/kkti';
 import { MBTI_LIST, MY_GOALS, VIBE_TAGS } from '@/lib/labels';
-import type { Gender } from '@/lib/types';
+import type { Gender, UserProfile } from '@/lib/types';
 import { useAppStore } from '@/store/app-store';
 
 /** 묻는 순서 — 하나씩 묻고, 고르면 바로 다음으로 넘어간다 */
@@ -41,7 +43,30 @@ export const TYPING_MS = 480;
 const GAP_MS = 160;
 const MAX_VIBES = 3;
 
-const INTRO = ['안녕하세요! 저는 당신만의 연애 코치예요 💘', '답장을 「나답게」 만들려고 몇 가지만 물어볼게요. 30초면 끝나고, 모르는 건 건너뛰어도 돼요.'];
+function introOf(knownName: string | undefined): string[] {
+  return knownName
+    ? [`다시 반가워요, ${knownName}님! 💘`, '답장을 더 「나답게」 만들려고 몇 가지만 더 물어볼게요. 모르는 건 건너뛰어도 돼요.']
+    : ['안녕하세요! 오늘부터 함께할 연애 코치예요 💘', '답장을 「나답게」 만들려고 몇 가지만 물어볼게요. 30초면 끝나고, 모르는 건 건너뛰어도 돼요.'];
+}
+
+/** 이미 알고 있는 항목 — 홈·마이에서 다시 열면 묻지 않는다 */
+function knownOf(step: Step, user: UserProfile | null): boolean {
+  if (!user) return false;
+  switch (step) {
+    case 'name':
+      return Boolean(user.name?.trim());
+    case 'gender':
+      return user.gender !== 'other';
+    case 'age':
+      return user.age != null;
+    case 'mbti':
+      return Boolean(user.mbti);
+    case 'vibes':
+      return Boolean(user.vibes?.length);
+    case 'goal':
+      return Boolean(user.goal);
+  }
+}
 
 function questionOf(step: Step, a: Answers): string {
   switch (step) {
@@ -50,9 +75,9 @@ function questionOf(step: Step, a: Answers): string {
     case 'gender':
       return a.name ? `반가워요, ${a.name}님! 😊\n성별을 알려 주실래요?` : '성별을 알려 주실래요?';
     case 'age':
-      return '나이는요? 또래 말투를 맞추는 데만 써요.';
+      return '나이는요? 또래 말투에 맞춰 답장을 만드는 데 써요.';
     case 'mbti':
-      return 'MBTI 알아요? 몰라도 괜찮아요.';
+      return 'MBTI 알고 있어요? 몰라도 괜찮아요.';
     case 'vibes':
       return `상대에게 어떤 사람으로 보이고 싶어요?\n${MAX_VIBES}개까지 골라 주세요 ✨`;
     case 'goal':
@@ -60,37 +85,37 @@ function questionOf(step: Step, a: Answers): string {
   }
 }
 
-/** 끝 글자에 받침이 있으면 「이라고」, 없으면 「라고」 (지은이라고 · 민지라고) */
-const hasBatchim = (word: string) => {
-  const code = word.charCodeAt(word.length - 1);
-  return code >= 0xac00 && code <= 0xd7a3 && (code - 0xac00) % 28 !== 0;
-};
-
 const filledCount = (a: Answers) => [a.name, a.gender, a.age, a.mbti, a.vibes?.length ? 'v' : '', a.goal].filter(Boolean).length;
 
-function endingOf(a: Answers, fromHome: boolean): string[] {
-  const who = a.name ? `, ${a.name}님` : '';
+function endingOf(a: Answers, fromHome: boolean, knownName: string | undefined): string[] {
+  const name = a.name ?? knownName;
+  const who = name ? `, ${name}님` : '';
   if (filledCount(a) === 0) return ['괜찮아요! 언제든 마이 → 내 프로필에서 알려 주세요.', ...(fromHome ? [] : ['그럼 바로 답장이 고민되는 대화를 보여 주세요 📸'])];
-  return [`좋아요${who}! 알려 준 대로 「나다운」 말투로 답장을 만들어 드릴게요 ✨`, fromHome ? '다음 답장부터 바로 반영돼요 💌' : '이제 답장이 고민되는 대화를 보여 주세요 📸'];
+  return [`좋아요${who}! 알려 주신 대로 「나다운」 말투로 답장을 만들어 드릴게요 ✨`, fromHome ? '다음 답장부터 바로 반영돼요 💌' : '이제 답장이 고민되는 대화를 보여 주세요 📸'];
 }
 
 /**
  * 처음 실행 2단계 — 「나에 대해 알려주세요」를 코치와 나누는 첫 대화로 묻는다.
  * 한 번에 한 가지만 묻고, 고르면 바로 다음 질문으로 넘어간다. 질문마다 「건너뛰기」, 위에는 언제든 「나중에 할게요」.
  * 답한 만큼만 내 프로필(마이 → 내 프로필)에 저장하고 첫 캡처 화면으로 간다.
- * 앱 안(홈·마이의 「나에 대해 알려주세요」)에서 열면(?from=home|my) 같은 대화를 하고 끝나면 연 화면으로 돌아간다.
+ * 앱 안(홈·마이의 「나에 대해 알려주세요」)에서 열면(?from=home|my) 이미 아는 항목은 묻지 않고, 끝나면 연 화면으로 돌아간다.
+ * 안드로이드 뒤로 가기는 「나중에 할게요」와 같다 (이미 답한 건 저장).
  */
 export default function AboutMe() {
   const router = useRouter();
   const from = useLocalSearchParams<{ from?: string }>().from;
   const fromHome = from === 'home' || from === 'my';
   const insets = useSafeAreaInsets();
+  const keyboardVisible = useKeyboardVisible();
   const user = useAppStore((s) => s.user);
   const setUser = useAppStore((s) => s.setUser);
+  // 물을 질문 — 처음 실행이면 전부, 앱 안에서 다시 열면 아직 모르는 것만 (처음 연 순간 기준으로 고정)
+  const [steps] = useState<Step[]>(() => (fromHome ? ABOUT_ME_STEPS.filter((k) => !knownOf(k, useAppStore.getState().user)) : [...ABOUT_ME_STEPS]));
+  const [knownName] = useState(() => (fromHome ? useAppStore.getState().user?.name?.trim() || undefined : undefined));
 
   const [lines, setLines] = useState<Line[]>([]);
   const [typing, setTyping] = useState(false);
-  // 지금 묻는 질문 (ABOUT_ME_STEPS.length 면 끝)
+  // 지금 묻는 질문 (steps.length 면 끝)
   const [step, setStep] = useState(0);
   // 질문 말풍선이 다 나온 뒤에 답하는 칸을 연다
   const [ready, setReady] = useState(false);
@@ -100,8 +125,10 @@ export default function AboutMe() {
   const nextId = useRef(0);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const scroller = useRef<ScrollView>(null);
-  const done = step >= ABOUT_ME_STEPS.length;
-  const current: Step | undefined = ABOUT_ME_STEPS[step];
+  // 「나중에 할게요」·「완료」·뒤로 가기를 빠르게 두 번 눌러도 한 번만 나간다
+  const leaving = useRef(false);
+  const done = step >= steps.length;
+  const current: Step | undefined = steps[step];
 
   const push = (from: Line['from'], text: string, skipped?: boolean) => setLines((prev) => [...prev, { id: nextId.current++, from, text, skipped }]);
 
@@ -125,7 +152,7 @@ export default function AboutMe() {
 
   useEffect(() => {
     track('onboarding', { step: 'profile', action: 'open' });
-    say([...INTRO, questionOf('name', {})]);
+    say([...introOf(knownName), ...(steps.length ? [questionOf(steps[0], {})] : endingOf({}, fromHome, knownName))]);
     const pending = timers.current;
     return () => pending.forEach(clearTimeout);
     // 처음 한 번만
@@ -144,11 +171,13 @@ export default function AboutMe() {
     setDraft('');
     const following = step + 1;
     setStep(following);
-    say(following < ABOUT_ME_STEPS.length ? [questionOf(ABOUT_ME_STEPS[following], next)] : endingOf(next, fromHome));
+    say(following < steps.length ? [questionOf(steps[following], next)] : endingOf(next, fromHome, knownName));
   };
 
   /** 끝내기 — 답한 만큼만 저장하고 첫 캡처 화면으로 (중간에 「나중에 할게요」를 눌러도 이미 답한 건 남긴다) */
-  const finish = (via: 'done' | 'later') => {
+  const finish = (via: 'done' | 'later' | 'back') => {
+    if (leaving.current) return;
+    leaving.current = true;
     haptic.tap();
     timers.current.forEach(clearTimeout);
     const filled = filledCount(answers);
@@ -167,15 +196,26 @@ export default function AboutMe() {
         createdAt: user?.createdAt ?? Date.now(),
       });
     }
-    track('onboarding', { step: 'profile', action: filled ? 'save' : 'skip', filled, via, answered: Math.min(step, ABOUT_ME_STEPS.length), ...(fromHome ? { from } : {}) });
+    track('onboarding', { step: 'profile', action: filled ? 'save' : 'skip', filled, via, answered: Math.min(step, steps.length), ...(fromHome ? { from } : {}) });
     if (fromHome) router.back();
     else router.replace('/start');
   };
 
+  // 안드로이드 뒤로 가기 = 「나중에 할게요」 (답한 건 남기고 나간다)
+  const finishRef = useRef(finish);
+  finishRef.current = finish;
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      finishRef.current('back');
+      return true;
+    });
+    return () => sub.remove();
+  }, []);
+
   const sendText = () => {
     const value = draft.trim();
     if (!value) return;
-    if (current === 'name') answer(`${value}${hasBatchim(value) ? '이라고' : '라고'} 불러 주세요`, { name: value.slice(0, 20) });
+    if (current === 'name') answer(`${value}${josa(value, '이라고', '라고')} 불러 주세요`, { name: value.slice(0, 20) });
     else if (current === 'age') {
       const age = Number(value);
       if (Number.isFinite(age) && age > 0) answer(`${age}살이에요`, { age });
@@ -189,7 +229,8 @@ export default function AboutMe() {
 
   return (
     <StageBackground>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      {/* 안드로이드도 화면 끝까지 그리는 방식이라 adjustResize 만으로는 입력칸이 올라오지 않는다 — 채팅방처럼 두 기기 모두 padding */}
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <View style={[styles.head, { paddingTop: insets.top + Spacing.md }]}>
           <View style={styles.headRow}>
             <View style={styles.coachId}>
@@ -205,8 +246,8 @@ export default function AboutMe() {
               </Pressable>
             ) : null}
           </View>
-          <View style={styles.progress} accessibilityLabel={`질문 ${ABOUT_ME_STEPS.length}개 중 ${Math.min(step, ABOUT_ME_STEPS.length)}개 답함`}>
-            {ABOUT_ME_STEPS.map((s, i) => (
+          <View style={styles.progress} accessibilityLabel={`질문 ${steps.length}개 중 ${Math.min(step, steps.length)}개 답함`}>
+            {steps.map((s, i) => (
               <View key={s} style={[styles.seg, i < step ? styles.segOn : i === step ? styles.segNow : null]} />
             ))}
           </View>
@@ -250,7 +291,7 @@ export default function AboutMe() {
           ) : null}
         </ScrollView>
 
-        <View style={[styles.dock, { paddingBottom: insets.bottom + Spacing.md }]}>
+        <View style={[styles.dock, { paddingBottom: (keyboardVisible ? 0 : insets.bottom) + Spacing.md }]}>
           {ready && current === 'name' ? (
             <Animated.View entering={FadeInUp.duration(220)} style={styles.dockInner}>
               <InputRow value={draft} onChange={setDraft} onSend={sendText} placeholder="이름이나 별명 (예: 지은)" label="부를 이름" maxLength={20} />
@@ -264,7 +305,7 @@ export default function AboutMe() {
             </Animated.View>
           ) : ready && current === 'age' ? (
             <Animated.View entering={FadeInUp.duration(220)} style={styles.dockInner}>
-              <InputRow value={draft} onChange={(v) => setDraft(v.replace(/[^0-9]/g, ''))} onSend={sendText} placeholder="예: 25" label="나이" maxLength={2} numeric />
+              <InputRow value={draft} onChange={(v) => setDraft(v.replace(/[^0-9]/g, '').replace(/^0+/, ''))} onSend={sendText} placeholder="예: 25" label="나이" maxLength={2} numeric />
               <SkipChip onPress={() => answer(null)} />
             </Animated.View>
           ) : ready && current === 'mbti' ? (
@@ -278,11 +319,12 @@ export default function AboutMe() {
             </Animated.View>
           ) : ready && current === 'vibes' ? (
             <Animated.View entering={FadeInUp.duration(220)} style={styles.dockInner}>
-              <View style={styles.wrap}>
+              {/* 글씨를 크게 쓰는 작은 화면에서도 「N개 골랐어요」가 밀려나지 않게 칩만 스크롤 */}
+              <ScrollView style={styles.chipScroll} contentContainerStyle={styles.wrap} showsVerticalScrollIndicator={false}>
                 {VIBE_TAGS.map((v) => (
                   <Choice key={v} label={v} selected={vibes.includes(v)} onPress={() => toggleVibe(v)} />
                 ))}
-              </View>
+              </ScrollView>
               <View style={styles.dockActions}>
                 <SkipChip onPress={() => answer(null)} />
                 <View style={styles.flex}>
@@ -311,7 +353,7 @@ export default function AboutMe() {
                 onPress={() => finish('done')}
                 icon={<Ionicons name={fromHome ? 'checkmark' : 'image'} size={18} color={Stage.onGold} />}
               />
-              <Text style={styles.footnote}>알려 준 내용은 마이 → 내 프로필에서 언제든 바꿀 수 있어요</Text>
+              <Text style={styles.footnote}>알려 주신 내용은 마이 → 내 프로필에서 언제든 바꿀 수 있어요</Text>
             </Animated.View>
           ) : (
             <View style={styles.dockWaiting} />
@@ -420,6 +462,7 @@ const styles = StyleSheet.create({
   dockWaiting: { height: 52 },
   dockActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  chipScroll: { maxHeight: 220, flexGrow: 0 },
   mbtiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   input: {

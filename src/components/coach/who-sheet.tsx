@@ -9,6 +9,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { relativeTime } from '@/lib/format';
+import { josa } from '@/lib/kkti';
 import { relationshipLabel } from '@/lib/labels';
 import type { Crush } from '@/lib/types';
 
@@ -54,7 +55,7 @@ export function WhoSheet({ visible, crushes, imageUri, onPick, onClose }: WhoShe
               <Pressable
                 key={c.id}
                 accessibilityRole="button"
-                accessibilityLabel={`${c.name}와의 대화`}
+                accessibilityLabel={`${c.name}${josa(c.name, '과', '와')}의 대화`}
                 onPress={() => onPick({ kind: 'crush', id: c.id })}
                 style={({ pressed }) => [styles.row, { backgroundColor: theme.surface, opacity: pressed ? 0.7 : 1 }]}>
                 <Avatar name={c.name} uri={c.photoUri} size={44} seed={c.id} />

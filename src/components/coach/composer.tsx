@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSequence, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -50,6 +50,13 @@ export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPi
   const insets = useSafeAreaInsets();
   const keyboardVisible = useKeyboardVisible();
   const [text, setText] = useState('');
+  const inputRef = useRef<TextInput>(null);
+  // 들어오자마자 커서를 두되, 화면 전환·헤더 높이 측정(채팅방 250ms)이 끝난 뒤에 — 바로 올리면 키보드가 입력창을 덮을 수 있다
+  useEffect(() => {
+    if (!autoFocus) return;
+    const t = setTimeout(() => inputRef.current?.focus(), 450);
+    return () => clearTimeout(t);
+  }, [autoFocus]);
   const fillKey = fill?.key;
   const fillText = fill?.text;
   useEffect(() => {
@@ -169,7 +176,7 @@ export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPi
             multiline
             maxLength={800}
             editable={!sending}
-            autoFocus={autoFocus}
+            ref={inputRef}
             style={[styles.input, Typography.body, { color: theme.text }]}
           />
         </View>

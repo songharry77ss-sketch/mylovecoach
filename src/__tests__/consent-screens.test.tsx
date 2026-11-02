@@ -15,7 +15,7 @@ import PrivacySettings from '@/app/settings/privacy';
 import Start from '@/app/start';
 import { ListRow } from '@/components/ui/list-row';
 import { track } from '@/lib/analytics';
-import { pickImage } from '@/lib/images';
+import { deleteImageQuietly, pickImage } from '@/lib/images';
 import { BASIC_LOG_NOTICE } from '@/lib/privacy-copy';
 import { PRIVACY_NOTICE_VERSION, useAppStore } from '@/store/app-store';
 
@@ -93,7 +93,7 @@ jest.mock('@/components/fx/demo-reel', () => ({ DemoReel: () => null }));
 jest.mock('@/components/ui/toast', () => ({ useToast: () => ({ show: jest.fn() }) }));
 jest.mock('@/lib/haptics', () => ({ haptic: new Proxy({}, { get: () => () => {} }), setHapticsEnabled: () => {} }));
 jest.mock('@/lib/analytics', () => ({ track: jest.fn() }));
-jest.mock('@/lib/images', () => ({ pickImage: jest.fn(async () => null), cleanupOrphanImages: jest.fn(), clearImageCaches: jest.fn() }));
+jest.mock('@/lib/images', () => ({ pickImage: jest.fn(async () => null), cleanupOrphanImages: jest.fn(), clearImageCaches: jest.fn(), deleteImageQuietly: jest.fn() }));
 jest.mock('@/components/auth/apple-deletion-help', () => ({ useAccountDeletion: () => ({ busy: false, remove: jest.fn(), sheet: null }) }));
 jest.mock('@/components/coach/ai-report-sheet', () => ({ useAiReport: () => ({ available: false, open: jest.fn(), sheet: null }) }));
 jest.mock('@/hooks/use-plan-products', () => ({ usePlanProducts: () => [], onSalePrice: () => undefined }));
@@ -238,6 +238,9 @@ describe('첫 화면 동의 창', () => {
     // 둘러보기는 홈으로 — 다음에 열어도 이 화면으로 돌아오지 않게 빈 프로필을 만든다
     expect(mockRouter.replace).toHaveBeenCalledWith('/(tabs)');
     expect(s.user).toEqual(expect.objectContaining({ name: '', gender: 'other' }));
+    // 퍼널의 「첫 화면 통과」(start)와 따로 남긴다
+    expect(tracked).toHaveBeenCalledWith('start_browse', { content: true });
+    expect(tracked).not.toHaveBeenCalledWith('start', expect.anything());
     expect(texts(t).join('\n')).not.toContain('시작하기 전에 확인해 주세요');
   });
 
@@ -449,6 +452,33 @@ describe('홈 — 채팅 먼저 (캡처 올리기 · 상황만 적기)', () => {
     act(() => byLabel(t, '민수와의 대화').props.onPress());
     expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/crush/[id]', params: { id: minsu, pendingImage: 'file:///cap.png', pendingWidth: '1080' } });
     expect(tracked).toHaveBeenCalledWith('home_start', { mode: 'image', target: 'crush', rooms: 1 });
+  });
+
+  it('「새로운 사람」은 이미 방이 있어도 늘 새 채팅방을 만들어 그 방에서 분석한다 (기존 방에 섞이지 않게)', async () => {
+    const minsu = addRoom('민수');
+    jest.mocked(pickImage).mockResolvedValueOnce({ uri: 'file:///other.png', width: 900, height: 1900 });
+    const t = mount(<HomeScreen />);
+    await act(async () => {
+      await byLabel(t, '대화 캡처 올리기').props.onPress();
+    });
+    act(() => pressable(t, '새로운 사람').props.onPress());
+    const rooms = Object.values(useAppStore.getState().crushes).filter((c) => !c.secret);
+    expect(rooms).toHaveLength(2);
+    const fresh = rooms.find((c) => c.id !== minsu)!;
+    expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/crush/[id]', params: { id: fresh.id, pendingImage: 'file:///other.png', pendingWidth: '900' } });
+  });
+
+  it('캡처를 고른 뒤 시트를 그냥 닫으면 고른 캡처 사본을 바로 지운다', async () => {
+    addRoom('민수');
+    jest.mocked(pickImage).mockResolvedValueOnce({ uri: 'file:///drop.png', width: 900, height: 1900 });
+    const t = mount(<HomeScreen />);
+    await act(async () => {
+      await byLabel(t, '대화 캡처 올리기').props.onPress();
+    });
+    const backdrop = t.root.findAll((n) => n.props.accessibilityLabel === '닫기' && typeof n.props.onPress === 'function');
+    act(() => backdrop[backdrop.length - 1].props.onPress());
+    expect(deleteImageQuietly).toHaveBeenCalledWith('file:///drop.png');
+    expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
   it('「누구와의 대화예요?」에서 비밀 상담을 고르면 저장되지 않는 방을 열고, 닫으면 아무 데도 가지 않는다', () => {

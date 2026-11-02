@@ -93,7 +93,7 @@ export default function MindTab() {
           <PressableScale onPress={() => openFeature('kkti')} style={[styles.feature, styles.featureKkti]}>
             <Text style={styles.featureEmoji}>{kkti?.emoji ?? '🧪'}</Text>
             <Text style={styles.featureTitle}>{kkti ? `내 KKTI · ${kkti.code}` : 'KKTI 테스트'}</Text>
-            <Text style={styles.featureBody}>{kkti ? `${kkti.name} · 궁합 보기·다시 하기` : '카톡 습관 속 나의 연애 유형 · 1분'}</Text>
+            <Text style={styles.featureBody}>{kkti ? `${kkti.name} · 다시 해 보기` : '카톡 습관 속 나의 연애 유형 · 1분'}</Text>
           </PressableScale>
           <PressableScale onPress={() => openFeature('secret')} style={[styles.feature, styles.featureGlass]}>
             <Text style={styles.featureEmoji}>🕶️</Text>

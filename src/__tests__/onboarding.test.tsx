@@ -3,7 +3,7 @@
  * 연애 연습 숨김(마이 → 추가 기능에서 켜기), 별점 요청 조건, 예전 이용자 저장값 읽기도 함께 본다.
  */
 import { act } from 'react';
-import { Text } from 'react-native';
+import { BackHandler, Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 
@@ -183,7 +183,7 @@ describe('나에 대해 알려주세요 — 코치와의 짧은 대화', () => {
     expect(t.root.findAll((n) => n.props.accessibilityLabel === '부를 이름')).toHaveLength(0);
     talk();
     const shown = texts(t);
-    expect(shown).toContain('저는 당신만의 연애 코치예요');
+    expect(shown).toContain('오늘부터 함께할 연애 코치예요');
     expect(shown).toContain('뭐라고 불러 드릴까요?');
     act(() => byLabel(t, '나에 대해 알려주기 나중에 하기').props.onPress());
     expect(useAppStore.getState().user).toBeNull();
@@ -209,7 +209,7 @@ describe('나에 대해 알려주세요 — 코치와의 짧은 대화', () => {
     expect(texts(t)).toContain('25살이에요');
 
     // MBTI 는 「잘 몰라요」
-    expect(texts(t)).toContain('MBTI 알아요?');
+    expect(texts(t)).toContain('MBTI 알고 있어요?');
     act(() => pressable(t, '잘 몰라요').props.onPress());
     talk();
     expect(t.root.findAll((n) => typeof n.props.onPress === 'function' && textOf(n) === 'ENFP')).toHaveLength(0);
@@ -241,6 +241,52 @@ describe('나에 대해 알려주세요 — 코치와의 짧은 대화', () => {
     expect(t.root.findAll((n) => typeof n.props.onPress === 'function' && textOf(n) === '여자예요')).toHaveLength(0);
     talk();
     expect(t.root.findAll((n) => typeof n.props.onPress === 'function' && textOf(n) === '여자예요').length).toBeGreaterThan(0);
+  });
+
+  it('홈·마이에서 다시 열면 이미 아는 건 묻지 않고 이름으로 반긴다', () => {
+    act(() => {
+      useAppStore.setState({ user: { name: '지은', gender: 'female', age: 25, style: [], defaultTone: 'natural', createdAt: 1 } });
+    });
+    mockParams = { from: 'my' };
+    const t = mount(<AboutMe />);
+    talk();
+    const shown = texts(t);
+    expect(shown).toContain('다시 반가워요, 지은님!');
+    expect(shown).not.toContain('뭐라고 불러 드릴까요?');
+    // 이름·성별·나이는 알고 있으니 MBTI 부터
+    expect(shown).toContain('MBTI 알고 있어요?');
+    expect(t.root.findByProps({ accessibilityLabel: `질문 3개 중 0개 답함` })).toBeDefined();
+    act(() => pressable(t, 'ENFP').props.onPress());
+    talk();
+    act(() => byLabel(t, '나에 대해 알려주기 나중에 하기').props.onPress());
+    expect(useAppStore.getState().user).toEqual(expect.objectContaining({ name: '지은', gender: 'female', age: 25, mbti: 'ENFP' }));
+    expect(mockRouter.back).toHaveBeenCalledTimes(1);
+  });
+
+  it('안드로이드 뒤로 가기는 「나중에 할게요」와 같고, 여러 번 눌러도 한 번만 나간다', () => {
+    const handlers: (() => boolean)[] = [];
+    const spy = jest.spyOn(BackHandler, 'addEventListener').mockImplementation((_e, h) => {
+      handlers.push(h as () => boolean);
+      return { remove: () => {} };
+    });
+    mockParams = { from: 'home' };
+    const t = mount(<AboutMe />);
+    talk();
+    act(() => input(t, '부를 이름').props.onChangeText('현섭'));
+    act(() => byLabel(t, '보내기').props.onPress());
+    talk();
+    expect(texts(t)).toContain('현섭이라고 불러 주세요');
+    let handled = false;
+    act(() => {
+      handled = handlers[handlers.length - 1]();
+      handlers[handlers.length - 1]();
+    });
+    act(() => byLabel(t, '나에 대해 알려주기 나중에 하기').props.onPress());
+    expect(handled).toBe(true);
+    expect(useAppStore.getState().user).toEqual(expect.objectContaining({ name: '현섭' }));
+    expect(mockRouter.back).toHaveBeenCalledTimes(1);
+    expect(track).toHaveBeenCalledWith('onboarding', expect.objectContaining({ step: 'profile', action: 'save', via: 'back', from: 'home' }));
+    spy.mockRestore();
   });
 
   it('중간에 「나중에 할게요」를 눌러도 이미 답한 건 남기고, 홈에서 열었으면 홈으로 돌아간다', () => {
