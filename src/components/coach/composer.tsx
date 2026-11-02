@@ -38,12 +38,14 @@ interface ComposerProps {
   fill?: { text: string; key: number } | null;
   /** 이용자가 입력창 글을 고칠 때 (막혔던 예전 요청을 잊게) */
   onEdit?: () => void;
+  /** 들어오자마자 입력창에 커서를 둔다 (홈의 「상황만 적기」) */
+  autoFocus?: boolean;
 }
 
 const EMOJI_NEXT: Record<EmojiPref, EmojiPref> = { on: 'off', off: 'auto', auto: 'on' };
 const EMOJI_LABEL: Record<EmojiPref, string> = { on: '😊 이모지 넣기', off: '🚫 이모지 빼기', auto: '🪞 이모지 자동' };
 
-export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPickImage, onClearImage, onSend, sending, notice, questions, onQuestion, onShuffleQuestions, fill, onEdit }: ComposerProps) {
+export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPickImage, onClearImage, onSend, sending, notice, questions, onQuestion, onShuffleQuestions, fill, onEdit, autoFocus }: ComposerProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const keyboardVisible = useKeyboardVisible();
@@ -167,6 +169,7 @@ export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPi
             multiline
             maxLength={800}
             editable={!sending}
+            autoFocus={autoFocus}
             style={[styles.input, Typography.body, { color: theme.text }]}
           />
         </View>

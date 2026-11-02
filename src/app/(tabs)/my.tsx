@@ -42,7 +42,7 @@ export default function MyScreen() {
   const router = useRouter();
   const toast = useToast();
   const user = useAppStore((s) => s.user);
-  const kkti = useAppStore((s) => s.kkti);
+  const profileThin = !user?.name?.trim() && !user?.vibes?.length && !user?.goal && !user?.mbti;
   const hasApiKey = useAppStore((s) => s.hasApiKey);
   const resetAll = useAppStore((s) => s.resetAll);
   const crushCount = useAppStore((s) => Object.values(s.crushes).filter((c) => !c.secret).length);
@@ -244,12 +244,13 @@ export default function MyScreen() {
         마이
       </AppText>
 
-      <Card tone="primary" onPress={() => router.push('/settings/profile')} style={styles.profile}>
+      {/* 아직 알려 준 게 없으면 코치와의 짧은 대화로 묻고, 있으면 고치는 화면으로 */}
+      <Card tone="primary" onPress={() => (profileThin ? router.push({ pathname: '/about-me', params: { from: 'my' } }) : router.push('/settings/profile'))} style={styles.profile}>
         <Avatar name={user?.name || '나'} size={56} />
         <View style={styles.profileTexts}>
-          <AppText variant="title3">{user?.name || '이름 없음'}</AppText>
+          <AppText variant="title3">{user?.name || '나에 대해 알려주세요'}</AppText>
           <AppText variant="small" color="textSecondary">
-            {[user ? genderLabel(user.gender) : null, user?.age ? `${user.age}세` : null, user?.mbti].filter(Boolean).join(' · ') || '프로필을 채워보세요'}
+            {[user && user.gender !== 'other' ? genderLabel(user.gender) : null, user?.age ? `${user.age}세` : null, user?.mbti].filter(Boolean).join(' · ') || '알려 줄수록 「나다운」 답장이 나와요 ›'}
           </AppText>
           <AppText variant="caption" color="primary">
             {user?.vibes?.length ? `✨ ${user.vibes.join(' · ')}` : `기본 톤 ${toneLabel(user?.defaultTone ?? 'natural').emoji} ${toneLabel(user?.defaultTone ?? 'natural').label}`} · 채팅방 {crushCount}개
@@ -328,10 +329,7 @@ export default function MyScreen() {
         />
       } />
 
-      <SectionHeader title="재미" />
-      <ListRow icon="flask-outline" title="KKTI 테스트" subtitle="카톡으로 보는 진짜 연애 MBTI" value={kkti ? `${kkti.emoji} ${kkti.code}` : undefined} onPress={() => router.push('/kkti')} />
-
-      <SectionHeader title="추가 기능" subtitle="켜면 탭과 탐색에 나타나요" />
+      <SectionHeader title="추가 기능" subtitle="숨겨 둔 기능 · 켜면 탭과 탐색에 나타나요" />
       <ListRow
         icon="game-controller-outline"
         title="연애 연습 (베타)"
