@@ -159,6 +159,20 @@ describe('사용법 소개', () => {
     expect(track).toHaveBeenCalledWith('start_consent', { all: true, content: true, mode: 'onboarding' });
   });
 
+  it('마이 → 「사용법 다시 보기」로 열면 같은 세 장을 보여 주고, 닫거나 다 보면 마이로 돌아간다 (동의 창·나에 대해 없이)', () => {
+    mockParams = { from: 'my' };
+    const t = mount(<Welcome />);
+    expect(texts(t)).toContain('캡처 한 장이면 끝');
+    act(() => pressable(t, '다음').props.onPress());
+    act(() => pressable(t, '다음').props.onPress());
+    act(() => pressable(t, '다 봤어요').props.onPress());
+    expect(texts(t)).not.toContain('시작하기 전에 확인해 주세요');
+    expect(mockRouter.back).toHaveBeenCalledTimes(1);
+    act(() => byLabel(t, '사용법 닫기').props.onPress());
+    expect(mockRouter.back).toHaveBeenCalledTimes(2);
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+  });
+
   it('이미 동의한 기기는 동의 창 없이 「나에 대해」로 간다', () => {
     useAppStore.setState({ termsAgreedAt: Date.now() });
     const t = mount(<Welcome />);

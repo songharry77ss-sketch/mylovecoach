@@ -389,6 +389,7 @@ export default function MyScreen() {
       ) : null}
 
       <SectionHeader title="정보" />
+      <ListRow icon="book-outline" title="사용법 다시 보기" subtitle="캡처 올리기 · 답장 고르기 · 마음 읽기" onPress={() => router.push({ pathname: '/welcome', params: { from: 'my' } })} />
       <ListRow icon="shield-checkmark-outline" title="개인정보 처리방침" onPress={() => Linking.openURL(APP_CONFIG.privacyUrl)} />
       <ListRow icon="document-text-outline" title="이용약관" onPress={() => Linking.openURL(APP_CONFIG.termsUrl)} />
       <ListRow icon="mail-outline" title="문의하기" subtitle={APP_CONFIG.supportEmail} onPress={() => Linking.openURL(`mailto:${APP_CONFIG.supportEmail}`)} />
