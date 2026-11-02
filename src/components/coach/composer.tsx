@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSequence, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -38,16 +38,25 @@ interface ComposerProps {
   fill?: { text: string; key: number } | null;
   /** 이용자가 입력창 글을 고칠 때 (막혔던 예전 요청을 잊게) */
   onEdit?: () => void;
+  /** 들어오자마자 입력창에 커서를 둔다 (홈의 「상황만 적기」) */
+  autoFocus?: boolean;
 }
 
 const EMOJI_NEXT: Record<EmojiPref, EmojiPref> = { on: 'off', off: 'auto', auto: 'on' };
 const EMOJI_LABEL: Record<EmojiPref, string> = { on: '😊 이모지 넣기', off: '🚫 이모지 빼기', auto: '🪞 이모지 자동' };
 
-export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPickImage, onClearImage, onSend, sending, notice, questions, onQuestion, onShuffleQuestions, fill, onEdit }: ComposerProps) {
+export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPickImage, onClearImage, onSend, sending, notice, questions, onQuestion, onShuffleQuestions, fill, onEdit, autoFocus }: ComposerProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const keyboardVisible = useKeyboardVisible();
   const [text, setText] = useState('');
+  const inputRef = useRef<TextInput>(null);
+  // 들어오자마자 커서를 두되, 화면 전환·헤더 높이 측정(채팅방 250ms)이 끝난 뒤에 — 바로 올리면 키보드가 입력창을 덮을 수 있다
+  useEffect(() => {
+    if (!autoFocus) return;
+    const t = setTimeout(() => inputRef.current?.focus(), 450);
+    return () => clearTimeout(t);
+  }, [autoFocus]);
   const fillKey = fill?.key;
   const fillText = fill?.text;
   useEffect(() => {
@@ -167,6 +176,7 @@ export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPi
             multiline
             maxLength={800}
             editable={!sending}
+            ref={inputRef}
             style={[styles.input, Typography.body, { color: theme.text }]}
           />
         </View>

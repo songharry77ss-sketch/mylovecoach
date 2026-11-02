@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -90,10 +89,11 @@ export default function MindTab() {
           </View>
         </View>
         <View style={styles.features}>
+          {/* 이미 해 봤으면 내 결과를 보여 준다 (아래에 따로 있던 KKTI 카드는 합쳤다) */}
           <PressableScale onPress={() => openFeature('kkti')} style={[styles.feature, styles.featureKkti]}>
-            <Text style={styles.featureEmoji}>🧪</Text>
-            <Text style={styles.featureTitle}>KKTI 테스트</Text>
-            <Text style={styles.featureBody}>카톡 습관 속 나의 연애 유형 · 1분</Text>
+            <Text style={styles.featureEmoji}>{kkti?.emoji ?? '🧪'}</Text>
+            <Text style={styles.featureTitle}>{kkti ? `내 KKTI · ${kkti.code}` : 'KKTI 테스트'}</Text>
+            <Text style={styles.featureBody}>{kkti ? `${kkti.name} · 다시 해 보기` : '카톡 습관 속 나의 연애 유형 · 1분'}</Text>
           </PressableScale>
           <PressableScale onPress={() => openFeature('secret')} style={[styles.feature, styles.featureGlass]}>
             <Text style={styles.featureEmoji}>🕶️</Text>
@@ -179,22 +179,6 @@ export default function MindTab() {
           </AppText>
         </PressableScale>
       </View>
-
-      {/* KKTI 테스트 */}
-      <PressableScale onPress={() => router.push('/kkti')}>
-        <LinearGradient colors={[kkti?.color ?? palette.sky400, palette.lavender400]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.kkti}>
-          <AppText style={styles.kktiEmoji}>{kkti?.emoji ?? '🧪'}</AppText>
-          <View style={styles.flex}>
-            <AppText variant="title3" color={palette.white}>
-              {kkti ? `내 KKTI · ${kkti.code} ${kkti.name}` : 'KKTI 테스트'}
-            </AppText>
-            <AppText variant="small" color={palette.white}>
-              {kkti ? `연애 컬러 ${kkti.colorName} · 다시 해보기` : '카톡으로 보는 진짜 연애 MBTI · 나만의 연애 컬러 찾기'}
-            </AppText>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={palette.white} />
-        </LinearGradient>
-      </PressableScale>
 
       {history.length ? (
         <>
@@ -292,8 +276,6 @@ const styles = StyleSheet.create({
   own: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.sm },
   ownInput: { borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, minHeight: 72, textAlignVertical: 'top' },
   ownBtn: { height: 46, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
-  kkti: { borderRadius: Radius.lg, padding: Spacing.lg, flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  kktiEmoji: { fontSize: 32, lineHeight: 40 },
   list: { gap: Spacing.sm },
   historyRow: { borderRadius: Radius.md, padding: Spacing.md, gap: 2 },
   tip: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.md },

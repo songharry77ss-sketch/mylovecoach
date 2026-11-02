@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -19,7 +19,7 @@ import { pickImage } from '@/lib/images';
 import { privacyUrl } from '@/lib/privacy-copy';
 import { useAppStore } from '@/store/app-store';
 
-type StartMode = 'image' | 'text' | 'secret';
+type StartMode = 'image' | 'text' | 'browse';
 
 /** 검색 가이드(/guide/…)의 「답장 받기」로 들어오면 그 상황을 입력칸에 채워 둔다 (?q=). 너무 길면 자른다 */
 const prefillOf = (q: string | string[] | undefined) => (Array.isArray(q) ? q[0] : q)?.trim().slice(0, 200) ?? '';
@@ -42,28 +42,34 @@ const STEPS = [
 ];
 
 /**
- * 첫 캡처 화면 — 처음 실행 소개·「나에 대해」 다음에 오는 3단계이자, 가입·설문 없이 바로 코칭을 받는 입구.
- * 캡처하는 법을 세 줄로 보여 주고 「대화 캡처 올리기」로 이끈다. 캡처가 없으면 지금 상황만 적어도 된다 (검색 가이드의 ?q= 도 여기로).
- * 아직 이용약관에 답하지 않았으면(소개를 건너뛴 경우·웹 가이드로 바로 온 경우) 시작 버튼을 누를 때 동의 창을 띄우고, 답하면 누른 버튼의 일을 이어서 한다.
+ * 첫 캡처 화면 — 처음 실행 소개·「나에 대해」 다음에 오는 마지막 단계이자, 가입·설문 없이 바로 코칭을 받는 입구.
+ * 할 일은 하나 — 캡처하는 법을 세 줄로 보여 주고 「대화 캡처 올리기」로 이끈다.
+ * 캡처가 없으면 「상황만 적기」를 펼쳐 글로 물어도 된다 (검색 가이드의 ?q= 로 오면 펼친 채로 채워 둔다).
+ * KKTI·비밀 상담 같은 부가 기능은 여기서 빼고 홈의 「탐색」 탭에 둔다. 아직 준비가 안 됐으면 위의 「둘러보기」로 홈부터 볼 수 있다.
+ * 아직 이용약관에 답하지 않았으면(소개를 건너뛴 경우·웹 가이드로 바로 온 경우) 버튼을 누를 때 동의 창을 띄우고, 답하면 누른 버튼의 일을 이어서 한다.
  */
 export default function Start() {
   const router = useRouter();
   const toast = useToast();
   const insets = useSafeAreaInsets();
   const quickStart = useAppStore((s) => s.quickStart);
-  const createSecretChat = useAppStore((s) => s.createSecretChat);
   const agreeToStart = useAppStore((s) => s.agreeToStart);
   const agreed = useAppStore((s) => s.termsAgreedAt != null);
   const userName = useAppStore((s) => s.user?.name?.trim());
   const [busy, setBusy] = useState(false);
   // 동의 창이 떠 있으면 그 창을 띄운 버튼 (답하면 그 일을 이어서 한다)
   const [asking, setAsking] = useState<StartMode | null>(null);
-  // 캡처 없이 바로 적는 지금 상황 — 캡처를 고르기 번거로운 사람을 위한 두 번째 길
+  // 캡처 없이 바로 적는 지금 상황 — 캡처를 고르기 번거로운 사람을 위한 두 번째 길 (접어 두고, 가이드에서 채워 온 글이 있으면 펼친다)
   const params = useLocalSearchParams<{ q?: string }>();
   const [situation, setSituation] = useState(() => prefillOf(params.q));
   const [fromExample, setFromExample] = useState(false);
   const [prefilled, setPrefilled] = useState(() => prefillOf(params.q).length > 0);
+  const [writing, setWriting] = useState(() => prefillOf(params.q).length > 0);
   const typed = situation.trim();
+  const scroller = useRef<ScrollView>(null);
+  const askInput = useRef<TextInput>(null);
+  // 펼친 「상황만 적기」 칸의 위치 — 키보드가 올라와도 입력칸이 보이게 이만큼 내린다
+  const askY = useRef(0);
 
   // 캡처 버튼이 은은하게 빛나며 숨 쉰다
   const glow = useSharedValue(0);
@@ -74,7 +80,6 @@ export default function Start() {
 
   const begin = (mode: StartMode) => {
     track('start', { mode, content: useAppStore.getState().contentConsent === true, ...(mode === 'text' ? { typed: typed.length > 0, example: fromExample, ...(prefilled ? { prefilled: true } : {}) } : {}) });
-    return mode === 'secret' ? createSecretChat() : quickStart();
   };
 
   const withCapture = async () => {
@@ -84,7 +89,8 @@ export default function Start() {
       const picked = await pickImage('screenshot');
       if (!picked) return;
       haptic.thud();
-      const crushId = begin('image');
+      begin('image');
+      const crushId = quickStart();
       router.replace({ pathname: '/crush/[id]', params: { id: crushId, pendingImage: picked.uri, pendingWidth: String(picked.width) } });
     } catch (e) {
       toast.show(e instanceof Error ? e.message : '사진을 불러오지 못했어요.', 'error');
@@ -93,10 +99,21 @@ export default function Start() {
     }
   };
 
-  // 적은 상황이 있으면 채팅방에 들어가자마자 그 글로 코칭을 보낸다 (빈 채팅방에서 무엇을 쓸지 몰라 떠나지 않게)
+  // 적은 상황은 채팅방에 들어가자마자 그 글로 코칭을 보낸다 (빈 채팅방에서 무엇을 쓸지 몰라 떠나지 않게)
   const withText = () => {
-    const crushId = begin('text');
-    router.replace({ pathname: '/crush/[id]', params: { id: crushId, ...(typed ? { pendingText: typed } : {}) } });
+    if (!typed) return;
+    begin('text');
+    const crushId = quickStart();
+    router.replace({ pathname: '/crush/[id]', params: { id: crushId, pendingText: typed } });
+  };
+
+  // 아직 캡처할 대화가 없으면 홈부터 둘러본다 — 다음에 열어도 이 화면으로 되돌아오지 않게 빈 프로필을 만들어 둔다.
+  // 퍼널의 「첫 화면 통과」(start 이벤트)에 섞이지 않게 따로 남긴다
+  const browse = () => {
+    track('start_browse', { content: useAppStore.getState().contentConsent === true });
+    const s = useAppStore.getState();
+    if (!s.user) s.setUser({ name: '', gender: 'other', style: [], defaultTone: 'natural', emoji: 'on', createdAt: Date.now() });
+    router.replace('/(tabs)');
   };
 
   const pickExample = (example: string) => {
@@ -106,17 +123,22 @@ export default function Start() {
     setPrefilled(false);
   };
 
-  const secret = () => {
-    const crushId = begin('secret');
-    // 비밀 상담을 나오면 홈으로 가도록 탭 화면을 먼저 깔아 둔다
-    router.replace('/(tabs)');
-    router.push({ pathname: '/crush/[id]', params: { id: crushId } });
+  const openWriting = () => {
+    haptic.select();
+    track('start_write_open');
+    setWriting(true);
+    // 칸이 그려진 뒤 위로 올리고 커서를 둔다 (바로 autoFocus 하면 키보드가 아래쪽 칸을 덮는다)
+    setTimeout(() => askInput.current?.focus(), 120);
+  };
+
+  const revealAsk = () => {
+    setTimeout(() => scroller.current?.scrollTo({ y: Math.max(0, askY.current - Spacing.md), animated: true }), Platform.OS === 'android' ? 250 : 80);
   };
 
   const run = (mode: StartMode) => {
     if (mode === 'image') withCapture();
     else if (mode === 'text') withText();
-    else secret();
+    else browse();
   };
 
   // 아직 동의 창에 답하지 않았으면 먼저 띄운다
@@ -142,7 +164,9 @@ export default function Start() {
 
   return (
     <StageBackground>
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
       <ScrollView
+        ref={scroller}
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + Spacing.md, paddingBottom: insets.bottom + Spacing.xl }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -152,7 +176,9 @@ export default function Start() {
             <Ionicons name="heart-outline" size={16} color={Stage.gold} />
             <Text style={styles.brandText}>나만의 연애코치</Text>
           </View>
-          <Text style={styles.step}>3 / 3</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="먼저 홈 둘러보기" onPress={() => go('browse')} hitSlop={12} style={styles.browse}>
+            <Text style={styles.browseText}>둘러보기</Text>
+          </Pressable>
         </Animated.View>
 
         <Animated.View entering={FadeInUp.delay(100).duration(480)} style={styles.hero}>
@@ -182,66 +208,64 @@ export default function Start() {
           ))}
         </Animated.View>
 
-        <View>
-          <Animated.View pointerEvents="none" style={[styles.glow, glowStyle]} />
-          <Button
-            title={busy ? '사진 여는 중…' : '대화 캡처로 받기'}
-            variant="gold"
-            onPress={() => go('image')}
-            disabled={busy}
-            icon={busy ? <ActivityIndicator size="small" color={Stage.onGold} /> : <Ionicons name="image" size={18} color={Stage.onGold} />}
-          />
-        </View>
-
-        <View style={styles.orRow}>
-          <View style={styles.orLine} />
-          <Text style={styles.orText}>캡처가 없다면 상황만 적어도 돼요</Text>
-          <View style={styles.orLine} />
-        </View>
-
-        <View style={styles.ask}>
-          <TextInput
-            value={situation}
-            onChangeText={(value) => {
-              setSituation(value);
-              setFromExample(false);
-              setPrefilled(false);
-            }}
-            placeholder={'예) 소개팅 다음 날인데 먼저 연락해도 될까?\n상대가 한 말을 그대로 적어도 좋아요'}
-            placeholderTextColor={Stage.textFaint}
-            accessibilityLabel="지금 상황 적기"
-            multiline
-            maxLength={800}
-            style={styles.askInput}
-          />
-          <View style={styles.examples}>
-            {EXAMPLES.map((example) => (
-              <Pressable key={example} accessibilityRole="button" onPress={() => pickExample(example)} style={styles.example}>
-                <Text style={styles.exampleText}>{example}</Text>
-              </Pressable>
-            ))}
+        <Animated.View entering={FadeInUp.delay(260).duration(480)} style={styles.cta}>
+          <View>
+            <Animated.View pointerEvents="none" style={[styles.glow, glowStyle]} />
+            <Button
+              title={busy ? '사진 여는 중…' : '대화 캡처 올리기'}
+              variant="gold"
+              onPress={() => go('image')}
+              disabled={busy}
+              icon={busy ? <ActivityIndicator size="small" color={Stage.onGold} /> : <Ionicons name="image" size={18} color={Stage.onGold} />}
+            />
           </View>
-          <Button
-            title="답장·조언 받기"
-            variant={typed ? 'primary' : 'stage'}
-            onPress={() => go('text')}
-            disabled={busy || !typed}
-            icon={<Ionicons name="sparkles" size={18} color={palette.white} />}
-          />
-        </View>
+          <Text style={styles.ctaNote}>사진에서 캡처를 고르면 바로 분석을 시작해요</Text>
+        </Animated.View>
 
-        <Button title="빈 채팅방에서 시작하기" variant="stageGhost" size="md" onPress={() => go('text')} disabled={busy || Boolean(typed)} style={styles.ghost} />
-
-        <View style={styles.extras}>
-          <PressableScale onPress={() => router.push('/kkti')} style={styles.extra}>
-            <Text style={styles.extraTitle}>🧪 1분 KKTI 테스트</Text>
-            <Text style={styles.extraBody}>카톡 속 진짜 연애 MBTI</Text>
+        {writing ? (
+          <Animated.View entering={FadeInDown.duration(260)} style={styles.ask} onLayout={(e) => (askY.current = e.nativeEvent.layout.y)}>
+            <Text style={styles.askTitle}>✏️ 캡처 없이 상황만 적기</Text>
+            <TextInput
+              value={situation}
+              onChangeText={(value) => {
+                setSituation(value);
+                setFromExample(false);
+                setPrefilled(false);
+              }}
+              placeholder={'예) 소개팅 다음 날인데 먼저 연락해도 될까?\n상대가 한 말을 그대로 적어도 좋아요'}
+              placeholderTextColor={Stage.textFaint}
+              accessibilityLabel="지금 상황 적기"
+              ref={askInput}
+              onFocus={revealAsk}
+              multiline
+              maxLength={800}
+              style={styles.askInput}
+            />
+            <View style={styles.examples}>
+              {EXAMPLES.map((example) => (
+                <Pressable key={example} accessibilityRole="button" onPress={() => pickExample(example)} style={styles.example}>
+                  <Text style={styles.exampleText}>{example}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Button
+              title="답장·조언 받기"
+              variant={typed ? 'primary' : 'stage'}
+              onPress={() => go('text')}
+              disabled={busy || !typed}
+              icon={<Ionicons name="sparkles" size={18} color={palette.white} />}
+            />
+          </Animated.View>
+        ) : (
+          <PressableScale onPress={openWriting} style={styles.writeRow} accessibilityLabel="캡처 없이 상황만 적기">
+            <Ionicons name="create-outline" size={18} color={Stage.goldSoft} />
+            <View style={styles.flex}>
+              <Text style={styles.writeTitle}>캡처가 없다면? 상황만 적어도 돼요</Text>
+              <Text style={styles.writeBody}>「소개팅 다음 날 먼저 연락해도 될까?」처럼</Text>
+            </View>
+            <Ionicons name="chevron-down" size={18} color={Stage.textDim} />
           </PressableScale>
-          <PressableScale onPress={() => go('secret')} style={styles.extra}>
-            <Text style={styles.extraTitle}>🕶️ 비밀 상담</Text>
-            <Text style={styles.extraBody}>기록이 남지 않아요</Text>
-          </PressableScale>
-        </View>
+        )}
 
         <Animated.View entering={FadeInDown.delay(300).duration(500)} style={styles.reel}>
           <Text style={styles.reelLabel}>이렇게 나와요</Text>
@@ -259,22 +283,25 @@ export default function Start() {
           </Text>
         </Text>
       </ScrollView>
+      </KeyboardAvoidingView>
       <StartConsentSheet visible={asking != null} onAgree={onAgree} onClose={() => setAsking(null)} />
     </StageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   scroll: { flexGrow: 1, paddingHorizontal: Spacing.xl, gap: Spacing.lg, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   brandRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   brandText: { fontSize: 13, fontWeight: '800', color: Stage.text, letterSpacing: -0.2 },
-  step: { fontSize: 13, fontWeight: '800', color: Stage.gold, letterSpacing: 1 },
+  browse: { paddingHorizontal: Spacing.md, paddingVertical: 6, borderRadius: Radius.pill, backgroundColor: Stage.chip, borderWidth: 1, borderColor: Stage.chipBorder },
+  browseText: { fontSize: 13, fontWeight: '700', color: Stage.text },
   hero: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md },
   heroTexts: { flex: 1, gap: Spacing.md },
   sub: { fontSize: 15, lineHeight: 22, fontWeight: '500', color: Stage.textDim },
   polaroids: { width: 104, paddingTop: Spacing.sm },
-  heart: { position: 'absolute', left: -18, bottom: -26 },
+  heart: { position: 'absolute', right: -10, bottom: -24 },
   guide: { borderRadius: Radius.lg, backgroundColor: Stage.chip, borderWidth: 1, borderColor: Stage.chipBorder, padding: Spacing.lg, gap: Spacing.md },
   stepRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   stepNum: { width: 28, height: 28, borderRadius: 14, backgroundColor: Stage.gold, alignItems: 'center', justifyContent: 'center' },
@@ -282,20 +309,18 @@ const styles = StyleSheet.create({
   stepTexts: { flex: 1, gap: 2 },
   stepTitle: { fontSize: 15, fontWeight: '800', color: Stage.text },
   stepBody: { fontSize: 13, lineHeight: 18, fontWeight: '500', color: Stage.textDim },
+  cta: { gap: Spacing.sm },
+  ctaNote: { fontSize: 12, fontWeight: '600', color: Stage.textFaint, textAlign: 'center' },
   glow: { position: 'absolute', left: 8, right: 8, top: 6, bottom: -6, borderRadius: Radius.md, backgroundColor: Stage.gold },
-  orRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.xs },
-  orLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: Stage.chipBorder },
-  orText: { fontSize: 12, fontWeight: '700', color: Stage.textFaint },
+  writeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: Radius.lg, borderWidth: 1, borderColor: Stage.chipBorder, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  writeTitle: { fontSize: 14, fontWeight: '800', color: Stage.text },
+  writeBody: { fontSize: 12, fontWeight: '500', color: Stage.textFaint, marginTop: 2 },
   ask: { borderRadius: Radius.lg, backgroundColor: Stage.chip, borderWidth: 1, borderColor: Stage.chipBorder, padding: Spacing.md, gap: Spacing.md },
+  askTitle: { fontSize: 14, fontWeight: '800', color: Stage.text },
   askInput: { minHeight: 76, maxHeight: 180, textAlignVertical: 'top', padding: 0, fontSize: 16, lineHeight: 24, fontWeight: '500', color: Stage.text },
   examples: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
   example: { borderRadius: Radius.pill, borderWidth: 1, borderColor: Stage.chipBorder, paddingHorizontal: 10, paddingVertical: 6 },
   exampleText: { fontSize: 12, fontWeight: '600', color: Stage.textDim },
-  ghost: { marginTop: -Spacing.sm },
-  extras: { flexDirection: 'row', gap: Spacing.sm },
-  extra: { flex: 1, borderRadius: Radius.md, paddingVertical: Spacing.md, paddingHorizontal: Spacing.md, gap: 2, backgroundColor: Stage.chip, borderWidth: 1, borderColor: Stage.chipBorder },
-  extraTitle: { fontSize: 14, fontWeight: '800', color: Stage.text },
-  extraBody: { fontSize: 12, fontWeight: '500', color: Stage.textDim },
   reel: { width: '100%', gap: Spacing.xs, marginTop: Spacing.sm },
   reelLabel: { fontSize: 12, fontWeight: '700', color: Stage.textFaint, textAlign: 'center' },
   notice: { fontSize: 12, lineHeight: 17, fontWeight: '500', color: Stage.textFaint, textAlign: 'center', marginTop: Spacing.xs },

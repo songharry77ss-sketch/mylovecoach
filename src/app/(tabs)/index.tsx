@@ -6,11 +6,12 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { WhoSheet, type WhoTarget } from '@/components/coach/who-sheet';
 import { CrushListItem } from '@/components/crush/crush-list-item';
+import { DemoReel } from '@/components/fx/demo-reel';
 import { HeartMark, Highlight, StagePill } from '@/components/stage/stage';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/ui/empty-state';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { SectionHeader } from '@/components/ui/section-header';
 import { useToast } from '@/components/ui/toast';
@@ -20,12 +21,13 @@ import { track } from '@/lib/analytics';
 import { APP_CONFIG } from '@/lib/config';
 import { isDemoMode } from '@/lib/demo';
 import { haptic } from '@/lib/haptics';
-import { pickImage } from '@/lib/images';
+import { deleteImageQuietly, pickImage, type PickedImage } from '@/lib/images';
 import { PRIVACY_NOTICE_VERSION, sortCrushes, useAppStore } from '@/store/app-store';
 
 /**
- * 홈(채팅) — 채팅이 먼저. 맨 위 무대 머리말(스토어 이미지와 같은 에스프레소·골드)에서 바로 캡처를 올리고,
- * 그 아래가 채팅방 목록이다. 속마음 카드·KKTI·비밀 상담 같은 부가 기능은 「탐색」 탭으로 옮겼다.
+ * 홈(채팅) — 「안녕하세요」 인사 바로 아래에서 대화를 시작한다: 캡처 올리기 · 상황만 적기 두 길뿐.
+ * 채팅방이 있으면 고른 뒤 「누구와의 대화예요?」 시트로 보낼 곳만 고르고(최근 대화가 맨 위), 없으면 바로 첫 채팅방을 연다.
+ * 그 아래가 채팅방 목록. 속마음 카드·KKTI·비밀 상담·(켰으면) 연애 연습 같은 부가 기능은 「탐색」 탭에 따로 둔다.
  */
 export default function HomeScreen() {
   const theme = useTheme();
@@ -45,6 +47,8 @@ export default function HomeScreen() {
   const hottest = crushes.reduce<number>((m, c) => Math.max(m, c.heat ?? 0), 0);
   const name = user?.name?.trim();
   const [busy, setBusy] = useState(false);
+  // 「누구와의 대화예요?」 시트 — 캡처를 골랐으면 그 캡처를, 상황 적기면 null 을 들고 연다
+  const [who, setWho] = useState<{ image: PickedImage | null } | null>(null);
 
   // 캡처 버튼의 아이콘이 은은하게 숨 쉰다
   const pulse = useSharedValue(1);
@@ -70,26 +74,54 @@ export default function HomeScreen() {
     if (open) router.push('/settings/privacy');
   };
 
-  // 채팅방이 있으면 누구와의 대화인지 고르는 빠른 코칭 화면으로, 없으면 바로 캡처를 골라 첫 채팅방에서 코칭한다
+  /** 고른 상대의 채팅방으로 — 캡처가 있으면 들어가자마자 분석하고, 없으면 입력창을 열어 둔다 */
+  const openRoom = (target: WhoTarget, image: PickedImage | null) => {
+    const s = useAppStore.getState();
+    // 「새로운 사람」은 늘 새 방 — quickStart 는 이미 방이 있으면 가장 오래된 방을 돌려주므로 방이 하나도 없을 때만 쓴다
+    const hasRoom = Object.values(s.crushes).some((c) => !c.secret);
+    const id =
+      target.kind === 'crush'
+        ? target.id
+        : target.kind === 'secret'
+          ? s.createSecretChat()
+          : hasRoom
+            ? s.addCrush({ name: '상대', gender: 'female', relationship: 'talking', style: [], notes: '' }).id
+            : s.quickStart();
+    track('home_start', { mode: image ? 'image' : 'text', target: target.kind, rooms: crushes.length });
+    router.push({ pathname: '/crush/[id]', params: image ? { id, pendingImage: image.uri, pendingWidth: String(image.width) } : { id, compose: '1' } });
+  };
+
+  // 캡처부터 고른다 — 채팅방이 있으면 누구와의 대화인지 묻고, 없으면 바로 첫 채팅방에서 분석한다
   const capture = async () => {
     if (busy) return;
     haptic.thud();
     track('home_capture', { rooms: crushes.length });
-    if (crushes.length) {
-      router.push('/quick');
-      return;
-    }
     setBusy(true);
     try {
       const picked = await pickImage('screenshot');
       if (!picked) return;
-      const id = useAppStore.getState().quickStart();
-      router.push({ pathname: '/crush/[id]', params: { id, pendingImage: picked.uri, pendingWidth: String(picked.width) } });
+      if (crushes.length) setWho({ image: picked });
+      else openRoom({ kind: 'new' }, picked);
     } catch (e) {
       toast.show(e instanceof Error ? e.message : '사진을 불러오지 못했어요.', 'error');
     } finally {
       setBusy(false);
     }
+  };
+
+  // 캡처 없이 상황만 적기 — 보낼 채팅방을 고른 뒤 그 방의 입력창에서 바로 적는다
+  const write = () => {
+    haptic.tap();
+    track('home_write', { rooms: crushes.length });
+    if (crushes.length) setWho({ image: null });
+    else openRoom({ kind: 'new' }, null);
+  };
+
+  const pickWho = (target: WhoTarget) => {
+    const image = who?.image ?? null;
+    haptic.select();
+    setWho(null);
+    openRoom(target, image);
   };
 
   const newRoom = () => {
@@ -119,8 +151,9 @@ export default function HomeScreen() {
               <HeartMark size={44} rotate={14} style={styles.heart} />
             </Animated.View>
 
-            <Animated.View entering={FadeInDown.delay(80).duration(380)}>
-              <PressableScale onPress={capture} pressedScale={0.97} style={styles.captureCard} accessibilityLabel="대화 캡처 올리기">
+            {/* 대화 시작은 이 카드 하나 — 캡처 올리기 / 상황만 적기 */}
+            <Animated.View entering={FadeInDown.delay(80).duration(380)} style={styles.startCard}>
+              <PressableScale onPress={capture} pressedScale={0.98} style={styles.captureRow} accessibilityLabel="대화 캡처 올리기">
                 <Animated.View style={[styles.captureIcon, pulseStyle]}>
                   {busy ? <ActivityIndicator color={palette.white} /> : <Ionicons name="image" size={24} color={palette.white} />}
                 </Animated.View>
@@ -130,16 +163,13 @@ export default function HomeScreen() {
                 </View>
                 <Ionicons name="chevron-forward" size={20} color={palette.rose600} />
               </PressableScale>
+              <View style={styles.startDivider} />
+              <PressableScale onPress={write} pressedScale={0.98} style={styles.writeRow} accessibilityLabel="캡처 없이 상황만 적기">
+                <Ionicons name="create-outline" size={20} color="#7A6A6C" />
+                <Text style={styles.writeText}>캡처 없이 상황만 적어서 물어보기</Text>
+                <Ionicons name="chevron-forward" size={18} color="#B9A9AB" />
+              </PressableScale>
             </Animated.View>
-
-            <View style={styles.quickRow}>
-              <PressableScale onPress={newRoom} style={styles.quick}>
-                <Text style={styles.quickText}>✍️ 상대 등록하고 시작</Text>
-              </PressableScale>
-              <PressableScale onPress={() => router.push('/(tabs)/tips')} style={styles.quick}>
-                <Text style={styles.quickText}>✨ 탐색 · 속마음 · KKTI</Text>
-              </PressableScale>
-            </View>
           </View>
         </LinearGradient>
 
@@ -163,13 +193,16 @@ export default function HomeScreen() {
           ) : null}
 
           {crushes.length === 0 ? (
-            <EmptyState
-              emoji="💬"
-              title="첫 채팅방을 만들어볼까요?"
-              description="위에서 캡처를 바로 올리거나, 마음에 두고 있는 사람의 이름·MBTI·부르는 호칭을 등록하면 그 사람에게 맞춘 코칭을 받을 수 있어요."
-              actionTitle="채팅방 만들기"
-              onAction={newRoom}
-            />
+            // 아직 채팅방이 없으면 「이렇게 나와요」 시연으로 첫 캡처를 부른다
+            <Animated.View entering={FadeInDown.delay(120).duration(380)} style={styles.firstRun}>
+              <SectionHeader title="이렇게 나와요" subtitle="캡처 한 장 올리면 코치가 대화를 읽고 답장을 골라 줘요" />
+              <DemoReel />
+              <Pressable accessibilityRole="button" onPress={newRoom} hitSlop={8} style={styles.registerLink}>
+                <AppText variant="small" color="textSecondary">
+                  마음에 둔 사람을 먼저 등록할래요 ›
+                </AppText>
+              </Pressable>
+            </Animated.View>
           ) : (
             <>
               <SectionHeader title="채팅방" subtitle={`${crushes.length}명과 대화 중 · 온도는 0°에서 시작해요`} />
@@ -186,15 +219,16 @@ export default function HomeScreen() {
 
           {profileThin ? (
             <Animated.View entering={FadeInDown.delay(250)}>
-              <PressableScale onPress={() => router.push('/settings/profile')} style={[styles.profileCard, { backgroundColor: theme.primarySoft }]}>
+              {/* 처음 실행 때와 같은 「코치와의 짧은 대화」로 묻는다 — 끝나면 홈으로 돌아온다 */}
+              <PressableScale onPress={() => router.push({ pathname: '/about-me', params: { from: 'home' } })} style={[styles.profileCard, { backgroundColor: theme.primarySoft }]}>
                 <AppText style={styles.profileEmoji}>🪞</AppText>
                 <View style={styles.flex}>
                   <View style={styles.profileHead}>
                     <AppText variant="smallStrong">나에 대해 알려주세요</AppText>
-                    <StagePill label="1분" style={styles.profilePill} />
+                    <StagePill label="30초" style={styles.profilePill} />
                   </View>
                   <AppText variant="caption" color="textSecondary">
-                    추구미·목표·자기소개를 적으면 더 「나다운」 답장이 나와요
+                    코치가 몇 가지만 물어볼게요 · 더 「나다운」 답장이 나와요
                   </AppText>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={theme.textTertiary} />
@@ -212,6 +246,17 @@ export default function HomeScreen() {
           ) : null}
         </View>
       </ScrollView>
+      <WhoSheet
+        visible={who != null}
+        crushes={crushes}
+        imageUri={who?.image?.uri}
+        onPick={pickWho}
+        onClose={() => {
+          // 고르지 않고 닫으면 방금 고른 캡처 사본(대화 내용)을 바로 지운다
+          deleteImageQuietly(who?.image?.uri);
+          setWho(null);
+        }}
+      />
     </View>
   );
 }
@@ -229,25 +274,24 @@ const styles = StyleSheet.create({
   greeting: { gap: Spacing.sm, paddingRight: 48 },
   greetingSub: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: Stage.textDim },
   heart: { position: 'absolute', right: 0, top: 6 },
-  captureCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
+  startCard: {
     backgroundColor: Stage.card,
     borderRadius: Radius.lg,
-    padding: Spacing.lg,
     shadowColor: '#000',
     shadowOpacity: 0.3,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
     elevation: 8,
   },
+  captureRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, padding: Spacing.lg },
+  startDivider: { height: StyleSheet.hairlineWidth, backgroundColor: '#E9DFDC', marginHorizontal: Spacing.lg },
+  writeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.lg, paddingVertical: 14 },
+  writeText: { flex: 1, fontSize: 14, fontWeight: '700', color: '#5A4A4C' },
+  firstRun: { gap: Spacing.md },
+  registerLink: { alignSelf: 'center', paddingVertical: Spacing.sm },
   captureIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: palette.rose600, alignItems: 'center', justifyContent: 'center' },
   captureTitle: { fontSize: 17, fontWeight: '900', color: Stage.cardText, letterSpacing: -0.3 },
   captureBody: { fontSize: 13, fontWeight: '600', color: '#7A6A6C', marginTop: 2 },
-  quickRow: { flexDirection: 'row', gap: Spacing.sm },
-  quick: { flex: 1, borderRadius: Radius.md, backgroundColor: Stage.chip, borderWidth: 1, borderColor: Stage.chipBorder, paddingVertical: 10, alignItems: 'center' },
-  quickText: { fontSize: 13, fontWeight: '800', color: Stage.text },
   body: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.xl, gap: Spacing.lg, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   profileCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: Radius.lg, padding: Spacing.lg },
   profileHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },

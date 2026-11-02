@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
@@ -50,9 +50,11 @@ const SLIDES: Slide[] = [
 /**
  * 처음 실행 소개 — 무엇을 해 주는 앱인지 세 장으로 보여 준다 (스토어 이미지와 같은 무대 화면).
  * 마지막 「시작하기」에서 이용약관 동의 창을 띄우고, 답하면 「나에 대해 알려주세요」로 간다. 「건너뛰기」는 바로 첫 캡처 화면으로.
+ * 마이 → 「사용법 다시 보기」로 열면(?from=my) 같은 세 장을 보여 주고, 「닫기」·「다 봤어요」로 마이에 돌아간다.
  */
 export default function Welcome() {
   const router = useRouter();
+  const replay = useLocalSearchParams<{ from?: string }>().from === 'my';
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height } = useWindowDimensions();
   const width = Math.min(windowWidth, MaxContentWidth);
@@ -66,8 +68,8 @@ export default function Welcome() {
   const compact = height < 720;
 
   useEffect(() => {
-    track('onboarding', { step: 'slides', action: 'open' });
-  }, []);
+    track('onboarding', { step: 'slides', action: 'open', ...(replay ? { replay: true } : {}) });
+  }, [replay]);
 
   const goTo = (next: number) => {
     scroller.current?.scrollTo({ x: next * width, animated: true });
@@ -89,7 +91,11 @@ export default function Welcome() {
 
   const skip = () => {
     haptic.tap();
-    track('onboarding', { step: 'slides', action: 'skip', page });
+    track('onboarding', { step: 'slides', action: 'skip', page, ...(replay ? { replay: true } : {}) });
+    if (replay) {
+      router.back();
+      return;
+    }
     setOnboardingSeen();
     router.replace('/start');
   };
@@ -100,8 +106,9 @@ export default function Welcome() {
       goTo(page + 1);
       return;
     }
-    track('onboarding', { step: 'slides', action: 'start' });
-    if (agreed) toProfile();
+    track('onboarding', { step: 'slides', action: 'start', ...(replay ? { replay: true } : {}) });
+    if (replay) router.back();
+    else if (agreed) toProfile();
     else setAsking(true);
   };
 
@@ -153,8 +160,8 @@ export default function Welcome() {
           <Ionicons name="heart-outline" size={16} color={Stage.gold} />
           <Text style={styles.brandText}>나만의 연애코치</Text>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="소개 건너뛰기" onPress={skip} hitSlop={12} style={styles.skip}>
-          <Text style={styles.skipText}>건너뛰기</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel={replay ? '사용법 닫기' : '소개 건너뛰기'} onPress={skip} hitSlop={12} style={styles.skip}>
+          <Text style={styles.skipText}>{replay ? '닫기' : '건너뛰기'}</Text>
         </Pressable>
       </View>
 
@@ -165,10 +172,10 @@ export default function Welcome() {
           ))}
         </View>
         <Button
-          title={last ? '시작하기' : '다음'}
+          title={last ? (replay ? '다 봤어요' : '시작하기') : '다음'}
           variant="gold"
           onPress={next}
-          icon={last ? <Ionicons name="sparkles" size={18} color={Stage.onGold} /> : undefined}
+          icon={last && !replay ? <Ionicons name="sparkles" size={18} color={Stage.onGold} /> : undefined}
         />
       </View>
 

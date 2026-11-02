@@ -38,7 +38,8 @@ import type { ChatMessage, EmojiPref, Tone } from '@/lib/types';
 import { isVariationRequest, turnRequestOf, useAppStore, variationTargetOf } from '@/store/app-store';
 
 export default function CrushChat() {
-  const { id, pendingImage, pendingWidth, pendingText } = useLocalSearchParams<{ id: string; pendingImage?: string; pendingWidth?: string; pendingText?: string }>();
+  // compose=1 — 홈의 「상황만 적기」로 들어오면 입력창을 바로 열어 둔다
+  const { id, pendingImage, pendingWidth, pendingText, compose } = useLocalSearchParams<{ id: string; pendingImage?: string; pendingWidth?: string; pendingText?: string; compose?: string }>();
   const theme = useTheme();
   const router = useRouter();
   const toast = useToast();
@@ -477,7 +478,8 @@ export default function CrushChat() {
             <View style={styles.empty}>
               <EmptyState
                 emoji={secret ? '🕶️' : '📸'}
-                title={secret ? '아무도 모르게 물어보세요' : `${crush.name}님과의 대화를\n캡처해서 올려보세요`}
+                // 이름을 아직 모르는 기본 채팅방은 「상대님」 대신 「그 사람」
+                title={secret ? '아무도 모르게 물어보세요' : `${crush.name === '상대' ? '그 사람' : `${crush.name}님`}과의 대화를\n캡처해서 올려보세요`}
                 description={
                   secret
                     ? '캡처를 올리거나 상황을 적어 주세요. 이 방의 대화는 저장되지 않고 나가는 순간 사라져요.'
@@ -575,6 +577,7 @@ export default function CrushChat() {
           onShuffleQuestions={() => setQuestionSeed((v) => v + 1)}
           fill={composerFill}
           onEdit={resume.forget}
+          autoFocus={compose === '1'}
         />
       </KeyboardAvoidingView>
 

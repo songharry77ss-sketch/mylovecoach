@@ -50,8 +50,8 @@ npx tsc --noEmit && npx eslint src --max-warnings=0 && npx jest
 
 ## 구조
 
-- `src/app/` — 화면 (expo-router). 첫 화면은 `start.tsx`(시연 루프 애니메이션 `components/fx/demo-reel.tsx`), 채팅은 `crush/[id]/index.tsx`
-  - 탭: 채팅 `(tabs)/index` · 연애 연습 `(tabs)/practice` · 속마음 `(tabs)/tips` · 마이 `(tabs)/my`
+- `src/app/` — 화면 (expo-router). 처음 실행: 소개 3장 `welcome.tsx` → 약관 → 「나에 대해」 `about-me.tsx`(코치가 한 가지씩 묻는 대화, 홈·마이에서 `?from=home|my` 로 다시 열면 끝나고 돌아감) → 첫 캡처 `start.tsx`(캡처 버튼 하나에 집중, 글로 적기는 접어 둠, 「둘러보기」로 홈). 채팅은 `crush/[id]/index.tsx`
+  - 탭: 채팅 `(tabs)/index`(캡처·상황 적기 → 채팅방이 있으면 `components/coach/who-sheet.tsx` 「누구와의 대화예요?」) · 탐색 `(tabs)/tips`(KKTI·비밀 상담·속마음 카드 등 부가 기능) · 마이 `(tabs)/my`. 연애 연습 `(tabs)/practice` 은 기본 숨김(마이 → 추가 기능)
   - 상대 분석 보고서 `crush/[id]/report`, 연습 대화 `practice/[id]`·`practice/custom`, 속마음 풀이 `mind`, 빠른 코칭 `quick`(플로팅 버블·`mylovecoach://quick` 이 여는 곳), KKTI 테스트 `kkti/`
 - `src/components/coach/` — 결과 카드(`analysis-card.tsx`), 답장 스와이프(`reply-carousel.tsx`), 누적 온도계(`heat-gauge.tsx`), 입력창(`composer.tsx`)
 - `src/components/fx/celebration.tsx` — 하트·꽃가루 효과 (`useCelebrate()`), `src/lib/haptics.ts` — 진동 패턴 모음 (마이 탭에서 끌 수 있음)

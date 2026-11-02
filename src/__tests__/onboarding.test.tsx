@@ -1,13 +1,13 @@
 /**
- * 처음 실행 흐름 — 사용법 소개(세 장) → 이용약관 동의 → 「나에 대해 알려주세요」(건너뛰기 가능) → 첫 캡처 화면.
+ * 처음 실행 흐름 — 사용법 소개(세 장) → 이용약관 동의 → 「나에 대해 알려주세요」(코치와의 짧은 대화, 질문마다 건너뛰기) → 첫 캡처 화면.
  * 연애 연습 숨김(마이 → 추가 기능에서 켜기), 별점 요청 조건, 예전 이용자 저장값 읽기도 함께 본다.
  */
 import { act } from 'react';
-import { Text } from 'react-native';
+import { BackHandler, Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 
-import AboutMe from '@/app/about-me';
+import AboutMe, { ABOUT_ME_STEPS, TYPING_MS } from '@/app/about-me';
 import Index from '@/app/index';
 import Welcome from '@/app/welcome';
 import { track } from '@/lib/analytics';
@@ -30,9 +30,10 @@ jest.mock('@/lib/config', () => ({
 }));
 const mockRouter = { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: () => true };
 let mockRedirect: string | null = null;
+let mockParams: Record<string, string> = {};
 jest.mock('expo-router', () => ({
   useRouter: () => mockRouter,
-  useLocalSearchParams: () => ({}),
+  useLocalSearchParams: () => mockParams,
   useFocusEffect: () => {},
   Redirect: ({ href }: { href: string }) => {
     mockRedirect = href;
@@ -46,9 +47,11 @@ jest.mock('react-native-reanimated', () => {
   for (const name of ['delay', 'duration', 'springify', 'damping']) entering[name] = () => entering;
   const target = (value: unknown) => value;
   const last = (...values: unknown[]) => values[values.length - 1];
+  const same = (t: number) => t;
   return {
     __esModule: true,
     default: { View: RN.View, Text: RN.Text, createAnimatedComponent: target },
+    Easing: { linear: same, out: () => same, quad: same },
     FadeIn: entering,
     FadeOut: entering,
     FadeInDown: entering,
@@ -105,6 +108,7 @@ beforeAll(async () => {
 beforeEach(() => {
   jest.clearAllMocks();
   mockRedirect = null;
+  mockParams = {};
   useAppStore.getState().resetAll();
   useAppStore.setState({ hydrated: true, pendingDeletion: null, user: null, crushes: {}, onboardingSeen: false, termsAgreedAt: null, practiceEnabled: false, reviewWins: 0, reviewAsks: [] });
 });
@@ -155,6 +159,20 @@ describe('사용법 소개', () => {
     expect(track).toHaveBeenCalledWith('start_consent', { all: true, content: true, mode: 'onboarding' });
   });
 
+  it('마이 → 「사용법 다시 보기」로 열면 같은 세 장을 보여 주고, 닫거나 다 보면 마이로 돌아간다 (동의 창·나에 대해 없이)', () => {
+    mockParams = { from: 'my' };
+    const t = mount(<Welcome />);
+    expect(texts(t)).toContain('캡처 한 장이면 끝');
+    act(() => pressable(t, '다음').props.onPress());
+    act(() => pressable(t, '다음').props.onPress());
+    act(() => pressable(t, '다 봤어요').props.onPress());
+    expect(texts(t)).not.toContain('시작하기 전에 확인해 주세요');
+    expect(mockRouter.back).toHaveBeenCalledTimes(1);
+    act(() => byLabel(t, '사용법 닫기').props.onPress());
+    expect(mockRouter.back).toHaveBeenCalledTimes(2);
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+  });
+
   it('이미 동의한 기기는 동의 창 없이 「나에 대해」로 간다', () => {
     useAppStore.setState({ termsAgreedAt: Date.now() });
     const t = mount(<Welcome />);
@@ -166,27 +184,137 @@ describe('사용법 소개', () => {
   });
 });
 
-describe('나에 대해 알려주세요', () => {
-  it('건너뛰면 아무것도 저장하지 않고 첫 캡처 화면으로', () => {
+describe('나에 대해 알려주세요 — 코치와의 짧은 대화', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+  /** 코치가 「입력 중…」 뒤에 말하는 시간을 흘려보낸다 */
+  const talk = () => act(() => jest.advanceTimersByTime(TYPING_MS * 6));
+  const input = (t: ReactTestRenderer, label: string) => t.root.findByProps({ accessibilityLabel: label });
+
+  it('코치가 인사한 뒤 이름부터 묻고, 바로 「나중에 할게요」를 누르면 아무것도 저장하지 않고 첫 캡처 화면으로', () => {
     const t = mount(<AboutMe />);
-    act(() => byLabel(t, '나에 대해 알려주기 건너뛰기').props.onPress());
+    // 말풍선이 나오기 전에는 답하는 칸이 없다
+    expect(t.root.findAll((n) => n.props.accessibilityLabel === '부를 이름')).toHaveLength(0);
+    talk();
+    const shown = texts(t);
+    expect(shown).toContain('오늘부터 함께할 연애 코치예요');
+    expect(shown).toContain('뭐라고 불러 드릴까요?');
+    act(() => byLabel(t, '나에 대해 알려주기 나중에 하기').props.onPress());
     expect(useAppStore.getState().user).toBeNull();
     expect(mockRouter.replace).toHaveBeenCalledWith('/start');
-    expect(track).toHaveBeenCalledWith('onboarding', { step: 'profile', action: 'skip', filled: 0 });
+    expect(track).toHaveBeenCalledWith('onboarding', expect.objectContaining({ step: 'profile', action: 'skip', filled: 0, via: 'later' }));
   });
 
-  it('적은 만큼 내 프로필에 저장하고 첫 캡처 화면으로 (추구미는 3개까지)', () => {
+  it('한 번에 하나씩 묻고 답하면 바로 다음으로 — 건너뛴 질문은 비워 두고, 답한 만큼 저장한다 (추구미는 3개까지)', () => {
     const t = mount(<AboutMe />);
-    act(() => t.root.findByProps({ accessibilityLabel: '이름 또는 별명' }).props.onChangeText('  지은 '));
-    act(() => pressable(t, '여성').props.onPress());
-    act(() => t.root.findByProps({ accessibilityLabel: '나이' }).props.onChangeText('2a5'));
+    talk();
+    act(() => input(t, '부를 이름').props.onChangeText('  지은 '));
+    act(() => byLabel(t, '보내기').props.onPress());
+    talk();
+    expect(texts(t)).toContain('지은이라고 불러 주세요');
+    expect(texts(t)).toContain('반가워요, 지은님!');
+
+    act(() => pressable(t, '여자예요').props.onPress());
+    talk();
+    act(() => input(t, '나이').props.onChangeText('2a5'));
+    expect(input(t, '나이').props.value).toBe('25');
+    act(() => byLabel(t, '보내기').props.onPress());
+    talk();
+    expect(texts(t)).toContain('25살이에요');
+
+    // MBTI 는 「잘 몰라요」
+    expect(texts(t)).toContain('MBTI 알고 있어요?');
+    act(() => pressable(t, '잘 몰라요').props.onPress());
+    talk();
+    expect(t.root.findAll((n) => typeof n.props.onPress === 'function' && textOf(n) === 'ENFP')).toHaveLength(0);
+    expect(texts(t)).toContain('잘 몰라요');
+
     for (const v of ['다정한', '유쾌한', '솔직한', '센스 있는']) act(() => pressable(t, v).props.onPress());
+    act(() => pressable(t, '3개 골랐어요').props.onPress());
+    talk();
     act(() => pressable(t, '썸 끝내고 확실하게').props.onPress());
-    act(() => pressable(t, '다음').props.onPress());
+    talk();
+    expect(texts(t)).toContain('좋아요, 지은님!');
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+
+    act(() => pressable(t, '첫 캡처 올리러 가기').props.onPress());
     const user = useAppStore.getState().user;
     expect(user).toEqual(expect.objectContaining({ name: '지은', gender: 'female', age: 25, goal: '썸 끝내고 확실하게' }));
+    expect(user?.mbti).toBeUndefined();
     expect(user?.vibes).toEqual(['유쾌한', '솔직한', '센스 있는']);
     expect(mockRouter.replace).toHaveBeenCalledWith('/start');
+    expect(track).toHaveBeenCalledWith('onboarding', { step: 'profile_q', q: 'mbti', action: 'skip' });
+    expect(track).toHaveBeenCalledWith('onboarding', expect.objectContaining({ step: 'profile', action: 'save', filled: 5, via: 'done', answered: ABOUT_ME_STEPS.length }));
+  });
+
+  it('말풍선이 다 나오기 전에 누른 답은 받지 않는다 (두 번 눌러 질문을 건너뛰지 않게)', () => {
+    const t = mount(<AboutMe />);
+    talk();
+    act(() => pressable(t, '건너뛰기').props.onPress());
+    // 다음 질문(성별)이 아직 나오는 중
+    expect(t.root.findAll((n) => typeof n.props.onPress === 'function' && textOf(n) === '여자예요')).toHaveLength(0);
+    talk();
+    expect(t.root.findAll((n) => typeof n.props.onPress === 'function' && textOf(n) === '여자예요').length).toBeGreaterThan(0);
+  });
+
+  it('홈·마이에서 다시 열면 이미 아는 건 묻지 않고 이름으로 반긴다', () => {
+    act(() => {
+      useAppStore.setState({ user: { name: '지은', gender: 'female', age: 25, style: [], defaultTone: 'natural', createdAt: 1 } });
+    });
+    mockParams = { from: 'my' };
+    const t = mount(<AboutMe />);
+    talk();
+    const shown = texts(t);
+    expect(shown).toContain('다시 반가워요, 지은님!');
+    expect(shown).not.toContain('뭐라고 불러 드릴까요?');
+    // 이름·성별·나이는 알고 있으니 MBTI 부터
+    expect(shown).toContain('MBTI 알고 있어요?');
+    expect(t.root.findByProps({ accessibilityLabel: `질문 3개 중 0개 답함` })).toBeDefined();
+    act(() => pressable(t, 'ENFP').props.onPress());
+    talk();
+    act(() => byLabel(t, '나에 대해 알려주기 나중에 하기').props.onPress());
+    expect(useAppStore.getState().user).toEqual(expect.objectContaining({ name: '지은', gender: 'female', age: 25, mbti: 'ENFP' }));
+    expect(mockRouter.back).toHaveBeenCalledTimes(1);
+  });
+
+  it('안드로이드 뒤로 가기는 「나중에 할게요」와 같고, 여러 번 눌러도 한 번만 나간다', () => {
+    const handlers: (() => boolean)[] = [];
+    const spy = jest.spyOn(BackHandler, 'addEventListener').mockImplementation((_e, h) => {
+      handlers.push(h as () => boolean);
+      return { remove: () => {} };
+    });
+    mockParams = { from: 'home' };
+    const t = mount(<AboutMe />);
+    talk();
+    act(() => input(t, '부를 이름').props.onChangeText('현섭'));
+    act(() => byLabel(t, '보내기').props.onPress());
+    talk();
+    expect(texts(t)).toContain('현섭이라고 불러 주세요');
+    let handled = false;
+    act(() => {
+      handled = handlers[handlers.length - 1]();
+      handlers[handlers.length - 1]();
+    });
+    act(() => byLabel(t, '나에 대해 알려주기 나중에 하기').props.onPress());
+    expect(handled).toBe(true);
+    expect(useAppStore.getState().user).toEqual(expect.objectContaining({ name: '현섭' }));
+    expect(mockRouter.back).toHaveBeenCalledTimes(1);
+    expect(track).toHaveBeenCalledWith('onboarding', expect.objectContaining({ step: 'profile', action: 'save', via: 'back', from: 'home' }));
+    spy.mockRestore();
+  });
+
+  it('중간에 「나중에 할게요」를 눌러도 이미 답한 건 남기고, 홈에서 열었으면 홈으로 돌아간다', () => {
+    mockParams = { from: 'home' };
+    const t = mount(<AboutMe />);
+    talk();
+    act(() => input(t, '부를 이름').props.onChangeText('민지'));
+    act(() => byLabel(t, '보내기').props.onPress());
+    talk();
+    expect(texts(t)).toContain('민지라고 불러 주세요');
+    act(() => byLabel(t, '나에 대해 알려주기 나중에 하기').props.onPress());
+    expect(useAppStore.getState().user).toEqual(expect.objectContaining({ name: '민지', gender: 'other' }));
+    expect(mockRouter.back).toHaveBeenCalled();
+    expect(mockRouter.replace).not.toHaveBeenCalled();
   });
 });
 

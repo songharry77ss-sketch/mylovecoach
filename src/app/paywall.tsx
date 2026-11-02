@@ -413,9 +413,10 @@ function AppDownload({ reason }: { reason: Reason }) {
 function LifetimePromise({ storeName }: { storeName: string }) {
   const theme = useTheme();
   const items = [
-    '한 번 결제 · 자동 결제 없음',
-    '서비스가 운영되는 동안 코칭·속마음·보고서 무제한',
-    `같은 ${storeName} 계정이면 기기를 바꿔도 구매 복원`,
+    '한 번 결제 · 자동 결제 없음 · 나중에 가격이 올라도 추가 요금 없음',
+    '서비스가 운영되는 동안 코칭·속마음·보고서 무제한 (앞으로 프리미엄에 더해지는 기능 포함 · 따로 파는 상품 제외)',
+    `같은 ${storeName} 계정이면 기기를 바꿔도 「구매 복원」으로 다시 쓸 수 있어요 (다른 스토어 앱으로는 옮겨지지 않아요)`,
+    '개인이 보통 쓰는 만큼 무제한 — 자동 프로그램 대량 요청·계정 공유는 제한될 수 있어요',
     '서비스를 끝내게 되면 30일 전에 앱에서 먼저 알려 드려요',
   ];
   return (

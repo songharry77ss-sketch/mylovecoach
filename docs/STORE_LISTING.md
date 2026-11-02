@@ -101,9 +101,9 @@ KKTI는 공식 MBTI® 검사와 관련 없는 재미용 테스트예요.
 ## 심사 메모 (Review Notes)
 
 - 가입은 선택입니다. 비회원 맛보기 1회와 이용권 결제를 지원하고, 마이 탭 또는 결제 화면의 가입 카드에서 Google·카카오, iOS의 Apple로 로그인할 수 있습니다. 앱 비밀번호 가입은 제공하지 않습니다. 회원 보너스는 회원당·기기당 한 번입니다.
-- 로그인하지 않고 확인하는 경로: 첫 화면에서 「캡처 없이 상황만 적을래요」를 선택하고 「소개팅 후 다음 약속을 자연스럽게 제안하는 답장을 알려 주세요」를 입력합니다. 시작 버튼을 처음 누르면 약관 확인 창이 뜹니다 — 「모두 동의하고 시작」을 누르거나, 필수 2개(이용약관 동의·개인정보 처리방침 확인)만 체크하고 「선택한 항목으로 시작」을 누르면 됩니다(선택 항목 「코칭 내용 저장」은 꺼 둬도 됩니다). 이어서 AI 동의 시트에서 Google로 보내는 정보·목적을 확인하고 동의하면 첫 코칭 결과를 볼 수 있습니다. 비회원 무료 AI 분석은 1회로 제한됩니다.
+- 로그인하지 않고 확인하는 경로: 첫 캡처 화면에서 「캡처가 없다면? 상황만 적어도 돼요」를 눌러 입력칸을 펼치고 「소개팅 후 다음 약속을 자연스럽게 제안하는 답장을 알려 주세요」를 입력합니다. 시작 버튼을 처음 누르면 약관 확인 창이 뜹니다 — 「모두 동의하고 시작」을 누르거나, 필수 2개(이용약관 동의·개인정보 처리방침 확인)만 체크하고 「선택한 항목으로 시작」을 누르면 됩니다(선택 항목 「코칭 내용 저장」은 꺼 둬도 됩니다). 이어서 AI 동의 시트에서 Google로 보내는 정보·목적을 확인하고 동의하면 첫 코칭 결과를 볼 수 있습니다. 비회원 무료 AI 분석은 1회로 제한됩니다.
 - 계정 기능 경로: 마이 → 가입 카드 → Google·카카오 또는 지원 iOS의 Apple로 로그인 → 마이의 가입 상태 확인. 회원 탈퇴는 같은 마이 화면 맨 아래의 「회원 탈퇴」에서 진행하며, 공급자 로그인 화면에 도달한 것과 앱 안에서 회원 연결을 마친 것은 구분합니다.
-- 처음 열면 사용법 소개 3장이 나옵니다(오른쪽 위 「건너뛰기」 가능). 마지막 장의 「시작하기」를 누르면 약관 확인 창이 뜨고, 동의하면 「나에 대해 알려주세요」(전부 선택, 「건너뛰기」 가능) 다음에 첫 캡처 화면이 나옵니다. 「대화 캡처로 받기」를 누르고 갤러리에서 아무 채팅 스크린샷이나 고르면, 필요한 AI 분석 동의 후 코칭 결과(상황 요약 · 호감 온도 · 추천 답장 3개)를 확인할 수 있습니다. 캡처가 없으면 같은 화면의 「캡처가 없다면 상황만 적어도 돼요」 입력칸에 글만 적고 「답장·조언 받기」를 눌러도 됩니다.
+- 처음 열면 사용법 소개 3장이 나옵니다(오른쪽 위 「건너뛰기」 가능). 마지막 장의 「시작하기」를 누르면 약관 확인 창이 뜨고, 동의하면 「나에 대해 알려주세요」 — 코치가 이름·성별·나이·MBTI·추구미·연애 목표를 한 가지씩 묻는 짧은 대화(모두 선택, 질문마다 「건너뛰기」, 오른쪽 위 「나중에 할게요」) — 다음에 첫 캡처 화면이 나옵니다. 「대화 캡처 올리기」를 누르고 갤러리에서 아무 채팅 스크린샷이나 고르면, 필요한 AI 분석 동의 후 코칭 결과(상황 요약 · 호감 온도 · 추천 답장 3개)를 확인할 수 있습니다. 캡처가 없으면 같은 화면의 「캡처가 없다면? 상황만 적어도 돼요」를 눌러 글만 적고 「답장·조언 받기」를 눌러도 됩니다. 오른쪽 위 「둘러보기」를 누르면 코칭 없이 홈부터 볼 수 있습니다.
 - 연애 연습은 기본으로 숨겨져 있습니다. 마이 → 추가 기능 → 「연애 연습 (베타)」 스위치를 켜면 아래 탭과 탐색 탭에 나타납니다. 속마음 카드·KKTI 테스트·비밀 상담은 「탐색」 탭에 있습니다.
 - 상대의 이름·MBTI·관계 단계는 첫 결과를 본 뒤에 선택적으로 입력하는 항목이며, 입력하지 않아도 모든 기능을 쓸 수 있습니다.
 - AI 처리는 자사 중계 서버(Vercel)를 거쳐 Google Gemini API 를 사용하며, 업로드한 이미지는 분석에만 사용되고 자사 서버에 저장되지 않습니다.
@@ -120,9 +120,16 @@ KKTI는 공식 MBTI® 검사와 관련 없는 재미용 테스트예요.
 
 ## Play App access — 영어 안내 초안
 
-Some features are accessible without an account, but account management requires sign-in. From the first screen, select “캡처 없이 상황만 적을래요”, enter a short dating situation, and accept the AI processing notice to try one coaching request. On first start, a terms sheet appears: tap “모두 동의하고 시작”, or check the two required items and tap “선택한 항목으로 시작” (the optional “코칭 내용 저장” item may stay off). To review sign-in, open “마이”, select the sign-up card, and use Google or Kakao. Account deletion is the “회원 탈퇴” link at the bottom of “마이” (next to “모든 데이터 삭제”). AI access without an account is limited to one request; a new account receives three bonus requests once per account and device, then one daily request. Subscription management and purchase restoration are in “마이”. Report AI content using the flag beside a response or the report link on each AI result screen.
+Some features are accessible without an account, but account management requires sign-in. On the first-capture screen, tap “캡처가 없다면? 상황만 적어도 돼요”, enter a short dating situation, tap “답장·조언 받기”, and accept the AI processing notice to try one coaching request. On first start, a terms sheet appears: tap “모두 동의하고 시작”, or check the two required items and tap “선택한 항목으로 시작” (the optional “코칭 내용 저장” item may stay off). To review sign-in, open “마이”, select the sign-up card, and use Google or Kakao. Account deletion is the “회원 탈퇴” link at the bottom of “마이” (next to “모든 데이터 삭제”). AI access without an account is limited to one request; a new account receives three bonus requests once per account and device, then one daily request. Subscription management and purchase restoration are in “마이”. Report AI content using the flag beside a response or the report link on each AI result screen.
 
 이 안내만으로 모든 제한 영역에 접근 가능한 것은 아닙니다. 제출 전에 반복 가능한 실제 심사 접근 정보와 결제 테스트 방법을 보안 입력란에 완성해야 합니다. 준비되지 않은 계정·OTP 우회·무제한 데모가 있다고 적지 않습니다.
+
+## 이번 버전의 새로운 기능 (1.0.8)
+
+- 「나에 대해 알려주세요」를 코치와 나누는 짧은 대화로 바꿨어요. 한 가지씩 묻고, 모르는 건 바로 건너뛸 수 있어요.
+- 첫 캡처 화면은 캡처 올리기에 집중하도록 정리했어요. 캡처가 없으면 「상황만 적기」를 펼쳐 글로 물어볼 수 있어요.
+- 홈에서 캡처를 고르거나 상황을 적으면 「누구와의 대화예요?」에서 채팅방만 고르면 바로 시작돼요.
+- 평생권 약속에 이용 범위와 구매 복원 범위를 더 자세히 적었어요.
 
 ## 이번 버전의 새로운 기능 (1.0.7)
 
