@@ -20,6 +20,7 @@ const CALM_PATHS = new Set(['/', '/practice', '/tips', '/my']);
  * 새 버전 안내 시트 — 루트 레이아웃에 한 번만 둔다.
  * 켤 때와 앱으로 돌아올 때 서버에 최신 버전을 묻고(lib/app-update 가 6시간에 한 번으로 줄인다), 스토어에 더 새 버전이 있으면 업데이트를 권한다.
  * 「나중에」를 누르면 그 버전은 3일 뒤에 다시 권한다. 서버가 최소 지원 버전을 올렸으면(required) 닫을 수 없다.
+ * 서버가 새 버전의 「새로운 기능」 문구를 알려 주면 무엇이 좋아졌는지 세 줄까지 보여 준다 (업데이트할 이유).
  * 띄우는 방식은 AI 분석 동의 시트와 같다 (아이폰은 창 맨 위, 안드로이드·웹은 Modal).
  */
 export function AppUpdateHost({ enabled }: { enabled: boolean }) {
@@ -66,12 +67,13 @@ export function AppUpdateHost({ enabled }: { enabled: boolean }) {
 
   const latest = update?.latest;
   const required = update?.required;
+  const noteCount = update?.notes?.length ?? 0;
   useEffect(() => {
     if (!show || !latest) return;
     // 아이폰의 창 덮개는 키보드 아래에 깔린다 — 입력하다 떴으면 키보드가 버튼을 가리지 않게 내린다
     Keyboard.dismiss();
-    track('update_prompt', { latest, required });
-  }, [show, latest, required]);
+    track('update_prompt', { latest, required, notes: noteCount });
+  }, [show, latest, required, noteCount]);
 
   if (!show || !update) return null;
 
@@ -111,6 +113,7 @@ function UpdateSheet({ update, onUpdate, onLater }: { update: AppUpdate; onUpdat
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const current = currentVersion();
+  const notes = update.notes ?? [];
   return (
     <View style={[StyleSheet.absoluteFill, styles.root]}>
       <View style={[StyleSheet.absoluteFill, styles.backdrop]} />
@@ -127,8 +130,22 @@ function UpdateSheet({ update, onUpdate, onLater }: { update: AppUpdate; onUpdat
         <AppText variant="small" color="textSecondary">
           {update.required
             ? '지금 버전은 더 이상 지원하지 않아요. 업데이트하면 채팅방과 기록 그대로 이어서 쓸 수 있어요.'
-            : '더 좋아진 나만의 연애코치로 업데이트해 보세요. 채팅방과 기록은 그대로 남아요.'}
+            : notes.length
+              ? '이번 버전에서 이렇게 좋아졌어요. 채팅방과 기록은 그대로 남아요.'
+              : '더 좋아진 나만의 연애코치로 업데이트해 보세요. 채팅방과 기록은 그대로 남아요.'}
         </AppText>
+        {notes.length ? (
+          <View style={styles.notes}>
+            {notes.map((note) => (
+              <View key={note} style={styles.note}>
+                <Ionicons name="checkmark-circle" size={18} color={theme.primary} style={styles.noteIcon} />
+                <AppText variant="small" style={styles.noteText}>
+                  {note}
+                </AppText>
+              </View>
+            ))}
+          </View>
+        ) : null}
         <View style={[styles.versions, { backgroundColor: theme.surface }]}>
           <AppText variant="caption" color="textSecondary">
             지금 버전 {current}
@@ -161,6 +178,10 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   badge: { width: 44, height: 44, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
+  notes: { gap: Spacing.sm },
+  note: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
+  noteIcon: { marginTop: 1 },
+  noteText: { flex: 1 },
   versions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderRadius: Radius.lg, paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg },
   actions: { gap: Spacing.xs, paddingTop: Spacing.sm },
 });

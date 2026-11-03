@@ -2,5 +2,7 @@
 android/
 ios/
 .expo/
-docs/
+# docs 는 빼되, 새 버전 안내가 읽는 스토어 문구(「이번 버전의 새로운 기능」)는 싣는다 (api/version.ts)
+docs/*
+!docs/STORE_LISTING.md
 node_modules/

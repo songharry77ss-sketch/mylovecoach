@@ -54,6 +54,14 @@ describe('안내할지 정하기', () => {
     expect(updateFor('1.0.0', { latest: null, min: '1.0.1' })).toEqual({ latest: '1.0.1', required: true });
   });
 
+  it('새 소식은 최신 버전을 받을 때만, 글자 목록일 때만 세 줄까지 붙인다', () => {
+    expect(updateFor('1.0.2', { latest: '1.0.3', min: null, notes: ['하나', '둘', '셋', '넷'] })).toEqual({ latest: '1.0.3', required: false, notes: ['하나', '둘', '셋'] });
+    expect(updateFor('1.0.2', { latest: '1.0.3', min: null, notes: '하나' })).toEqual({ latest: '1.0.3', required: false });
+    expect(updateFor('1.0.2', { latest: '1.0.3', min: null, notes: [] })).toEqual({ latest: '1.0.3', required: false });
+    // 최소 버전만 알려 준 경우(최신 버전 모름)의 새 소식은 그 버전 것이 아닐 수 있어 붙이지 않는다
+    expect(updateFor('1.0.0', { latest: null, min: '1.0.1', notes: ['하나'] })).toEqual({ latest: '1.0.1', required: true });
+  });
+
   it('서버가 모른다고 하거나 값이 이상하면 안내하지 않는다', () => {
     expect(updateFor('1.0.2', { latest: null, min: null })).toBeNull();
     expect(updateFor('1.0.2', { latest: 'v2', min: 3 })).toBeNull();
