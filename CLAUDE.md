@@ -72,6 +72,7 @@ npx tsc --noEmit && npx eslint src --max-warnings=0 && npx jest
 - Vercel CLI 는 `EXPO_PUBLIC_` 접두사 값을 secret 으로 등록하면 거부한다 → `--type config`.
 - **Vercel Hobby 는 배포 하나에 서버 함수 12개까지**(`api/` 아래 밑줄로 시작하지 않는 파일 하나 = 함수 하나). 넘으면 배포가 ERROR(`exceeded_serverless_functions_per_deployment`)로 끝나고 운영은 예전 판에 머문다(10-21 PR #30 으로 13개 → 실패). 그래서 KKTI 서버 일(카드·공유 미리보기·횟수 집계)은 `api/kkti-card.ts` 하나가 `route` 로 나눠 맡고(`_kkti-share.ts`·`_kkti-stat.ts`), `/k`·`/k/:code`·`/api/kkti-stat`·`/api/kkti-share` 바깥 주소는 `vercel.json` rewrites 로 유지한다. 새 함수가 필요하면 먼저 기존 함수에 합칠 수 있는지 본다 — `src/__tests__/vercel-functions.test.ts` 와 `vercel.yml` 「서버 함수 개수 확인」이 막는다.
 - expo-router 57 에는 `@react-navigation/*` 이 없다. `useHeaderHeight` 대신 루트 View 를 `measureInWindow` 로 잰다.
+- **화면 위아래 시스템 영역**: 탭 바 `height` 를 숫자로 고정하면 아래 영역(갤럭시 버튼 3개 48·아이폰 홈 막대 34)이 그 안에서 빠져 아이콘·이름이 잘린다(1.0.7 까지 갤럭시에서 실제로 잘림) → `(tabs)/_layout.tsx` 처럼 `insets.bottom` 을 더한다. 짙은 무대 화면은 `FocusStatusBar style="light"`(`components/ui/system-bars.tsx`, 루트 `StatusBar` 는 화면보다 먼저 그려야 화면 것이 이긴다), 모달 화면의 `Screen` 은 `sheet`(아이폰 카드는 위 여백 0), 입력 화면은 `keyboard`(안드로이드도 padding + 헤더 높이). 웹에서 기기 여백을 흉내 내 찍으려면 CDP `Emulation.setSafeAreaInsetsOverride`.
 - 안드로이드 릴리스 번들은 Hermes 바이트코드라, 한글 문자열은 UTF-16 으로 찾아야 잡힌다.
 - 같은 버전(train)의 이전 빌드가 베타 심사 중이면 새 빌드는 제출이 422 로 막힌다. 앞 빌드가 승인되면 같이 풀린다.
 - Play 내부 테스트의 **테스터 이메일 목록은 API 로 못 바꾼다** (API 는 구글 그룹만 지원). Play Console 화면에서만 가능.

@@ -10,6 +10,7 @@ import { DemoReel } from '@/components/fx/demo-reel';
 import { HeartMark, Highlight, Polaroid, StageBackground, StagePill } from '@/components/stage/stage';
 import { Button } from '@/components/ui/button';
 import { PressableScale } from '@/components/ui/pressable-scale';
+import { FocusStatusBar, StatusBarScrim, useScrolledPast } from '@/components/ui/system-bars';
 import { useToast } from '@/components/ui/toast';
 import { MaxContentWidth, Radius, Spacing, Stage, palette } from '@/constants/theme';
 import { track } from '@/lib/analytics';
@@ -52,6 +53,7 @@ export default function Start() {
   const router = useRouter();
   const toast = useToast();
   const insets = useSafeAreaInsets();
+  const { scrolled, onScroll } = useScrolledPast();
   const quickStart = useAppStore((s) => s.quickStart);
   const agreeToStart = useAppStore((s) => s.agreeToStart);
   const agreed = useAppStore((s) => s.termsAgreedAt != null);
@@ -168,6 +170,8 @@ export default function Start() {
       <ScrollView
         ref={scroller}
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + Spacing.md, paddingBottom: insets.bottom + Spacing.xl }]}
+        onScroll={onScroll}
+        scrollEventThrottle={32}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag">
@@ -284,6 +288,9 @@ export default function Start() {
         </Text>
       </ScrollView>
       </KeyboardAvoidingView>
+      {/* 내려가면 하얀 예시 카드가 시계·배터리 뒤로 비치지 않게 짙은 띠를 깐다 */}
+      <StatusBarScrim height={insets.top} color={Stage.bg[1]} visible={scrolled} />
+      <FocusStatusBar style="light" />
       <StartConsentSheet visible={asking != null} onAgree={onAgree} onClose={() => setAsking(null)} />
     </StageBackground>
   );

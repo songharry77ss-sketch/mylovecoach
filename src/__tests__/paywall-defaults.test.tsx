@@ -28,6 +28,7 @@ let mockReason = 'quota';
 jest.mock('expo-router', () => ({
   useRouter: () => ({ canGoBack: () => true, back: jest.fn(), replace: jest.fn() }),
   useLocalSearchParams: () => ({ reason: mockReason }),
+  useIsFocused: () => true,
 }));
 jest.mock('react-native-reanimated', () => {
   const RN = jest.requireActual('react-native');

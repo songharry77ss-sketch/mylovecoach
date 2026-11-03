@@ -58,7 +58,7 @@ export default function CustomPersonaScreen() {
   };
 
   return (
-    <Screen keyboard contentStyle={styles.content}>
+    <Screen sheet keyboard contentStyle={styles.content}>
       <TextField
         label="상대 이름"
         placeholder="예: 지우"

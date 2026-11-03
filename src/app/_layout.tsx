@@ -237,6 +237,8 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ThemeProvider value={navTheme}>
           <ToastProvider>
+            {/* 기본 상태 표시줄 색 — 화면보다 먼저 그려야 짙은 화면이 각자 띄우는 흰 글자(FocusStatusBar)가 그 위에 쌓여 이긴다 */}
+            <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
             {/* 인트로 아래 화면은 계속 준비하되 화면 낭독기가 가려진 버튼을 읽지 않게 한다. */}
             <View style={styles.fill} importantForAccessibility={introDone ? 'auto' : 'no-hide-descendants'} accessibilityElementsHidden={!introDone}>
             <CelebrationProvider>
@@ -277,7 +279,6 @@ export default function RootLayout() {
             <AiConsentHost />
             {/* 스토어에 새 버전이 나와 있으면 업데이트를 권한다 — 인트로가 끝난 뒤에만 */}
             <AppUpdateHost enabled={introDone} />
-            <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
           </ToastProvider>
           {introDone ? null : <IntroSplash ready={hydrated} onShown={hideNativeSplash} onBeat={introBeat} onDone={() => setIntroDone(true)} />}
         </ThemeProvider>
