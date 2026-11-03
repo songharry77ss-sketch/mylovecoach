@@ -1,0 +1,79 @@
+{
+  "entries": [
+    {
+      "id": "d3-ig-carousel",
+      "at": "2026-11-04 21:00",
+      "channel": "instagram",
+      "kind": "carousel",
+      "media": [
+        "marketing/social/d3/01.jpg",
+        "marketing/social/d3/02.jpg",
+        "marketing/social/d3/03.jpg",
+        "marketing/social/d3/04.jpg",
+        "marketing/social/d3/05.jpg",
+        "marketing/social/d3/06.jpg",
+        "marketing/social/d3/07.jpg",
+        "marketing/social/d3/08.jpg",
+        "marketing/social/d3/09.jpg",
+        "marketing/social/d3/10.jpg"
+      ],
+      "caption": "카톡 습관만 봐도 연애 유형이 보인다는 KKTI 🧐\n이번엔 기다리는 8유형 (2/2)\n\n선톡은 못 해도 답장 오면 하루가 좋은 사람들\n네 유형은 몇 번째 장이야?\n테스트는 프로필 링크 · 1분 · 가입 없음\n(재미용 테스트예요)\n\n#KKTI #연애테스트 #카톡 #썸 #연애",
+      "approved": false,
+      "note": "3일차 16유형 (2/2) 4:5. 사용자가 음원을 원함 — API 로는 못 넣음. 올린 뒤 앱 「음원 바꾸기」로 넣어지는지 시험"
+    },
+    {
+      "id": "d4-ig-reel",
+      "at": "2026-11-05 21:00",
+      "channel": "instagram",
+      "kind": "reel",
+      "media": [
+        "marketing/social/d4/reel.mp4"
+      ],
+      "caption": "카톡 습관으로 보는 내 연애 유형은? 🎰\n16유형 중에 너는 뭐 나올까\n\n테스트는 프로필 링크 · 1분 · 가입 없음 (재미용)\n#KKTI #연애테스트 #카톡 #연애유형",
+      "approved": false,
+      "note": "4일차 릴스 10초 16유형 슬롯 (효과음판)"
+    },
+    {
+      "id": "d6-ig-reel",
+      "at": "2026-11-06 21:00",
+      "channel": "instagram",
+      "kind": "reel",
+      "media": [
+        "marketing/social/d6/reel.mp4"
+      ],
+      "caption": "\"뭐해?\" 하고 2시간 읽씹한 썸남한테 이렇게 보냈더니 (연출)\n코치가 준 답장 3개 중 85% 짜리로 💬\n성공 확률은 AI 예상치예요\n\n캡처 한 장이면 답장 3개 — 앱스토어 · 웹 「나만의 연애코치」\n#썸 #읽씹 #카톡답장 #연애고민",
+      "approved": false,
+      "note": "6일차 릴스 21초 읽씹 역전극 (효과음판, 화면에 「연출」 표시)"
+    },
+    {
+      "id": "d7-ig-reel",
+      "at": "2026-11-07 21:00",
+      "channel": "instagram",
+      "kind": "reel",
+      "media": [
+        "marketing/social/d7/reel.mp4"
+      ],
+      "caption": "우리 궁합, 몇 %부터 찐일까? 💞\n30%대 극과 극부터 90%대 천생연분까지\n\n둘 다 해야 열리는 카톡 궁합 · 테스트는 프로필 링크 (재미용)\n#KKTI #카톡궁합 #연애테스트",
+      "approved": false,
+      "note": "7일차 릴스 14초 궁합 등급 카운트다운 (효과음판)"
+    },
+    {
+      "id": "d7-ig-carousel",
+      "at": "2026-11-08 21:00",
+      "channel": "instagram",
+      "kind": "carousel",
+      "media": [
+        "marketing/social/d7c/01.jpg",
+        "marketing/social/d7c/02.jpg",
+        "marketing/social/d7c/03.jpg",
+        "marketing/social/d7c/04.jpg",
+        "marketing/social/d7c/05.jpg",
+        "marketing/social/d7c/06.jpg",
+        "marketing/social/d7c/07.jpg"
+      ],
+      "caption": "KKTI 궁합 등급 다섯 가지 🔥→💍\n너희는 몇 번째 장 나왔어?\n\n테스트는 프로필 링크 · 1분 · 친구도 하면 궁합까지 (재미용)\n#KKTI #카톡궁합 #궁합테스트 #썸",
+      "approved": false,
+      "note": "7일차 캐러셀 7장 궁합 등급 4:5 (원래 릴스와 같은 날 — 하루 뒤로)"
+    }
+  ]
+}
