@@ -40,7 +40,7 @@ export default function PracticeTab() {
   };
 
   return (
-    <Screen safeTop contentStyle={styles.content}>
+    <Screen safeTop tab contentStyle={styles.content}>
       <View style={styles.header}>
         <AppText variant="display">연애 연습</AppText>
         <AppText variant="body" color="textSecondary">

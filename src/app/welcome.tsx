@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StartConsentSheet, type StartConsentAnswer } from '@/components/consent/start-consent-sheet';
 import { GoldSticker, HeartMark, Highlight, StageBackground, StageCard, StagePill, type StagePhoto } from '@/components/stage/stage';
 import { Button } from '@/components/ui/button';
+import { FocusStatusBar } from '@/components/ui/system-bars';
 import { MaxContentWidth, Radius, Spacing, Stage, palette } from '@/constants/theme';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
@@ -180,6 +181,7 @@ export default function Welcome() {
       </View>
 
       <StartConsentSheet visible={asking} onAgree={onAgree} onClose={() => setAsking(false)} />
+      <FocusStatusBar style="light" />
     </View>
   );
 }

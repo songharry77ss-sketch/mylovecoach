@@ -14,6 +14,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { SectionHeader } from '@/components/ui/section-header';
+import { FocusStatusBar, StatusBarScrim, useScrolledPast } from '@/components/ui/system-bars';
 import { useToast } from '@/components/ui/toast';
 import { MaxContentWidth, Radius, Spacing, Stage, palette } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -34,6 +35,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const toast = useToast();
   const insets = useSafeAreaInsets();
+  const { scrolled, onScroll } = useScrolledPast();
   const user = useAppStore((s) => s.user);
   const crushMap = useAppStore((s) => s.crushes);
   const crushes = useMemo(() => sortCrushes(crushMap).filter((c) => !c.secret), [crushMap]);
@@ -131,7 +133,8 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: theme.background }]}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.xl }}>
+      {/* 아래 시스템 영역은 탭 바가 맡으니 여백만 둔다 */}
+      <ScrollView showsVerticalScrollIndicator={false} onScroll={onScroll} scrollEventThrottle={32} contentContainerStyle={{ paddingBottom: Spacing.xl }}>
         <LinearGradient colors={Stage.bg} start={{ x: 0, y: 0 }} end={{ x: 0.4, y: 1 }} style={[styles.stage, { paddingTop: insets.top + Spacing.md }]}>
           <LinearGradient pointerEvents="none" colors={[Stage.glow, 'rgba(255,176,120,0)']} start={{ x: 1, y: 0 }} end={{ x: 0.3, y: 0.7 }} style={styles.glow} />
           <View style={styles.inner}>
@@ -246,6 +249,9 @@ export default function HomeScreen() {
           ) : null}
         </View>
       </ScrollView>
+      {/* 짙은 머리 위라 시계·배터리는 흰 글자, 내려가면 그 뒤에 짙은 띠를 깔아 카드가 비치지 않게 */}
+      <StatusBarScrim height={insets.top} color={Stage.bg[1]} visible={scrolled} />
+      <FocusStatusBar style="light" />
       <WhoSheet
         visible={who != null}
         crushes={crushes}

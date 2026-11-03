@@ -40,7 +40,7 @@ export default function EditCrush() {
   };
 
   return (
-    <Screen keyboard contentStyle={{ paddingTop: Spacing.sm }}>
+    <Screen sheet keyboard contentStyle={{ paddingTop: Spacing.sm }}>
       <CrushForm
         initial={crush}
         submitTitle="저장"

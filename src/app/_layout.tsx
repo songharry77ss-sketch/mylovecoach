@@ -10,6 +10,7 @@ import { AiConsentHost } from '@/components/coach/ai-consent-sheet';
 import { CelebrationProvider } from '@/components/fx/celebration';
 import { IntroSplash } from '@/components/fx/intro-splash';
 import { AppUpdateHost } from '@/components/ui/app-update-sheet';
+import { SystemBarsReady } from '@/components/ui/system-bars';
 import { ToastProvider } from '@/components/ui/toast';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -237,9 +238,12 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ThemeProvider value={navTheme}>
           <ToastProvider>
+            {/* 기본 상태 표시줄 색 — 화면보다 먼저 그려야 짙은 화면이 각자 띄우는 흰 글자(FocusStatusBar)가 그 위에 쌓여 이긴다 */}
+            <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
             {/* 인트로 아래 화면은 계속 준비하되 화면 낭독기가 가려진 버튼을 읽지 않게 한다. */}
             <View style={styles.fill} importantForAccessibility={introDone ? 'auto' : 'no-hide-descendants'} accessibilityElementsHidden={!introDone}>
             <CelebrationProvider>
+            <SystemBarsReady.Provider value={introDone}>
             <Stack
               screenOptions={{
                 headerShadowVisible: false,
@@ -271,13 +275,13 @@ export default function RootLayout() {
               <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
               <Stack.Screen name="+not-found" options={{ title: '페이지를 찾을 수 없어요' }} />
             </Stack>
+            </SystemBarsReady.Provider>
             </CelebrationProvider>
             </View>
             {/* AI 로 대화를 보내기 전 동의 시트 — 어느 화면(모달 포함)에서 AI 를 부르든 여기서 하나만 뜬다 */}
             <AiConsentHost />
             {/* 스토어에 새 버전이 나와 있으면 업데이트를 권한다 — 인트로가 끝난 뒤에만 */}
             <AppUpdateHost enabled={introDone} />
-            <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
           </ToastProvider>
           {introDone ? null : <IntroSplash ready={hydrated} onShown={hideNativeSplash} onBeat={introBeat} onDone={() => setIntroDone(true)} />}
         </ThemeProvider>

@@ -76,7 +76,7 @@ export default function MindTab() {
   };
 
   return (
-    <Screen contentStyle={styles.content}>
+    <Screen tab stage keyboard contentStyle={styles.content}>
       <LinearGradient colors={Stage.bg} start={{ x: 0, y: 0 }} end={{ x: 0.4, y: 1 }} style={[styles.stage, { paddingTop: insets.top + Spacing.lg }]}>
         <View style={styles.stageHead}>
           <View style={styles.flex}>

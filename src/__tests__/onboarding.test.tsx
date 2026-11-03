@@ -35,6 +35,7 @@ jest.mock('expo-router', () => ({
   useRouter: () => mockRouter,
   useLocalSearchParams: () => mockParams,
   useFocusEffect: () => {},
+  useIsFocused: () => true,
   Redirect: ({ href }: { href: string }) => {
     mockRedirect = href;
     return null;

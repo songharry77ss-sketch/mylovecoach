@@ -9,7 +9,7 @@ import { SignupCard } from '@/components/auth/signup-card';
 import { GoldSticker, HeartMark, Highlight, Polaroid } from '@/components/stage/stage';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
-import { Screen } from '@/components/ui/screen';
+import { Screen, useScreenTopInset } from '@/components/ui/screen';
 import { useToast } from '@/components/ui/toast';
 import { Radius, Spacing, Stage, palette } from '@/constants/theme';
 import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
@@ -65,6 +65,8 @@ const DEFAULT_PRODUCTS: PlanProduct[] = (['day', 'weekly', 'lifetime', 'credits'
 
 export default function Paywall() {
   const theme = useTheme();
+  // 짙은 머리를 상태 표시줄 뒤까지 깔아 위에 하얀 띠가 남지 않게 한다 (아이폰은 아래에서 올라오는 카드라 0)
+  const top = useScreenTopInset(true);
   const router = useRouter();
   const toast = useToast();
   const params = useLocalSearchParams<{ reason?: string }>();
@@ -186,8 +188,8 @@ export default function Paywall() {
       : HEADLINES[reason];
 
   return (
-    <Screen safeTop safeBottom contentStyle={styles.content}>
-      <LinearGradient colors={Stage.bg} start={{ x: 0, y: 0 }} end={{ x: 0.4, y: 1 }} style={styles.stage}>
+    <Screen sheet stage safeBottom contentStyle={styles.content}>
+      <LinearGradient colors={Stage.bg} start={{ x: 0, y: 0 }} end={{ x: 0.4, y: 1 }} style={[styles.stage, { paddingTop: top + Spacing.lg }]}>
         <View style={styles.topBar}>
           <View style={styles.brand}>
             <Ionicons name="heart-outline" size={16} color={Stage.gold} />
@@ -478,7 +480,7 @@ function PlanCard({ selected, onPress, title, price, caption, badge }: PlanCardP
 const styles = StyleSheet.create({
   content: { gap: Spacing.xl, paddingBottom: Spacing.xl },
   flex: { flex: 1 },
-  stage: { marginHorizontal: -Spacing.lg, marginTop: -Spacing.sm, paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, paddingBottom: Spacing.xl, borderBottomLeftRadius: Radius.xl, borderBottomRightRadius: Radius.xl, gap: Spacing.lg },
+  stage: { marginHorizontal: -Spacing.lg, paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl, borderBottomLeftRadius: Radius.xl, borderBottomRightRadius: Radius.xl, gap: Spacing.lg },
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   brandText: { fontSize: 13, fontWeight: '800', color: Stage.text, letterSpacing: -0.2 },

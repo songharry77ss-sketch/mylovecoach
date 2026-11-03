@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { StageBackground } from '@/components/stage/stage';
 import { Button } from '@/components/ui/button';
+import { FocusStatusBar } from '@/components/ui/system-bars';
 import { MaxContentWidth, Radius, Spacing, Stage } from '@/constants/theme';
 import { useKeyboardVisible } from '@/hooks/use-keyboard';
 import { track } from '@/lib/analytics';
@@ -360,6 +361,7 @@ export default function AboutMe() {
           )}
         </View>
       </KeyboardAvoidingView>
+      <FocusStatusBar style="light" />
     </StageBackground>
   );
 }

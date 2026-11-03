@@ -47,7 +47,7 @@ export default function Signup() {
   const close = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
   return (
-    <Screen safeTop safeBottom contentStyle={styles.content}>
+    <Screen sheet safeTop safeBottom contentStyle={styles.content}>
       <View style={styles.topBar}>
         <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={close} hitSlop={12} style={[styles.close, { backgroundColor: theme.surface }]}>
           <Ionicons name="close" size={20} color={theme.textSecondary} />

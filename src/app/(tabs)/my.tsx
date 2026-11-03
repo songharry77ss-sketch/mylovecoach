@@ -239,7 +239,7 @@ export default function MyScreen() {
   const walletNote = [wallet.credits > 0 ? `횟수권 ${wallet.credits}회` : null].filter(Boolean).join(' · ');
 
   return (
-    <Screen safeTop>
+    <Screen safeTop tab>
       <AppText variant="display" style={styles.title}>
         마이
       </AppText>

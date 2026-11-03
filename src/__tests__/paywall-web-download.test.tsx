@@ -29,6 +29,7 @@ jest.mock('@/lib/config', () => ({
 jest.mock('expo-router', () => ({
   useRouter: () => ({ canGoBack: () => true, back: jest.fn(), replace: jest.fn() }),
   useLocalSearchParams: () => ({ reason: 'quota' }),
+  useIsFocused: () => true,
 }));
 // Reanimated(네이티브 worklets)는 테스트 환경에서 띄울 수 없어서 바로 끝나는 흉내로 바꾼다 (paywall-tracking.test.tsx 와 같은 방식)
 jest.mock('react-native-reanimated', () => {

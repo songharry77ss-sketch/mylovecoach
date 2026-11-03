@@ -9,7 +9,7 @@ export default function NewCrush() {
   const router = useRouter();
   const addCrush = useAppStore((s) => s.addCrush);
   return (
-    <Screen keyboard contentStyle={{ paddingTop: Spacing.sm }}>
+    <Screen sheet keyboard contentStyle={{ paddingTop: Spacing.sm }}>
       <CrushForm
         submitTitle="채팅방 만들기"
         onSubmit={(value) => {

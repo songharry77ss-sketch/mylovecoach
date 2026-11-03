@@ -42,7 +42,7 @@ jest.mock('@/lib/config', () => ({
 }));
 const mockRouter = { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: () => true };
 let mockParams: Record<string, string> = {};
-jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => mockParams, useFocusEffect: () => {} }));
+jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => mockParams, useFocusEffect: () => {}, useIsFocused: () => true }));
 // Reanimated(네이티브 worklets)는 테스트 환경에서 띄울 수 없어서 바로 끝나는 흉내로 바꾼다 (paywall-tracking.test.tsx 와 같은 방식)
 jest.mock('react-native-reanimated', () => {
   const RN = jest.requireActual('react-native');

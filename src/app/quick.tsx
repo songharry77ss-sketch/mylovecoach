@@ -69,7 +69,7 @@ export default function QuickCoach() {
   };
 
   return (
-    <Screen contentStyle={styles.content}>
+    <Screen sheet contentStyle={styles.content}>
       <AppText variant="title2">누구와의 대화예요?</AppText>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.targets} style={styles.targetsWrap}>
         {crushes.map((c) => {
