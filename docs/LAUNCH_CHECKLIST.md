@@ -21,7 +21,7 @@
 >
 > **2026-10-11 하루 이용권·새 버전 안내 — 1.0.3 (사용자 요청):**
 > - **하루 이용권 ₩2,700**: App Store `mylovecoach.pass.day` 소모성 `READY_TO_SUBMIT`(심사용 캡처 `docs/store-assets/iap-review-paywall-day.png`), Play 일회성 상품 활성.
-> - **새 버전 안내**: `GET /api/version` + 앱의 「새 버전이 나왔어요」 시트(1.0.3 부터). 운영 배포(PR #14 `6d8712f`, run 38116991986) 뒤 `/api/version?platform=ios` 가 `{"latest":"1.0.2","min":null}` 로 답하는 것을 확인했다. 안드로이드는 Vercel `ANDROID_LATEST_VERSION` 을 **다음 출시(1.0.4~)부터** 출시 때마다 적어야 1.0.3 사용자에게 안내가 뜬다.
+> - **새 버전 안내**: `GET /api/version` + 앱의 「새 버전이 나왔어요」 시트(1.0.3 부터). 운영 배포(PR #14 `6d8712f`, run 38116991986) 뒤 `/api/version?platform=ios` 가 `{"latest":"1.0.2","min":null}` 로 답하는 것을 확인했다. 안드로이드는 2026-11-03 부터 서버가 Play 공개 앱 페이지의 버전을 읽어 출시 때 손댈 것이 없다(그 전에는 Vercel `ANDROID_LATEST_VERSION` 을 직접 적어야 했는데 11-02 까지 비어 있어 안드로이드 사용자에게 안내가 뜨지 않았다).
 > - 진행: ✅ `vercel.yml` · ✅ iOS 빌드 **123**(run 38117002741)·Android **118**(run 38117004489) · ✅ `app-store.yml -f build=123`(run 38118199466) — 버전 1.0.3 `PREPARE_FOR_SUBMISSION`·`AFTER_APPROVAL`·빌드 123 연결, 설명·심사 메모·새 소식 반영 · ✅ Play 비공개 테스트 118 반영(`play-closed-test.mjs --version-code 118 --send-for-review`, 출시 노트 포함)
 > - ✅ **10-11 15:42 KST 심사 제출**: App Store Connect 웹의 하루 이용권 페이지에서 「심사에 추가」(안내: 「첫 번째 소모성 앱 내 구입은 새로운 앱 버전으로 제출해야 합니다」) → `node tools/asc-listing.mjs --build 123 --submit` 로 같은 초안에 버전 1.0.3 을 넣어 제출. 심사 묶음 `9ae88774` 에 상품 1·버전 1, 버전·하루 이용권 모두 `WAITING_FOR_REVIEW`, 출시 방식 `AFTER_APPROVAL`(승인되면 자동 출시).
 > - 알아둘 것: 버전 페이지에는 「앱 내 구입 및 구독」 영역이 따로 없었고, **상품 페이지의 「심사에 추가」** 로 초안에 넣는다. 윈도우 PC 에서 `asc-listing.mjs` 를 돌리면 문서의 줄바꿈(CRLF)이 그대로 설명에 들어가 글자 수가 늘었다(1669→1711자, 표시에는 문제 없음) — 도구가 줄바꿈을 LF 로 맞추도록 고쳤다.

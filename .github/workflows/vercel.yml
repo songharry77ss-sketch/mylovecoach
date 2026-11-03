@@ -125,4 +125,14 @@ jobs:
           code=$(curl -sS -o /dev/null -w "%{http_code}" "$url/api/kkti-stat")
           echo "api/kkti-stat (GET): $code"
           [ "$code" = "405" ] || { echo "::error::KKTI 횟수 집계 API(/api/kkti-stat)가 없습니다 (GET 이 405 가 아님: $code)"; exit 1; }
+          # 새 버전 안내 — 안드로이드 최신 버전은 Play 앱 페이지에서 읽는다(source=store). 못 읽으면 Vercel ANDROID_LATEST_VERSION 으로 버티므로 실패가 아니라 경고
+          for platform in android ios; do
+            code=$(curl -sS -D /tmp/version.h -o /tmp/version.json -w "%{http_code}" ${COACH_APP_TOKEN:+-H "x-app-token: $COACH_APP_TOKEN"} "$url/api/version?platform=$platform")
+            src=$(grep -i '^x-version-source:' /tmp/version.h | tr -d '\r' | awk '{print $2}')
+            echo "api/version ($platform): $code source=$src $(head -c 400 /tmp/version.json)"
+            [ "$code" = "200" ] || [ "$code" = "503" ] || { echo "::error::새 버전 안내 API(/api/version) 응답 실패 ($platform: $code)"; exit 1; }
+            if [ "$platform" = android ] && [ "$src" != store ]; then
+              echo "::warning::안드로이드 최신 버전을 Play 앱 페이지에서 읽지 못했어요(source=$src). 막 올라온 버전이면 6시간 뒤 저절로 풀리고, 계속되면 페이지 모양이 바뀐 것 — api/version.ts PLAY_VERSION 을 고치세요. 그동안은 Vercel ANDROID_LATEST_VERSION 값을 씁니다"
+            fi
+          done
           echo "다음 단계: node tools/set-ci-secrets.mjs --api-url $url (앱 빌드가 이 서버를 쓰도록)"

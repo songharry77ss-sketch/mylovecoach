@@ -36,7 +36,7 @@ const METRICS = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top:
 const NOW = 1_950_000_000_000;
 const flush = () => new Promise<void>((resolve) => jest.requireActual('timers').setImmediate(resolve));
 
-let server: { latest: string | null; min: string | null } = { latest: '1.0.3', min: null };
+let server: { latest: string | null; min: string | null; notes?: string[] } = { latest: '1.0.3', min: null };
 let asks = 0;
 const opened: string[] = [];
 
@@ -100,6 +100,14 @@ describe('새 버전 안내 시트', () => {
     const tree = await mount();
     expect(asks).toBe(1);
     expect(texts(tree)).toEqual(expect.arrayContaining(['새 버전이 나왔어요', '지금 버전 1.0.2', '새 버전 1.0.3', '업데이트하기', '나중에']));
+  });
+
+  it('서버가 새 버전의 새 소식을 알려 주면 무엇이 좋아졌는지 보여 준다', async () => {
+    server = { latest: '1.0.3', min: null, notes: ['답장이 더 빨라졌어요.', '캡처가 또렷해졌어요.'] };
+    const tree = await mount();
+    expect(texts(tree)).toEqual(
+      expect.arrayContaining(['새 버전이 나왔어요', '이번 버전에서 이렇게 좋아졌어요. 채팅방과 기록은 그대로 남아요.', '답장이 더 빨라졌어요.', '캡처가 또렷해졌어요.', '새 버전 1.0.3']),
+    );
   });
 
   it('이미 최신이면 아무것도 띄우지 않는다', async () => {

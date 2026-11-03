@@ -9,6 +9,7 @@ import { Linking, Platform } from 'react-native';
 import { ANDROID_PACKAGE, FREE_UNLIMITED } from '@/lib/billing/plans';
 import { APP_CONFIG } from '@/lib/config';
 import { isDemoMode } from '@/lib/demo';
+import { cleanNotes } from '@/lib/release-notes';
 import { compareVersions } from '@/lib/version';
 
 export { compareVersions };
@@ -27,6 +28,8 @@ export interface AppUpdate {
   latest: string;
   /** 업데이트해야 계속 쓸 수 있음 (닫을 수 없는 안내) */
   required: boolean;
+  /** 새 버전에서 좋아진 점 (스토어 「새로운 기능」 문구, 최대 3개) — 서버가 모르면 없음 */
+  notes?: string[];
 }
 
 export const currentVersion = (): string => Constants.expoConfig?.version ?? '';
@@ -34,7 +37,7 @@ export const currentVersion = (): string => Constants.expoConfig?.version ?? '';
 const versionOf = (value: unknown): string | null => (typeof value === 'string' && /^\d+(\.\d+)*$/.test(value) ? value : null);
 
 /** 서버가 알려 준 버전으로 안내할 것이 있는지 정한다 — 없으면 null */
-export function updateFor(current: string, server: { latest?: unknown; min?: unknown } | null | undefined): AppUpdate | null {
+export function updateFor(current: string, server: { latest?: unknown; min?: unknown; notes?: unknown } | null | undefined): AppUpdate | null {
   if (!versionOf(current)) return null;
   const latest = versionOf(server?.latest);
   const min = versionOf(server?.min);
@@ -42,7 +45,10 @@ export function updateFor(current: string, server: { latest?: unknown; min?: unk
   const newer = latest != null && compareVersions(current, latest) < 0;
   if (!required && !newer) return null;
   // 최소 버전만 알려 준 경우에도 받을 버전을 보여 줄 수 있게 한다
-  return { latest: newer && latest ? latest : (min ?? current), required };
+  const target = newer && latest ? latest : (min ?? current);
+  // 새 소식은 서버가 알려 준 최신 버전의 것이라, 그 버전을 받을 때만 붙인다
+  const notes = target === latest ? cleanNotes(server?.notes) : [];
+  return notes.length ? { latest: target, required, notes } : { latest: target, required };
 }
 
 let lastCheckedAt = 0;
@@ -68,7 +74,7 @@ export async function fetchAppUpdate(now = Date.now(), force = false): Promise<A
       signal: controller.signal,
     });
     if (!res.ok) return undefined;
-    const update = updateFor(currentVersion(), (await res.json()) as { latest?: unknown; min?: unknown });
+    const update = updateFor(currentVersion(), (await res.json()) as { latest?: unknown; min?: unknown; notes?: unknown });
     lastCheckedAt = now;
     return update;
   } catch {

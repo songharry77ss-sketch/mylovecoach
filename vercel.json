@@ -14,6 +14,9 @@
       "maxDuration": 20,
       "memory": 1024,
       "includeFiles": "api/_assets/**"
+    },
+    "api/version.ts": {
+      "includeFiles": "docs/STORE_LISTING.md"
     }
   },
   "crons": [
