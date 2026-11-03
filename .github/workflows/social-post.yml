@@ -1,0 +1,68 @@
+name: 인스타·쓰레드 자동 게시
+
+# 매일 21:00 KST 에 social-queue 가지의 marketing/social/queue.json 을 읽어,
+# 허락(approved: true)받고 시간이 된 항목을 올린다. 올린 기록은 같은 가지의 posted.json 에 남긴다.
+# 손으로 돌릴 때: 「Run workflow」 → 항목 id(비우면 시간이 된 것 전부) · 연습(기본 켜짐 — 올리지 않고 검사만).
+# 필요한 시크릿: IG_ACCESS_TOKEN, THREADS_ACCESS_TOKEN (없는 채널은 건너뜀). 흐름: docs/SOCIAL_AUTOPOST.md
+
+on:
+  schedule:
+    - cron: '0 12 * * *' # 21:00 KST
+  workflow_dispatch:
+    inputs:
+      id:
+        description: '올릴 항목 id (비우면 시간이 된 항목 전부)'
+        required: false
+        default: ''
+      dry_run:
+        description: '연습 — 올리지 않고 검사·계정 확인만'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write # posted.json 을 social-queue 가지에 다시 넣는다
+
+concurrency:
+  group: social-post
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: social-queue
+          path: queue
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 게시
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          SOCIAL_EXPECT_IG: my.lovecoach
+          SOCIAL_EXPECT_THREADS: my.lovecoach
+          ENTRY_ID: ${{ inputs.id }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        run: |
+          ref=$(git -C queue rev-parse HEAD)
+          set -- --queue queue/marketing/social/queue.json --ref "$ref"
+          if [ -n "$ENTRY_ID" ]; then set -- "$@" --id "$ENTRY_ID"; else set -- "$@" --due; fi
+          if [ "$DRY_RUN" = "true" ]; then set -- "$@" --dry-run; fi
+          echo "## 인스타·쓰레드 게시 ($( [ "$DRY_RUN" = "true" ] && echo 연습 || echo 실제 ))" >> "$GITHUB_STEP_SUMMARY"
+          node tools/social-post.mjs "$@"
+
+      - name: 올린 기록 저장
+        if: always()
+        run: |
+          cd queue
+          if git diff --quiet -- marketing/social/posted.json 2>/dev/null && [ -z "$(git status --porcelain marketing/social/posted.json)" ]; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add marketing/social/posted.json
+          git commit -m "게시 기록 $(date -u +%F)"
+          git push origin HEAD:social-queue
