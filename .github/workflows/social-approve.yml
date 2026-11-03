@@ -1,0 +1,47 @@
+name: 인스타·쓰레드 게시 허락
+
+# 사람이 게시물을 보고 허락할 때 누르는 실행. social-queue 가지의 queue.json 에서 고른 항목을 approved: true 로 바꾼다.
+# 「Run workflow」 → ids 에 all(허락 전 항목 전부) 또는 항목 id 를 쉼표로. 허락된 항목은 그날 21:00 KST 자동 게시가 올린다.
+# 내용 미리보기: social-queue 가지의 marketing/social/ (그림) 과 queue.json (캡션·날짜)
+
+on:
+  workflow_dispatch:
+    inputs:
+      ids:
+        description: '허락할 항목 (all 또는 id1,id2)'
+        required: true
+        default: 'all'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: social-post
+  cancel-in-progress: false
+
+jobs:
+  approve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: social-queue
+          path: queue
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 허락
+        env:
+          IDS: ${{ inputs.ids }}
+          ACTOR: ${{ github.actor }}
+        run: node tools/social-approve.mjs --queue queue/marketing/social/queue.json --ids "$IDS" --by "$ACTOR"
+      - name: 저장
+        run: |
+          cd queue
+          if [ -z "$(git status --porcelain marketing/social/queue.json)" ]; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -am "게시 허락 (${{ github.actor }})"
+          git push origin HEAD:social-queue

@@ -6,7 +6,7 @@
 
 1. **내용**은 `social-queue` 가지의 `marketing/social/queue.json` 에 있습니다 (그림·영상도 같은 가지의 `marketing/social/` 아래).
    기본 가지와 따로 두어, 게시물을 넣고 고칠 때마다 PR 을 병합하지 않아도 됩니다.
-2. 사람이 보고 **허락한 항목만** `"approved": true` 로 바꿉니다. 허락 전에는 시간이 돼도 올라가지 않습니다.
+2. 사람이 보고 **허락한 항목만** `"approved": true` 가 됩니다. 허락은 사람이 GitHub 의 **「인스타·쓰레드 게시 허락」 실행**(Actions → Run workflow → `all` 또는 id)으로 누릅니다 — 휴대폰 GitHub 앱에서도 됩니다. 허락 전에는 시간이 돼도 올라가지 않습니다.
 3. `.github/workflows/social-post.yml` 이 매일 21:00 에 `tools/social-post.mjs --due` 를 돌려,
    허락받고 시간이 됐고(36시간 안) 아직 안 올린 항목을 올리고, 기록을 `posted.json` 에 남깁니다.
 4. `.github/workflows/social-insights.yml` 이 매일 10:00 에 최근 게시물 성과를 표로 남기고, 월요일엔 토큰을 연장합니다.
