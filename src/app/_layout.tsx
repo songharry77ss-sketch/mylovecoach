@@ -10,6 +10,7 @@ import { AiConsentHost } from '@/components/coach/ai-consent-sheet';
 import { CelebrationProvider } from '@/components/fx/celebration';
 import { IntroSplash } from '@/components/fx/intro-splash';
 import { AppUpdateHost } from '@/components/ui/app-update-sheet';
+import { SystemBarsReady } from '@/components/ui/system-bars';
 import { ToastProvider } from '@/components/ui/toast';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -242,6 +243,7 @@ export default function RootLayout() {
             {/* 인트로 아래 화면은 계속 준비하되 화면 낭독기가 가려진 버튼을 읽지 않게 한다. */}
             <View style={styles.fill} importantForAccessibility={introDone ? 'auto' : 'no-hide-descendants'} accessibilityElementsHidden={!introDone}>
             <CelebrationProvider>
+            <SystemBarsReady.Provider value={introDone}>
             <Stack
               screenOptions={{
                 headerShadowVisible: false,
@@ -273,6 +275,7 @@ export default function RootLayout() {
               <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
               <Stack.Screen name="+not-found" options={{ title: '페이지를 찾을 수 없어요' }} />
             </Stack>
+            </SystemBarsReady.Provider>
             </CelebrationProvider>
             </View>
             {/* AI 로 대화를 보내기 전 동의 시트 — 어느 화면(모달 포함)에서 AI 를 부르든 여기서 하나만 뜬다 */}

@@ -1,7 +1,13 @@
 import { useIsFocused } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+
+/**
+ * 앱을 켤 때 로고 인트로(밝은 바탕)가 덮고 있는 동안은 false — 그 아래 미리 그려진 짙은 화면이
+ * 흰 글자로 바꾸면 인트로 위 시계·배터리가 안 보인다. 루트 레이아웃이 인트로가 끝나면 true 로 내려 준다.
+ */
+export const SystemBarsReady = createContext(true);
 
 /**
  * 이 화면이 보이는 동안에만 상태 표시줄(시계·배터리) 글자색을 바꾼다.
@@ -10,7 +16,8 @@ import { Animated, StyleSheet, type NativeScrollEvent, type NativeSyntheticEvent
  */
 export function FocusStatusBar({ style }: { style: 'light' | 'dark' }) {
   const focused = useIsFocused();
-  return focused ? <StatusBar style={style} /> : null;
+  const ready = useContext(SystemBarsReady);
+  return focused && ready ? <StatusBar style={style} /> : null;
 }
 
 /**

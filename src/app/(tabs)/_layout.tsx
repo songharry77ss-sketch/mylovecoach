@@ -27,24 +27,24 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: theme.textTertiary,
         tabBarStyle: { backgroundColor: theme.tabBar, borderTopColor: theme.border, height: TAB_PAD_TOP + TAB_CONTENT + bottom, paddingTop: TAB_PAD_TOP, paddingBottom: bottom },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        // 글자 크기를 키운 폰에서도 이름이 칸 밖으로 밀려 잘리지 않게 (아이폰 기본 탭 바도 이름은 키우지 않는다)
+        // 글자 크기를 키운 폰에서도 이름·아이콘이 칸 밖으로 밀려 겹치지 않게 (아이폰 기본 탭 바도 키우지 않는다) — 아이콘도 글꼴이라 각자 끈다
         tabBarAllowFontScaling: false,
       }}>
       <Tabs.Screen
         name="index"
-        options={{ title: '채팅', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'chatbubbles' : 'chatbubbles-outline'} size={24} color={color} /> }}
+        options={{ title: '채팅', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'chatbubbles' : 'chatbubbles-outline'} size={24} color={color} allowFontScaling={false} /> }}
       />
       <Tabs.Screen
         name="practice"
-        options={{ title: '연애 연습', href: practiceEnabled ? undefined : null, tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'game-controller' : 'game-controller-outline'} size={24} color={color} /> }}
+        options={{ title: '연애 연습', href: practiceEnabled ? undefined : null, tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'game-controller' : 'game-controller-outline'} size={24} color={color} allowFontScaling={false} /> }}
       />
       <Tabs.Screen
         name="tips"
-        options={{ title: '탐색', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'sparkles' : 'sparkles-outline'} size={24} color={color} /> }}
+        options={{ title: '탐색', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'sparkles' : 'sparkles-outline'} size={24} color={color} allowFontScaling={false} /> }}
       />
       <Tabs.Screen
         name="my"
-        options={{ title: '마이', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} /> }}
+        options={{ title: '마이', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} allowFontScaling={false} /> }}
       />
     </Tabs>
   );

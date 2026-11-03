@@ -10,10 +10,12 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 're
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { create, type ReactTestRenderer } from 'react-test-renderer';
 import { StatusBar } from 'expo-status-bar';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 import TabsLayout from '@/app/(tabs)/_layout';
 import { Screen } from '@/components/ui/screen';
-import { FocusStatusBar } from '@/components/ui/system-bars';
+import { FocusStatusBar, SystemBarsReady } from '@/components/ui/system-bars';
 
 let mockFocused = true;
 let mockTabOptions: { tabBarStyle?: object; tabBarAllowFontScaling?: boolean } = {};
@@ -22,7 +24,7 @@ jest.mock('expo-router', () => {
     mockTabOptions = props.screenOptions;
     return null;
   };
-  Tabs.Screen = () => null;
+  Tabs.Screen = function MockTabScreen() { return null; };
   return { Tabs, useIsFocused: () => mockFocused };
 });
 jest.mock('expo-status-bar', () => ({ StatusBar: function MockStatusBar() { return null; } }));
@@ -91,6 +93,22 @@ describe('화면 여백 (Screen)', () => {
     expect(mount(<FocusStatusBar style="light" />, 40, 48).root.findAllByType(StatusBar)).toHaveLength(1);
     mockFocused = false;
     expect(mount(<FocusStatusBar style="light" />, 40, 48).root.findAllByType(StatusBar)).toHaveLength(0);
+  });
+
+  it('앱을 켤 때 로고 인트로(밝은 바탕)가 덮고 있는 동안은 흰 글자를 띄우지 않는다', () => {
+    const during = mount(<SystemBarsReady.Provider value={false}><FocusStatusBar style="light" /></SystemBarsReady.Provider>, 40, 48);
+    expect(during.root.findAllByType(StatusBar)).toHaveLength(0);
+    const after = mount(<SystemBarsReady.Provider value={true}><FocusStatusBar style="light" /></SystemBarsReady.Provider>, 40, 48);
+    expect(after.root.findAllByType(StatusBar)).toHaveLength(1);
+  });
+
+  it('루트의 기본 상태 표시줄은 화면(Stack)보다 먼저 그린다 — 나중에 쌓인 것이 이기므로 화면의 흰 글자가 덮이지 않게', () => {
+    const src = readFileSync(join(__dirname, '..', 'app', '_layout.tsx'), 'utf8');
+    const rootBar = src.indexOf('<StatusBar ');
+    expect(rootBar).toBeGreaterThan(0);
+    expect(rootBar).toBeLessThan(src.indexOf('<Stack'));
+    expect(src.indexOf('<StatusBar ', rootBar + 1)).toBe(-1);
+    expect(src).toMatch(/<SystemBarsReady\.Provider value=\{introDone\}>/);
   });
 
   it('입력 화면은 안드로이드에서도 키보드만큼 올린다 (화면을 끝까지 쓰는 방식이라 창이 저절로 줄지 않는다)', () => {

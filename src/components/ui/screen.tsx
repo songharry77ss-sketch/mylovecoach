@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type PropsWithChildren } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollViewProps, type ViewStyle } from 'react-native';
+import { Dimensions, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollViewProps, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FocusStatusBar, StatusBarScrim, useScrolledPast } from '@/components/ui/system-bars';
@@ -62,10 +62,12 @@ export function Screen({
   const rootRef = useRef<View>(null);
   const [keyboardOffset, setKeyboardOffset] = useState(0);
   const measure = useCallback(() => {
-    rootRef.current?.measureInWindow?.((_x, y) => {
-      if (typeof y === 'number' && Number.isFinite(y)) setKeyboardOffset(y);
+    rootRef.current?.measureInWindow?.((_x, y, _w, h) => {
+      // 아이폰 모달(카드) 안에서는 창 기준 위치가 카드 시작만큼 덜 잡힌다 — 카드 바닥이 화면 바닥과 같으니 높이로 거꾸로 구한다
+      const top = sheet && Platform.OS === 'ios' && typeof h === 'number' && h > 0 ? Dimensions.get('window').height - h : y;
+      if (typeof top === 'number' && Number.isFinite(top)) setKeyboardOffset(Math.max(0, top));
     });
-  }, []);
+  }, [sheet]);
   useEffect(() => {
     if (!keyboard) return;
     // 모달은 올라오는 동안 위치가 바뀌므로 자리 잡은 뒤에 다시 잰다
