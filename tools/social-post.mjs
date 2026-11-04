@@ -60,7 +60,7 @@ async function account(channel) {
   if (accounts[channel]) return accounts[channel];
   const token = channel === 'instagram' ? process.env.IG_ACCESS_TOKEN : process.env.THREADS_ACCESS_TOKEN;
   if (!token) return (accounts[channel] = null);
-  const me = channel === 'instagram' ? await igMe(token) : await thMe(token);
+  const me = channel === 'instagram' ? await igMe(token, process.env.IG_USER_ID) : await thMe(token);
   assertAccount(channel, me.username, channel === 'instagram' ? process.env.SOCIAL_EXPECT_IG : process.env.SOCIAL_EXPECT_THREADS);
   return (accounts[channel] = { ...me, token });
 }

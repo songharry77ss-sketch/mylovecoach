@@ -18,7 +18,7 @@ const n = (v) => (v === null || v === undefined ? '–' : String(v));
 
 if (process.env.IG_ACCESS_TOKEN) {
   const token = process.env.IG_ACCESS_TOKEN;
-  const me = await igMe(token);
+  const me = await igMe(token, process.env.IG_USER_ID);
   out(`## 인스타 @${me.username}`);
   out('| 올린 때(KST) | 첫 줄 | 종류 | 조회 | 도달 | 저장 | 공유 | 좋아요 | 댓글 |');
   out('|---|---|---|---|---|---|---|---|---|');

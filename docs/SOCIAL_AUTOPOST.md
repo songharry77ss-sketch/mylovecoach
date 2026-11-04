@@ -45,9 +45,14 @@
 ## 처음 한 번 (사람이 할 일)
 
 1. 메타 개발자 앱 `mylovecoach-marketing` (인스타 「메시지 및 콘텐츠 관리」 + 「Threads API 액세스」, 개발 모드).
-2. 앱 역할에 `my.lovecoach` 를 인스타·쓰레드 **테스터**로 추가하고, 인스타·쓰레드 앱의 「웹사이트 권한 → 테스터 초대」에서 수락.
-3. 앱 화면에서 **장기 토큰**을 발급해 저장소 시크릿 `IG_ACCESS_TOKEN` · `THREADS_ACCESS_TOKEN` 에 넣는다 (토큰은 사람만 다룬다 — 채팅·코드에 붙이지 않는다).
-4. (선택) 토큰 자동 연장을 시크릿에 저장하려면 이 저장소의 Secrets 쓰기 권한만 가진 fine-grained 토큰을 `SOCIAL_SECRETS_PAT` 로.
-   없으면 60일마다 3번을 다시 하면 됩니다 (성과 표 요약에 알림이 남음).
+   비즈니스 포트폴리오 「나만의 연애 코치」에 연결돼 있다 (2026-11-04).
+2. 앱 역할에 `my.lovecoach` 를 인스타·쓰레드 **테스터**로 추가하고, 인스타·쓰레드 앱의 「웹사이트 권한 → 앱 및 웹사이트 → 테스터 초대」에서 수락.
+3. **인스타 토큰** — 2026-11 부터 새 앱은 「Instagram 로그인」 대신 **「API setup with Unified login」(통합 로그인)** 만 된다.
+   이용 사례 → Instagram API → API setup with Unified login → 1. 구성(「Instagram API(통합 로그인)」, 시스템 사용자 토큰·만료 없음) → 2. 「계정 추가」로 `my.lovecoach` 연결 → 토큰 생성.
+   - 토큰이 `EAA…` 이면 graph.facebook.com 으로 보낸다. 화면에 보이는 인스타 계정 id(숫자)를 저장소 **변수** `IG_USER_ID` 에 넣으면 계정을 바로 찾는다(비밀값 아님).
+   - 토큰이 `IG…` 이면 예전 인스타 로그인 토큰(60일)이라 graph.instagram.com 으로 보내고, 월요일마다 연장한다.
+   쓰레드는 Threads 이용 사례의 토큰 생성기에서. 둘 다 저장소 시크릿 `IG_ACCESS_TOKEN` · `THREADS_ACCESS_TOKEN` 에 넣는다 (토큰은 사람만 다룬다 — 채팅·코드에 붙이지 않는다).
+4. (선택) 60일 토큰 자동 연장을 시크릿에 저장하려면 이 저장소의 Secrets 쓰기 권한만 가진 fine-grained 토큰을 `SOCIAL_SECRETS_PAT` 로.
+   없으면 60일마다 3번을 다시 하면 됩니다 (성과 표 요약에 알림이 남음). 통합 로그인의 시스템 사용자 토큰은 만료가 없어 연장하지 않는다.
 
 토큰이 다른 계정 것이면 게시 전에 멈춥니다 (`SOCIAL_EXPECT_IG` · `SOCIAL_EXPECT_THREADS` = `my.lovecoach`).

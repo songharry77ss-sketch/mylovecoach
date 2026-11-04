@@ -65,3 +65,11 @@ test('다른 계정 토큰이면 멈춘다', () => {
   assert.throws(() => assertAccount('instagram', 'wolha.en', 'my.lovecoach'), /wolha\.en/);
   assert.doesNotThrow(() => assertAccount('instagram', 'anything', ''));
 });
+
+test('인스타 토큰 종류에 따라 API 주소가 갈린다 (통합 로그인 토큰은 연장 안 함)', async () => {
+  const { igBase, igMe, refreshToken } = await import('./meta-publish.mjs');
+  assert.equal(igBase('IGAAfake'), 'https://graph.instagram.com/v23.0');
+  assert.equal(igBase('EAAfake'), 'https://graph.facebook.com/v23.0');
+  assert.deepEqual(await refreshToken('instagram', 'EAAfake'), { token: 'EAAfake', expiresInDays: null });
+  await assert.rejects(() => igMe('EAAfake', 'abc'), /숫자 id/);
+});

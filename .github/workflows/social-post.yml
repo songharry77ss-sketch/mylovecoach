@@ -43,6 +43,7 @@ jobs:
       - name: 게시
         env:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_USER_ID: ${{ vars.IG_USER_ID }}
           THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
           SOCIAL_EXPECT_IG: my.lovecoach
           SOCIAL_EXPECT_THREADS: my.lovecoach
