@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { STALE_HOURS, assertAccount, dueEntries, kst, mediaUrl, normalizeText, problems, queueProblems } from './social.mjs';
+import { STALE_HOURS, assertAccount, dueEntries, igApiFor, kst, mediaUrl, normalizeText, pickAudio, problems, queueProblems, recentAudioIds } from './social.mjs';
 
 const carousel = (n, ext = 'jpg') => Array.from({ length: n }, (_, i) => `marketing/social/d3/${String(i + 1).padStart(2, '0')}.${ext}`);
 const base = { id: 'd3-ig', at: '2026-11-04 21:00', channel: 'instagram', kind: 'carousel', media: carousel(10), caption: '캡션 #KKTI', approved: true };
@@ -64,4 +64,49 @@ test('다른 계정 토큰이면 멈춘다', () => {
   assert.doesNotThrow(() => assertAccount('instagram', 'My.LoveCoach', 'my.lovecoach'));
   assert.throws(() => assertAccount('instagram', 'wolha.en', 'my.lovecoach'), /wolha\.en/);
   assert.doesNotThrow(() => assertAccount('instagram', 'anything', ''));
+});
+
+const reel = { ...base, id: 'd4-ig-reel', kind: 'reel', media: ['marketing/social/d4/reel.mp4'] };
+
+test('릴스 음원 항목 검사', () => {
+  assert.deepEqual(problems({ ...reel, audio: { trending: true, videoVolume: 1, minSeconds: 10 } }), []);
+  assert.deepEqual(problems({ ...reel, audio: { id: '587784541076604' } }), []);
+  assert.deepEqual(problems({ ...reel, audio: { search: ['체포하겠어 ILLIT', 'IVE'], trending: true, required: false } }), []);
+  assert.match(problems({ ...reel, audio: {} }).join(), /id · search · trending/);
+  assert.match(problems({ ...reel, audio: { id: 'abc' } }).join(), /audio\.id/);
+  assert.match(problems({ ...reel, audio: { trending: true, videoVolume: 0 } }).join(), /videoVolume/);
+  assert.match(problems({ ...reel, audio: { trending: true, audioVolume: 101 } }).join(), /audioVolume/);
+  assert.match(problems({ ...reel, audio: { search: '' } }).join(), /audio\.search/);
+  assert.match(problems({ ...base, audio: { trending: true } }).join(), /릴스에만/);
+  assert.match(problems({ ...reel, audio: 'trending' }).join(), /객체/);
+});
+
+test('토큰 종류 — IG 로 시작하면 인스타 로그인, 아니면 페이스북 로그인, IG_API 가 있으면 그것', () => {
+  assert.equal(igApiFor('IGAAxyz'), 'instagram');
+  assert.equal(igApiFor('EAAGxyz'), 'facebook');
+  assert.equal(igApiFor('IGAAxyz', 'facebook'), 'facebook');
+  assert.equal(igApiFor('EAAGxyz', ''), 'facebook');
+  assert.throws(() => igApiFor('EAAG', 'tiktok'), /IG_API/);
+});
+
+const songs = [
+  { id: '1', title: '체포하겠어 (Preview)', artist: 'ILLIT', durationMs: 25_000 },
+  { id: '2', title: 'Love Is All', artist: '검정치마', durationMs: 200_000 },
+  { id: '3', title: 'Short Clip', artist: 'X', durationMs: 8_000 },
+];
+
+test('음원 고르기 — 검색어 낱말이 제목·가수에 다 있는 첫 곡, 최근에 쓴 곡·짧은 곡은 뺀다', () => {
+  assert.equal(pickAudio(songs, { query: '체포하겠어 illit' })?.id, '1');
+  assert.equal(pickAudio(songs, { query: '검정치마' })?.id, '2');
+  assert.equal(pickAudio(songs, { query: '없는 곡' }), null);
+  assert.equal(pickAudio(songs)?.id, '1');
+  assert.equal(pickAudio(songs, { avoid: new Set(['1']) })?.id, '2');
+  assert.equal(pickAudio(songs, { avoid: new Set(['1', '2']), minSeconds: 10 }), null);
+  assert.equal(pickAudio([], {}), null);
+});
+
+test('최근에 쓴 음원 id', () => {
+  const posted = { posts: [{ id: 'a', audio: { id: '1' } }, { id: 'b' }, { id: 'c', audio: { id: '2' } }, { id: 'd', audio: { id: '3' } }] };
+  assert.deepEqual([...recentAudioIds(posted, 2)], ['2', '3']);
+  assert.deepEqual([...recentAudioIds({}, 5)], []);
 });

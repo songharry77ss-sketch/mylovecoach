@@ -7,8 +7,8 @@
 // 올린 기록은 --posted <posted.json> 에 남긴다 (예약 실행이 social-queue 가지에 다시 넣는다). 자세한 흐름: docs/SOCIAL_AUTOPOST.md
 import { existsSync, readFileSync, writeFileSync, appendFileSync } from 'node:fs';
 
-import { igMe, igPost, igRecent, thMe, thPost, thRecent } from './lib/meta-publish.mjs';
-import { assertAccount, dueEntries, mediaUrl, normalizeText, queueProblems } from './lib/social.mjs';
+import { igApi, igAudioById, igAudioSearch, igMe, igPost, igRecent, thMe, thPost, thRecent } from './lib/meta-publish.mjs';
+import { assertAccount, dueEntries, mediaUrl, normalizeText, pickAudio, queueProblems, recentAudioIds } from './lib/social.mjs';
 
 const args = process.argv.slice(2);
 const has = (n) => args.includes(n);
@@ -74,6 +74,37 @@ async function checkMedia(urls) {
   }
 }
 
+/**
+ * 릴스 음원 고르기 (queue 항목의 audio). id → search 차례로 → trending. 못 찾으면 required 일 때만 실패,
+ * 아니면 null(음원 없이 영상 소리 그대로). 인기 음원은 최근에 쓴 곡을 건너뛴다.
+ */
+async function resolveAudio(entry, acc) {
+  const spec = entry.audio;
+  const label = (a) => `${a.title || '(제목 없음)'}${a.artist ? ` — ${a.artist}` : ''}`;
+  const miss = (why) => {
+    if (spec.required) throw new Error(`음원을 못 붙여요: ${why}`);
+    note(`- ${entry.id}: 음원 없이 올림 — ${why}`);
+    return null;
+  };
+  if (igApi(acc.token) !== 'facebook') return miss('인스타 로그인 토큰이라 음원 API 를 못 씀 (페이스북 로그인 토큰 필요)');
+  const volumes = { audioVolume: spec.audioVolume, videoVolume: spec.videoVolume };
+  if (spec.id) {
+    const a = await igAudioById({ userId: acc.id, token: acc.token, id: spec.id }).catch(() => null);
+    if (a?.id) return { ...a, ...volumes, label: label(a) };
+    note(`- ${entry.id}: 음원 ${spec.id} 를 못 찾아 다음 후보로`);
+  }
+  for (const query of [].concat(spec.search ?? [])) {
+    const a = pickAudio(await igAudioSearch({ userId: acc.id, token: acc.token, query }), { query, minSeconds: spec.minSeconds });
+    if (a) return { ...a, ...volumes, label: label(a) };
+    note(`- ${entry.id}: 「${query}」 는 쓸 수 있는 곡이 없어 다음 후보로`);
+  }
+  if (spec.trending) {
+    const a = pickAudio(await igAudioSearch({ userId: acc.id, token: acc.token }), { avoid: recentAudioIds(posted), minSeconds: spec.minSeconds });
+    if (a) return { ...a, ...volumes, label: `${label(a)} (인기 음원)` };
+  }
+  return miss('조건에 맞는 곡이 없음');
+}
+
 let failed = 0;
 for (const entry of targets) {
   const urls = (entry.media ?? []).map((m) => mediaUrl(m, ref));
@@ -92,13 +123,15 @@ for (const entry of targets) {
       posted.posts.push({ id: entry.id, channel: entry.channel, url: same.url, at: same.at, found: true });
       continue;
     }
+    const audio = entry.channel === 'instagram' && entry.kind === 'reel' && entry.audio ? await resolveAudio(entry, acc) : null;
+    const withAudio = audio ? ` · 음원 「${audio.label}」` : '';
     if (dry) {
-      note(`- ${entry.id}: (연습) ${entry.channel} ${entry.kind} ${urls.length}개 · @${acc.username} 에 올릴 준비 완료`);
+      note(`- ${entry.id}: (연습) ${entry.channel} ${entry.kind} ${urls.length}개 · @${acc.username} 에 올릴 준비 완료${withAudio}`);
       continue;
     }
-    const post = entry.channel === 'instagram' ? await igPost({ userId: acc.id, token: acc.token, kind: entry.kind, media: urls, caption: entry.caption }) : await thPost({ userId: acc.id, token: acc.token, kind: entry.kind, media: urls, caption: entry.caption });
-    posted.posts.push({ id: entry.id, channel: entry.channel, url: post.url, mediaId: post.id, at: new Date().toISOString() });
-    note(`- ${entry.id}: 올림 → ${post.url}`);
+    const post = entry.channel === 'instagram' ? await igPost({ userId: acc.id, token: acc.token, kind: entry.kind, media: urls, caption: entry.caption, audio }) : await thPost({ userId: acc.id, token: acc.token, kind: entry.kind, media: urls, caption: entry.caption });
+    posted.posts.push({ id: entry.id, channel: entry.channel, url: post.url, mediaId: post.id, at: new Date().toISOString(), ...(audio ? { audio: { id: audio.id, title: audio.title, artist: audio.artist } } : {}) });
+    note(`- ${entry.id}: 올림 → ${post.url}${withAudio}`);
   } catch (e) {
     failed++;
     note(`- ${entry.id}: 실패 — ${e.message}`);

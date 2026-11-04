@@ -67,8 +67,62 @@ export function problems(entry) {
   // 인스타 API 는 그림을 JPEG 로만 받는다
   if (entry.channel === 'instagram' && ['carousel', 'image'].includes(entry.kind) && media.some((m) => !/\.jpe?g$/i.test(m))) say('인스타 그림은 .jpg 만');
   if (entry.kind !== 'reel' && media.some((m) => /\.mp4$/i.test(m)) && entry.channel === 'instagram') say('영상은 reel 로');
+  if (entry.audio !== undefined) audioProblems(entry, say);
   return out;
 }
+
+/**
+ * 릴스 음원 항목 검사. 모양: { id?, search?: "곡" | ["곡", …], trending?: true, audioVolume?, videoVolume?, minSeconds?, required? }
+ * 고르는 순서: id → search 를 차례로 → trending(지금 인기 음원). required 가 아니면 못 찾았을 때 음원 없이 올린다.
+ */
+function audioProblems(entry, say) {
+  const a = entry.audio;
+  if (entry.channel !== 'instagram' || entry.kind !== 'reel') return say('음원(audio)은 인스타 릴스에만');
+  if (!a || typeof a !== 'object' || Array.isArray(a)) return say('audio 는 { id · search · trending } 객체');
+  const searches = a.search === undefined ? [] : [].concat(a.search);
+  if (a.id === undefined && !searches.length && a.trending !== true) say('audio 에 id · search · trending 중 하나는 있어야 해요');
+  if (a.id !== undefined && !/^\d{5,25}$/.test(String(a.id))) say('audio.id 는 숫자 (「인스타 음원 찾기」 실행에서 나온 값)');
+  if (searches.length > 5 || searches.some((q) => typeof q !== 'string' || !q.trim() || q.length > 100)) say('audio.search 는 글자(100자 안) 1~5개');
+  if (a.trending !== undefined && typeof a.trending !== 'boolean') say('audio.trending 은 true/false');
+  for (const k of ['audioVolume', 'videoVolume']) if (a[k] !== undefined && !(Number.isInteger(a[k]) && a[k] >= 1 && a[k] <= 100)) say(`audio.${k} 는 1~100 정수`);
+  if (a.minSeconds !== undefined && !(Number.isFinite(a.minSeconds) && a.minSeconds > 0 && a.minSeconds <= 90)) say('audio.minSeconds 는 1~90 (초)');
+  if (a.required !== undefined && typeof a.required !== 'boolean') say('audio.required 는 true/false');
+}
+
+/** 인스타 토큰 종류 — 'instagram'(인스타 로그인, 토큰이 IG 로 시작) | 'facebook'(페이스북 로그인). override(IG_API)가 있으면 그것 */
+export function igApiFor(token, override) {
+  if (override === 'instagram' || override === 'facebook') return override;
+  if (override) throw new Error(`IG_API 는 instagram 또는 facebook 이어야 해요: "${override}"`);
+  return /^IG/.test(String(token ?? '')) ? 'instagram' : 'facebook';
+}
+
+const squash = (s) => String(s ?? '').toLowerCase().replace(/[\s()[\]·.,'"!?~_-]+/g, '');
+
+/**
+ * 음원 고르기 — 찾기 결과에서 쓸 한 곡 (없으면 null).
+ * query 가 있으면 제목·가수에 검색어 낱말이 모두 들어간 첫 곡, 없으면(인기 음원) 첫 곡.
+ * avoid: 빼고 고를 음원 id (최근에 쓴 곡), minSeconds: 이보다 짧은 곡은 뺀다 (영상 길이).
+ */
+export function pickAudio(list, { query, avoid = new Set(), minSeconds } = {}) {
+  const words = String(query ?? '').split(/\s+/).map(squash).filter(Boolean);
+  return (
+    (list ?? []).find((a) => {
+      if (!a?.id || avoid.has(String(a.id))) return false;
+      if (minSeconds && a.durationMs && a.durationMs < minSeconds * 1000) return false;
+      const hay = squash(`${a.title} ${a.artist}`);
+      return words.every((w) => hay.includes(w));
+    }) ?? null
+  );
+}
+
+/** 최근 n개 게시물에 쓴 음원 id — 인기 음원에서 고를 때 같은 곡이 이어지지 않게 */
+export const recentAudioIds = (posted, n = 5) =>
+  new Set(
+    (posted?.posts ?? [])
+      .filter((p) => p?.audio?.id)
+      .slice(-n)
+      .map((p) => String(p.audio.id)),
+  );
 
 /** 큐 전체 검사 — id 중복까지 */
 export function queueProblems(queue) {
