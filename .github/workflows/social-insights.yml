@@ -1,0 +1,49 @@
+name: 인스타·쓰레드 성과
+
+# 매일 10:00 KST 에 최근 게시물의 조회·도달·저장·공유·좋아요·댓글을 요약에 표로 남긴다. 읽기만 한다.
+# 매주 월요일에는 장기 토큰(60일)도 연장한다. 새 토큰이 나오면 SOCIAL_SECRETS_PAT(저장소 시크릿 쓰기 권한)가 있을 때만 시크릿을 바꾸고,
+# 없으면 요약에 「시크릿을 새로 넣어 주세요」를 남긴다. 흐름: docs/SOCIAL_AUTOPOST.md
+
+on:
+  schedule:
+    - cron: '0 1 * * *' # 10:00 KST
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  insights:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+      THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 성과 표
+        run: node tools/social-insights.mjs --limit 12
+
+      - name: 토큰 연장 (월요일 · 손으로 돌릴 때)
+        env:
+          GH_TOKEN: ${{ secrets.SOCIAL_SECRETS_PAT }}
+        run: |
+          if [ "$(TZ=Asia/Seoul date +%u)" != "1" ] && [ "${{ github.event_name }}" != "workflow_dispatch" ]; then echo "월요일이 아니라 건너뜀"; exit 0; fi
+          echo "## 토큰" >> "$GITHUB_STEP_SUMMARY"
+          for ch in instagram threads; do
+            f=$(mktemp)
+            node tools/social-token.mjs "$ch" "$f" | tee -a "$GITHUB_STEP_SUMMARY"
+            if [ -s "$f" ]; then
+              name=$([ "$ch" = instagram ] && echo IG_ACCESS_TOKEN || echo THREADS_ACCESS_TOKEN)
+              current=$([ "$ch" = instagram ] && echo "$IG_ACCESS_TOKEN" || echo "$THREADS_ACCESS_TOKEN")
+              if [ "$(cat "$f")" != "$current" ]; then
+                if [ -n "$GH_TOKEN" ]; then gh secret set "$name" --repo "$GITHUB_REPOSITORY" < "$f" && echo "- $name 시크릿 갱신" >> "$GITHUB_STEP_SUMMARY";
+                else echo "- ⚠️ $name: 새 토큰이 나왔지만 SOCIAL_SECRETS_PAT 가 없어 저장 못 함 — 메타 개발자 화면에서 새로 발급해 시크릿에 넣어 주세요" >> "$GITHUB_STEP_SUMMARY"; fi
+              fi
+            fi
+            rm -f "$f"
+          done
