@@ -3,7 +3,7 @@
  *   GET  /api/admin?days=7&limit=50                            → 집계 + 결제 흐름 + 가입자 목록 + 최근 코칭 기록 + 팀원 명단 + 최근 AI 답변 신고 50건
  *   GET  /api/admin?view=users&days=30                         → 이용자 목록 (유입·시작 방식·체류·코칭 수)
  *   GET  /api/admin?view=user&deviceId=…                       → 한 명의 화면별 체류·이동 경로·코칭 대화·버튼 기록
- *   POST /api/admin { action: 'team_add', deviceId, label }   → 팀원 무제한 허용 (같은 기기면 이름만 바뀜)
+ *   POST /api/admin { action: 'team_add', deviceId, label, days? } → 팀원 무제한 허용 (days 를 주면 그 날수 뒤에 끝남, 없으면 무기한. 같은 기기면 이름·기간을 바꿈)
  *   POST /api/admin { action: 'team_remove', deviceId }       → 허용 해제
  *   POST /api/admin { action: 'device_delete', deviceId }     → 그 기기의 이용 기록 전부 삭제 (삭제 요청 처리)
  * 인증:
@@ -55,6 +55,15 @@ interface TeamRow {
   device_id: string;
   label: string | null;
   created_at: string;
+  expires_at: string | null;
+}
+
+/** 무제한 기간 — 1~366일. 그 밖의 값(없음·0)은 무기한 */
+const MAX_TEAM_DAYS = 366;
+export function teamExpiry(days: unknown, now = Date.now()): string | null {
+  const n = Math.floor(Number(days));
+  if (!Number.isFinite(n) || n < 1) return null;
+  return new Date(now + Math.min(n, MAX_TEAM_DAYS) * 24 * 60 * 60 * 1000).toISOString();
 }
 
 /** 앱 안에서 들어온 AI 답변 신고 (api/report.ts) — 누가 보냈는지는 저장하지 않는다 */
@@ -88,7 +97,7 @@ async function loginGate(ip: string, now: number): Promise<'ok' | 'locked' | 'un
   return byIp.length > IP_MAX_FAILS ? 'locked' : 'ok';
 }
 
-const listTeam = () => select<TeamRow>('team_member', 'select=device_id,label,created_at&order=created_at.desc&limit=200');
+const listTeam = () => select<TeamRow>('team_member', 'select=device_id,label,created_at,expires_at&order=created_at.desc&limit=200');
 
 function parseBody(req: VercelRequest): Record<string, unknown> {
   if (typeof req.body === 'string') {
@@ -111,7 +120,7 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
   let ok: boolean;
   if (body.action === 'team_add') {
     const label = String(body.label ?? '').trim().slice(0, 40) || '팀원';
-    ok = await insert('team_member', { device_id: deviceId, label }, { upsert: true });
+    ok = await insert('team_member', { device_id: deviceId, label, expires_at: teamExpiry(body.days) }, { upsert: true });
   } else if (body.action === 'team_remove') {
     ok = await remove('team_member', `device_id=eq.${encodeURIComponent(deviceId)}`);
   } else if (body.action === 'device_delete') {
