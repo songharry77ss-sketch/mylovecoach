@@ -47,6 +47,13 @@ export const FLUENT_NAMES: Record<string, string> = {
   '👉': 'Backhand index pointing right',
   '😳': 'Flushed face',
   '🥹': 'Face holding back tears',
+  // 영상 04(읽씹 역전극)·05(AI 플러팅 연습)
+  '😏': 'Smirking face',
+  '🍒': 'Cherries',
+  '🌡️': 'Thermometer',
+  '💭': 'Thought balloon',
+  '🫠': 'Melting face',
+  '⭐': 'Star',
 };
 
 export const fluentFile = (emoji: string) => path.join(__dirname, 'assets', 'fluent', `${[...emoji].map((c) => c.codePointAt(0)!.toString(16)).filter((c) => c !== 'fe0f').join('-')}.png`);
