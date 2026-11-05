@@ -14,6 +14,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 import { authUser, countRows, deleteAuthUser, DEVICE_ID, query, rpc, supabaseReady } from './_supabase';
+import { requestPlatform, type RequestPlatform } from './_platform';
 import { escapeHtml, kstMidnight, notifyTelegram, telegramReady } from './_telegram';
 import { appleUserId, kakaoUserId, revokeApple, unlinkKakao } from './_unlink';
 
@@ -33,21 +34,10 @@ function parseBody(req: VercelRequest): Record<string, unknown> {
 
 const clean = (v: unknown, max: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
 
-type SignupPlatform = 'ios' | 'android' | 'web';
+type SignupPlatform = RequestPlatform;
 
-/**
- * 가입한 기기 종류. 앱이 본문에 platform 을 보내면 그대로, 아니면 요청 머리글(user-agent)로 짐작한다:
- * 앱(React Native)의 요청은 iOS 가 「앱이름/빌드 CFNetwork/… Darwin/…」, Android 가 「okhttp/…」이고 브라우저는 「Mozilla/…」로 시작한다
- */
-export function signupPlatform(userAgent: unknown, hinted?: unknown): SignupPlatform | null {
-  if (hinted === 'ios' || hinted === 'android' || hinted === 'web') return hinted;
-  const ua = typeof userAgent === 'string' ? userAgent : '';
-  if (!ua) return null;
-  if (/Mozilla\//i.test(ua)) return 'web';
-  if (/CFNetwork|Darwin|iPhone|iPad|iOS/i.test(ua)) return 'ios';
-  if (/okhttp|Android/i.test(ua)) return 'android';
-  return null;
-}
+/** 가입한 기기 종류 — 앱이 본문에 platform 을 보내면 그대로, 아니면 요청 머리글로 짐작한다 (_platform.ts) */
+export const signupPlatform = requestPlatform;
 
 const PROVIDER_LABELS: Record<string, string> = { kakao: '카카오', google: 'Google', apple: 'Apple' };
 const PLATFORM_LABELS: Record<SignupPlatform, string> = { ios: 'iOS 앱', android: 'Android 앱', web: '웹' };

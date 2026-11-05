@@ -19,6 +19,7 @@ import { IMAGE_TOO_LARGE_MESSAGE, MAX_IMAGE_BASE64_LENGTH, isImageTooLarge } fro
 import { callGeminiTask, type GeminiUsage } from '../src/lib/gemini';
 import { aiFlagsFor } from './_ai-flags';
 import { clientIp, rateLimited, storedKb } from './_limits';
+import { requestPlatform, type RequestPlatform } from './_platform';
 import { analyticsEnabled, contentConsentOk, DEVICE_ID, insert, optedOutDevice, rpc } from './_supabase';
 
 export const config = { maxDuration: 120 };
@@ -214,6 +215,16 @@ function watchRequest(req: VercelRequest, res: VercelResponse, deadlineMs: numbe
   };
 }
 
+/**
+ * AI 분석 동의 전의 예전 앱(1.0.0~1.0.2)에게 보내는 업데이트 안내. 그 앱은 이 문구를 대화 말풍선에 그대로 보여 주고
+ * 화면은 바꿀 수 없으므로, 어느 스토어에서 무엇을 하면 되는지와 기록이 남는다는 것까지 문구에 담는다.
+ * 아이폰에는 다른 스토어 이름을 적지 않는다 (App Store 심사 2.3.10).
+ */
+export function updateRequiredMessage(platform: RequestPlatform | null): string {
+  const store = platform === 'ios' ? 'App Store' : platform === 'android' ? 'Play 스토어' : '앱 스토어';
+  return `🎁 새 버전이 나왔어요!\n지금 버전에서는 코칭을 더 받을 수 없어요. ${store}에서 「나만의 연애코치」를 업데이트하면 바로 다시 쓸 수 있어요.\n채팅방과 기록은 그대로 남아요.`;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const startedAt = Date.now();
   // req.body 는 읽는 순간 JSON 을 파싱하고 깨져 있으면 던진다 — 인증·호출 제한을 지난 뒤에 handle 안에서 읽는다
@@ -252,7 +263,7 @@ async function handle(req: VercelRequest, res: VercelResponse, send: (status: nu
   // 헤더가 없는 예전 앱(AI 분석 동의 전 빌드, 심사 중인 1.0 등)은 동의를 묻지 않고 보낸다 — 새 빌드가 퍼진 뒤 AI_CONSENT_REQUIRED=1 을 켜면 업데이트를 안내하고 막는다
   const consentHeader = req.headers['x-ai-consent'];
   if (consentHeader === undefined && process.env.AI_CONSENT_REQUIRED === '1') {
-    send(426, { error: '앱을 최신 버전으로 업데이트해 주세요. AI 분석 동의를 받는 새 버전에서 AI 코칭을 쓸 수 있어요.' }, 'consent_required');
+    send(426, { error: updateRequiredMessage(requestPlatform(req.headers['user-agent'])) }, 'consent_required');
     return;
   }
   // 스위치가 꺼져 있을 때 헤더 없는 예전 앱은 그 판 처리방침이 안내한 Google 로 본다 — 지금은 그대로 받고,

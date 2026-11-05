@@ -110,8 +110,19 @@ describe('중계 서버는 사용자가 동의한 회사(Google)로만 보낸다
     process.env.AI_CONSENT_REQUIRED = '1';
     const res = await post();
     expect(res.statusCode).toBe(426);
-    expect((res.body as { error: string }).error).toContain('최신 버전으로 업데이트');
+    expect((res.body as { error: string }).error).toContain('업데이트하면 바로 다시 쓸 수 있어요');
     expect(gemini).not.toHaveBeenCalled();
+  });
+
+  it('예전 앱의 업데이트 안내는 기기에 맞는 스토어를 알려 준다 (아이폰에는 다른 스토어 이름을 적지 않는다)', async () => {
+    process.env.AI_CONSENT_REQUIRED = '1';
+    const ios = (await post({ 'user-agent': 'MyLoveCoach/1 CFNetwork/1568.100.1 Darwin/24.0.0' })).body as { error: string };
+    expect(ios.error).toContain('App Store');
+    expect(ios.error).not.toMatch(/Play|플레이/);
+    const android = (await post({ 'user-agent': 'okhttp/4.12.0' })).body as { error: string };
+    expect(android.error).toContain('Play 스토어');
+    expect(android.error).not.toContain('App Store');
+    expect(((await post()).body as { error: string }).error).toContain('앱 스토어');
   });
 
   it('AI_CONSENT_REQUIRED=1 이어도 Google 에 동의한 새 앱은 그대로 보낸다', async () => {
