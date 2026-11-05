@@ -13,7 +13,7 @@
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-import { KKTI_SITE, cardUrl, kktiFromCode, kktiMatch, parseShareCode, type KktiResult } from '../src/lib/kkti';
+import { KKTI_CARD_VERSION, KKTI_SITE, cardUrl, kktiFromCode, kktiMatch, parseShareCode, type KktiResult } from '../src/lib/kkti';
 
 const DEFAULT_HOST = 'mylovecoach.vercel.app';
 /**
@@ -55,7 +55,7 @@ export function sharePage(code: string, site: string, utm: Record<string, string
       title: '카톡으로 보는 진짜 연애 MBTI · KKTI',
       description: '선톡, 답장 속도, 이모지 습관으로 보는 나의 진짜 MBTI와 16가지 연애 유형. 1분이면 끝나고, 친구랑 궁합도 볼 수 있어요.',
       target: `/kkti${q ? `?${q}` : ''}`,
-      image: `${site}/api/kkti-card`,
+      image: `${site}/api/kkti-card?v=${KKTI_CARD_VERSION}`,
       url: `${site}/k`,
     };
   }

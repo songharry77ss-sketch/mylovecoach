@@ -2,7 +2,7 @@
  * api/_kkti-share.ts · api/kkti-card.ts — KKTI 공유 링크(/k/코드)의 미리보기 페이지와 결과 카드 그림.
  * 카톡·인스타는 이 페이지의 og 태그만 읽어 미리보기를 만든다.
  */
-import { CARD_EXTRA_EMOJI, CARD_SIZE, cardTree, emojiImage, renderCard } from '../../api/_kkti-card';
+import { CARD_EXTRA_EMOJI, CARD_SIZE, cardTree, emojiImage, fluentImage, renderCard } from '../../api/_kkti-card';
 import cardHandler from '../../api/kkti-card';
 import shareHandler, { allowedHost, escapeHtml, shareHtml, sharePage } from '../../api/_kkti-share';
 import vercelConfig from '../../vercel.json';
@@ -70,7 +70,7 @@ describe('공유 페이지 내용', () => {
     expect(page.description).toContain(`KKTI ${me.code}`);
     expect(page.description).toContain('궁합');
     expect(page.target).toBe(`/kkti/result?a=${me.encoded}`);
-    expect(page.image).toBe(`${SITE}/api/kkti-card?a=${me.encoded}`);
+    expect(page.image).toBe(`${SITE}/api/kkti-card?a=${me.encoded}&v=2`);
     expect(page.url).toBe(`${SITE}/k/${me.encoded}`);
   });
 
@@ -83,7 +83,7 @@ describe('공유 페이지 내용', () => {
     expect(page.description).toContain(`${me.mbti.type} ${me.type.emoji} ${me.type.name}`);
     expect(page.description).toContain(`${friend.mbti.type} ${friend.type.emoji} ${friend.type.name}`);
     expect(page.target).toBe(`/kkti/result?a=${me.encoded}&w=${friend.encoded}`);
-    expect(page.image).toBe(`${SITE}/api/kkti-card?a=${me.encoded}&w=${friend.encoded}`);
+    expect(page.image).toBe(`${SITE}/api/kkti-card?a=${me.encoded}&w=${friend.encoded}&v=2`);
   });
 
   it('코드가 없거나 잘못됐으면 테스트 소개 — 테스트 첫 화면으로', () => {
@@ -91,7 +91,7 @@ describe('공유 페이지 내용', () => {
       const page = sharePage(code, SITE);
       expect(page.title).toContain('KKTI');
       expect(page.target).toBe('/kkti');
-      expect(page.image).toBe(`${SITE}/api/kkti-card`);
+      expect(page.image).toBe(`${SITE}/api/kkti-card?v=2`);
     }
   });
 
@@ -140,7 +140,7 @@ describe('GET /k/코드', () => {
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toContain('text/html');
     expect(res.headers['cache-control']).toContain('s-maxage');
-    expect(meta(String(res.body), 'og:image')).toBe(`${SITE}/api/kkti-card?a=${me.encoded}`);
+    expect(meta(String(res.body), 'og:image')).toBe(`${SITE}/api/kkti-card?a=${me.encoded}&v=2`);
   });
 
   it('미리보기 주소에는 우리 주소만 쓴다 (배포별 주소·로컬은 그대로, 그 밖은 운영 주소로)', () => {
@@ -148,10 +148,10 @@ describe('GET /k/코드', () => {
     for (const host of ['', 'evil.com', 'mylovecoach.vercel.app.evil.com', 'xmylovecoach-a.vercel.app', 'evil.com/"><script>', 'localhost.evil.com']) expect(allowedHost(host)).toBe(false);
 
     const preview = share({ c: me.encoded }, { host: 'mylovecoach-abc123.vercel.app' });
-    expect(meta(String(preview.body), 'og:image')).toBe(`https://mylovecoach-abc123.vercel.app/api/kkti-card?a=${me.encoded}`);
+    expect(meta(String(preview.body), 'og:image')).toBe(`https://mylovecoach-abc123.vercel.app/api/kkti-card?a=${me.encoded}&v=2`);
     // 남이 넣은 전달 헤더는 믿지 않고, 모르는 호스트는 운영 주소로
     const forwarded = share({ c: me.encoded }, { host: 'mylovecoach.vercel.app', 'x-forwarded-host': 'evil.com' });
-    expect(meta(String(forwarded.body), 'og:image')).toBe(`${SITE}/api/kkti-card?a=${me.encoded}`);
+    expect(meta(String(forwarded.body), 'og:image')).toBe(`${SITE}/api/kkti-card?a=${me.encoded}&v=2`);
     const odd = share({ c: me.encoded }, { host: 'evil.com' });
     expect(meta(String(odd.body), 'og:url')).toBe(`${SITE}/k/${me.encoded}`);
     expect(meta(String(share({ c: me.encoded }, { host: 'localhost:8123' }).body), 'og:url')).toBe(`http://localhost:8123/k/${me.encoded}`);
@@ -164,12 +164,12 @@ describe('GET /k/코드', () => {
 
   it('앱 화면 주소에서 넘어온 요청은 a·w 쿼리로 받는다 (/kkti/result?a=…&w=…)', () => {
     const solo = share({ a: me.encoded });
-    expect(meta(String(solo.body), 'og:image')).toBe(`${SITE}/api/kkti-card?a=${me.encoded}`);
+    expect(meta(String(solo.body), 'og:image')).toBe(`${SITE}/api/kkti-card?a=${me.encoded}&v=2`);
     const pair = share({ a: me.encoded, w: friend.encoded });
-    expect(meta(String(pair.body), 'og:image')).toBe(`${SITE}/api/kkti-card?a=${me.encoded}&w=${friend.encoded}`);
+    expect(meta(String(pair.body), 'og:image')).toBe(`${SITE}/api/kkti-card?a=${me.encoded}&w=${friend.encoded}&v=2`);
     expect(meta(String(pair.body), 'og:title')).toContain('궁합');
     // 친구 코드만 들고 온 테스트 첫 화면(/kkti?w=…)은 소개 카드
-    expect(meta(String(share({ w: friend.encoded }).body), 'og:image')).toBe(`${SITE}/api/kkti-card`);
+    expect(meta(String(share({ w: friend.encoded }).body), 'og:image')).toBe(`${SITE}/api/kkti-card?v=2`);
     // 이 응답은 어디에도 남기지 않는다 — 같은 주소를 사람이 열면 앱 화면이 나가야 한다
     expect(share({ a: me.encoded, via: 'app' }).headers['cache-control']).toBe('no-store');
     expect(share({ c: me.encoded }).headers['cache-control']).toContain('s-maxage');
@@ -273,6 +273,12 @@ describe('결과 카드 그림', () => {
     expect(emojiImage('🦄')).toBeNull();
   });
 
+  it('카드에 쓰는 3D 이모지도 빠짐없이 들어 있다 (바꿨으면 scripts/fetch-fluent-emoji.ts 를 다시 돌린다)', () => {
+    const wanted = [...KKTI_CODES.map((code) => KKTI_TYPES[code].emoji), ...KKTI_MATCH_TIERS.map((t) => t.emoji), ...KKTI_AXES.map((a) => a.emoji), ...CARD_EXTRA_EMOJI];
+    for (const emoji of wanted) expect(fluentImage(emoji)).toMatch(/^data:image\/png;base64,/);
+    expect(fluentImage('🦄')).toBeNull();
+  });
+
   it('모양마다 뼈대가 나온다 (혼자·둘·소개)', () => {
     for (const shape of ['og', 'story', 'square'] as const) {
       for (const tree of [cardTree(shape, me), cardTree(shape, me, friend), cardTree(shape, null)]) {
@@ -281,7 +287,8 @@ describe('결과 카드 그림', () => {
         expect(json).toContain('KKTI');
         expect(json).toContain('Pretendard');
       }
-      expect(JSON.stringify(cardTree(shape, me))).toContain(me.type.name);
+      // 유형 이름은 단어마다 줄을 나눠 크게 쓴다
+      for (const word of me.type.name.split(' ')) expect(JSON.stringify(cardTree(shape, me))).toContain(word);
       // 혼자 카드는 맨 위에 「카톡 속 진짜 MBTI는 ○○○○」, 궁합 카드는 두 사람의 MBTI
       expect(JSON.stringify(cardTree(shape, me))).toContain(`카톡 속 진짜 MBTI는 ${me.mbti.type}`);
       expect(JSON.stringify(cardTree(shape, me, friend))).toContain(`${me.mbti.type} · ${me.code}`);

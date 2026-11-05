@@ -982,8 +982,11 @@ export function shareUrl(answersEncoded: string, withEncoded?: string | null): s
 export type KktiCardShape = 'og' | 'story' | 'square';
 
 /** 결과 카드 그림 주소 — og(링크 미리보기 1200×630) · story(인스타 스토리 1080×1920) · square(피드 1080×1080) */
+/** 카드 디자인 판 — 그림 주소에 붙여, 디자인을 바꾸면 카톡·인스타 미리보기와 브라우저가 예전 그림을 다시 쓰지 않게 한다 (2: 10-24 스티커 디자인) */
+export const KKTI_CARD_VERSION = 2;
+
 export function cardUrl(answersEncoded: string, withEncoded?: string | null, shape: KktiCardShape = 'og', site: string = KKTI_SITE): string {
-  const query = [`a=${answersEncoded}`, withEncoded ? `w=${withEncoded}` : '', shape === 'og' ? '' : `s=${shape}`].filter(Boolean).join('&');
+  const query = [`a=${answersEncoded}`, withEncoded ? `w=${withEncoded}` : '', shape === 'og' ? '' : `s=${shape}`, `v=${KKTI_CARD_VERSION}`].filter(Boolean).join('&');
   return `${site}/api/kkti-card?${query}`;
 }
 
