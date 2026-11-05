@@ -1,16 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { usePathname } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { AppState, Keyboard, Modal, Platform, StyleSheet, View } from 'react-native';
+import { AppState, Image, Keyboard, Modal, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FullWindowOverlay } from 'react-native-screens';
 
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
-import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Radius, Shadow, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { compareVersions, currentVersion, fetchAppUpdate, openStore, setUpdateRequestHandler, UPDATE_RETRY_MS, UPDATE_SNOOZE_MS, type AppUpdate } from '@/lib/app-update';
+import { subscriptionStoreName } from '@/lib/billing/plans';
 import { useAppStore } from '@/store/app-store';
 
 /** 권하는 안내는 탭 첫 화면에서만 띄운다 — 시작 화면·결제·가입·로그인 복귀·코칭 중인 화면을 가리지 않게 */
@@ -21,6 +22,7 @@ const CALM_PATHS = new Set(['/', '/practice', '/tips', '/my']);
  * 켤 때와 앱으로 돌아올 때 서버에 최신 버전을 묻고(lib/app-update 가 6시간에 한 번으로 줄인다), 스토어에 더 새 버전이 있으면 업데이트를 권한다.
  * 「나중에」를 누르면 그 버전은 3일 뒤에 다시 권한다. 서버가 최소 지원 버전을 올렸으면(required) 닫을 수 없다.
  * 서버가 새 버전의 「새로운 기능」 문구를 알려 주면 무엇이 좋아졌는지 세 줄까지 보여 준다 (업데이트할 이유).
+ * 꼭 해야 하는 업데이트는 시트가 아니라 전체 화면(RequiredUpdate)으로 띄운다 — 앱 아이콘·좋아진 점·「기록은 그대로」를 보여 주고 스토어로 보낸다.
  * 띄우는 방식은 AI 분석 동의 시트와 같다 (아이폰은 창 맨 위, 안드로이드·웹은 Modal).
  */
 export function AppUpdateHost({ enabled }: { enabled: boolean }) {
@@ -114,6 +116,7 @@ function UpdateSheet({ update, onUpdate, onLater }: { update: AppUpdate; onUpdat
   const insets = useSafeAreaInsets();
   const current = currentVersion();
   const notes = update.notes ?? [];
+  if (update.required) return <RequiredUpdate update={update} onUpdate={onUpdate} />;
   return (
     <View style={[StyleSheet.absoluteFill, styles.root]}>
       <View style={[StyleSheet.absoluteFill, styles.backdrop]} />
@@ -164,6 +167,86 @@ function UpdateSheet({ update, onUpdate, onLater }: { update: AppUpdate; onUpdat
   );
 }
 
+const appIcon = require('../../../assets/images/icon.png');
+/** 업데이트해도 잃는 것이 없다는 약속 — 꼭 해야 하는 업데이트 화면 아래쪽 */
+const PROMISES = [
+  { icon: 'chatbubbles-outline', text: '채팅방 그대로' },
+  { icon: 'time-outline', text: '1분이면 끝' },
+  { icon: 'heart-outline', text: '이용권도 그대로' },
+] as const;
+
+/**
+ * 꼭 해야 하는 업데이트 — 닫을 수 없는 전체 화면.
+ * 지금 버전으로는 더 쓸 수 없다는 것보다 「새 버전에서 무엇이 좋아졌는지」와 「잃는 것이 없다」를 먼저 보여 주고, 버튼 하나로 스토어에 보낸다.
+ */
+function RequiredUpdate({ update, onUpdate }: { update: AppUpdate; onUpdate: () => void }) {
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const notes = update.notes ?? [];
+  const store = subscriptionStoreName(Platform.OS);
+  return (
+    <View accessibilityViewIsModal style={[StyleSheet.absoluteFill, { backgroundColor: theme.background }]}>
+      {/* 위쪽을 은은하게 물들이는 배경 원 두 개 */}
+      <View pointerEvents="none" style={[styles.glow, styles.glowLeft, { backgroundColor: theme.primarySoft }]} />
+      <View pointerEvents="none" style={[styles.glow, styles.glowRight, { backgroundColor: theme.accentSoft }]} />
+      <ScrollView contentContainerStyle={[styles.requiredBody, { paddingTop: insets.top + Spacing.xxl }]} showsVerticalScrollIndicator={false}>
+        <View style={[styles.iconFrame, Shadow, { backgroundColor: theme.background }]}>
+          <Image source={appIcon} style={styles.appIcon} accessibilityIgnoresInvertColors accessible={false} />
+          <View style={[styles.iconBadge, { backgroundColor: theme.primary, borderColor: theme.background }]}>
+            <Ionicons name="arrow-up" size={14} color="#fff" />
+          </View>
+        </View>
+        <View style={[styles.versionPill, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <AppText variant="caption" color="textSecondary">
+            {currentVersion()}
+          </AppText>
+          <Ionicons name="arrow-forward" size={12} color={theme.textSecondary} />
+          <AppText variant="smallStrong" color="primary">
+            {update.latest}
+          </AppText>
+        </View>
+        <AppText variant="title1" align="center" accessibilityRole="header">
+          업데이트가 필요해요
+        </AppText>
+        <AppText variant="body" color="textSecondary" align="center" style={styles.requiredLead}>
+          더 좋아진 나만의 연애코치가 기다리고 있어요.{'\n'}지금 버전으로는 더 이상 코칭을 받을 수 없어요.
+        </AppText>
+        {notes.length ? (
+          <View style={[styles.notesCard, Shadow, { backgroundColor: theme.background, borderColor: theme.border }]}>
+            <AppText variant="smallStrong" color="primary">
+              이번 버전에서 좋아진 점
+            </AppText>
+            {notes.map((note) => (
+              <View key={note} style={styles.note}>
+                <Ionicons name="sparkles" size={16} color={theme.primary} style={styles.noteIcon} />
+                <AppText variant="small" style={styles.noteText}>
+                  {note}
+                </AppText>
+              </View>
+            ))}
+          </View>
+        ) : null}
+        <View style={styles.promises}>
+          {PROMISES.map((p) => (
+            <View key={p.text} style={[styles.promise, { backgroundColor: theme.surface }]}>
+              <Ionicons name={p.icon} size={18} color={theme.primary} />
+              <AppText variant="caption" color="textSecondary" align="center">
+                {p.text}
+              </AppText>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+      <View style={[styles.requiredFooter, { paddingBottom: insets.bottom + Spacing.lg, borderTopColor: theme.border, backgroundColor: theme.background }]}>
+        <Button title="업데이트하기" onPress={onUpdate} />
+        <AppText variant="caption" color="textSecondary" align="center">
+          {store}에서 업데이트한 뒤 앱을 다시 열어 주세요
+        </AppText>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   root: { justifyContent: 'flex-end' },
   backdrop: { backgroundColor: 'rgba(0,0,0,0.45)' },
@@ -184,4 +267,18 @@ const styles = StyleSheet.create({
   noteText: { flex: 1 },
   versions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderRadius: Radius.lg, paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg },
   actions: { gap: Spacing.xs, paddingTop: Spacing.sm },
+  // 꼭 해야 하는 업데이트 (전체 화면)
+  glow: { position: 'absolute', width: 320, height: 320, borderRadius: 160, opacity: 0.9 },
+  glowLeft: { top: -140, left: -120 },
+  glowRight: { top: -60, right: -150 },
+  requiredBody: { flexGrow: 1, alignItems: 'center', gap: Spacing.lg, paddingHorizontal: Spacing.xl, paddingBottom: Spacing.xl, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
+  iconFrame: { width: 104, height: 104, borderRadius: 28, padding: 6, marginBottom: Spacing.xs },
+  appIcon: { width: '100%', height: '100%', borderRadius: 22 },
+  iconBadge: { position: 'absolute', right: -6, bottom: -6, width: 30, height: 30, borderRadius: 15, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
+  versionPill: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, borderRadius: Radius.pill, borderWidth: StyleSheet.hairlineWidth, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.md },
+  requiredLead: { marginTop: -Spacing.sm },
+  notesCard: { alignSelf: 'stretch', gap: Spacing.sm, borderRadius: Radius.xl, borderWidth: StyleSheet.hairlineWidth, padding: Spacing.lg },
+  promises: { alignSelf: 'stretch', flexDirection: 'row', gap: Spacing.sm },
+  promise: { flex: 1, alignItems: 'center', gap: Spacing.xs, borderRadius: Radius.lg, paddingVertical: Spacing.md, paddingHorizontal: Spacing.xs },
+  requiredFooter: { gap: Spacing.sm, paddingTop: Spacing.md, paddingHorizontal: Spacing.xl, borderTopWidth: StyleSheet.hairlineWidth, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
 });

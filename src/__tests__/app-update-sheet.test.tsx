@@ -187,6 +187,16 @@ describe('새 버전 안내 시트', () => {
     expect(useAppStore.getState().updateSnooze).toBeNull();
   });
 
+  it('꼭 해야 하는 업데이트는 전체 화면으로 좋아진 점과 「기록은 그대로」를 보여 준다', async () => {
+    Platform.OS = 'ios';
+    server = { latest: '1.0.8', min: '1.0.8', notes: ['답장이 더 빨라졌어요.'] };
+    const tree = await mount();
+    const shown = texts(tree);
+    expect(shown).toEqual(expect.arrayContaining(['업데이트가 필요해요', '이번 버전에서 좋아진 점', '답장이 더 빨라졌어요.', '채팅방 그대로', '업데이트하기']));
+    expect(shown.join(' ')).toContain('App Store에서 업데이트한 뒤');
+    expect(shown.join(' ')).not.toMatch(/Google Play|나중에/);
+  });
+
   it('서버가 요청을 「업데이트가 필요해요」로 거절하면, 미뤄 둔 안내도 그 화면에서 바로 다시 띄운다', async () => {
     mockPath = '/crush/abc';
     useAppStore.setState({ updateSnooze: { version: '1.0.3', until: NOW + UPDATE_SNOOZE_MS } });
