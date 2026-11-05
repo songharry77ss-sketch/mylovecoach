@@ -14,6 +14,7 @@
  * - 실패해도 앱 동작에 영향을 주지 않도록 모든 오류를 삼킨다.
  * - 세션: 백그라운드에서 30분 안에 돌아오면 같은 세션을 이어 쓰고, 앞에 나와 있던 시간만 센다.
  */
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 import { FREE_UNLIMITED } from '@/lib/billing/plans';
@@ -302,7 +303,8 @@ function send(endSession: boolean): void {
     sessionId,
     consentVersion: BASIC_LOG_VERSION,
     platform: Platform.OS,
-    appVersion: process.env.EXPO_PUBLIC_APP_VERSION ?? '1.0.0',
+    // 빌드에 들어간 실제 앱 버전 (예전에는 빌드 때 넣지 않는 변수를 읽어 늘 1.0.0 으로 남았다)
+    appVersion: Constants.expoConfig?.version?.slice(0, 32) || 'unknown',
     // 이름(별명)은 보내지 않는다 — 대략적인 프로필만 (나이는 만 14세 미만 제외에도 쓴다)
     user: identity.user
       ? {
