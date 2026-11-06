@@ -210,7 +210,7 @@ describe('사용법 안내 — 처음 설치', () => {
     const shown = texts(t);
     expect(shown).toContain('센딧');
     expect(shown).toContain('나만의 연애 코치');
-    expect(shown).toContain('고려대학교 연구진이 개발한 연애 특화 AI 코치');
+    expect(shown).toContain('고려대학교 심리학 연구진이 개발한 연애 특화 AI 코치');
     for (const step of GUIDE_STEPS) expect(shown).toContain(step.title);
     expect(t.root.findByProps({ accessibilityLabel: `${GUIDE_STEPS.length + 1}장 중 1번째` })).toBeDefined();
     act(() => byLabel(t, '소개 건너뛰기').props.onPress());
@@ -311,7 +311,7 @@ describe('사용법 안내 — 센딧 판에서 링크로 먼저 시작한 이�
     mockParams = { from: 'intro' };
     const t = mount(<Welcome />);
     const shown = texts(t);
-    expect(shown).toContain('고려대학교 연구진이 개발한 연애 특화 AI 코치');
+    expect(shown).toContain('고려대학교 심리학 연구진이 개발한 연애 특화 AI 코치');
     expect(shown).toContain('센딧이 같이 골라 줄게요');
     expect(shown).not.toContain('새로워졌어요');
     pageThrough(t, GUIDE_STEPS.length + 1);

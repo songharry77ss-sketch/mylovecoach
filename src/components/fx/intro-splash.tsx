@@ -13,7 +13,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
  * 네이티브 스플래시(app.json 의 expo-splash-screen — 같은 배경색·같은 로고·같은 크기·같은 위치)와 첫 화면이 똑같아서 끊김 없이 이어진다.
  * 로고가 살짝 움츠렸다 두근 튀어 오르면서 빛이 번지고 물결이 퍼지고 하트·반짝이가 터진 뒤,
  * 로고 위로 빛이 한 번 스치고 별이 반짝, 로고가 올라가며 「생각났으면, / 지금 센딧.」이 한 글자씩 올라온다(스플래시 시안 B).
- * 아래에는 「고려대학교 연구진이 개발한 연애 특화 AI 코치」가 작게 나온다. 저장소를 다 읽으면 살짝 커지며 사라진다.
+ * 아래에는 「고려대학교 심리학 연구진이 개발한 연애 특화 AI 코치」가 작게 나온다. 저장소를 다 읽으면 살짝 커지며 사라진다.
  * 탭하면 건너뛴다(저장소를 다 읽은 뒤). 「동작 줄이기」를 켠 기기에서는 움직임 없이 짧게 보여 준다.
  */
 
@@ -423,7 +423,7 @@ function Lead({ clock, reduced, color }: { clock: SharedValue<number>; reduced: 
   );
 }
 
-/** 맨 아래 「고려대학교 연구진이 개발한 연애 특화 AI 코치」 */
+/** 맨 아래 「고려대학교 심리학 연구진이 개발한 연애 특화 AI 코치」 */
 function Footer({ clock, reduced, color }: { clock: SharedValue<number>; reduced: boolean; color: string }) {
   const style = useAnimatedStyle(() => {
     const p = reduced ? seg(clock.value, 250, 550) : easeOutCubic(seg(clock.value, T.tagline[0], T.tagline[1]));

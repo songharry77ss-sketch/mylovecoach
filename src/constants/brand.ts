@@ -11,6 +11,6 @@ export const APP_FULL_NAME = `${APP_NAME} - ${APP_SUBTITLE}`;
 /** 시작 화면 문구 (스플래시 시안 B: 「생각났으면, 지금 센딧.」) */
 export const SPLASH_COPY = { lead: '생각났으면,', main: '지금 센딧.' } as const;
 
-/** 누가 만들었는지 — 회의(11-06) 문구 「연애 특화된 고려대학교 연구진이 개발한」 */
-export const RESEARCH_LINE = '고려대학교 연구진이 개발한 연애 특화 AI 코치';
-export const RESEARCH_SHORT = '고려대 연구진이 만든 연애 특화 AI';
+/** 누가 만들었는지 — 회의(11-06) 문구 「연애 특화된 고려대학교 심리학 연구진이 개발한」 */
+export const RESEARCH_LINE = '고려대학교 심리학 연구진이 개발한 연애 특화 AI 코치';
+export const RESEARCH_SHORT = '고려대 심리학 연구진이 만든 연애 특화 AI';

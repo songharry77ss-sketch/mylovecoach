@@ -146,7 +146,7 @@ export function SenditLogo({ size = 'md', subtitle = false, tone = 'ink' }: { si
   );
 }
 
-/** 「고려대 연구진이 만든 연애 특화 AI」 작은 배지 */
+/** 「고려대 심리학 연구진이 만든 연애 특화 AI」 작은 배지 */
 export function ResearchBadge({ tone = 'soft', style }: { tone?: 'soft' | 'glass'; style?: StyleProp<ViewStyle> }) {
   const theme = useTheme();
   const glass = tone === 'glass';
