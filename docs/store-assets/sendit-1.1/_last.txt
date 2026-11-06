@@ -1,0 +1,5 @@
+- [iOS 6장 미리보기](C:/Users/shsop/mylovecoach-sendit-20261106/docs/store-assets/sendit-1.1/board.png) — `ios-6.7-framed/`, 1290×2796
+- [Play 6장 미리보기](C:/Users/shsop/mylovecoach-sendit-20261106/docs/store-assets/sendit-1.1/board-play.png) — `play-framed/`, 1242×2208
+- [가로 그래픽](C:/Users/shsop/mylovecoach-sendit-20261106/docs/store-assets/sendit-1.1/feature-graphic-1024x500.png) — 1024×500
+
+실제 화면을 보존하고 제목·여백·아이콘 위치·플랫폼별 크롭을 조정했습니다. 규격·폰트·잘림 검수 완료했습니다.
