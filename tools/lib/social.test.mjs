@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { STALE_HOURS, assertAccount, dueEntries, igApiFor, kst, mediaUrl, normalizeText, pickAudio, problems, queueProblems, recentAudioIds } from './social.mjs';
+import { POST_WINDOW_HOURS, STALE_HOURS, assertAccount, dueEntries, igApiFor, kst, mediaUrl, normalizeText, pickAudio, problems, queueProblems, recentAudioIds } from './social.mjs';
 
 const carousel = (n, ext = 'jpg') => Array.from({ length: n }, (_, i) => `marketing/social/d3/${String(i + 1).padStart(2, '0')}.${ext}`);
 const base = { id: 'd3-ig', at: '2026-11-04 21:00', channel: 'instagram', kind: 'carousel', media: carousel(10), caption: '캡션 #KKTI', approved: true };
@@ -46,14 +46,25 @@ test('올릴 항목 — 허락 · 시간 · 이미 올림 · 너무 오래됨', 
       base,
       { ...base, id: 'not-approved', approved: false },
       { ...base, id: 'later', at: '2026-11-05 21:00' },
-      { ...base, id: 'earlier', at: '2026-11-04 12:00' },
+      { ...base, id: 'earlier', at: '2026-11-04 20:00' },
     ],
   };
+  const h = 3600_000;
   assert.deepEqual(dueEntries(q, new Date(at - 1)).map((e) => e.id), ['earlier']);
   assert.deepEqual(dueEntries(q, new Date(at + 60_000)).map((e) => e.id), ['earlier', 'd3-ig']);
   assert.deepEqual(dueEntries(q, new Date(at + 60_000), new Set(['d3-ig'])).map((e) => e.id), ['earlier']);
-  // 예약 실행이 오래 멈췄다가 돌아오면 지난 글을 몰아 올리지 않는다
-  assert.deepEqual(dueEntries(q, new Date(at + (STALE_HOURS + 1) * 3600_000)).map((e) => e.id), ['later']);
+  // 예약 실행이 오래 멈췄다가 돌아오면 지난 글을 몰아 올리지 않는다 (11-06 22:00 — 이틀 전 것은 버리고 어제 것만)
+  assert.ok(STALE_HOURS < 48);
+  assert.deepEqual(dueEntries(q, new Date(at + 49 * h)).map((e) => e.id), ['later']);
+});
+
+test('예약 실행이 밀려도 새벽에 올리지 않고 다음 날 같은 시간대로', () => {
+  const at = kst(base.at).getTime();
+  const q = { entries: [base] };
+  assert.deepEqual(dueEntries(q, new Date(at + (POST_WINDOW_HOURS * 3600_000) - 1)).map((e) => e.id), ['d3-ig']); // 23:59
+  assert.deepEqual(dueEntries(q, new Date(at + POST_WINDOW_HOURS * 3600_000)), []); // 00:00
+  assert.deepEqual(dueEntries(q, new Date(at + 7.5 * 3600_000)), []); // 04:30 (2026-11 에 실제로 밀린 시각)
+  assert.deepEqual(dueEntries(q, new Date(at + 24.5 * 3600_000)).map((e) => e.id), ['d3-ig']); // 다음 날 21:30
 });
 
 test('같은 글 판단은 공백 차이를 무시', () => {

@@ -5,6 +5,13 @@
 export const REPO = 'songharry77ss-sketch/mylovecoach';
 /** 올린 지 이만큼 지난 항목은 올리지 않는다 (예약 실행이 며칠 멈췄다가 한꺼번에 몰아 올리는 일을 막음) */
 export const STALE_HOURS = 36;
+/**
+ * 하루 중 예정 시각부터 이만큼 안에서만 올린다. GitHub 예약 실행이 몇 시간씩 밀려도(2026-11 에 7시간 넘게 밀림)
+ * 새벽에 올라가지 않고, 놓치면 다음 날 같은 시간대에 올라간다. 예약 실행은 매시간 돈다.
+ */
+export const POST_WINDOW_HOURS = 3;
+const HOUR = 3600_000;
+const DAY = 24 * HOUR;
 
 export const CHANNELS = ['instagram', 'threads'];
 export const KINDS = {
@@ -138,7 +145,8 @@ export function queueProblems(queue) {
 }
 
 /**
- * 지금 올릴 항목 — 허락(approved: true)받았고, 시간이 됐고, 아직 안 올렸고, 너무 오래 지나지 않은 것.
+ * 지금 올릴 항목 — 허락(approved: true)받았고, 시간이 됐고, 아직 안 올렸고, 너무 오래 지나지 않았고,
+ * 지금이 하루 중 예정 시각부터 POST_WINDOW_HOURS 안인 것.
  * posted: 이미 올린 id 의 집합 (posted.json)
  */
 export function dueEntries(queue, now, posted = new Set()) {
@@ -146,8 +154,8 @@ export function dueEntries(queue, now, posted = new Set()) {
   return (queue.entries ?? [])
     .filter((e) => e.approved === true && !posted.has(e.id))
     .filter((e) => {
-      const at = kst(e.at).getTime();
-      return at <= t && t - at <= STALE_HOURS * 3600_000;
+      const late = t - kst(e.at).getTime();
+      return late >= 0 && late <= STALE_HOURS * HOUR && late % DAY < POST_WINDOW_HOURS * HOUR;
     })
     .sort((a, b) => kst(a.at) - kst(b.at));
 }
