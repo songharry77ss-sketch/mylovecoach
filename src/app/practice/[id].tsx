@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeInUp, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BrandGradient, HeroCard, Icon3D } from '@/components/brand/brand';
 import { useAiReport } from '@/components/coach/ai-report-sheet';
 import { HeatGauge } from '@/components/coach/heat-gauge';
 import { useCelebrate } from '@/components/fx/celebration';
@@ -14,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { IconButton } from '@/components/ui/icon-button';
 import { PressableScale } from '@/components/ui/pressable-scale';
-import { MaxContentWidth, Radius, Spacing, Typography } from '@/constants/theme';
+import { Brand, MaxContentWidth, Radius, Spacing, Typography } from '@/constants/theme';
 import { kktiLabel } from '@/hooks/use-coach';
 import { useAiAction } from '@/hooks/use-ai-action';
 import { useKeyboardVisible } from '@/hooks/use-keyboard';
@@ -322,20 +323,27 @@ export default function PracticeSessionScreen() {
           data={session.turns}
           keyExtractor={(t) => t.id}
           renderItem={renderTurn}
-          contentContainerStyle={styles.list}
+          // 연습이 끝나면 입력창이 사라지므로 맨 아래 결과 카드가 홈 막대·탐색 버튼에 가리지 않게 아래 여백을 둔다
+          contentContainerStyle={[styles.list, finished ? { paddingBottom: insets.bottom + Spacing.xl } : null]}
           keyboardShouldPersistTaps="handled"
           ListHeaderComponent={
             <View style={[styles.scenario, { backgroundColor: theme.surface }]}>
-              <AppText variant="smallStrong">🎬 상황</AppText>
-              <AppText variant="small" color="textSecondary">
-                {p.scenario}
-              </AppText>
-              <AppText variant="caption" color="primary">
-                💡 {p.hint}
-              </AppText>
+              <View style={styles.labelRow}>
+                <Ionicons name="film-outline" size={14} color={theme.textSecondary} />
+                <AppText variant="smallStrong" color="textSecondary">
+                  오늘의 상황
+                </AppText>
+              </View>
+              <AppText variant="body">{p.scenario}</AppText>
+              <View style={[styles.hint, { backgroundColor: theme.primarySoft }]}>
+                <Ionicons name="bulb" size={14} color={theme.primary} style={styles.hintIcon} />
+                <AppText variant="small" color="primary" style={styles.flex}>
+                  {p.hint}
+                </AppText>
+              </View>
               {report.available ? (
                 <AppText variant="caption" color="textTertiary">
-                  🤖 AI가 연기하는 상대예요. 불쾌한 말은 위 깃발(가장 최근 말)이나 말풍선 길게 누르기로, 코치 피드백은 옆 깃발로 신고할 수 있어요
+                  AI가 연기하는 상대예요. 불쾌한 말은 위 깃발(가장 최근 말)이나 말풍선 길게 누르기로, 코치 피드백은 옆 깃발로 신고할 수 있어요
                 </AppText>
               ) : null}
             </View>
@@ -353,27 +361,38 @@ export default function PracticeSessionScreen() {
                 </View>
               </Animated.View>
             ) : finished ? (
-              <Animated.View entering={ZoomIn.springify().damping(14)} style={[styles.result, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}>
-                <AppText style={styles.resultEmoji}>{verdict.emoji}</AppText>
-                <AppText variant="title2" align="center">
-                  {verdict.title}
-                </AppText>
-                <AnimatedNumber value={session.heat} suffix="°" variant="display" color="accent" align="center" />
-                <AppText variant="small" color="textSecondary" align="center">
-                  {verdict.body}
-                </AppText>
-                {best ? (
-                  <View style={[styles.best, { backgroundColor: theme.accentSoft }]}>
-                    <AppText variant="caption" color="accent" weight="800">
-                      🏆 오늘의 한 마디 (+{best.delta}°)
-                    </AppText>
-                    <AppText variant="small">{best.text}</AppText>
+              <Animated.View entering={ZoomIn.springify().damping(14)} style={styles.result}>
+                <HeroCard>
+                  <View style={styles.resultHead}>
+                    <View style={styles.flex}>
+                      <AppText variant="caption" weight="700" color={Brand.onBrandDim}>
+                        {verdict.emoji} {p.name}님과의 연습 결과
+                      </AppText>
+                      <AppText variant="title2" color={Brand.onBrand}>
+                        {verdict.title}
+                      </AppText>
+                    </View>
+                    <Icon3D name="heart" size={64} float />
                   </View>
-                ) : null}
-                <View style={styles.resultActions}>
-                  <Button title="같은 상대와 다시" onPress={restart} />
-                  <Button title="다른 상대 고르기" variant="soft" onPress={() => router.replace('/(tabs)/practice')} />
-                </View>
+                  <AnimatedNumber value={session.heat} suffix="°" variant="hero" color={Brand.onBrand} style={styles.resultHeat} accessibilityLabel={`최종 호감 온도 ${session.heat}도`} />
+                  <AppText variant="small" color={Brand.onBrandDim}>
+                    {verdict.body}
+                  </AppText>
+                  {best ? (
+                    <View style={styles.best}>
+                      <AppText variant="caption" color={Brand.onBrandDim} weight="800">
+                        오늘의 한 마디 · +{best.delta}°
+                      </AppText>
+                      <AppText variant="bodyStrong" color={Brand.onBrand}>
+                        {best.text}
+                      </AppText>
+                    </View>
+                  ) : null}
+                  <View style={styles.resultActions}>
+                    <Button title="같은 상대와 다시" variant="stage" onPress={restart} />
+                    <Button title="다른 상대 고르기" variant="stageGhost" onPress={() => router.replace('/(tabs)/practice')} />
+                  </View>
+                </HeroCard>
               </Animated.View>
             ) : null
           }
@@ -404,7 +423,7 @@ export default function PracticeSessionScreen() {
                   multiline
                   maxLength={300}
                   editable={!busy}
-                  style={[styles.input, Typography.body, { color: theme.text }]}
+                  style={[styles.input, Typography.body, styles.noOutline, { color: theme.text }]}
                 />
               </View>
               <PressableScale
@@ -412,8 +431,9 @@ export default function PracticeSessionScreen() {
                 feedback={false}
                 onPress={send}
                 disabled={!canSend}
-                style={[styles.sendBtn, { backgroundColor: canSend ? theme.primary : theme.surfaceSelected }]}>
-                <Ionicons name="arrow-up" size={22} color={theme.primaryText} />
+                style={[styles.sendBtn, { backgroundColor: theme.surfaceSelected }]}>
+                {canSend ? <BrandGradient style={StyleSheet.absoluteFill} /> : null}
+                <Ionicons name="arrow-up" size={22} color={canSend ? Brand.onBrand : theme.textTertiary} />
               </PressableScale>
             </View>
           </View>
@@ -432,7 +452,10 @@ const styles = StyleSheet.create({
   endBtn: { height: 40, paddingHorizontal: Spacing.sm, justifyContent: 'center' },
   gauge: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   list: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.lg, gap: Spacing.md, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
-  scenario: { borderRadius: Radius.lg, padding: Spacing.md, gap: 4, marginBottom: Spacing.sm },
+  scenario: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.sm, marginBottom: Spacing.sm },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  hint: { flexDirection: 'row', gap: Spacing.sm, borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2 },
+  hintIcon: { marginTop: 3 },
   themRow: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'flex-end', maxWidth: '85%' },
   avatar: { width: 32, height: 32, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   avatarEmoji: { fontSize: 17, lineHeight: 21 },
@@ -441,14 +464,17 @@ const styles = StyleSheet.create({
   meBubble: { borderRadius: Radius.lg, borderBottomRightRadius: 4, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2, maxWidth: '85%' },
   feedbackWrap: { maxWidth: '92%' },
   feedback: { flexDirection: 'row', gap: Spacing.sm, borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
-  result: { borderRadius: Radius.xl, borderWidth: 1, padding: Spacing.xl, gap: Spacing.sm, alignItems: 'stretch', marginTop: Spacing.lg },
-  resultEmoji: { fontSize: 48, lineHeight: 58, textAlign: 'center' },
-  best: { borderRadius: Radius.md, padding: Spacing.md, gap: 4 },
-  resultActions: { gap: Spacing.sm, marginTop: Spacing.sm },
+  result: { marginTop: Spacing.lg },
+  resultHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  resultHeat: { fontSize: 64, lineHeight: 72, marginTop: Spacing.sm },
+  best: { borderRadius: Radius.md, padding: Spacing.md, gap: 4, marginTop: Spacing.md, backgroundColor: Brand.glass, borderWidth: 1, borderColor: Brand.glassBorder },
+  resultActions: { gap: Spacing.xs, marginTop: Spacing.lg },
   error: { marginHorizontal: Spacing.lg, borderRadius: Radius.md, padding: Spacing.sm },
   composer: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: Spacing.sm, paddingHorizontal: Spacing.md, gap: Spacing.xs },
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: Spacing.sm },
   inputBox: { flex: 1, borderRadius: Radius.lg, paddingHorizontal: Spacing.lg, minHeight: 44, maxHeight: 120, justifyContent: 'center' },
   input: { paddingVertical: Spacing.sm + 2 },
-  sendBtn: { width: 44, height: 44, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
+  // 웹 브라우저의 검은 포커스 테두리 대신 입력칸 모양 그대로 (앱에는 영향 없음)
+  noOutline: Platform.select({ web: { outlineStyle: 'none' }, default: {} }) as object,
+  sendBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
 });

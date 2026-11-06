@@ -182,6 +182,21 @@ describe('사용량 로그', () => {
     for (const secret of ['민지', '지훈', '첫 메시지', '헬스장', '10.0.']) expect(raw).not.toContain(secret);
   });
 
+  it('코칭 응답에 센딧이 기억하는 이야기(memory)를 정리해 싣고, 모델이 빠뜨렸으면 빈 목록으로 (실패로 돌려보내지 않는다)', async () => {
+    succeed({ ...ANALYSIS, memory: ['- 민지는 카페를 좋아함', '민지는 카페를 좋아함', '토요일 약속'] });
+    const res = await post({}, { ...BODY, crush: { ...BODY.crush, memory: ['민지는 카페를 좋아함'] }, today: '11/6(금)' });
+    expect(res.statusCode).toBe(200);
+    expect((res.body as { analysis: { memory: string[] } }).analysis.memory).toEqual(['민지는 카페를 좋아함', '토요일 약속']);
+    // 프롬프트에 기억과 오늘 날짜가 들어간다
+    const task = gemini.mock.calls[0][0] as { context: string; task: string };
+    expect(task.context).toContain('[센딧이 기억하는 이 사람과의 이야기');
+    expect(task.task).toContain('[오늘] 11/6(금)');
+    succeed(ANALYSIS);
+    const old = await post();
+    expect(old.statusCode).toBe(200);
+    expect((old.body as { analysis: { memory: string[] } }).analysis.memory).toEqual([]);
+  });
+
   it('응답에도 늘어난 사용량(생각·캐시·전체 토큰)을 싣는다', async () => {
     succeed(ANALYSIS);
     const res = await post();
@@ -371,7 +386,7 @@ describe('입력 길이 상한 (비용·남용 방지)', () => {
   it('모든 칸을 서버 상한까지 채운 요청도 본문 상한(= Vercel 4.5MB) 안에 들어가고 통과한다', async () => {
     const tags = (n: number) => Array.from({ length: n }, () => longText(40));
     const schemaMax = {
-      crush: { name: longText(100), gender: 'female', age: 26, mbti: longText(10), relationship: 'talking', style: tags(20), notes: longText(2000), callName: longText(20), callNameFixed: true, speech: 'polite', speechFixed: true, goal: longText(60), heat: 37 },
+      crush: { name: longText(100), gender: 'female', age: 26, mbti: longText(10), relationship: 'talking', style: tags(20), notes: longText(2000), callName: longText(20), callNameFixed: true, speech: 'polite', speechFixed: true, goal: longText(60), heat: 37, memory: tags(12).map(() => longText(200)) },
       user: { name: longText(100), gender: 'male', age: 28, mbti: longText(10), style: tags(20), about: longText(300), vibes: tags(5), goal: longText(60), kkti: longText(40) },
       tone: 'flirty',
       emoji: 'on',
@@ -381,6 +396,8 @@ describe('입력 길이 상한 (비용·남용 방지)', () => {
       earlierNotes: Array.from({ length: 12 }, () => longText(200)),
       toneChosen: true,
       emojiChosen: true,
+      remember: true,
+      today: longText(20),
     };
     const bytes = Buffer.byteLength(JSON.stringify(schemaMax));
     expect(bytes).toBeLessThan(MAX_BODY_BYTES);

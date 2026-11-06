@@ -15,7 +15,7 @@ jest.mock('react-native-reanimated', () => jest.requireActual('react-native-rean
 jest.mock('@/components/ui/toast', () => ({ useToast: () => ({ show: jest.fn() }) }));
 jest.mock('@/components/fx/celebration', () => ({ useCelebrate: () => jest.fn() }));
 jest.mock('expo-clipboard', () => ({ setStringAsync: jest.fn(async () => true) }));
-// 캐러셀은 너비를 잰 뒤에 그린다 — 시험에서는 바로 390 으로
+// 막대는 너비를 잰 뒤에 그린다 — 시험에서는 바로 390 으로
 jest.mock('react-native/Libraries/Components/View/View', () => {
   const { forwardRef, createElement, useEffect } = jest.requireActual('react');
   const Actual = jest.requireActual('react-native/Libraries/Components/View/View');
@@ -62,13 +62,17 @@ describe('답장 가리기', () => {
     expect(shown).toContain('답장 2개가 더 있어요');
     expect(shown).toContain('가입하면 바로 보여요');
 
-    // 2번째 버전으로 넘기면 복사 대신 가입
-    const dot = t.root.findAll((n) => n.props.accessibilityLabel === '버전 2' && typeof n.props.onPress === 'function')[0];
-    await act(async () => dot.props.onPress());
-    const main = t.root.findAll((n) => n.props.accessibilityLabel === '이 답장 복사하기' && typeof n.props.onPress === 'function')[0];
-    expect(textOf(main)).toContain('가입하고 버전 2 보기');
-    await act(async () => main.props.onPress());
+    // 첫 버전은 복사할 수 있고, 2번째부터는 복사 대신 「가입하고 보기」
+    expect(t.root.findAll((n) => n.props.accessibilityLabel === '답장 1 복사하기' && typeof n.props.onPress === 'function').length).toBeGreaterThan(0);
+    expect(t.root.findAll((n) => n.props.accessibilityLabel === '답장 2 복사하기').length).toBe(0);
+    const unlock = t.root.findAll((n) => n.props.accessibilityLabel === '버전 2 가입하고 보기' && typeof n.props.onPress === 'function')[0];
+    expect(textOf(unlock)).toContain('가입하고 보기');
+    await act(async () => unlock.props.onPress());
     expect(onUnlock).toHaveBeenCalledWith(1);
+    // 가린 카드 자체를 눌러도 가입으로 (복사하지 않는다)
+    const card = t.root.findAll((n) => n.props.accessibilityLabel === '답장 3: 가입하면 볼 수 있어요' && typeof n.props.onPress === 'function')[0];
+    await act(async () => card.props.onPress());
+    expect(onUnlock).toHaveBeenLastCalledWith(2);
     act(() => t.unmount());
   });
 
@@ -79,7 +83,12 @@ describe('답장 가리기', () => {
     });
     const t = tree as unknown as ReactTestRenderer;
     expect(allText(t)).toContain('숨겨진 두 번째 답장');
+    expect(allText(t)).toContain('숨은 반응');
     expect(allText(t)).not.toContain('가입하면 바로 보여요');
+    // 답장마다 성공 확률 큰 숫자와 복사 버튼
+    expect(allText(t)).toContain('82%');
+    expect(allText(t)).toContain('74%');
+    expect(t.root.findAll((n) => n.props.accessibilityLabel === '답장 3 복사하기' && typeof n.props.onPress === 'function').length).toBeGreaterThan(0);
     act(() => t.unmount());
   });
 });

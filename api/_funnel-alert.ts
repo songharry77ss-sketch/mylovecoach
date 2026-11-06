@@ -82,7 +82,9 @@ export const PAYWALL_COOLDOWN_MS = 10 * 60 * 1000;
 export const HOURLY_CAP = 40;
 
 const text = (v: unknown, max = 80): string => escapeHtml(String(v ?? '').slice(0, max));
-const planText = (props: AlertEvent['props']): string => PLAN_LABELS[String(props?.plan ?? '')] ?? (props?.plan ? text(props.plan, 24) : '상품 모름');
+/** 결제 화면이 보낸 상품 — 타임 세일 특가로 결제하면 sale: true 가 함께 온다 (src/app/paywall.tsx) */
+const planText = (props: AlertEvent['props']): string =>
+  `${PLAN_LABELS[String(props?.plan ?? '')] ?? (props?.plan ? text(props.plan, 24) : '상품 모름')}${props?.sale === true ? ' 특가' : ''}`;
 
 /** 이벤트 한 줄 */
 export function eventLine(e: AlertEvent): string | null {

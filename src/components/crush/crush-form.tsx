@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -11,7 +12,7 @@ import { SelectSheet } from '@/components/ui/select-sheet';
 import { TagPicker } from '@/components/ui/tag-picker';
 import { TextField } from '@/components/ui/text-field';
 import { useToast } from '@/components/ui/toast';
-import { Radius, Spacing } from '@/constants/theme';
+import { Brand, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { pickImage } from '@/lib/images';
 import { CRUSH_GOALS, CRUSH_STYLE_TAGS, GENDERS, MBTI_LIST, RELATIONSHIPS, SPEECH_OPTIONS } from '@/lib/labels';
@@ -19,7 +20,7 @@ import type { Crush, Gender, Relationship, SpeechPref } from '@/lib/types';
 
 export type CrushFormValue = Omit<
   Crush,
-  'id' | 'createdAt' | 'updatedAt' | 'lastMessageAt' | 'lastTemperature' | 'lastInterestScore' | 'heat' | 'heatLog' | 'detected' | 'report' | 'secret'
+  'id' | 'createdAt' | 'updatedAt' | 'lastMessageAt' | 'lastTemperature' | 'lastInterestScore' | 'heat' | 'heatLog' | 'detected' | 'report' | 'secret' | 'memory'
 >;
 
 interface CrushFormProps {
@@ -79,10 +80,14 @@ export function CrushForm({ initial, submitTitle, onSubmit }: CrushFormProps) {
     <View style={styles.wrap}>
       <View style={styles.photoRow}>
         <Pressable accessibilityRole="button" accessibilityLabel="상대 사진 선택" onPress={choosePhoto} style={styles.photo}>
-          <Avatar name={name || '?'} uri={photoUri} size={84} />
-          <View style={[styles.photoBadge, { backgroundColor: theme.primary }]}>
-            <Ionicons name="camera" size={14} color={theme.primaryText} />
-          </View>
+          <LinearGradient colors={Brand.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.photoRing}>
+            <View style={[styles.photoInner, { backgroundColor: theme.background }]}>
+              <Avatar name={name || '?'} uri={photoUri} size={84} />
+            </View>
+          </LinearGradient>
+          <LinearGradient colors={Brand.button} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.photoBadge, { borderColor: theme.background }]}>
+            <Ionicons name="camera" size={15} color={Brand.onBrand} />
+          </LinearGradient>
         </Pressable>
         <AppText variant="caption" color="textTertiary">
           사진은 선택이에요. 기기에만 저장돼요.
@@ -139,7 +144,11 @@ export function CrushForm({ initial, submitTitle, onSubmit }: CrushFormProps) {
         </View>
       </View>
 
-      <View style={styles.block}>
+      <View style={[styles.block, styles.card, { borderColor: theme.border }]}>
+        <View style={styles.cardHead}>
+          <Ionicons name="chatbubble-ellipses" size={16} color={theme.primary} />
+          <AppText variant="bodyStrong">답장 말투 맞추기</AppText>
+        </View>
         <TextField
           label="내가 부르는 호칭 (선택)"
           placeholder="예: 언니, 오빠, 선배님, 민지야"
@@ -196,7 +205,7 @@ export function CrushForm({ initial, submitTitle, onSubmit }: CrushFormProps) {
         maxLength={500}
       />
 
-      <Button title={submitTitle} onPress={submit} style={styles.submit} />
+      <Button title={submitTitle} variant="brand" onPress={submit} style={styles.submit} />
 
       <SelectSheet
         visible={mbtiOpen}
@@ -215,7 +224,11 @@ const styles = StyleSheet.create({
   wrap: { gap: Spacing.xl, paddingTop: Spacing.sm },
   photoRow: { alignItems: 'center', gap: Spacing.sm },
   photo: { position: 'relative' },
-  photoBadge: { position: 'absolute', right: -4, bottom: -4, width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
+  photoRing: { padding: 3, borderRadius: 38 },
+  photoInner: { padding: 3, borderRadius: 35 },
+  photoBadge: { position: 'absolute', right: -2, bottom: -2, width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 3 },
+  card: { borderRadius: Radius.xl, padding: Spacing.lg, borderWidth: 1 },
+  cardHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs + 2 },
   label: { marginBottom: Spacing.sm },
   block: { gap: Spacing.lg },
   helper: { marginTop: Spacing.sm, marginLeft: Spacing.xs },

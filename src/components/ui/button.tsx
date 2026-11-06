@@ -1,16 +1,20 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { AppText } from '@/components/ui/app-text';
-import { Radius, Spacing, Stage } from '@/constants/theme';
+import { Brand, BrandShadow, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { haptic as feedback } from '@/lib/haptics';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-/** gold · stage · stageGhost 는 에스프레소 무대 화면용 (골드 버튼 · 반투명 흰 버튼 · 글자만) */
-export type ButtonVariant = 'primary' | 'secondary' | 'soft' | 'ghost' | 'danger' | 'accent' | 'gold' | 'stage' | 'stageGhost';
+/**
+ * brand 는 센딧 그라데이션 주요 버튼. gold 는 예전 이름(같은 그라데이션으로 그린다).
+ * stage · stageGhost 는 그라데이션 면 위에 올리는 반투명 흰 버튼 · 글자만 버튼
+ */
+export type ButtonVariant = 'primary' | 'secondary' | 'soft' | 'ghost' | 'danger' | 'accent' | 'brand' | 'gold' | 'stage' | 'stageGhost';
 export type ButtonSize = 'lg' | 'md' | 'sm';
 
 interface ButtonProps {
@@ -49,10 +53,12 @@ export function Button({
     soft: { bg: theme.primarySoft, text: theme.primary },
     ghost: { bg: 'transparent', text: theme.textSecondary },
     danger: { bg: theme.accentSoft, text: theme.danger },
-    gold: { bg: Stage.gold, text: Stage.onGold },
-    stage: { bg: Stage.chip, text: Stage.text },
-    stageGhost: { bg: 'transparent', text: Stage.textDim },
+    brand: { bg: 'transparent', text: Brand.onBrand },
+    gold: { bg: 'transparent', text: Brand.onBrand },
+    stage: { bg: Brand.glass, text: Brand.onBrand },
+    stageGhost: { bg: 'transparent', text: Brand.onBrandDim },
   }[variant];
+  const gradient = variant === 'brand' || variant === 'gold';
 
   const height = { lg: 56, md: 48, sm: 38 }[size];
   const textVariant = { lg: 'bodyStrong', md: 'bodyStrong', sm: 'smallStrong' } as const;
@@ -76,11 +82,12 @@ export function Button({
         styles.base,
         { height, backgroundColor: colors.bg, opacity: disabled ? 0.45 : 1, alignSelf: fullWidth ? 'stretch' : 'flex-start' },
         variant === 'stage' ? styles.stageBorder : null,
-        variant === 'gold' ? styles.goldGlow : null,
+        gradient ? BrandShadow : null,
         size === 'sm' ? styles.sm : null,
         animated,
         style,
       ]}>
+      {gradient ? <LinearGradient colors={Brand.button} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, styles.fill, size === 'sm' ? styles.fillSm : null]} /> : null}
       {loading ? (
         <ActivityIndicator color={colors.text} />
       ) : (
@@ -103,7 +110,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
   },
   sm: { paddingHorizontal: Spacing.md, borderRadius: Radius.sm },
-  stageBorder: { borderWidth: 1, borderColor: Stage.chipBorder },
-  goldGlow: { shadowColor: Stage.gold, shadowOpacity: 0.35, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
+  stageBorder: { borderWidth: 1, borderColor: Brand.glassBorder },
+  fill: { borderRadius: Radius.md },
+  fillSm: { borderRadius: Radius.sm },
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
 });

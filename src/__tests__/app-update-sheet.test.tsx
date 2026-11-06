@@ -19,11 +19,45 @@ jest.mock('@react-native-async-storage/async-storage', () => {
     },
   };
 });
-// 버튼의 눌림 애니메이션(Reanimated)은 여기서 볼 것이 아니라 글자 버튼으로 대신한다
+// 버튼의 눌림 애니메이션(Reanimated)은 여기서 볼 것이 아니라 글자 버튼으로 대신한다 (센딧 그라데이션 버튼도)
 jest.mock('@/components/ui/button', () => {
   const { createElement } = jest.requireActual('react');
   const { Text: RNText } = jest.requireActual('react-native');
   return { Button: ({ title, onPress }: { title: string; onPress?: () => void }) => createElement(RNText, { accessibilityRole: 'button', onPress }, title) };
+});
+jest.mock('@/components/brand/brand', () => {
+  const { createElement } = jest.requireActual('react');
+  const { Text: RNText } = jest.requireActual('react-native');
+  return {
+    ...jest.requireActual('@/components/brand/brand'),
+    GradientButton: ({ title, onPress }: { title: string; onPress?: () => void }) => createElement(RNText, { accessibilityRole: 'button', onPress }, title),
+  };
+});
+// 3D 아이콘이 떠 있는 움직임(Reanimated·worklets)은 바로 끝나는 흉내로 — brand.tsx 가 reanimated 를 바로 불러온다
+jest.mock('react-native-worklets', () => jest.requireActual('react-native-worklets/src/mock'));
+jest.mock('react-native-reanimated', () => {
+  const RN = jest.requireActual('react-native');
+  const { useRef } = jest.requireActual('react');
+  const same = (t: number) => t;
+  const last = (...values: unknown[]) => values[values.length - 1];
+  const target = (value: unknown) => value;
+  return {
+    __esModule: true,
+    default: { View: RN.View, Text: RN.Text, createAnimatedComponent: target },
+    Easing: { out: () => same, in: () => same, inOut: () => same, quad: same, sin: same, linear: same },
+    useSharedValue: (value: unknown) => useRef({ value }).current,
+    useAnimatedStyle: (style: () => object) => style(),
+    withDelay: last,
+    withSequence: last,
+    withSpring: target,
+    withTiming: target,
+    withRepeat: target,
+  };
+});
+jest.mock('@expo/vector-icons', () => ({ Ionicons: Object.assign(() => null, { glyphMap: {} }) }));
+jest.mock('expo-linear-gradient', () => {
+  const { View } = jest.requireActual('react-native');
+  return { LinearGradient: View };
 });
 jest.mock('@/lib/config', () => ({
   APP_CONFIG: { apiUrl: 'https://api.example', apiSameOrigin: false, apiToken: '', supportEmail: '', privacyUrl: '', termsUrl: '' },
@@ -99,14 +133,14 @@ describe('새 버전 안내 시트', () => {
   it('스토어에 새 버전이 있으면 탭 첫 화면에서 업데이트를 권한다', async () => {
     const tree = await mount();
     expect(asks).toBe(1);
-    expect(texts(tree)).toEqual(expect.arrayContaining(['새 버전이 나왔어요', '지금 버전 1.0.2', '새 버전 1.0.3', '업데이트하기', '나중에']));
+    expect(texts(tree)).toEqual(expect.arrayContaining(['새로워진 센딧이 나왔어요', '지금 버전 1.0.2', '새 버전 1.0.3', '업데이트하기', '나중에']));
   });
 
   it('서버가 새 버전의 새 소식을 알려 주면 무엇이 좋아졌는지 보여 준다', async () => {
     server = { latest: '1.0.3', min: null, notes: ['답장이 더 빨라졌어요.', '캡처가 또렷해졌어요.'] };
     const tree = await mount();
     expect(texts(tree)).toEqual(
-      expect.arrayContaining(['새 버전이 나왔어요', '이번 버전에서 이렇게 좋아졌어요. 채팅방과 기록은 그대로 남아요.', '답장이 더 빨라졌어요.', '캡처가 또렷해졌어요.', '새 버전 1.0.3']),
+      expect.arrayContaining(['새로워진 센딧이 나왔어요', '이번 버전에서 이렇게 좋아졌어요. 채팅방과 기록은 그대로 남아요.', '답장이 더 빨라졌어요.', '캡처가 또렷해졌어요.', '새 버전 1.0.3']),
     );
   });
 
@@ -139,7 +173,7 @@ describe('새 버전 안내 시트', () => {
     // 3일이 지나면 다시 권한다
     jest.setSystemTime(NOW + UPDATE_SNOOZE_MS + 1000);
     resetUpdateCheckForTest();
-    expect(texts(await mount())).toContain('새 버전이 나왔어요');
+    expect(texts(await mount())).toContain('새로워진 센딧이 나왔어요');
   });
 
   it('미뤄 둔 뒤 더 새 버전이 나오면 바로 다시 권한다', async () => {
@@ -194,6 +228,9 @@ describe('새 버전 안내 시트', () => {
     const shown = texts(tree);
     expect(shown).toEqual(expect.arrayContaining(['업데이트가 필요해요', '이번 버전에서 좋아진 점', '답장이 더 빨라졌어요.', '채팅방 그대로', '업데이트하기']));
     expect(shown.join(' ')).toContain('App Store에서 업데이트한 뒤');
+    // 새 이름으로 — 옛 이름은 쓰지 않는다
+    expect(shown.join(' ')).toContain('새로워진 센딧이 기다리고 있어요');
+    expect(shown.join(' ')).not.toContain('연애코치');
     expect(shown.join(' ')).not.toMatch(/Google Play|나중에/);
   });
 
@@ -207,7 +244,7 @@ describe('새 버전 안내 시트', () => {
       await flush();
     });
     expect(asks).toBe(2);
-    expect(texts(tree)).toContain('새 버전이 나왔어요');
+    expect(texts(tree)).toContain('새로워진 센딧이 나왔어요');
     expect(useAppStore.getState().updateSnooze).toBeNull();
   });
 });

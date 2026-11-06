@@ -1,6 +1,14 @@
-# 나만의 연애코치
+# 센딧 (나만의 연애 코치)
 
 대화 캡처를 올리면 상대에게 맞춘 답장과 호감 온도를 알려주는 앱. Expo SDK 57 / React Native 0.86 / expo-router.
+2026-11-06(1.1.0)에 이름을 「나만의 연애코치」→ **센딧(Sendit)** 으로 바꾸고(부제 「나만의 연애 코치」) 화면을 새로 만들었다. 번들 ID·스킴 `mylovecoach`·도메인·상품 ID·저장소 키는 그대로.
+
+## 디자인 (1.1.0~)
+
+- 지침: `docs/design/SENDIT_UI.md` — 「럽코」 시안 배치(흰 화면·연회색 카드·큰 한글) + 앱 아이콘의 하늘색→파랑→보라 그라데이션. 분홍·에스프레소·골드는 쓰지 않는다.
+- 토큰: `src/constants/theme.ts` 의 `Colors`·`Brand`·`BrandShadow`, 이름·문구: `src/constants/brand.ts`(APP_NAME·SPLASH_COPY·RESEARCH_LINE).
+- 공통 부품: `src/components/brand/brand.tsx`(GradientButton·HeroCard·SenditLogo·ResearchBadge·Icon3D·useRemaining 등). 3D 아이콘 `assets/images/sendit/3d-*.png` 는 Codex 로 만든 것(원본·프롬프트 `docs/design/sendit-20261106/codex-3d/`).
+- 앱 아이콘·스플래시 그림은 벡터 원본 `tools/brand/icon.html` 에서 `node tools/brand/render-icons.mjs` 로 뽑는다(인트로 `fx/intro-splash.tsx` 의 SQUARE 좌표와 짝).
 
 **모든 글은 한국어로.** 답변, 중간 보고, 커밋 메시지, 코드 주석, 도구 실행 설명까지 전부.
 
@@ -50,10 +58,12 @@ npx tsc --noEmit && npx eslint src --max-warnings=0 && npx jest
 
 ## 구조
 
-- `src/app/` — 화면 (expo-router). 처음 실행: 소개 3장 `welcome.tsx` → 약관 → 「나에 대해」 `about-me.tsx`(코치가 한 가지씩 묻는 대화, 홈·마이에서 `?from=home|my` 로 다시 열면 끝나고 돌아감) → 첫 캡처 `start.tsx`(캡처 버튼 하나에 집중, 글로 적기는 접어 둠, 「둘러보기」로 홈). 채팅은 `crush/[id]/index.tsx`
-  - 탭: 채팅 `(tabs)/index`(캡처·상황 적기 → 채팅방이 있으면 `components/coach/who-sheet.tsx` 「누구와의 대화예요?」) · 탐색 `(tabs)/tips`(KKTI·비밀 상담·속마음 카드 등 부가 기능) · 마이 `(tabs)/my`. 연애 연습 `(tabs)/practice` 은 기본 숨김(마이 → 추가 기능)
+- `src/app/` — 화면 (expo-router). 처음 실행: 사용법 안내 `welcome.tsx`(표지 + 실제 앱 화면 4장 — 그림은 `assets/images/guide/step-*.png`, 자르기·강조 좌표는 `components/guide/guide-steps.ts`. 업데이트한 기존 이용자는 `guideSeen !== GUIDE_VERSION` 이면 `?from=update` 로 한 번, 마이 → 「사용법 다시 보기」는 `?from=my`) → 약관 → 「나에 대해」 `about-me.tsx`(코치가 한 가지씩 묻는 대화, 홈·마이에서 `?from=home|my` 로 다시 열면 끝나고 돌아감) → 첫 캡처 `start.tsx`(캡처 버튼 하나에 집중, 글로 적기는 접어 둠, 「둘러보기」로 홈). 채팅은 `crush/[id]/index.tsx`
+  - 탭: 홈 `(tabs)/index`(캡처·상황 적기 → 채팅방이 있으면 `components/coach/who-sheet.tsx` 「누구와의 대화예요?」) · 탐색 `(tabs)/tips`(KKTI·비밀 상담·속마음 카드 등 부가 기능) · 마이 `(tabs)/my`. 연애 연습 `(tabs)/practice` 은 기본 숨김(마이 → 추가 기능)
   - 상대 분석 보고서 `crush/[id]/report`, 연습 대화 `practice/[id]`·`practice/custom`, 속마음 풀이 `mind`, 빠른 코칭 `quick`(플로팅 버블·`mylovecoach://quick` 이 여는 곳), KKTI 테스트 `kkti/`
-- `src/components/coach/` — 결과 카드(`analysis-card.tsx`), 답장 스와이프(`reply-carousel.tsx`), 누적 온도계(`heat-gauge.tsx`), 입력창(`composer.tsx`)
+- `src/components/coach/` — 결과 카드(`analysis-card.tsx`), 답장 3가지 세로 비교(`reply-cards.tsx`), 누적 온도계(`heat-gauge.tsx`), 입력창(`composer.tsx`), 「센딧이 기억하는 이야기」 시트(`memory-sheet.tsx`)
+- 기억: 대화방마다 `Crush.memory.facts`(최근 8줄). 코칭 응답의 `memory` 로 갱신해 다음 요청의 `crush.memory` 로 보낸다(비밀 상담·「다른 답장」 제외, 사용자가 지울 수 있음). 프롬프트 블록은 `coach-schema.ts`
+- 타임 세일: 하루 이용권 특가 상품 `mylovecoach.pass.day.sale` 이 두 스토어에 실제로 있을 때만 30분(7일에 한 번) 열린다 — 규칙 `src/lib/billing/sale.ts`, 절차 `docs/DAY_PASS_SALE.md`. 가짜 할인·되풀이 타이머 금지(표시광고법)
 - `src/components/fx/celebration.tsx` — 하트·꽃가루 효과 (`useCelebrate()`), `src/lib/haptics.ts` — 진동 패턴 모음 (마이 탭에서 끌 수 있음)
 - `src/lib/coach-schema.ts` — 코칭 요청·응답 스키마와 프롬프트(호칭·존댓말·이모지·누적 온도). 앱과 서버가 같이 쓴다
 - `src/lib/ai-tasks.ts` · `ai-schemas.ts` — 모드별(coach·report·mind·practice) 요청·프롬프트·출력. 서버는 `mode` 로 나눠 처리하고, mode 가 없으면 예전 앱의 코칭 요청

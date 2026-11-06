@@ -128,6 +128,7 @@ App Store 개인정보 설문은 **화면에서 저장·게시**합니다. 개�
 |---|---|---|
 | 이름 | 온보딩에서 적은 내 이름(별명). 코칭 요청마다 서버를 거쳐 Gemini 로 가고, 이용 기록에 동의하면 `app_user.name` 에 저장 | `CoachRequestSchema.user`, `supabase/schema.sql` |
 | 사진 또는 비디오 | 대화 캡처. Gemini 가 분석만 하고 **우리 서버엔 저장하지 않음** (첨부 여부만 기록) → 신원 연결 안 됨 | `api/coach.ts` 의 `has_image` |
+| (1.1.0~) 센딧이 기억하는 이야기 | 채팅방마다 AI 가 지난 대화를 정리한 짧은 기억(최근 8줄). **기기에만 저장**, 같은 채팅방의 코칭·보고서 요청 때 `crush.memory` 로 Gemini 에 같이 감. 서버는 전달만 하고 보관 안 함, 비밀 상담은 안 만듦, 사용자가 지울 수 있음 | `Crush.memory`, `src/lib/coach-schema.ts`, `src/components/coach/memory-sheet.tsx` |
 | 기타 사용자 콘텐츠 | 상황 설명 글, 상대 이름, 받은 답장. 동의하면 `coach_log` 에 기기 ID 와 함께 저장 | `coach_log` 테이블 |
 | 기기 ID | 앱이 만든 무작위 ID (광고 ID 아님). 이용 기록 동의 시에만 전송 | `src/lib/analytics.ts` |
 | 구입 내역 | 이용 중인 프리미엄 종류(주간·평생). 이용 기록 동의 시에만 전송. 결제 자체는 스토어가 처리 | `app_user.premium_plan` |

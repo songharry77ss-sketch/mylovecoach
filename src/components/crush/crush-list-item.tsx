@@ -1,75 +1,98 @@
-import { StyleSheet, View } from 'react-native';
+import { Image } from 'expo-image';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { heatMeta } from '@/components/coach/heat-gauge';
+import { AnimatedNumber } from '@/components/ui/animated-number';
 import { AppText } from '@/components/ui/app-text';
-import { Avatar } from '@/components/ui/avatar';
-import { Card } from '@/components/ui/card';
-import { Radius, Spacing } from '@/constants/theme';
+import { PressableScale } from '@/components/ui/pressable-scale';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { relativeTime } from '@/lib/format';
 import { relationshipLabel } from '@/lib/labels';
 import type { Crush } from '@/lib/types';
-import { HEAT_MAX, HEAT_MIN } from '@/store/app-store';
 
 interface CrushListItemProps {
   crush: Crush;
   lastPreview?: string;
   /** 대화 미리보기 숨기기 (마이 탭 설정) */
   hidePreview?: boolean;
+  /** 아래에 얇은 구분선 (목록의 마지막 줄은 끈다) */
+  divider?: boolean;
   onPress: () => void;
 }
 
-export function CrushListItem({ crush, lastPreview, hidePreview, onPress }: CrushListItemProps) {
+/** 이름 첫 글자 동그라미 — 사진이 있으면 사진. 파랑·보라 두 가지 옅은 색을 이름마다 고정해서 쓴다 */
+export function RoomAvatar({ crush, size = 48 }: { crush: Pick<Crush, 'id' | 'name' | 'photoUri'>; size?: number }) {
+  const theme = useTheme();
+  if (crush.photoUri) {
+    return <Image source={{ uri: crush.photoUri }} style={{ width: size, height: size, borderRadius: size / 2 }} contentFit="cover" transition={150} />;
+  }
+  let hash = 0;
+  for (let i = 0; i < crush.id.length; i++) hash = (hash * 31 + crush.id.charCodeAt(i)) >>> 0;
+  const violet = hash % 2 === 1;
+  return (
+    <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2, backgroundColor: violet ? theme.accentSoft : theme.primarySoft }]}>
+      <Text style={[styles.avatarText, { fontSize: size * 0.4, lineHeight: size * 0.5, color: violet ? theme.accent : theme.primary }]}>{crush.name.trim().slice(0, 1) || '?'}</Text>
+    </View>
+  );
+}
+
+/**
+ * 홈 「최근 상담」 한 줄 — 이름 · 마지막 대화 한 줄 · 오른쪽에 큰 호감 온도(°).
+ * 카드 대신 흰 바탕 위 줄로 깔끔하게 두고, 온도는 처음 보일 때 0°에서 세어 올라간다.
+ */
+export function CrushListItem({ crush, lastPreview, hidePreview, divider = false, onPress }: CrushListItemProps) {
   const theme = useTheme();
   const heat = crush.heat ?? 0;
   const meta = heatMeta(heat);
   const rel = relationshipLabel(crush.relationship);
   const last = crush.heatLog?.[crush.heatLog.length - 1];
-  const fill = Math.max(4, ((heat - HEAT_MIN) / (HEAT_MAX - HEAT_MIN)) * 100);
-  const preview = hidePreview ? '🔒 미리보기 숨김' : (lastPreview ?? `${rel.emoji} ${rel.label}${crush.mbti ? ` · ${crush.mbti}` : ''} · 캡처를 올려 코칭을 시작해보세요`);
+  const preview = hidePreview ? '미리보기를 숨겼어요' : (lastPreview ?? `${rel.label}${crush.mbti ? ` · ${crush.mbti}` : ''} · 캡처를 올려 시작해 보세요`);
+  const when = crush.lastMessageAt ? relativeTime(crush.lastMessageAt) : '새 채팅방';
   return (
-    <Card onPress={onPress} tone="default" elevated style={styles.card}>
-      <Avatar name={crush.name} uri={crush.photoUri} size={52} seed={crush.id} />
+    <PressableScale
+      onPress={onPress}
+      pressedScale={0.98}
+      accessibilityLabel={`${crush.name}, 호감 온도 ${heat}도, ${when}`}
+      accessibilityHint="채팅방을 열어요"
+      style={[styles.row, divider ? { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border } : null]}>
+      <RoomAvatar crush={crush} size={48} />
       <View style={styles.texts}>
-        <View style={styles.row}>
+        <View style={styles.nameRow}>
           <AppText variant="bodyStrong" numberOfLines={1} style={styles.name}>
             {crush.name}
           </AppText>
           <AppText variant="caption" color="textTertiary">
-            {crush.lastMessageAt ? relativeTime(crush.lastMessageAt) : '새 채팅방'}
+            {when}
           </AppText>
         </View>
         <AppText variant="small" color="textSecondary" numberOfLines={1}>
           {preview}
         </AppText>
-        <View style={styles.heatRow}>
-          <AppText variant="caption" color={meta.color} weight="800">
-            {meta.emoji} {heat}°
-          </AppText>
-          <View style={[styles.track, { backgroundColor: theme.surfaceSelected }]}>
-            <View style={[styles.fill, { width: `${fill}%`, backgroundColor: meta.color }]} />
-          </View>
-          {last && last.delta !== 0 ? (
-            <AppText variant="caption" weight="700" color={last.delta > 0 ? theme.accent : theme.primary}>
-              {last.delta > 0 ? `▲${last.delta}` : `▼${Math.abs(last.delta)}`}
-            </AppText>
-          ) : (
-            <AppText variant="caption" color="textTertiary">
-              {meta.label}
-            </AppText>
-          )}
-        </View>
       </View>
-    </Card>
+      <View style={styles.heat}>
+        <AnimatedNumber value={heat} suffix="°" ticks={false} duration={900} style={[styles.heatNum, { color: heat >= 50 ? theme.accent : theme.primary }]} />
+        {last && last.delta !== 0 ? (
+          <AppText variant="caption" weight="700" color={last.delta > 0 ? theme.accent : theme.textTertiary}>
+            {last.delta > 0 ? `▲ ${last.delta}°` : `▼ ${Math.abs(last.delta)}°`}
+          </AppText>
+        ) : (
+          <AppText variant="caption" color="textTertiary">
+            {meta.label}
+          </AppText>
+        )}
+      </View>
+    </PressableScale>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { flexDirection: 'row', gap: Spacing.md, alignItems: 'center', padding: Spacing.lg },
-  texts: { flex: 1, gap: 4 },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
-  name: { flex: 1 },
-  heatRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  track: { flex: 1, height: 6, borderRadius: Radius.pill, overflow: 'hidden' },
-  fill: { height: '100%', borderRadius: Radius.pill },
+  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.md + 2, minHeight: 76 },
+  avatar: { alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontWeight: '800' },
+  texts: { flex: 1, gap: 3 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  name: { flexShrink: 1 },
+  heat: { alignItems: 'flex-end', minWidth: 64 },
+  heatNum: { fontSize: 28, lineHeight: 32, fontWeight: '900', letterSpacing: -1 },
 });

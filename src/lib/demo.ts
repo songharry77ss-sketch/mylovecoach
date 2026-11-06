@@ -32,10 +32,13 @@ export async function demoAnalysis(req: CoachRequest): Promise<CoachAnalysis> {
         { tone: 'natural', text: `토요일에 시간 되면 그 파스타집 같이 가보자${e('🍝')}`, why: '담백한 제안이라 부담이 없어요.', expectedReaction: '오 콜 ㅋㅋ 몇 시?', successRate: 74 },
         { tone: 'cool', text: `주말에 별일 없으면 밥이나 먹자. 내가 맛집 하나 알아둠${e('😎')}`, why: '여유 있어 보이고 상대가 고르기 쉬워요.', expectedReaction: 'ㅋㅋ 어디길래', successRate: 66 },
       ];
+  const remembered = req.crush.memory ?? [];
   return {
     callName: req.crush.callName ?? null,
     speechLevel: polite ? 'polite' : 'casual',
-    summary: `(데모 샘플) ${name}님이 먼저 주말 계획을 물어본 건 꽤 좋은 신호예요. 지금은 부담 없이 구체적인 제안을 던져도 괜찮은 타이밍이에요.${hasImage ? ' 올려주신 캡처 기준으로 분위기는 편안한 편이에요.' : ''}`,
+    summary: `(데모 샘플) ${name}님이 먼저 주말 계획을 물어본 건 꽤 좋은 신호예요. ${
+      remembered.length ? '지난번에 말한 성수 카페 얘기를 기억하고 있으니, 그걸로 자연스럽게 약속을 잡아 봐요.' : '지금은 부담 없이 구체적인 제안을 던져도 괜찮은 타이밍이에요.'
+    }${hasImage ? ' 올려주신 캡처 기준으로 분위기는 편안한 편이에요.' : ''}`,
     temperature: 'warm',
     interestScore: 68,
     heatDelta: hasImage ? 12 : req.text?.trim() ? 4 : 6,
@@ -47,7 +50,32 @@ export async function demoAnalysis(req: CoachRequest): Promise<CoachAnalysis> {
     replies,
     nextStep: '답이 긍정적이면 바로 시간과 장소를 정해서 확정해요. 애매하면 다음 주로 살짝 미뤄 여지를 남기세요.',
     warnings: ['같은 날 두 번 이상 약속을 재촉하지 마세요.', '이 결과는 데모용 샘플이에요. 실제 앱에서는 AI가 캡처를 분석해 답장을 만들어요.'],
+    memory: req.remember === false ? [] : demoMemory(req, remembered),
   };
+}
+
+/**
+ * 데모용 「센딧이 기억하는 이야기」 — 요청마다 한 줄씩 늘어나게 해서 기억 카드·시트를 확인할 수 있게 한다.
+ * 실제로는 AI 가 캡처·대화를 읽고 기존 기억을 고쳐 돌려준다
+ */
+function demoMemory(req: CoachRequest, remembered: string[]): string[] {
+  const who = req.crush.name === '상대' || req.crush.name === '비밀 상담' ? '상대' : req.crush.name;
+  const day = req.today ?? '오늘';
+  const ga = `${who}${josa(who, '이', '가')}`;
+  const neun = `${who}${josa(who, '은', '는')}`;
+  const pool = [
+    `${ga} 먼저 주말 계획을 물어봄 (${day})`,
+    `${neun} 성수 카페 투어와 파스타를 좋아함`,
+    `${neun} 평일엔 야근이 잦아 답장이 늦는 편`,
+    `내가 "주말에 카페 갈래?"라고 보냄 (${day})`,
+    `${ga} "토요일 괜찮아!"라고 답함 — 토요일 약속 잡는 중`,
+    `${neun} 강아지를 키우고 전시회를 좋아함`,
+    `서로 ㅋㅋ를 자주 쓰는 편안한 썸 단계`,
+  ];
+  const next = pool.find((line) => !remembered.includes(line));
+  // 첫 대화에는 두 줄, 그다음부터 한 줄씩 (최대 8줄)
+  const fresh = remembered.length ? (next ? [next] : []) : pool.slice(0, 2);
+  return [...remembered, ...fresh].slice(-8);
 }
 
 export async function demoReport(req: ReportRequest): Promise<CrushReport> {
@@ -104,4 +132,11 @@ export async function demoPractice(req: PracticeRequest): Promise<PracticeReply>
     better: asked ? '' : '저도 그래요 ㅎㅎ 요즘 빠진 거 있어요?',
     ended: false,
   };
+}
+
+/** 받침이 있으면 앞의 조사, 없으면 뒤의 조사 (한글이 아니면 뒤의 조사) */
+function josa(word: string, withFinal: string, withoutFinal: string): string {
+  const code = word.charCodeAt(word.length - 1) - 0xac00;
+  if (code < 0 || code > 11171) return withoutFinal;
+  return code % 28 ? withFinal : withoutFinal;
 }

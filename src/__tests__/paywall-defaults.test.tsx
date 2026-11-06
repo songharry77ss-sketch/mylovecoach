@@ -30,11 +30,14 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ reason: mockReason }),
   useIsFocused: () => true,
 }));
+// Reanimated(네이티브 worklets)는 테스트 환경에서 띄울 수 없어서 바로 끝나는 흉내로 바꾼다 (paywall-tracking.test.tsx 와 같은 방식)
 jest.mock('react-native-reanimated', () => {
   const RN = jest.requireActual('react-native');
   const { useRef } = jest.requireActual('react');
   const entering: Record<string, () => unknown> = {};
   for (const name of ['delay', 'duration', 'springify', 'damping']) entering[name] = () => entering;
+  const same = (t: number) => t;
+  const last = (...values: unknown[]) => values[values.length - 1];
   const target = (value: unknown) => value;
   return {
     __esModule: true,
@@ -44,10 +47,18 @@ jest.mock('react-native-reanimated', () => {
     FadeInDown: entering,
     FadeInUp: entering,
     ZoomIn: entering,
+    Easing: { out: () => same, in: () => same, inOut: () => same, cubic: same, quad: same, ease: same, linear: same, sin: same },
     useSharedValue: (value: unknown) => useRef({ value }).current,
     useAnimatedStyle: (style: () => object) => style(),
+    useAnimatedReaction: () => {},
+    withDelay: last,
+    withSequence: last,
     withSpring: target,
     withTiming: target,
+    withRepeat: target,
+    interpolate: target,
+    interpolateColor: () => 'transparent',
+    runOnJS: target,
   };
 });
 jest.mock('@expo/vector-icons', () => ({ Ionicons: Object.assign(() => null, { glyphMap: {} }) }));
@@ -105,9 +116,9 @@ beforeEach(() => {
 afterEach(() => act(() => renderer?.unmount()));
 
 it.each([
-  ['quota', '하루 이용권'],
-  ['banner', '하루 이용권'],
-  ['upsell', '하루 이용권'],
+  ['quota', '하루 무제한'],
+  ['banner', '하루 무제한'],
+  ['upsell', '하루 무제한'],
   ['my', '평생권'],
 ])('%s 로 들어오면 %s 이 먼저 골라져 있다', (reason, plan) => {
   mockReason = reason;

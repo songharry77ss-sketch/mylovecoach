@@ -101,6 +101,11 @@ export interface Crush {
   report?: { data: CrushReport; at: number; basedOn: number; profileKey?: string };
   /** 비밀 상담 — 기기에 저장하지 않고 채팅방을 나가면 지운다 */
   secret?: boolean;
+  /**
+   * 센딧이 기억하는 이야기 — 이 사람과 지금까지 있었던 일(상대에 대한 사실·있었던 일·상대가 한 중요한 말·보낸 답장·지금 분위기).
+   * 코치가 대화마다 고쳐 돌려주고(오래된 순, 짧은 문장 몇 개), 다음 요청에 같이 보내 지난 대화의 맥락을 잇는다. 사용자가 지울 수 있다
+   */
+  memory?: { facts: string[]; at: number };
 }
 
 export interface CoachReply {
@@ -135,6 +140,11 @@ export interface CoachAnalysis {
   nextStep: string;
   /** 주의할 점 (없으면 빈 배열) */
   warnings: string[];
+  /**
+   * 코치가 이번 대화까지 반영해 고친 「센딧이 기억하는 이야기」 전체 (오래된 순).
+   * 예전 서버 응답에는 없고, 비밀 상담·다른 답장 더 보기는 빈 배열 — 앱은 그때 기억을 바꾸지 않는다
+   */
+  memory?: string[];
 }
 
 export type MessageRole = 'user' | 'coach';

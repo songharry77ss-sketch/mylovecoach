@@ -11,13 +11,14 @@ interface AvatarProps {
   seed?: string;
 }
 
+/** 사진이 없을 때 첫 글자 바탕 — 센딧 색(하늘색·파랑·보라) 위주에 민트·살구로 구분만 (분홍은 쓰지 않는다) */
 const AVATAR_COLORS = [
   [palette.sky100, palette.sky600],
-  [palette.pink100, palette.pink600],
-  [palette.lavender100, '#6F5AE0'],
+  [palette.sendMist, palette.sendBlue600],
+  [palette.lavender100, palette.sendViolet600],
   [palette.mint100, '#1E9E6E'],
+  [palette.sendSky50, palette.sendBlue700],
   [palette.peach100, '#D2712E'],
-  [palette.yellow100, '#B58A00'],
 ];
 
 export function Avatar({ name, uri, size = 48, seed }: AvatarProps) {

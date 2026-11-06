@@ -1,0 +1,9 @@
+`assets/images/sendit/`에 저장했습니다.
+
+- [bubble-send.png](assets/images/sendit/bubble-send.png)
+- [bubble-heart.png](assets/images/sendit/bubble-heart.png)
+- [bubble-memory.png](assets/images/sendit/bubble-memory.png)
+- [ticket-time.png](assets/images/sendit/ticket-time.png)
+- [prompts.md](assets/images/sendit/prompts.md)
+
+투명 잔여 픽셀 제거, 1024×1024·중앙 72% 크기 통일 완료. 흰색·연회색 배경에서 검수했습니다.

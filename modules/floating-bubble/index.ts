@@ -1,7 +1,7 @@
 import { requireOptionalNativeModule } from 'expo';
 
 /**
- * 안드로이드 전용 「플로팅 버블」 (다른 앱 위에 떠 있는 연애코치 바로가기).
+ * 안드로이드 전용 「플로팅 버블」 (다른 앱 위에 떠 있는 센딧 바로가기).
  * 네이티브 쪽: android/src/main/java/expo/modules/floatingbubble/FloatingBubbleModule.kt
  *
  * iOS·웹·Expo Go 에는 이 모듈이 없으므로 모든 함수가 안전한 기본값(false / 아무것도 안 함)을 돌려준다.

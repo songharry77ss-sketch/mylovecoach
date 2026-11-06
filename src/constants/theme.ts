@@ -1,9 +1,9 @@
 import { Platform } from 'react-native';
 
 /**
- * 나만의 연애코치 디자인 토큰.
- * 토스 UI 문법(넉넉한 여백, 큰 타이틀, 둥근 카드, 단색 CTA)을 따르되,
- * 색은 스토어 상세 페이지와 같은 결 — 따뜻한 로즈 · 라벤더, 무대 화면은 에스프레소 바탕에 골드 강조.
+ * 센딧(나만의 연애 코치) 디자인 토큰 — 2026-11 개편.
+ * 「럽코」 시안의 토스 결(흰 화면, 연회색 카드, 큰 한글·숫자, 한 가지 주요 행동)에
+ * 앱 아이콘과 같은 하늘색 → 파랑 → 보라 그라데이션을 주인공 색으로 쓴다. 분홍은 쓰지 않는다.
  */
 export const palette = {
   sky50: '#EEF7FF',
@@ -61,6 +61,20 @@ export const palette = {
   espresso700: '#3B2628',
   espresso600: '#5A3E3F',
 
+  // 2026-11 센딧: 앱 아이콘 색
+  sendSky: '#8AD8FF',
+  sendSky50: '#EEF8FF',
+  sendBlue300: '#9DB4FF',
+  sendBlue400: '#5D86FF',
+  sendBlue500: '#3D63F5',
+  sendBlue600: '#2F4FE0',
+  sendBlue700: '#2539B8',
+  sendViolet400: '#9583FF',
+  sendViolet500: '#7559F6',
+  sendViolet600: '#5B42E0',
+  sendInk: '#191F28',
+  sendMist: '#F4F6FF',
+
   white: '#FFFFFF',
   black: '#000000',
   red500: '#F04452',
@@ -91,45 +105,45 @@ export interface ThemeColors {
 export const Colors: Record<'light' | 'dark', ThemeColors> = {
   light: {
     background: palette.white,
-    surface: '#FAF7F5',
+    surface: palette.gray100,
     surfaceElevated: palette.white,
-    surfaceSelected: '#F3EEEA',
-    border: '#F0EAE6',
-    text: '#1F1416',
-    textSecondary: '#6B5D60',
-    textTertiary: '#8F8285',
-    primary: palette.rose600,
-    primarySoft: palette.rose50,
+    surfaceSelected: '#E9EEFF',
+    border: '#EBEEF2',
+    text: palette.sendInk,
+    textSecondary: '#5B6573',
+    textTertiary: palette.gray500,
+    primary: palette.sendBlue500,
+    primarySoft: '#EDF1FF',
     primaryText: palette.white,
-    accent: palette.violet500,
-    accentSoft: palette.violet50,
+    accent: palette.sendViolet500,
+    accentSoft: '#F1EEFF',
     danger: palette.red500,
     success: palette.mint500,
     warning: palette.peach500,
-    bubbleUser: palette.rose100,
+    bubbleUser: '#E6EDFF',
     bubbleCoach: palette.white,
     tabBar: palette.white,
   },
   dark: {
-    background: palette.espresso950,
-    surface: '#1C1315',
-    surfaceElevated: '#24191B',
-    surfaceSelected: '#2E2124',
-    border: '#33252A',
-    text: '#FBF5F3',
-    textSecondary: '#C4B5B7',
-    textTertiary: '#9A8A8D',
-    primary: palette.rose400,
-    primarySoft: '#3A1A24',
+    background: '#0D1018',
+    surface: '#161A24',
+    surfaceElevated: '#1C2130',
+    surfaceSelected: '#242B42',
+    border: '#252B3A',
+    text: '#F2F4F8',
+    textSecondary: '#AEB6C4',
+    textTertiary: '#7D8696',
+    primary: '#6E8BFF',
+    primarySoft: '#1A2247',
     primaryText: palette.white,
-    accent: '#A594F9',
-    accentSoft: '#2A2140',
+    accent: '#9C8CFF',
+    accentSoft: '#231E45',
     danger: '#FF6B76',
     success: palette.mint500,
     warning: palette.peach500,
-    bubbleUser: '#3A1F28',
-    bubbleCoach: '#24191B',
-    tabBar: palette.espresso950,
+    bubbleUser: '#1E2A57',
+    bubbleCoach: '#1C2130',
+    tabBar: '#0D1018',
   },
 };
 
@@ -173,9 +187,47 @@ export const Typography = {
   caption: { fontSize: 12, lineHeight: 16, fontWeight: '500' as const },
 } as const;
 
+/**
+ * 센딧 브랜드 — 앱 아이콘과 같은 그라데이션. 큰 카드·주요 버튼·숫자 강조에 쓴다.
+ * 그라데이션 위 글자는 흰색(onBrand). 흰 바탕 위 강조 글자는 primary(파랑) 또는 accent(보라).
+ */
+export const Brand = {
+  /**
+   * 주인공 그라데이션 (왼쪽 위 → 오른쪽 아래): 파랑 → 보라. 글자가 놓이는 왼쪽 위에서도 흰 글자 대비 3.8:1 이상이 되게
+   * 아이콘보다 조금 짙게 시작한다 — 아이콘의 하늘색은 카드 오른쪽 위 장식 빛(HeroCard)과 gradientBright 로 낸다
+   */
+  gradient: ['#3F7CF8', palette.sendBlue500, palette.sendViolet500] as [string, string, string],
+  /** 글자가 없는 장식 면 — 아이콘과 같은 하늘색 시작 */
+  gradientBright: ['#6FC8FF', palette.sendBlue500, palette.sendViolet500] as [string, string, string],
+  /** 버튼처럼 좁은 면 — 흰 글자가 또렷하게 */
+  button: ['#4A78FB', palette.sendBlue500, '#6A55F2'] as [string, string, string],
+  /** 화면 바탕의 옅은 빛 (스플래시와 같은 흰색 → 옅은 라벤더) */
+  wash: ['#FFFFFF', '#F3F5FF', '#ECEFFF'] as [string, string, string],
+  washDark: ['#0D1018', '#111528', '#151A36'] as [string, string, string],
+  /** 그라데이션 위 글자 */
+  onBrand: '#FFFFFF',
+  onBrandDim: 'rgba(255,255,255,0.82)',
+  onBrandFaint: 'rgba(255,255,255,0.62)',
+  /** 그라데이션 위 반투명 칩·장식 */
+  glass: 'rgba(255,255,255,0.18)',
+  glassBorder: 'rgba(255,255,255,0.32)',
+  /** 그라데이션 버튼·카드 아래 퍼지는 그림자 색 */
+  shadow: '#3D4FE8',
+  sky: palette.sendSky,
+  blue: palette.sendBlue500,
+  violet: palette.sendViolet500,
+} as const;
+
+/** 그라데이션 버튼·카드 아래 은은한 파란 그림자 */
+export const BrandShadow = Platform.select({
+  ios: { shadowColor: Brand.shadow, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.28, shadowRadius: 18 },
+  android: { elevation: 8, shadowColor: Brand.shadow },
+  default: { boxShadow: '0 10px 24px rgba(61,79,232,0.28)' },
+}) as object;
+
 export const Shadow = Platform.select({
   ios: {
-    shadowColor: '#1B2A3A',
+    shadowColor: '#1B2A5A',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.06,
     shadowRadius: 16,
@@ -186,24 +238,3 @@ export const Shadow = Platform.select({
 
 export const MaxContentWidth = 640;
 
-/**
- * 무대 화면 — 스토어 상세 페이지와 같은 에스프레소 바탕 · 흰 글자 · 골드 강조.
- * 첫 화면 소개, 홈 머리말, 탐색, 결제처럼 「보여 주는」 화면에 쓴다 (채팅·설정은 밝은 화면 그대로).
- */
-export const Stage = {
-  /** 위에서 아래로 짙어지는 바탕 */
-  bg: ['#33201F', '#1E1214', palette.espresso950] as [string, string, string],
-  /** 따뜻한 조명 같은 은은한 빛 */
-  glow: 'rgba(255, 176, 120, 0.22)',
-  gold: palette.gold400,
-  goldSoft: palette.gold300,
-  text: '#FFFFFF',
-  textDim: 'rgba(255,255,255,0.76)',
-  textFaint: 'rgba(255,255,255,0.52)',
-  chip: 'rgba(255,255,255,0.10)',
-  chipBorder: 'rgba(255,255,255,0.18)',
-  card: '#FFFFFF',
-  cardText: palette.espresso800,
-  /** 골드 버튼 위 글자 */
-  onGold: palette.espresso800,
-} as const;

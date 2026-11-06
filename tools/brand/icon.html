@@ -1,0 +1,108 @@
+<!doctype html>
+<!--
+  센딧 앱 아이콘 원본 (벡터). tools/brand/render-icons.mjs 가 ?v= 로 규격별 PNG 를 뽑는다.
+  v=icon    iOS·스토어 아이콘 (꽉 찬 정사각형 — 모서리는 OS 가 깎는다)
+  v=rounded 앱 안 로고용 (둥근 모서리, 바깥 투명)
+  v=splash  시작 화면용 (둥근 아이콘을 가운데 69% 크기로 + 옅은 파란 그림자, 바깥 투명)
+  v=fg      안드로이드 적응형 앞면 (투명 바탕, 안전 영역 안의 말풍선)
+  v=bg      안드로이드 적응형 뒷면 (그라데이션만)
+  v=mono    안드로이드 단색 아이콘 (흰 말풍선, 화살표는 뚫림)
+-->
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; }
+  svg { display: block; width: 100vw; height: 100vh; }
+</style>
+</head>
+<body>
+<svg id="art" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- 바탕: 왼쪽 위 하늘색 → 가운데 파랑 → 오른쪽 아래 보라 -->
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#86DDFF" />
+      <stop offset="0.30" stop-color="#4688F8" />
+      <stop offset="0.62" stop-color="#2F50E6" />
+      <stop offset="1" stop-color="#7559F6" />
+    </linearGradient>
+    <radialGradient id="glowTL" cx="0.10" cy="0.06" r="0.62">
+      <stop offset="0" stop-color="#D2F8FF" stop-opacity="0.95" />
+      <stop offset="0.35" stop-color="#9BE2FF" stop-opacity="0.45" />
+      <stop offset="1" stop-color="#9BE2FF" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="glowBR" cx="0.98" cy="0.98" r="0.62">
+      <stop offset="0" stop-color="#8E6BFF" stop-opacity="0.85" />
+      <stop offset="1" stop-color="#8E6BFF" stop-opacity="0" />
+    </radialGradient>
+    <!-- 말풍선: 흰색에서 아래로 아주 옅은 라벤더 -->
+    <linearGradient id="bubble" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" />
+      <stop offset="1" stop-color="#EEF0FE" />
+    </linearGradient>
+    <!-- 화살표: 위 밝은 파랑 → 아래 짙은 파랑 -->
+    <linearGradient id="arrow" x1="0" y1="300" x2="0" y2="650" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5C88FF" />
+      <stop offset="1" stop-color="#2B3CD8" />
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="20" stdDeviation="26" flood-color="#1B2690" flood-opacity="0.34" />
+    </filter>
+    <filter id="splashShadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="26" stdDeviation="30" flood-color="#3D4FE8" flood-opacity="0.26" />
+    </filter>
+    <mask id="monoMask">
+      <rect width="1024" height="1024" fill="black" />
+      <g id="monoShape"></g>
+    </mask>
+  </defs>
+  <g id="layers"></g>
+</svg>
+<script>
+  const v = new URLSearchParams(location.search).get('v') || 'icon';
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, parent) => {
+    const n = document.createElementNS(NS, tag);
+    for (const [k, val] of Object.entries(attrs)) n.setAttribute(k, val);
+    (parent || document.getElementById('layers')).appendChild(n);
+    return n;
+  };
+  // 말풍선 윤곽(타원 + 왼쪽 아래 꼬리)과 화살표 — 1024 기준 좌표
+  const BUBBLE = 'M 510 221 C 677 221 812 334 812 474 C 812 614 677 727 510 727 C 470 727 431 721 396 710 C 352 760 300 790 240 800 C 270 770 290 735 296 690 C 241 645 208 563 208 474 C 208 334 343 221 510 221 Z';
+  const ARROW = 'M 512 632 L 512 330 M 372 468 L 512 328 L 652 468';
+
+  const symbol = (parent, { scale = 1, shadow = true } = {}) => {
+    const g = el('g', { transform: `translate(512 512) scale(${scale}) translate(-512 -512)` }, parent);
+    el('path', { d: BUBBLE, fill: 'url(#bubble)', filter: shadow ? 'url(#shadow)' : 'none' }, g);
+    el('path', { d: ARROW, fill: 'none', stroke: 'url(#arrow)', 'stroke-width': 74, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, g);
+    return g;
+  };
+  const background = (parent, rounded) => {
+    const r = rounded ? 230 : 0;
+    el('rect', { width: 1024, height: 1024, rx: r, fill: 'url(#bg)' }, parent);
+    el('rect', { width: 1024, height: 1024, rx: r, fill: 'url(#glowTL)' }, parent);
+    el('rect', { width: 1024, height: 1024, rx: r, fill: 'url(#glowBR)' }, parent);
+    if (rounded) el('rect', { x: 3, y: 3, width: 1018, height: 1018, rx: r - 3, fill: 'none', stroke: 'rgba(255,255,255,0.28)', 'stroke-width': 6 }, parent);
+  };
+
+  if (v === 'icon') { background(null, false); symbol(null); }
+  if (v === 'rounded') { background(null, true); symbol(null); }
+  if (v === 'bg') { background(null, false); }
+  // 160pt 로 그리면 둥근 사각형이 가운데 110pt (안쪽 여백 25pt) — intro-splash.tsx 의 SQUARE 와 같아야 한다
+  if (v === 'splash') {
+    const g = el('g', { transform: 'translate(160 160) scale(0.6875)', filter: 'url(#splashShadow)' });
+    background(g, true);
+    symbol(g);
+  }
+  // 적응형 앞면: 108dp 중 가운데 66dp 만 확실히 보인다 → 말풍선을 0.62 배로
+  if (v === 'fg') { symbol(null, { scale: 0.62 }); }
+  if (v === 'mono') {
+    const m = document.getElementById('monoShape');
+    const g = el('g', { transform: 'translate(512 512) scale(0.62) translate(-512 -512)' }, m);
+    el('path', { d: BUBBLE, fill: 'white' }, g);
+    el('path', { d: ARROW, fill: 'none', stroke: 'black', 'stroke-width': 74, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, g);
+    el('rect', { width: 1024, height: 1024, fill: 'white', mask: 'url(#monoMask)' });
+  }
+</script>
+</body>
+</html>

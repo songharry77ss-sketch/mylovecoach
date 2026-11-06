@@ -191,7 +191,7 @@ export function jsonSchemaOf(schema: z.ZodType): Record<string, unknown> {
 
 // ── 프롬프트 ────────────────────────────────────────────────
 
-export const REPORT_SYSTEM_PROMPT = `당신은 "나만의 연애코치"의 관계 분석가입니다. 지금까지의 코칭 기록(대화 요약·읽어낸 포인트·호감 온도 변화)과 상대·사용자 프로필을 종합해 사용자를 위한 「상대 분석 보고서」를 씁니다.
+export const REPORT_SYSTEM_PROMPT = `당신은 연애 코치 앱 "센딧"의 관계 분석가입니다. 지금까지의 코칭 기록(대화 요약·읽어낸 포인트·호감 온도 변화)과 상대·사용자 프로필을 종합해 사용자를 위한 「상대 분석 보고서」를 씁니다.
 
 원칙
 - 기록에 근거해서 쓰세요. 근거가 부족한 부분은 "아직 정보가 적어요"처럼 솔직하게 말하고 지어내지 마세요.
@@ -213,7 +213,7 @@ export const MIND_SYSTEM_PROMPT = `당신은 연애 심리를 쉽게 풀어 주�
 - headline·possibilities·advice는 친근한 존댓말. 조종·집착·거짓말을 권하지 마세요.
 - 출력은 오직 요청된 JSON 구조로만 합니다.`;
 
-export const PRACTICE_SYSTEM_PROMPT = `당신은 연애 연습 앱 "나만의 연애코치"의 상대역입니다. 주어진 페르소나가 되어 실제 사람처럼 사용자와 카카오톡을 주고받고, 동시에 대화 밖의 코치로서 사용자의 마지막 메시지를 짧게 평가합니다.
+export const PRACTICE_SYSTEM_PROMPT = `당신은 연애 코치 앱 "센딧"의 연애 연습 상대역입니다. 주어진 페르소나가 되어 실제 사람처럼 사용자와 카카오톡을 주고받고, 동시에 대화 밖의 코치로서 사용자의 마지막 메시지를 짧게 평가합니다.
 
 상대역 연기
 - 페르소나의 나이·성격·MBTI·직업·관계·상황을 일관되게 유지하세요. 말투(존댓말/반말)는 [상대역 말투]를 따르되, 대화에서 말을 놓기로 하면 자연스럽게 바꿔도 됩니다.
@@ -333,8 +333,8 @@ export function buildCoachTask(req: z.infer<typeof CoachRequestSchema>): AiTask<
     schema: CoachAnalysisSchema,
     normalize: normalizeAnalysis,
     temperature: 0.8,
-    // 실제 출력은 700~1,000토큰. 상한을 두어 폭주 비용 방지
-    maxOutputTokens: 2560,
+    // 실제 출력은 700~1,000토큰 + 「센딧이 기억하는 이야기」 300~450토큰. 상한을 두어 폭주 비용 방지 (생각 토큰도 여기 포함 — 잘리면 502)
+    maxOutputTokens: 3072,
   };
 }
 

@@ -2,6 +2,7 @@
  * 개인정보 안내 문구 — 첫 화면 동의 창(components/consent/start-consent-sheet), 마이 → 개인정보 설정(app/settings/privacy),
  * 홈의 바뀐 안내 카드가 같이 쓴다. 개인정보 처리방침(site/privacy.html 1번 표·4번)에 적힌 내용만 쓴다 — 처리방침을 고치면 여기도 같이 고칠 것.
  */
+import { APP_NAME } from '@/constants/brand';
 import { APP_CONFIG } from '@/lib/config';
 
 /** 서비스 이용 기록 (기본 수집 — 처리방침 4번 #analytics). 동의 항목이 아니라 알림이다 */
@@ -22,11 +23,19 @@ export const CONTENT_CONSENT_DETAIL =
   '미국 회사 Vercel(중계)·Supabase(보관, 서울 리전)가 처리해요(국외 이전). 캡처 이미지는 저장하지 않고, 만 14세 미만은 저장하지 않아요. ' +
   '동의하지 않아도 모든 기능을 쓸 수 있고, 마이 → 개인정보 설정에서 언제든 끌 수 있어요(끄면 저장된 내용도 지워요).';
 
+/**
+ * 「센딧이 기억하는 이야기」 안내 — 채팅방의 기억 시트와 AI 분석 동의 시트가 쓴다.
+ * 기억은 코치가 대화에서 정리한 짧은 문장이고, 기기에만 저장되며 코칭·상대 분석 보고서를 요청할 때 다른 대화 내용과 함께 AI 로 간다
+ */
+export const MEMORY_NOTICE =
+  '센딧이 기억하는 이야기는 이 기기에만 저장돼요. 코칭이나 상대 분석 보고서를 요청할 때 다른 대화 내용과 함께 AI로 보내 지난 대화를 이어 가는 데 써요. ' +
+  '언제든 지울 수 있고, 지우면 다음 요청부터 빠져요. 비밀 상담은 기억하지 않아요.';
+
 export const privacyUrl = (section?: 'analytics' | 'content') => (section ? `${APP_CONFIG.privacyUrl}#${section}` : APP_CONFIG.privacyUrl);
 
 /** 처리 정지·삭제 요청 메일 (기기 ID 를 적어 보내야 그 기기의 기록을 찾을 수 있다) */
 export function optOutMailUrl(deviceId: string): string {
-  const subject = '[나만의 연애코치] 이용 기록 처리 정지·삭제 요청';
+  const subject = `[${APP_NAME}] 이용 기록 처리 정지·삭제 요청`;
   const body = `아래 기기의 서비스 이용 기록 처리 정지와 삭제를 요청합니다.\n\n기기 ID: ${deviceId}\n요청 내용(처리 정지 / 삭제 / 둘 다): `;
   return `mailto:${APP_CONFIG.supportEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }

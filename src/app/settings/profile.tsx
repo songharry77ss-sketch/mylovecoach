@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { Icon3D } from '@/components/brand/brand';
 import { useCelebrate } from '@/components/fx/celebration';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
@@ -64,9 +65,15 @@ export default function ProfileSettings() {
 
   return (
     <Screen keyboard contentStyle={styles.content}>
-      <AppText variant="small" color="textSecondary">
-        나에 대해 알려 줄수록 코치가 「나다운」 답장을 만들어요. 전부 선택이고, 이 기기에만 저장돼요.
-      </AppText>
+      <View style={[styles.intro, { backgroundColor: theme.primarySoft }]}>
+        <View style={styles.introTexts}>
+          <AppText variant="title3">나를 알려 줄수록 「나다운」 답장</AppText>
+          <AppText variant="small" color="textSecondary">
+            전부 선택이고, 이 기기에만 저장돼요.
+          </AppText>
+        </View>
+        <Icon3D name="memory" size={56} />
+      </View>
 
       <TextField label="이름 / 별명" value={name} onChangeText={setName} maxLength={20} />
       <View>
@@ -85,7 +92,7 @@ export default function ProfileSettings() {
           <AppText variant="smallStrong" color="textSecondary" style={styles.label}>
             MBTI
           </AppText>
-          <Pressable accessibilityRole="button" onPress={() => setMbtiOpen(true)} style={[styles.select, { backgroundColor: theme.surface }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={`MBTI ${mbti ?? '선택 안 함'}, 바꾸기`} onPress={() => setMbtiOpen(true)} style={[styles.select, { backgroundColor: theme.surface }]}>
             <AppText variant="body" color={mbti ? 'text' : 'textTertiary'}>
               {mbti ?? '선택하기'}
             </AppText>
@@ -105,12 +112,12 @@ export default function ProfileSettings() {
       />
 
       <View>
-        <SectionHeader title="✨ 나의 추구미" subtitle="상대에게 보이고 싶은 모습 · 최대 3개" />
+        <SectionHeader title="나의 추구미" subtitle="상대에게 보이고 싶은 모습 · 최대 3개" />
         <TagPicker options={VIBE_TAGS} value={vibes} onChange={setVibes} max={3} tone="accent" />
       </View>
 
       <View>
-        <SectionHeader title="🎯 나의 연애 목표" subtitle="코치가 이 방향으로 답장을 만들어요" />
+        <SectionHeader title="나의 연애 목표" subtitle="코치가 이 방향으로 답장을 만들어요" />
         <View style={styles.chips}>
           {MY_GOALS.map((g) => (
             <Chip key={g} label={g} selected={goal === g} onPress={() => setGoal(goal === g ? undefined : g)} tone="accent" />
@@ -147,8 +154,10 @@ export default function ProfileSettings() {
         </View>
       </View>
 
-      <PressableScale onPress={() => router.push('/kkti')} style={[styles.kkti, { backgroundColor: kkti?.color ? `${kkti.color}33` : theme.primarySoft }]}>
-        <AppText style={styles.kktiEmoji}>{kkti?.emoji ?? '🧪'}</AppText>
+      <PressableScale onPress={() => router.push('/kkti')} style={[styles.kkti, { backgroundColor: theme.surface }]}>
+        <View style={[styles.kktiDot, { backgroundColor: kkti?.color ?? theme.primarySoft }]}>
+          <AppText style={styles.kktiEmoji}>{kkti?.emoji ?? '💬'}</AppText>
+        </View>
         <View style={styles.kktiTexts}>
           <AppText variant="smallStrong">{kkti ? `내 KKTI: ${kkti.code} ${kkti.name}` : 'KKTI 테스트 — 카톡으로 보는 진짜 연애 MBTI'}</AppText>
           <AppText variant="caption" color="textSecondary">
@@ -158,7 +167,7 @@ export default function ProfileSettings() {
         <Ionicons name="chevron-forward" size={18} color={theme.textTertiary} />
       </PressableScale>
 
-      <Button title="저장" onPress={save} />
+      <Button title="저장" variant="brand" onPress={save} />
       <SelectSheet
         visible={mbtiOpen}
         title="MBTI 선택"
@@ -179,7 +188,10 @@ const styles = StyleSheet.create({
   twoCol: { flexDirection: 'row', gap: Spacing.md },
   col: { flex: 1 },
   select: { height: 54, borderRadius: Radius.md, paddingHorizontal: Spacing.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  intro: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: Radius.lg, paddingLeft: Spacing.lg, paddingRight: Spacing.md, paddingVertical: Spacing.md },
+  introTexts: { flex: 1, gap: 2 },
   kkti: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: Radius.lg, padding: Spacing.lg },
-  kktiEmoji: { fontSize: 28, lineHeight: 34 },
+  kktiDot: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  kktiEmoji: { fontSize: 22, lineHeight: 28 },
   kktiTexts: { flex: 1, gap: 2 },
 });

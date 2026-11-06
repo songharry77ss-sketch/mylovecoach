@@ -4,9 +4,10 @@ import { Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, View, useW
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FullWindowOverlay } from 'react-native-screens';
 
+import { BrandGradient, GradientButton } from '@/components/brand/brand';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
-import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { Brand, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { APP_CONFIG } from '@/lib/config';
 import { haptic } from '@/lib/haptics';
@@ -129,8 +130,9 @@ function Sheet({ onAgree, onClose }: Omit<Props, 'visible'>) {
                       onPress={() => toggle(item.key)}
                       hitSlop={6}
                       style={styles.check}>
-                      <View style={[styles.box, { borderColor: on ? theme.primary : theme.textTertiary, backgroundColor: on ? theme.primary : 'transparent' }]}>
-                        {on ? <Ionicons name="checkmark" size={12} color={theme.primaryText} /> : null}
+                      <View style={[styles.box, on ? styles.boxOn : { borderColor: theme.textTertiary }]}>
+                        {on ? <BrandGradient style={StyleSheet.absoluteFill} /> : null}
+                        {on ? <Ionicons name="checkmark" size={13} color={Brand.onBrand} /> : null}
                       </View>
                       <AppText variant="smallStrong" style={styles.checkText}>
                         <AppText variant="smallStrong" color={item.required ? 'primary' : 'textSecondary'}>
@@ -161,7 +163,7 @@ function Sheet({ onAgree, onClose }: Omit<Props, 'visible'>) {
           </View>
         </ScrollView>
         <View style={styles.actions}>
-          <Button title="모두 동의하고 시작" onPress={agreeAll} />
+          <GradientButton title="모두 동의하고 시작" onPress={agreeAll} />
           <Button title="선택한 항목으로 시작" variant="ghost" size="md" disabled={!requiredDone} onPress={agreeChosen} />
         </View>
       </View>
@@ -190,7 +192,8 @@ const styles = StyleSheet.create({
   item: { gap: Spacing.xs },
   itemHead: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
   check: { flex: 1, flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
-  box: { width: 20, height: 20, borderRadius: 6, borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  box: { width: 20, height: 20, borderRadius: 6, borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginTop: 1, overflow: 'hidden' },
+  boxOn: { borderWidth: 0 },
   checkText: { flex: 1 },
   link: { paddingTop: 2 },
   // 체크박스(20) + 간격만큼 들여 안내 글과 줄을 맞춘다

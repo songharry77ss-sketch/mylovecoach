@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, TextInput, View, type TextInputProps, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, TextInput, View, type TextInputProps, type ViewStyle } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { Radius, Spacing, Typography } from '@/constants/theme';
@@ -37,7 +37,7 @@ export function TextField({ label, helper, error, containerStyle, right, style, 
             rest.onBlur?.(e);
           }}
           placeholderTextColor={theme.textTertiary}
-          style={[styles.input, Typography.body, { color: theme.text }, multiline ? styles.multiInput : null, style]}
+          style={[styles.input, Typography.body, styles.noOutline, { color: theme.text }, multiline ? styles.multiInput : null, style]}
         />
         {right}
       </View>
@@ -66,6 +66,8 @@ const styles = StyleSheet.create({
   },
   multi: { alignItems: 'flex-start', paddingVertical: Spacing.md },
   input: { flex: 1, paddingVertical: Spacing.md },
+  // 웹 브라우저의 검은 포커스 테두리 대신 칸 테두리(파랑)로 초점을 보여 준다
+  noOutline: Platform.select({ web: { outlineStyle: 'none' }, default: {} }) as object,
   multiInput: { minHeight: 96, textAlignVertical: 'top', paddingVertical: 0 },
   helper: { marginTop: Spacing.sm, marginLeft: Spacing.xs },
 });

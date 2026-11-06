@@ -1,18 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import Animated, { FadeInDown, FadeInUp, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BrandGradient, GradientButton, Icon3D, ResearchBadge, SenditLogo, WashBackground } from '@/components/brand/brand';
 import { StartConsentSheet, type StartConsentAnswer } from '@/components/consent/start-consent-sheet';
 import { DemoReel } from '@/components/fx/demo-reel';
-import { HeartMark, Highlight, Polaroid, StageBackground, StagePill } from '@/components/stage/stage';
 import { Button } from '@/components/ui/button';
 import { PressableScale } from '@/components/ui/pressable-scale';
-import { FocusStatusBar, StatusBarScrim, useScrolledPast } from '@/components/ui/system-bars';
+import { StatusBarScrim, useScrolledPast } from '@/components/ui/system-bars';
 import { useToast } from '@/components/ui/toast';
-import { MaxContentWidth, Radius, Spacing, Stage, palette } from '@/constants/theme';
+import { Brand, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { APP_CONFIG } from '@/lib/config';
 import { haptic } from '@/lib/haptics';
@@ -51,6 +52,7 @@ const STEPS = [
  */
 export default function Start() {
   const router = useRouter();
+  const theme = useTheme();
   const toast = useToast();
   const insets = useSafeAreaInsets();
   const { scrolled, onScroll } = useScrolledPast();
@@ -72,13 +74,6 @@ export default function Start() {
   const askInput = useRef<TextInput>(null);
   // 펼친 「상황만 적기」 칸의 위치 — 키보드가 올라와도 입력칸이 보이게 이만큼 내린다
   const askY = useRef(0);
-
-  // 캡처 버튼이 은은하게 빛나며 숨 쉰다
-  const glow = useSharedValue(0);
-  useEffect(() => {
-    glow.value = withRepeat(withSequence(withTiming(1, { duration: 1100 }), withTiming(0, { duration: 1100 })), -1);
-  }, [glow]);
-  const glowStyle = useAnimatedStyle(() => ({ opacity: 0.2 + glow.value * 0.35, transform: [{ scale: 1 + glow.value * 0.04 }] }));
 
   const begin = (mode: StartMode) => {
     track('start', { mode, content: useAppStore.getState().contentConsent === true, ...(mode === 'text' ? { typed: typed.length > 0, example: fromExample, ...(prefilled ? { prefilled: true } : {}) } : {}) });
@@ -165,7 +160,7 @@ export default function Start() {
   };
 
   return (
-    <StageBackground>
+    <WashBackground>
       <KeyboardAvoidingView style={styles.flex} behavior="padding">
       <ScrollView
         ref={scroller}
@@ -176,59 +171,67 @@ export default function Start() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag">
         <Animated.View entering={FadeInDown.duration(380)} style={styles.brandRow}>
-          <View style={styles.brand}>
-            <Ionicons name="heart-outline" size={16} color={Stage.gold} />
-            <Text style={styles.brandText}>나만의 연애코치</Text>
-          </View>
-          <Pressable accessibilityRole="button" accessibilityLabel="먼저 홈 둘러보기" onPress={() => go('browse')} hitSlop={12} style={styles.browse}>
-            <Text style={styles.browseText}>둘러보기</Text>
+          <SenditLogo size="sm" />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="먼저 홈 둘러보기"
+            onPress={() => go('browse')}
+            hitSlop={12}
+            style={({ pressed }) => [styles.browse, { backgroundColor: theme.surface }, pressed && styles.pressed]}>
+            <Text style={[styles.browseText, { color: theme.textSecondary }]}>둘러보기</Text>
           </Pressable>
         </Animated.View>
 
-        <Animated.View entering={FadeInUp.delay(100).duration(480)} style={styles.hero}>
-          <View style={styles.heroTexts}>
-            <Highlight text={userName ? `${userName}님,\n*첫 캡처*를\n올려 볼까요?` : '*첫 캡처*를\n올려 볼까요?'} />
-            <Text style={styles.sub}>답장이 고민되는 대화를 캡처해서 올리면, 호칭·말투를 살린 답장 3가지와 호감 온도가 바로 나와요.</Text>
+        <Animated.View entering={FadeInDown.delay(60).duration(420)} style={styles.hero}>
+          <View style={styles.heroRow}>
+            <View style={styles.heroTexts}>
+              <ResearchBadge />
+              <Text style={[styles.title, { color: theme.text }]} accessibilityRole="header">
+                {userName ? `${userName}님,\n` : ''}
+                <Text style={{ color: theme.primary }}>첫 캡처</Text>를{'\n'}올려 볼까요?
+              </Text>
+            </View>
+            <Icon3D name="send" size={92} float style={styles.heroIcon} />
           </View>
-          <View style={styles.polaroids} pointerEvents="none">
-            <Polaroid photo="sunsetWoman" width={104} rotate={7} />
-            <HeartMark size={30} rotate={-14} style={styles.heart} />
-          </View>
+          <Text style={[styles.sub, { color: theme.textSecondary }]}>답장이 고민되는 대화를 캡처해서 올리면, 호칭·말투를 살린 답장 3가지와 호감 온도가 바로 나와요.</Text>
         </Animated.View>
 
-        <Animated.View entering={FadeInUp.delay(180).duration(480)} style={styles.guide}>
-          <StagePill label="캡처하는 법" icon="camera" />
+        <Animated.View entering={FadeInDown.delay(120).duration(420)} style={[styles.guide, { backgroundColor: theme.surface }]}>
+          <View style={styles.guideHead}>
+            <Ionicons name="camera" size={15} color={theme.textSecondary} />
+            <Text style={[styles.guideLabel, { color: theme.textSecondary }]}>캡처하는 법</Text>
+          </View>
           {STEPS.map((s, i) => (
             <View key={s.title} style={styles.stepRow}>
-              <View style={styles.stepNum}>
+              <BrandGradient style={styles.stepNum}>
                 <Text style={styles.stepNumText}>{i + 1}</Text>
-              </View>
+              </BrandGradient>
               <View style={styles.stepTexts}>
-                <Text style={styles.stepTitle}>{s.title}</Text>
-                <Text style={styles.stepBody}>{s.body}</Text>
+                <Text style={[styles.stepTitle, { color: theme.text }]}>{s.title}</Text>
+                <Text style={[styles.stepBody, { color: theme.textSecondary }]}>{s.body}</Text>
               </View>
-              <Ionicons name={s.icon} size={20} color={Stage.gold} />
+              <Ionicons name={s.icon} size={20} color={theme.primary} />
             </View>
           ))}
         </Animated.View>
 
-        <Animated.View entering={FadeInUp.delay(260).duration(480)} style={styles.cta}>
-          <View>
-            <Animated.View pointerEvents="none" style={[styles.glow, glowStyle]} />
-            <Button
-              title={busy ? '사진 여는 중…' : '대화 캡처 올리기'}
-              variant="gold"
-              onPress={() => go('image')}
-              disabled={busy}
-              icon={busy ? <ActivityIndicator size="small" color={Stage.onGold} /> : <Ionicons name="image" size={18} color={Stage.onGold} />}
-            />
-          </View>
-          <Text style={styles.ctaNote}>사진에서 캡처를 고르면 바로 분석을 시작해요</Text>
+        <Animated.View entering={FadeInDown.delay(180).duration(420)} style={styles.cta}>
+          <GradientButton
+            title={busy ? '사진 여는 중…' : '대화 캡처 올리기'}
+            onPress={() => go('image')}
+            disabled={busy}
+            shine
+            icon={busy ? <ActivityIndicator size="small" color={Brand.onBrand} /> : <Ionicons name="image" size={19} color={Brand.onBrand} />}
+          />
+          <Text style={[styles.ctaNote, { color: theme.textTertiary }]}>사진에서 캡처를 고르면 바로 분석을 시작해요</Text>
         </Animated.View>
 
         {writing ? (
-          <Animated.View entering={FadeInDown.duration(260)} style={styles.ask} onLayout={(e) => (askY.current = e.nativeEvent.layout.y)}>
-            <Text style={styles.askTitle}>✏️ 캡처 없이 상황만 적기</Text>
+          <Animated.View entering={FadeInDown.duration(260)} style={[styles.ask, { backgroundColor: theme.surface }]} onLayout={(e) => (askY.current = e.nativeEvent.layout.y)}>
+            <View style={styles.guideHead}>
+              <Ionicons name="create-outline" size={16} color={theme.primary} />
+              <Text style={[styles.askTitle, { color: theme.text }]}>캡처 없이 상황만 적기</Text>
+            </View>
             <TextInput
               value={situation}
               onChangeText={(value) => {
@@ -237,99 +240,106 @@ export default function Start() {
                 setPrefilled(false);
               }}
               placeholder={'예) 소개팅 다음 날인데 먼저 연락해도 될까?\n상대가 한 말을 그대로 적어도 좋아요'}
-              placeholderTextColor={Stage.textFaint}
+              placeholderTextColor={theme.textTertiary}
               accessibilityLabel="지금 상황 적기"
               ref={askInput}
               onFocus={revealAsk}
               multiline
               maxLength={800}
-              style={styles.askInput}
+              style={[styles.askInput, { color: theme.text, backgroundColor: theme.background, borderColor: theme.border }]}
             />
             <View style={styles.examples}>
               {EXAMPLES.map((example) => (
-                <Pressable key={example} accessibilityRole="button" onPress={() => pickExample(example)} style={styles.example}>
-                  <Text style={styles.exampleText}>{example}</Text>
+                <Pressable
+                  key={example}
+                  accessibilityRole="button"
+                  onPress={() => pickExample(example)}
+                  style={({ pressed }) => [styles.example, { backgroundColor: theme.background, borderColor: theme.border }, pressed && styles.pressed]}>
+                  <Text style={[styles.exampleText, { color: theme.textSecondary }]}>{example}</Text>
                 </Pressable>
               ))}
             </View>
             <Button
               title="답장·조언 받기"
-              variant={typed ? 'primary' : 'stage'}
+              variant={typed ? 'brand' : 'secondary'}
               onPress={() => go('text')}
               disabled={busy || !typed}
-              icon={<Ionicons name="sparkles" size={18} color={palette.white} />}
+              icon={<Ionicons name="sparkles" size={18} color={typed ? Brand.onBrand : theme.textSecondary} />}
             />
           </Animated.View>
         ) : (
-          <PressableScale onPress={openWriting} style={styles.writeRow} accessibilityLabel="캡처 없이 상황만 적기">
-            <Ionicons name="create-outline" size={18} color={Stage.goldSoft} />
-            <View style={styles.flex}>
-              <Text style={styles.writeTitle}>캡처가 없다면? 상황만 적어도 돼요</Text>
-              <Text style={styles.writeBody}>「소개팅 다음 날 먼저 연락해도 될까?」처럼</Text>
+          <PressableScale onPress={openWriting} style={[styles.writeRow, { backgroundColor: theme.surface }]} accessibilityLabel="캡처 없이 상황만 적기">
+            <View style={[styles.writeIcon, { backgroundColor: theme.primarySoft }]}>
+              <Ionicons name="create-outline" size={18} color={theme.primary} />
             </View>
-            <Ionicons name="chevron-down" size={18} color={Stage.textDim} />
+            <View style={styles.flex}>
+              <Text style={[styles.writeTitle, { color: theme.text }]}>캡처가 없다면? 상황만 적어도 돼요</Text>
+              <Text style={[styles.writeBody, { color: theme.textSecondary }]}>「소개팅 다음 날 먼저 연락해도 될까?」처럼</Text>
+            </View>
+            <Ionicons name="chevron-down" size={18} color={theme.textTertiary} />
           </PressableScale>
         )}
 
-        <Animated.View entering={FadeInDown.delay(300).duration(500)} style={styles.reel}>
-          <Text style={styles.reelLabel}>이렇게 나와요</Text>
+        <Animated.View entering={FadeInDown.delay(260).duration(500)} style={styles.reel}>
+          <Text style={[styles.reelLabel, { color: theme.textTertiary }]}>이렇게 나와요</Text>
           <DemoReel />
         </Animated.View>
 
-        <Text style={styles.notice}>
+        <Text style={[styles.notice, { color: theme.textTertiary }]}>
           앱을 쓰는 동안 화면·버튼 이용 기록이 서비스 제공·개선을 위해 자동으로 수집돼요 (만 14세 미만 제외).{' '}
-          <Text style={styles.link} accessibilityRole="link" onPress={() => Linking.openURL(privacyUrl('analytics'))}>
+          <Text style={[styles.link, { color: theme.primary }]} accessibilityRole="link" onPress={() => Linking.openURL(privacyUrl('analytics'))}>
             개인정보 처리방침
           </Text>
           {' · '}
-          <Text style={styles.link} accessibilityRole="link" onPress={() => Linking.openURL(APP_CONFIG.termsUrl)}>
+          <Text style={[styles.link, { color: theme.primary }]} accessibilityRole="link" onPress={() => Linking.openURL(APP_CONFIG.termsUrl)}>
             이용약관
           </Text>
         </Text>
       </ScrollView>
       </KeyboardAvoidingView>
-      {/* 내려가면 하얀 예시 카드가 시계·배터리 뒤로 비치지 않게 짙은 띠를 깐다 */}
-      <StatusBarScrim height={insets.top} color={Stage.bg[1]} visible={scrolled} />
-      <FocusStatusBar style="light" />
+      {/* 내려가면 아래 카드가 시계·배터리 뒤로 비치지 않게 바탕색 띠를 깐다 (맨 위가 밝은 바탕이라 상태 표시줄은 기본색) */}
+      <StatusBarScrim height={insets.top} color={theme.background} visible={scrolled} />
       <StartConsentSheet visible={asking != null} onAgree={onAgree} onClose={() => setAsking(null)} />
-    </StageBackground>
+    </WashBackground>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  pressed: { opacity: 0.7 },
   scroll: { flexGrow: 1, paddingHorizontal: Spacing.xl, gap: Spacing.lg, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   brandRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  brandText: { fontSize: 13, fontWeight: '800', color: Stage.text, letterSpacing: -0.2 },
-  browse: { paddingHorizontal: Spacing.md, paddingVertical: 6, borderRadius: Radius.pill, backgroundColor: Stage.chip, borderWidth: 1, borderColor: Stage.chipBorder },
-  browseText: { fontSize: 13, fontWeight: '700', color: Stage.text },
-  hero: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md },
+  browse: { paddingHorizontal: Spacing.md, paddingVertical: 7, borderRadius: Radius.pill },
+  browseText: { fontSize: 13, fontWeight: '700' },
+  hero: { gap: Spacing.md, marginTop: Spacing.xs },
+  heroRow: { flexDirection: 'row', alignItems: 'flex-end', gap: Spacing.sm },
   heroTexts: { flex: 1, gap: Spacing.md },
-  sub: { fontSize: 15, lineHeight: 22, fontWeight: '500', color: Stage.textDim },
-  polaroids: { width: 104, paddingTop: Spacing.sm },
-  heart: { position: 'absolute', right: -10, bottom: -24 },
-  guide: { borderRadius: Radius.lg, backgroundColor: Stage.chip, borderWidth: 1, borderColor: Stage.chipBorder, padding: Spacing.lg, gap: Spacing.md },
+  heroIcon: { marginBottom: -4 },
+  title: { fontSize: 30, lineHeight: 39, fontWeight: '800', letterSpacing: -0.9 },
+  sub: { fontSize: 15, lineHeight: 22, fontWeight: '500', letterSpacing: -0.2 },
+  guide: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.md },
+  guideHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  guideLabel: { fontSize: 13, fontWeight: '700' },
   stepRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  stepNum: { width: 28, height: 28, borderRadius: 14, backgroundColor: Stage.gold, alignItems: 'center', justifyContent: 'center' },
-  stepNumText: { fontSize: 14, fontWeight: '900', color: Stage.onGold },
+  stepNum: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  stepNumText: { fontSize: 14, fontWeight: '900', color: Brand.onBrand },
   stepTexts: { flex: 1, gap: 2 },
-  stepTitle: { fontSize: 15, fontWeight: '800', color: Stage.text },
-  stepBody: { fontSize: 13, lineHeight: 18, fontWeight: '500', color: Stage.textDim },
+  stepTitle: { fontSize: 15, fontWeight: '800', letterSpacing: -0.2 },
+  stepBody: { fontSize: 13, lineHeight: 18, fontWeight: '500' },
   cta: { gap: Spacing.sm },
-  ctaNote: { fontSize: 12, fontWeight: '600', color: Stage.textFaint, textAlign: 'center' },
-  glow: { position: 'absolute', left: 8, right: 8, top: 6, bottom: -6, borderRadius: Radius.md, backgroundColor: Stage.gold },
-  writeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: Radius.lg, borderWidth: 1, borderColor: Stage.chipBorder, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  writeTitle: { fontSize: 14, fontWeight: '800', color: Stage.text },
-  writeBody: { fontSize: 12, fontWeight: '500', color: Stage.textFaint, marginTop: 2 },
-  ask: { borderRadius: Radius.lg, backgroundColor: Stage.chip, borderWidth: 1, borderColor: Stage.chipBorder, padding: Spacing.md, gap: Spacing.md },
-  askTitle: { fontSize: 14, fontWeight: '800', color: Stage.text },
-  askInput: { minHeight: 76, maxHeight: 180, textAlignVertical: 'top', padding: 0, fontSize: 16, lineHeight: 24, fontWeight: '500', color: Stage.text },
+  ctaNote: { fontSize: 12, fontWeight: '600', textAlign: 'center' },
+  writeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: Radius.lg, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  writeIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  writeTitle: { fontSize: 14, fontWeight: '800', letterSpacing: -0.2 },
+  writeBody: { fontSize: 12, fontWeight: '500', marginTop: 2 },
+  ask: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.md },
+  askTitle: { fontSize: 14, fontWeight: '800' },
+  askInput: { minHeight: 92, maxHeight: 180, textAlignVertical: 'top', borderRadius: Radius.md, borderWidth: 1, padding: Spacing.md, fontSize: 16, lineHeight: 24, fontWeight: '500' },
   examples: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
-  example: { borderRadius: Radius.pill, borderWidth: 1, borderColor: Stage.chipBorder, paddingHorizontal: 10, paddingVertical: 6 },
-  exampleText: { fontSize: 12, fontWeight: '600', color: Stage.textDim },
+  example: { borderRadius: Radius.pill, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 7 },
+  exampleText: { fontSize: 12, fontWeight: '600' },
   reel: { width: '100%', gap: Spacing.xs, marginTop: Spacing.sm },
-  reelLabel: { fontSize: 12, fontWeight: '700', color: Stage.textFaint, textAlign: 'center' },
-  notice: { fontSize: 12, lineHeight: 17, fontWeight: '500', color: Stage.textFaint, textAlign: 'center', marginTop: Spacing.xs },
-  link: { color: Stage.goldSoft, fontWeight: '700' },
+  reelLabel: { fontSize: 12, fontWeight: '700', textAlign: 'center' },
+  notice: { fontSize: 12, lineHeight: 17, fontWeight: '500', textAlign: 'center', marginTop: Spacing.xs },
+  link: { fontWeight: '700' },
 });

@@ -6,7 +6,7 @@ import { freeRules, type ConsumablePlanKey } from '@/lib/billing/plans';
 import type { Acquisition } from '@/lib/analytics';
 import type { AppUpdate } from '@/lib/app-update';
 import { consumeOne, EMPTY_USAGE, EMPTY_WALLET, grantConsumable, grantSignupBonus, type PremiumState, type TeamState, type UsageState, type WalletState } from '@/lib/billing/quota';
-import type { CoachRequest } from '@/lib/coach-schema';
+import { cleanMemory, type CoachRequest } from '@/lib/coach-schema';
 import { createId } from '@/lib/id';
 import { authAvailable } from '@/lib/supabase';
 import type {
@@ -121,6 +121,13 @@ export interface AppState {
   hidePreviews: boolean;
   /** 처음 실행 소개(사용법 슬라이드)를 끝냈거나 건너뛰었는지 */
   onboardingSeen: boolean;
+  /**
+   * 마지막으로 본 사용법 안내의 판 (GUIDE_VERSION). 다르면 업데이트한 기존 이용자에게 「새로워진 센딧」 사용법을 한 번 보여 준다.
+   * null 이면 아직 못 봄 (센딧으로 바뀌기 전부터 쓰던 사람)
+   */
+  guideSeen: string | null;
+  /** 타임 세일(하루 이용권 특가)이 시작된 시각 — 정해진 시간이 지나면 끝나고, 한동안 다시 열리지 않는다 (lib/billing/sale) */
+  saleOfferStartedAt: number | null;
   /** 연애 연습을 켰는지 — 기본은 숨김, 마이 → 추가 기능에서 켠다 (예전에 연습한 기록이 있으면 켠 채로 읽는다) */
   practiceEnabled: boolean;
   /** 별점 요청용 — 답장 복사 같은 좋은 순간의 횟수와 별점을 부탁한 시각들 (lib/store-review) */
@@ -194,6 +201,12 @@ export interface AppState {
   setHapticsOn: (on: boolean) => void;
   setHidePreviews: (on: boolean) => void;
   setOnboardingSeen: () => void;
+  /** 사용법 안내를 이 판까지 봤다고 표시 */
+  setGuideSeen: (version: string) => void;
+  /** 타임 세일 시작 시각을 남긴다 */
+  startSaleOffer: (at: number) => void;
+  /** 센딧이 기억하는 이야기를 바꾼다 (null 이면 모두 지움) */
+  setCrushMemory: (crushId: string, facts: string[] | null) => void;
   setPracticeEnabled: (on: boolean) => void;
   noteReviewWin: () => void;
   markReviewAsked: (at: number) => void;
@@ -305,6 +318,8 @@ export const useAppStore = create<AppState>()(
       hapticsOn: true,
       hidePreviews: false,
       onboardingSeen: false,
+      guideSeen: null,
+      saleOfferStartedAt: null,
       practiceEnabled: false,
       reviewWins: 0,
       reviewAsks: [],
@@ -489,6 +504,19 @@ export const useAppStore = create<AppState>()(
       setHapticsOn: (hapticsOn) => set({ hapticsOn }),
       setHidePreviews: (hidePreviews) => set({ hidePreviews }),
       setOnboardingSeen: () => set({ onboardingSeen: true }),
+      setGuideSeen: (guideSeen) => set({ guideSeen }),
+      startSaleOffer: (saleOfferStartedAt) => set({ saleOfferStartedAt }),
+      setCrushMemory: (crushId, facts) =>
+        set((s) => {
+          const prev = s.crushes[crushId];
+          // 비밀 상담은 기억하지 않는다
+          if (!prev || prev.secret) return {};
+          const clean = cleanMemory(facts ?? []);
+          const next = { ...prev };
+          if (clean.length) next.memory = { facts: clean, at: Date.now() };
+          else delete next.memory;
+          return { crushes: { ...s.crushes, [crushId]: next } };
+        }),
       setPracticeEnabled: (practiceEnabled) => set({ practiceEnabled }),
       noteReviewWin: () => set((s) => ({ reviewWins: s.reviewWins + 1 })),
       markReviewAsked: (at) => set((s) => ({ reviewAsks: [...s.reviewAsks, at].slice(-6) })),
@@ -628,6 +656,8 @@ export const useAppStore = create<AppState>()(
           hapticsOn: s.hapticsOn,
           hidePreviews: s.hidePreviews,
           onboardingSeen: s.onboardingSeen,
+          guideSeen: s.guideSeen,
+          saleOfferStartedAt: s.saleOfferStartedAt,
           practiceEnabled: s.practiceEnabled,
           reviewWins: s.reviewWins,
           reviewAsks: s.reviewAsks,
@@ -691,6 +721,9 @@ export const useAppStore = create<AppState>()(
           practiceEnabled: typeof saved.practiceEnabled === 'boolean' ? saved.practiceEnabled : Object.keys(saved.practice ?? {}).length > 0,
           // 소개를 넣기 전부터 쓰던 사람은 소개를 다시 보지 않는다
           onboardingSeen: saved.onboardingSeen === true || current.onboardingSeen || Boolean(saved.user) || Object.keys(saved.crushes ?? {}).length > 0,
+          // 센딧으로 바뀌기 전 판에는 없던 값 — 기존 이용자는 null 로 읽혀 업데이트 뒤 사용법을 한 번 본다
+          guideSeen: typeof saved.guideSeen === 'string' ? saved.guideSeen : current.guideSeen,
+          saleOfferStartedAt: typeof saved.saleOfferStartedAt === 'number' ? saved.saleOfferStartedAt : current.saleOfferStartedAt,
           legacyDeletionChecked: true,
         };
       },
@@ -701,6 +734,9 @@ export const useAppStore = create<AppState>()(
 
 /** 최근 코칭 맥락을 모델에 넘길 형태로 압축 */
 /** 코칭 요청에 그대로 싣는 최근 턴 수 (서버 상한 8) */
+/** 사용법 안내의 판 — 안내 내용을 크게 바꾸면 올린다. 저장된 값(guideSeen)과 다르면 기존 이용자에게 한 번 다시 보여 준다 */
+export const GUIDE_VERSION = 'sendit-1.1';
+
 export const HISTORY_TURNS = 8;
 /** 그중 코치가 제안한 답장·읽어낸 포인트까지 싣는 최근 턴 수 (토큰을 아끼려고 최근 것만) */
 const DETAILED_TURNS = 3;
@@ -867,7 +903,23 @@ export function hasNewSessionsSince(report: { at: number; basedOn: number } | un
  * 누적 온도는 뺀다 — 온도는 새 코칭 기록과 함께만 바뀌어서 hasNewSessionsSince 가 따로 본다
  */
 export function reportProfileKey(profile: { crush: CoachRequest['crush']; user: CoachRequest['user'] }): string {
-  return quickHash(JSON.stringify({ crush: { ...profile.crush, heat: undefined }, user: profile.user }));
+  // 기억도 뺀다 — 기억은 새 코칭과 함께 바뀌고(그때는 새 기록으로 열린다), 지운 것만으로 같은 보고서를 다시 부르지 않게
+  return quickHash(JSON.stringify({ crush: { ...profile.crush, heat: undefined, memory: undefined }, user: profile.user }));
+}
+
+/**
+ * 코칭 결과의 기억(returned)을 저장해도 되는지 보고, 저장할 목록을 돌려준다. 바꿀 게 없으면 null.
+ * - 예전 서버(memory 없음)·빈 목록은 지금 기억을 그대로 둔다 — 모델이 빠뜨렸다고 쌓인 기억을 지우지 않는다(지우는 건 사용자만)
+ * - 요청을 보낸 뒤 사용자가 기억을 지웠으면(sent 와 지금이 다름) 이번 결과로 덮지 않는다 — 지운 줄이 되살아나지 않게.
+ *   이번 대화는 다음 요청의 최근 맥락에 있으니 그때 다시 기억된다
+ */
+export function memoryAfterResult(sent: readonly string[] | undefined, current: readonly string[] | undefined, returned: readonly string[] | undefined): string[] | null {
+  if (!returned) return null;
+  const next = cleanMemory(returned);
+  if (!next.length) return null;
+  const same = (a: readonly string[] = [], b: readonly string[] = []) => a.length === b.length && a.every((v, i) => v === b[i]);
+  if (!same(sent, current)) return null;
+  return same(next, current) ? null : next;
 }
 
 /**

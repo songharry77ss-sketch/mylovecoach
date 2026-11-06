@@ -1,6 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Alert, Platform } from 'react-native';
+import { useState } from 'react';
+import { Alert, Platform, StyleSheet } from 'react-native';
 
+import { MemoryCard, MemorySheet } from '@/components/coach/memory-sheet';
 import { CrushForm } from '@/components/crush/crush-form';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -18,8 +20,10 @@ export default function EditCrush() {
   const messages = useAppStore((s) => (id ? s.messages[id] : undefined));
   const updateCrush = useAppStore((s) => s.updateCrush);
   const removeCrush = useAppStore((s) => s.removeCrush);
+  const [memoryOpen, setMemoryOpen] = useState(false);
 
   if (!crush) return <EmptyState emoji="🫥" title="채팅방을 찾을 수 없어요" />;
+  const memoryCount = crush.secret ? 0 : (crush.memory?.facts.length ?? 0);
 
   const confirmDelete = () => {
     const run = () => {
@@ -40,7 +44,7 @@ export default function EditCrush() {
   };
 
   return (
-    <Screen sheet keyboard contentStyle={{ paddingTop: Spacing.sm }}>
+    <Screen sheet keyboard contentStyle={styles.content}>
       <CrushForm
         initial={crush}
         submitTitle="저장"
@@ -50,7 +54,15 @@ export default function EditCrush() {
           router.back();
         }}
       />
-      <Button title="채팅방 삭제" variant="danger" onPress={confirmDelete} style={{ marginTop: Spacing.xl }} />
+      {/* 센딧이 기억하는 이야기 — 채팅방 위 카드와 같은 시트로 보고 지운다 */}
+      {memoryCount ? <MemoryCard count={memoryCount} onPress={() => setMemoryOpen(true)} inline /> : null}
+      <Button title="채팅방 삭제" variant="danger" onPress={confirmDelete} style={styles.delete} />
+      {memoryCount ? <MemorySheet crushId={crush.id} partnerName={crush.name} visible={memoryOpen} onClose={() => setMemoryOpen(false)} /> : null}
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  content: { paddingTop: Spacing.sm },
+  delete: { marginTop: Spacing.md },
+});

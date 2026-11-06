@@ -14,6 +14,7 @@ const mockIap = {
   getUserFriendlyErrorMessage: jest.fn(() => ''),
   requestPurchase: jest.fn(() => new Promise(() => {})),
   getAvailablePurchases: jest.fn(async () => []),
+  finishTransaction: jest.fn(async () => {}),
 };
 jest.mock('expo-iap', () => mockIap);
 
@@ -94,5 +95,45 @@ describe('스토어 상품 조회 실패', () => {
       request: { apple: { sku: 'mylovecoach.premium.lifetime' }, google: { skus: ['mylovecoach.premium.lifetime'] } },
     });
     expect(iap.lastStoreProblem()).toEqual({ code: 'query-product', responseCode: -1 });
+  });
+});
+
+describe('하루 이용권 특가 (타임 세일 상품)', () => {
+  it('스토어가 특가 상품을 돌려주면 숫자 가격과 함께 목록 끝에 붙인다', async () => {
+    mockIap.fetchProducts.mockImplementation(async ({ type }: { type: string }) =>
+      type === 'subs'
+        ? []
+        : [
+            { id: 'mylovecoach.pass.day', displayPrice: '₩2,700', price: 2700, currency: 'KRW', platform: 'android', type: 'in-app' },
+            { id: 'mylovecoach.pass.day.sale', displayPrice: '₩1,900', price: 1900, currency: 'KRW', platform: 'android', type: 'in-app' },
+          ],
+    );
+
+    const list = await iap.loadPlanProducts();
+
+    expect(mockIap.fetchProducts).toHaveBeenCalledWith(expect.objectContaining({ type: 'in-app', skus: expect.arrayContaining(['mylovecoach.pass.day', 'mylovecoach.pass.day.sale']) }));
+    expect(list.find((p) => p.sale)).toEqual({ plan: 'day', productId: 'mylovecoach.pass.day.sale', displayPrice: '₩1,900', available: true, sale: true, price: 1900, currency: 'KRW' });
+    expect(list.find((p) => p.plan === 'day' && !p.sale)).toMatchObject({ productId: 'mylovecoach.pass.day', price: 2700, available: true });
+  });
+
+  it('스토어에 특가 상품이 없으면 목록에 넣지 않는다 (확인 전에는 보여 줄 가격이 없다)', async () => {
+    mockIap.fetchProducts.mockImplementation(async ({ type }: { type: string }) => (type === 'subs' ? [] : [product('mylovecoach.pass.day')]));
+
+    const list = await iap.loadPlanProducts();
+
+    expect(list.some((p) => p.sale)).toBe(false);
+    expect(list.find((p) => p.plan === 'day')?.available).toBe(true);
+  });
+
+  it('특가 결제가 오면 하루 이용권과 똑같이 충전하고 소비 처리한다', async () => {
+    const onConsumable = jest.fn();
+    await iap.initBilling({ onPremium: jest.fn(), onConsumable });
+    const [listener] = mockIap.purchaseUpdatedListener.mock.calls[0] as unknown as [(purchase: unknown) => Promise<void>];
+    const purchase = { productId: 'mylovecoach.pass.day.sale', purchaseState: 'purchased', id: 'tx-sale-1' };
+
+    await listener(purchase);
+
+    expect(onConsumable).toHaveBeenCalledWith('day', 'tx-sale-1');
+    expect(mockIap.finishTransaction).toHaveBeenCalledWith({ purchase, isConsumable: true });
   });
 });

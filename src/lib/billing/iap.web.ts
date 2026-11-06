@@ -10,6 +10,9 @@ export interface PlanProduct {
   displayPrice: string;
   offerToken?: string | null;
   available?: boolean;
+  price?: number | null;
+  currency?: string | null;
+  sale?: boolean;
 }
 
 export type PurchaseOutcome =

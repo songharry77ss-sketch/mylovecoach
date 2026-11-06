@@ -3,7 +3,7 @@
  * 받은 알림은 store_event 표(supabase/store_event.sql)에 한 줄씩 남기고, 처음 받은 알림만 운영자 텔레그램으로 알린다.
  * 매출은 실제 결제(Production)만 더한다 — 샌드박스·연결 확인 알림은 빼고.
  */
-import { FALLBACK_PRICES, planOfProduct, type PlanKey } from '../src/lib/billing/plans';
+import { DAY_SALE_PRICE_KRW, FALLBACK_PRICES, isSaleProduct, planOfProduct, type PlanKey } from '../src/lib/billing/plans';
 
 import { insertNew, query } from './_supabase';
 import { escapeHtml, formatWon, kstMidnight } from './_telegram';
@@ -38,16 +38,24 @@ export const PLAN_LABELS: Record<PlanKey, string> = {
 
 export const STORE_LABELS: Record<StoreName, string> = { apple: 'iOS', google: 'Android' };
 
-export const planLabel = (plan: PlanKey | null, productId: string | null): string =>
-  plan ? PLAN_LABELS[plan] : productId ? escapeHtml(productId) : '상품 모름';
+/** 하루 이용권 특가(타임 세일 상품) — plan 은 'day' 로 같이 세고 이름만 구분한다 */
+export const SALE_LABEL = '하루 이용권 특가';
 
-/** 정가(원) — 스토어가 금액을 알려 주지 않을 때(Google 실시간 알림) 쓴다 */
-export const listPriceKrw = (plan: PlanKey | null): number | null => {
+export const planLabel = (plan: PlanKey | null, productId: string | null): string =>
+  isSaleProduct(productId) ? SALE_LABEL : plan ? PLAN_LABELS[plan] : productId ? escapeHtml(productId) : '상품 모름';
+
+/**
+ * 정가(원) — 스토어가 금액을 알려 주지 않을 때(Google 실시간 알림) 쓴다.
+ * 특가 상품은 plans 의 DAY_SALE_PRICE_KRW (가격을 정하기 전에는 null → 금액 없이 기록·알림)
+ */
+export const listPriceKrw = (plan: PlanKey | null, productId?: string | null): number | null => {
+  if (isSaleProduct(productId)) return DAY_SALE_PRICE_KRW;
   if (!plan) return null;
   const digits = FALLBACK_PRICES[plan].replace(/[^0-9]/g, '');
   return digits ? Number(digits) : null;
 };
 
+/** 상품 ID → 요금제. 특가 상품은 하루 이용권('day')으로 인정한다 */
 export const planOf = (productId: string | null | undefined): PlanKey | null => (productId ? planOfProduct(productId) : null);
 
 /**

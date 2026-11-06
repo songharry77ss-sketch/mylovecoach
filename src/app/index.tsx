@@ -2,14 +2,19 @@ import { Redirect } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 
 import { useTheme } from '@/hooks/use-theme';
-import { useAppStore } from '@/store/app-store';
+import { entryRoute } from '@/lib/intro-paths';
+import { GUIDE_VERSION, useAppStore } from '@/store/app-store';
 
+/**
+ * 앱을 처음 화면으로 열 때 갈 곳 (lib/intro-paths 의 entryRoute).
+ * 처음이면 사용법 안내, 업데이트한 기존 이용자는 「새로워진 센딧」 사용법 한 번, 그 밖에는 홈(아직 시작 전이면 첫 캡처 화면).
+ */
 export default function Index() {
   const theme = useTheme();
   const hydrated = useAppStore((s) => s.hydrated);
   const started = useAppStore((s) => Boolean(s.user) || Object.keys(s.crushes).length > 0);
-  // 처음이면 사용법 소개부터 (건너뛰었거나 본 사람은 첫 캡처 화면)
   const onboardingSeen = useAppStore((s) => s.onboardingSeen);
+  const guideSeen = useAppStore((s) => s.guideSeen);
   if (!hydrated) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.background }}>
@@ -17,5 +22,5 @@ export default function Index() {
       </View>
     );
   }
-  return <Redirect href={started ? '/(tabs)' : onboardingSeen ? '/start' : '/welcome'} />;
+  return <Redirect href={entryRoute({ started, onboardingSeen, guideSeen }, GUIDE_VERSION)} />;
 }

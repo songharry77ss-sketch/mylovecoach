@@ -14,6 +14,7 @@
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+import { APP_NAME, APP_SUBTITLE } from '../src/constants/brand';
 import { buildTask, parseAiRequest, type AiMode, type AiTask } from '../src/lib/ai-tasks';
 import { IMAGE_TOO_LARGE_MESSAGE, MAX_IMAGE_BASE64_LENGTH, isImageTooLarge } from '../src/lib/coach-schema';
 import { callGeminiTask, type GeminiUsage } from '../src/lib/gemini';
@@ -222,7 +223,8 @@ function watchRequest(req: VercelRequest, res: VercelResponse, deadlineMs: numbe
  */
 export function updateRequiredMessage(platform: RequestPlatform | null): string {
   const store = platform === 'ios' ? 'App Store' : platform === 'android' ? 'Play 스토어' : '앱 스토어';
-  return `🎁 새 버전이 나왔어요!\n지금 버전에서는 코칭을 더 받을 수 없어요. ${store}에서 「나만의 연애코치」를 업데이트하면 바로 다시 쓸 수 있어요.\n채팅방과 기록은 그대로 남아요.`;
+  // 예전 이름(나만의 연애코치)으로 깔려 있어도 찾을 수 있게 새 이름과 부제를 같이 적는다
+  return `🎁 새 버전이 나왔어요!\n지금 버전에서는 코칭을 더 받을 수 없어요. ${store}에서 「${APP_NAME}(${APP_SUBTITLE})」를 업데이트하면 바로 다시 쓸 수 있어요.\n채팅방과 기록은 그대로 남아요.`;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

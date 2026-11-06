@@ -3,14 +3,14 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { GradientButton, Icon3D } from '@/components/brand/brand';
 import { AppText } from '@/components/ui/app-text';
-import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
 import { Screen } from '@/components/ui/screen';
 import { SelectSheet } from '@/components/ui/select-sheet';
 import { TagPicker } from '@/components/ui/tag-picker';
 import { TextField } from '@/components/ui/text-field';
-import { Radius, Spacing } from '@/constants/theme';
+import { Brand, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { haptic } from '@/lib/haptics';
 import { CRUSH_STYLE_TAGS, GENDERS, MBTI_LIST, RELATIONSHIPS } from '@/lib/labels';
@@ -59,6 +59,15 @@ export default function CustomPersonaScreen() {
 
   return (
     <Screen sheet keyboard contentStyle={styles.content}>
+      <View style={styles.intro}>
+        <View style={styles.introTexts}>
+          <AppText variant="title2">어떤 상대와 연습할까요?</AppText>
+          <AppText variant="small" color="textSecondary">
+            실제 그 사람과 비슷하게 적을수록 연습이 실전 같아져요
+          </AppText>
+        </View>
+        <Icon3D name="heart" size={64} float />
+      </View>
       <TextField
         label="상대 이름"
         placeholder="예: 지우"
@@ -86,7 +95,7 @@ export default function CustomPersonaScreen() {
           <AppText variant="smallStrong" color="textSecondary" style={styles.label}>
             MBTI
           </AppText>
-          <Pressable accessibilityRole="button" onPress={() => setMbtiOpen(true)} style={[styles.select, { backgroundColor: theme.surface }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={`MBTI ${mbti}, 바꾸기`} onPress={() => setMbtiOpen(true)} style={[styles.select, { backgroundColor: theme.surface }]}>
             <AppText variant="body">{mbti}</AppText>
             <Ionicons name="chevron-down" size={18} color={theme.textTertiary} />
           </Pressable>
@@ -135,7 +144,7 @@ export default function CustomPersonaScreen() {
         multiline
         maxLength={200}
       />
-      <Button title="연습 시작하기" onPress={start} />
+      <GradientButton title="연습 시작하기" shine onPress={start} icon={<Ionicons name="chatbubbles" size={18} color={Brand.onBrand} />} />
       <SelectSheet
         visible={mbtiOpen}
         title="MBTI 선택"
@@ -151,6 +160,8 @@ export default function CustomPersonaScreen() {
 
 const styles = StyleSheet.create({
   content: { gap: Spacing.xl, paddingTop: Spacing.lg },
+  intro: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  introTexts: { flex: 1, gap: 4 },
   label: { marginBottom: Spacing.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   twoCol: { flexDirection: 'row', gap: Spacing.md },

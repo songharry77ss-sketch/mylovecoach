@@ -16,6 +16,11 @@ export const GenderSchema = z.enum(['female', 'male', 'other']);
 export const RelationshipSchema = z.enum(['crush', 'talking', 'blind_date', 'friend', 'dating', 'ex']);
 export const EmojiPrefSchema = z.enum(['auto', 'on', 'off']);
 
+/** 센딧이 기억하는 이야기 — 채팅방마다 최대 몇 줄까지 기억하는지 (앱이 보내는 줄 수이자 모델에게 부탁하는 줄 수) */
+export const MEMORY_MAX = 8;
+/** 기억 한 줄의 최대 길이 (글자). 모델에게는 40~60자로 부탁하고, 넘치면 잘라서 저장한다 */
+export const MEMORY_FACT_MAX = 100;
+
 export const CoachReplySchema = z.object({
   tone: ToneSchema.describe('이 답장의 톤'),
   text: z.string().describe('상대에게 그대로 보낼 수 있는 답장 문구. 실제 메신저처럼 짧고 자연스럽게. 사용자가 쓰던 호칭과 말투(존댓말/반말)를 그대로.'),
@@ -35,6 +40,12 @@ export const CoachAnalysisSchema = z.object({
   replies: z.array(CoachReplySchema).describe('추천 답장 0~3개. 답장이 필요 없는 질문이면 빈 배열.'),
   nextStep: z.string().describe('다음 스텝 제안 한두 문장 (예: 이번 주 안에 가볍게 약속 제안하기)'),
   warnings: z.array(z.string()).describe('주의할 점. 없으면 빈 배열.'),
+  // 맨 끝에 둔다 — Gemini 는 이 순서대로 쓰므로, 이번 대화를 다 읽고 답장까지 고른 뒤에 기억을 고친다.
+  // 빠뜨려도 서버가 실패로 돌려보내지 않게 기본값을 둔다 (모델에게는 꼭 써야 하는 칸으로 보인다)
+  memory: z
+    .array(z.string())
+    .describe(`센딧이 기억하는 이 사람과의 이야기 — 기존 기억에 이번 대화를 더해 고친 전체 목록. 오래된 순, 최대 ${MEMORY_MAX}개, 각 40~60자의 짧은 한 문장. [기억: 남기지 않음]이면 빈 배열`)
+    .default([]),
 });
 
 export type CoachAnalysisOutput = z.infer<typeof CoachAnalysisSchema>;
@@ -44,6 +55,8 @@ export type CoachAnalysisOutput = z.infer<typeof CoachAnalysisSchema>;
  * 새로 추가한 항목(호칭·말투·온도 변화·성공 확률·예상 반응)이 없는 예전 서버 응답도 받아들인다.
  */
 export const CoachAnalysisReadSchema = CoachAnalysisSchema.extend({
+  /** 예전 서버 응답에는 없다 — 없으면 기억을 그대로 둔다 (빈 배열로 읽지 않는다) */
+  memory: z.array(z.string()).optional(),
   callName: z.string().nullable().optional(),
   speechLevel: z.enum(['polite', 'casual', 'mixed', 'unknown']).optional(),
   heatDelta: z.number().optional(),
@@ -55,8 +68,8 @@ export type CoachAnalysisRead = z.infer<typeof CoachAnalysisReadSchema>;
  * 서버가 받는 입력 길이 상한 (비용·남용 방지). 서버와 앱이 같은 스키마를 쓴다.
  * 앱이 보낼 수 있는 값보다 넉넉하게 커서 예전 앱 요청도 그대로 통과한다 —
  * 앱 입력창: 코칭 글 800자(빠른 코칭 붙여넣기 약 730자), 상대 이름 20자·메모 500자, 내 이름 20자, 태그는 미리 정한 짧은 말 6개까지.
- * 코칭 1건에 사용자가 정할 수 있는 글은 최대 약 2만 6,500자(지난 기록 8턴 2만 자 포함)다. 상한은 글자(UTF-16) 수라
- * 드문 한글 음절·한자는 글자당 3토큰까지 갈 수 있어, 최악은 입력 약 8만 토큰으로 잡는다
+ * 코칭 1건에 사용자가 정할 수 있는 글은 최대 약 2만 9,000자(지난 기록 8턴 2만 자·기억 12줄 2,400자 포함)다. 상한은 글자(UTF-16) 수라
+ * 드문 한글 음절·한자는 글자당 3토큰까지 갈 수 있어, 최악은 입력 약 8만 7천 토큰으로 잡는다
  */
 export const REQUEST_LIMITS = {
   /** 코칭 글 (앱 800자 + 「다른 답장」 안내 문장) */
@@ -76,6 +89,12 @@ export const REQUEST_LIMITS = {
   historySummary: 1_000,
   /** 최근 코칭 맥락의 보낸 답장 (AI 가 쓴 1~3문장) */
   historyReply: 500,
+  /** 센딧이 기억하는 이야기 한 줄 (앱은 100자까지 저장) — 저장해 둔 값을 그대로 보내는 칸이라 넘으면 잘라서 받는다 */
+  memoryFact: 200,
+  /** 기억 줄 수 (앱 최대 8줄) */
+  memoryFacts: 12,
+  /** 오늘 날짜 표시 (앱은 「11/6(목)」처럼 8자 안팎) */
+  today: 20,
 } as const;
 
 /**
@@ -102,6 +121,12 @@ export function isImageTooLarge(issues: readonly { code?: string; path?: readonl
   return issues.some((i) => i.code === 'too_big' && i.path?.[0] === 'image' && i.path?.[1] === 'base64');
 }
 
+/**
+ * 넘으면 잘라서 받는다 — 앱이 저장해 둔 지난 기록을 그대로 보내는 칸이라, 거절하면 그 채팅방의 다음 요청이 계속 막힌다.
+ * 이모지처럼 두 칸짜리 글자가 반으로 잘리면 끝의 반쪽은 버린다
+ */
+const clipped = (max: number) => z.string().transform((s) => (s.length > max ? s.slice(0, max).replace(/[\uD800-\uDBFF]$/, '') : s));
+
 const tagList = () => z.array(z.string().max(REQUEST_LIMITS.tag)).max(REQUEST_LIMITS.tags);
 
 export const CrushRequestSchema = z.object({
@@ -123,6 +148,11 @@ export const CrushRequestSchema = z.object({
   goal: z.string().max(60).optional(),
   /** 지금 누적 호감 온도 */
   heat: z.number().optional(),
+  /**
+   * 센딧이 기억하는 이 사람과의 이야기 (오래된 순) — 지난 응답의 memory 를 앱이 저장해 두었다가 보낸다.
+   * 상대 정보에 붙여 두어 코칭과 상대 분석 보고서가 같이 쓴다. 예전 앱은 보내지 않는다
+   */
+  memory: z.array(clipped(REQUEST_LIMITS.memoryFact)).max(REQUEST_LIMITS.memoryFacts).optional(),
 });
 
 export const UserRequestSchema = z.object({
@@ -140,12 +170,6 @@ export const UserRequestSchema = z.object({
   /** KKTI 유형 (예: 선빠폭직 직진 불도저) */
   kkti: z.string().max(40).optional(),
 });
-
-/**
- * 넘으면 잘라서 받는다 — 앱이 저장해 둔 지난 기록을 그대로 보내는 칸이라, 거절하면 그 채팅방의 다음 요청이 계속 막힌다.
- * 이모지처럼 두 칸짜리 글자가 반으로 잘리면 끝의 반쪽은 버린다
- */
-const clipped = (max: number) => z.string().transform((s) => (s.length > max ? s.slice(0, max).replace(/[\uD800-\uDBFF]$/, '') : s));
 
 export const CoachRequestSchema = z.object({
   crush: CrushRequestSchema,
@@ -177,6 +201,10 @@ export const CoachRequestSchema = z.object({
     .default([]),
   /** 최근 맥락보다 앞선 대화에서 사용자가 직접 쓴 말 (오래된 순) — 앞에서 한 요청을 대화가 길어져도 계속 지키게. 예전 앱은 보내지 않는다 */
   earlierNotes: z.array(clipped(200)).max(12).optional(),
+  /** false 면 이번 결과는 기억에 남기지 않는다 (비밀 상담·「다른 답장 더 보기」) — 모델은 memory 를 빈 배열로 둔다. 예전 앱은 보내지 않는다 */
+  remember: z.boolean().optional(),
+  /** 사용자 기기의 오늘 날짜 (예: 11/6(목)) — 「이번 주말」 같은 말을 기억에 날짜로 적게. 예전 앱은 보내지 않는다 */
+  today: clipped(REQUEST_LIMITS.today).optional(),
 });
 
 export type CoachRequest = z.infer<typeof CoachRequestSchema>;
@@ -206,7 +234,7 @@ const SPEECH_KO = { polite: '존댓말', casual: '반말' } as const;
 /**
  * 시스템 프롬프트는 요청마다 바뀌지 않도록 고정 문자열로 둡니다 (프롬프트 캐시).
  */
-export const COACH_SYSTEM_PROMPT = `당신은 "나만의 연애코치"입니다. 한국의 20~30대가 카카오톡·인스타 DM 등 메신저로 나누는 연애 대화를 코칭하는 전문가예요.
+export const COACH_SYSTEM_PROMPT = `당신은 연애 코치 앱 "센딧"의 AI 코치입니다. 한국의 20~30대가 카카오톡·인스타 DM 등 메신저로 나누는 연애 대화를 코칭하는 전문가예요.
 
 역할
 - 사용자가 올린 대화 캡처(스크린샷)와 상대방 프로필(이름, 나이, MBTI, 성향 태그, 관계 단계), 사용자 본인의 프로필을 종합해 상황을 읽고, 바로 보낼 수 있는 답장을 추천합니다.
@@ -240,6 +268,15 @@ export const COACH_SYSTEM_PROMPT = `당신은 "나만의 연애코치"입니다.
 - 맥락에 나온 일은 이미 누적 온도에 반영됐으니 heatDelta에 다시 세지 말고, 이번에 새로 들어온 캡처·글만 근거로 정하세요.
 - 맥락에 없는 일을 앞에서 들은 것처럼 지어내지 마세요.
 
+센딧이 기억하는 이야기 (memory)
+- [센딧이 기억하는 이 사람과의 이야기]는 이 채팅방의 지난 대화에서 알게 된 사실을 정리해 둔 기억입니다. 최근 맥락에서 빠진 예전 일도 여기 있으니 처음 듣는 것처럼 굴지 말고, 필요할 때 그 사실을 이어서 답장과 조언에 살리세요. 기억과 이번 캡처·글이 다르면 이번 것이 맞습니다.
+- memory에는 기존 기억에 이번 대화(캡처·사용자의 글)에서 새로 알게 된 것을 더해 고친 전체 목록을 오래된 순으로 적으세요. 최대 8개, 각 40~60자의 짧은 한 문장.
+- 담을 것: 상대에 대한 사실(일·학교·취미·좋아하는 것·일정), 둘 사이에 있었던 일과 그 날짜, 약속, 상대가 보낸 중요한 말(짧게 인용), 사용자가 실제로 보낸 답장, 지금 관계의 분위기·단계.
+- 담지 말 것: 답장 말투·길이·이모지 같은 사용자의 요청(따로 기억함), 코치의 조언과 추천 답장(사용자가 보냈다고 한 것만 담기), 확실하지 않은 추측, 캡처에서 읽을 수 없는 내용, 연락처·주소·계좌 같은 개인정보.
+- 상대는 이름(모르면 "상대"), 사용자는 "나"로 적으세요. "이번 주말"처럼 바뀌는 날짜는 [오늘]을 기준으로 "11/8(토)"처럼 적으세요.
+- 기존 기억은 함부로 지우지 말고, 바뀐 사실은 고치고 겹치는 것은 합치세요. 8개를 넘으면 덜 중요한 오래된 것부터 줄이세요. 새로 알게 된 게 없으면 기존 기억을 그대로 돌려주세요.
+- [기억: 남기지 않음]이면 memory를 빈 배열로 두세요.
+
 호감 온도 판단
 - hot: 먼저 연락, 빠른 답장, 질문·약속 제안, 이모티콘/애정표현이 뚜렷함
 - warm: 답장이 성실하고 대화를 이어가려는 노력이 보임
@@ -260,7 +297,24 @@ export const COACH_SYSTEM_PROMPT = `당신은 "나만의 연애코치"입니다.
 - summary와 insights, nextStep, warnings는 사용자에게 말하는 친근한 존댓말("~해요", "~해보세요")로 씁니다.
 - 출력은 오직 요청된 JSON 구조로만 합니다.`;
 
-export function buildProfileBlock(req: Pick<CoachRequest, 'crush' | 'user'>): string {
+/**
+ * 상대·내 프로필. 상대 정보에 기억이 있으면 끝에 기억 블록도 붙인다(상대 분석 보고서가 이걸로 기억을 함께 읽는다).
+ * 코칭은 프롬프트 캐시를 위해 기억을 참고 자료 뒤로 따로 두므로 withMemory: false 로 부른다
+ */
+export function buildProfileBlock(req: Pick<CoachRequest, 'crush' | 'user'>, options: { withMemory?: boolean } = {}): string {
+  const profile = profileLines(req);
+  const memory = options.withMemory === false ? '' : buildMemoryBlock(req.crush.memory);
+  return memory ? `${profile}\n\n${memory}` : profile;
+}
+
+/** 센딧이 기억하는 이 사람과의 이야기 (오래된 순). 없으면 빈 글 */
+export function buildMemoryBlock(memory: readonly string[] | undefined): string {
+  const list = (memory ?? []).map((s) => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  if (!list.length) return '';
+  return ['[센딧이 기억하는 이 사람과의 이야기 (오래된 순) — 지난 대화에서 알게 된 사실]', ...list.map((s) => `- ${s}`)].join('\n');
+}
+
+function profileLines(req: Pick<CoachRequest, 'crush' | 'user'>): string {
   const { crush, user } = req;
   const lines: string[] = [];
   lines.push(`[상대방 프로필]`);
@@ -315,6 +369,9 @@ const EMOJI_KO = { auto: '자동 (대화에서 쓰던 만큼)', on: '넣기', of
 export function buildTaskBlock(req: CoachRequest): string {
   const lines: string[] = [];
   lines.push(`[이번 요청]`);
+  if (req.today?.trim()) lines.push(`- [오늘] ${req.today.trim()}`);
+  // 비밀 상담·「다른 답장 더 보기」는 기억을 고치지 않는다 — 모델이 기억을 다시 쓰느라 토큰을 쓰지 않게
+  if (req.remember === false) lines.push(`- [기억: 남기지 않음] 이번 결과는 기억에 남기지 않아요. memory는 빈 배열로 두세요.`);
   // 입력창에서 직접 바꿔 고른 값이면 그렇다고 적는다 — 앞 대화의 요청보다 우선 (예전 앱은 표시 없이 지금처럼)
   const chosen = (v: boolean | undefined) => (v === true ? ' (이번에 직접 고름)' : '');
   lines.push(`- 원하는 답장 톤${chosen(req.toneChosen)}: ${TONE_GUIDE[req.tone]}`);
@@ -350,8 +407,10 @@ export function buildContextText(req: CoachRequest): string {
     user: { mbti: req.user.mbti, age: req.user.age },
   });
   const blocks = [
-    buildProfileBlock(req),
+    buildProfileBlock(req, { withMemory: false }),
     knowledge ? `[코치 참고 자료 — 경향일 뿐 단정하지 말 것]\n${knowledge}` : '',
+    // 기억은 대화마다 바뀌므로 거의 그대로인 프로필·참고 자료 뒤에 둔다 (캐시 프리픽스를 덜 깬다)
+    buildMemoryBlock(req.crush.memory),
     buildEarlierNotesBlock(req.earlierNotes),
     buildHistoryBlock(req.history),
   ].filter(Boolean);
@@ -410,7 +469,38 @@ export function normalizeAnalysis<T extends CoachAnalysisRead>(a: T): T {
       .slice(0, 3)
       .map((r) => ({ ...r, successRate: clampInt(r.successRate, 1, 99), expectedReaction: r.expectedReaction?.trim() || undefined })),
     warnings: a.warnings.filter((s) => s.trim()).slice(0, 3),
+    // 예전 서버 응답(memory 없음)은 그대로 없음으로 둔다 — 앱은 이때 기억을 바꾸지 않는다
+    ...(a.memory ? { memory: cleanMemory(a.memory) } : {}),
   };
+}
+
+/**
+ * 기억 줄 정리: 앞의 글머리표·번호와 겹친 공백을 지우고, 같은 문장은 한 번만, 너무 긴 줄은 자른다.
+ * 줄이 많으면 최근 것(뒤쪽)을 남긴다 — 오래된 순이라 뒤가 최근이다
+ */
+export function cleanMemory(list: readonly string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of list) {
+    if (typeof raw !== 'string') continue;
+    const line = raw
+      .replace(/\s+/g, ' ')
+      .replace(/^\s*(?:[-•·*]|\d+[.)])\s*/, '')
+      .trim();
+    if (!line) continue;
+    const chars = Array.from(line);
+    const clippedLine = chars.length > MEMORY_FACT_MAX ? `${chars.slice(0, MEMORY_FACT_MAX - 1).join('')}…` : line;
+    const key = clippedLine.replace(/[\s.。!]/g, '');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(clippedLine);
+  }
+  return out.slice(-MEMORY_MAX);
+}
+
+/** 요청에 싣는 오늘 날짜 (기기 시각) — 예: 11/6(목) */
+export function todayLabel(now: Date = new Date()): string {
+  return `${now.getMonth() + 1}/${now.getDate()}(${'일월화수목금토'[now.getDay()]})`;
 }
 
 /** 앱의 상대 정보를 요청 형태로. 직접 정한 호칭·말투가 없으면 지난 캡처에서 읽은 값을 쓴다 */
@@ -431,6 +521,8 @@ export function crushToRequest(crush: Crush): CoachRequest['crush'] {
     ...(speech ? { speech, speechFixed: Boolean(fixedSpeech) } : {}),
     ...(crush.goal?.trim() ? { goal: crush.goal.trim() } : {}),
     heat: crush.heat ?? 0,
+    // 비밀 상담은 기억하지 않는다 (저장도 안 되지만 혹시 남아 있어도 보내지 않는다)
+    ...(!crush.secret && crush.memory?.facts?.length ? { memory: crush.memory.facts.slice(-MEMORY_MAX) } : {}),
   };
 }
 

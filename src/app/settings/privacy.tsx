@@ -1,16 +1,17 @@
-import { Alert, Linking, Platform, StyleSheet, Switch } from 'react-native';
+import { Alert, Linking, Platform, StyleSheet } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { Card } from '@/components/ui/card';
 import { ListRow } from '@/components/ui/list-row';
 import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section-header';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/toast';
 import { Spacing } from '@/constants/theme';
 import { track } from '@/lib/analytics';
 import { APP_CONFIG } from '@/lib/config';
 import { haptic } from '@/lib/haptics';
-import { BASIC_LOG_DETAIL, BASIC_LOG_NOTICE, CONTENT_CONSENT_DETAIL, CONTENT_CONSENT_SUMMARY, CONTENT_CONSENT_TITLE, optOutMailUrl, privacyUrl } from '@/lib/privacy-copy';
+import { BASIC_LOG_DETAIL, BASIC_LOG_NOTICE, CONTENT_CONSENT_DETAIL, CONTENT_CONSENT_SUMMARY, CONTENT_CONSENT_TITLE, MEMORY_NOTICE, optOutMailUrl, privacyUrl } from '@/lib/privacy-copy';
 import { useAppStore } from '@/store/app-store';
 
 const LEGACY_DELETE_MESSAGE = '예전 버전에서 보낸 이 기기의 기록(코칭 내용 포함)을 서버에서 모두 지울까요? 앱 안의 채팅방·프로필은 그대로 남아요.';
@@ -73,7 +74,9 @@ export default function PrivacySettings() {
         icon="chatbubbles-outline"
         title={`${CONTENT_CONSENT_TITLE} (선택)`}
         subtitle={`${CONTENT_CONSENT_SUMMARY}. ${CONTENT_CONSENT_DETAIL}`}
-        right={<Switch accessibilityLabel={`${CONTENT_CONSENT_TITLE} (선택)`} value={contentConsent === true} onValueChange={toggleContent} />}
+        right={
+<Switch accessibilityLabel={`${CONTENT_CONSENT_TITLE} (선택)`} value={contentConsent === true} onValueChange={toggleContent} />
+        }
       />
       {underAge ? (
         <AppText variant="caption" color="textTertiary" style={styles.note}>
@@ -88,6 +91,11 @@ export default function PrivacySettings() {
           onPress={confirmLegacyDelete}
         />
       ) : null}
+
+      <SectionHeader title="센딧이 기억하는 이야기" subtitle="채팅방마다 · 기기에만 저장" />
+      <Card style={styles.card}>
+        <AppText variant="small">{MEMORY_NOTICE}</AppText>
+      </Card>
 
       <AppText variant="caption" color="textTertiary" style={styles.note}>
         AI 분석 동의는 마이 → 프라이버시에서, 회원 탈퇴와 모든 데이터 삭제는 마이 화면 맨 아래에서 할 수 있어요.

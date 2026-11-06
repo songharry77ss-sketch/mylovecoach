@@ -5,6 +5,7 @@
  * 요금 사다리 (2026-10 회의): 하루 2,700원 · 일주일 9,900원 · 평생 29,800원 · 횟수제
  * - weekly / lifetime : 프리미엄. 스토어 구매 내역으로 상태를 판정한다 (복원 가능)
  * - day / credits     : 소모성 상품. 살 때마다 이 기기에 충전한다 (하루 이용권 24시간, 횟수권 10회)
+ * - 하루 이용권 특가(DAY_SALE_PRODUCT_ID) : 타임 세일 동안만 파는 별도 소모성 상품. 효과는 하루 이용권과 같다
  */
 export type PlanKey = 'weekly' | 'lifetime' | 'day' | 'credits';
 export type PremiumPlanKey = 'weekly' | 'lifetime';
@@ -77,8 +78,24 @@ export const isConsumablePlan = (plan: PlanKey): plan is ConsumablePlanKey => pl
 export const subscriptionStoreName = (os: string): string =>
   os === 'ios' ? 'App Store' : os === 'android' ? 'Google Play' : 'App Store 또는 Google Play';
 
+/**
+ * 하루 이용권 타임 세일용 특가 상품 (소모성). 효과는 하루 이용권과 똑같다 — 결제한 때부터 24시간 무제한.
+ * 앱·서버는 이 상품을 plan 'day' 로 인정하고(planOfProduct), 상품 ID 로만 특가인지 구분한다.
+ * 스토어에 아직 없으면 결제 화면이 세일을 보여 주지 않는다 (lib/billing/sale.ts · docs/DAY_PASS_SALE.md).
+ */
+export const DAY_SALE_PRODUCT_ID = 'mylovecoach.pass.day.sale';
+
+/**
+ * 특가 상품 가격(원) — Google 실시간 알림에는 금액이 없어 서버가 이 값으로 매출을 적는다 (api/_store.ts).
+ * 사장님이 가격을 정해 스토어에 만들 때 같은 값으로 고친다. 정하기 전(null)에는 금액 없이 알린다.
+ */
+export const DAY_SALE_PRICE_KRW: number | null = null;
+
+export const isSaleProduct = (productId: string | null | undefined): boolean => productId === DAY_SALE_PRODUCT_ID;
+
+/** 상품 ID → 요금제. 특가 상품은 하루 이용권('day')과 똑같이 인정한다 */
 export const planOfProduct = (productId: string): PlanKey | null =>
-  (Object.keys(PRODUCT_IDS) as PlanKey[]).find((k) => PRODUCT_IDS[k] === productId) ?? null;
+  isSaleProduct(productId) ? 'day' : ((Object.keys(PRODUCT_IDS) as PlanKey[]).find((k) => PRODUCT_IDS[k] === productId) ?? null);
 
 /** 프리미엄(구독·평생권) 상품만 */
 export const premiumPlanOfProduct = (productId: string): PremiumPlanKey | null => {

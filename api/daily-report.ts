@@ -12,7 +12,7 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-import type { PlanKey } from '../src/lib/billing/plans';
+import { isSaleProduct, type PlanKey } from '../src/lib/billing/plans';
 
 import { formatRevenue, planLabel, STORE_LABELS, sumRevenue, type StoreName } from './_store';
 import { countRows, query, supabaseReady } from './_supabase';
@@ -92,7 +92,8 @@ export function reportMessage(d: ReportData): string {
     lines.push(`💰 매출 ${formatRevenue(revenue)} (${revenue.count}건)`);
     const groups = new Map<string, { label: string; rows: SaleRow[] }>();
     for (const s of paid) {
-      const key = `${s.store}|${s.plan ?? s.product_id ?? ''}`;
+      // 하루 이용권 특가는 plan 이 'day' 라도 정가 하루 이용권과 따로 센다
+      const key = `${s.store}|${s.plan ?? s.product_id ?? ''}${isSaleProduct(s.product_id) ? '|sale' : ''}`;
       const group = groups.get(key) ?? { label: `${STORE_LABELS[s.store] ?? escapeHtml(s.store)} ${planLabel(s.plan, s.product_id)}`, rows: [] };
       group.rows.push(s);
       groups.set(key, group);

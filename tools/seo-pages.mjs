@@ -18,7 +18,11 @@ export const MARK = '<!-- mylovecoach:head -->';
 const IOS_APP_ID = '6813404855';
 const APP_STORE_URL = `https://apps.apple.com/kr/app/id${IOS_APP_ID}`;
 const PLAY_URL = 'https://play.google.com/store/apps/details?id=app.mylovecoach.android';
-const BRAND = '나만의 연애코치';
+// 2026-11-06 이름을 「센딧」으로 바꾸고 「나만의 연애 코치」는 부제로 (src/constants/brand.ts 와 같게)
+const BRAND = '센딧';
+const BRAND_FULL = '센딧 - 나만의 연애 코치';
+/** 예전 이름으로 찾는 사람도 같은 앱으로 이어지게 (검색 엔진이 읽는 구조화 데이터의 다른 이름) */
+const BRAND_ALIASES = ['Sendit', '나만의 연애 코치', '나만의 연애코치', '나만의연애코치', '연애코치'];
 
 const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 const e = (s) => String(s).replace(/[&<>"']/g, (c) => ESC[c]);
@@ -42,7 +46,7 @@ function encodedOf(code) {
 const TYPES = Object.values(KKTI_TYPES);
 
 // ───────── 머리말 ─────────
-function headTags({ title, description, path, ogTitle = title, ogDescription = description, image = `${SITE}/og.png`, size = [1024, 500], robots, siteName = BRAND, extra = [] }) {
+function headTags({ title, description, path, ogTitle = title, ogDescription = description, image = `${SITE}/og.png`, size = [1024, 500], robots, siteName = BRAND_FULL, extra = [] }) {
   const url = path == null ? null : `${SITE}${path}`;
   return [
     MARK,
@@ -60,7 +64,7 @@ function headTags({ title, description, path, ogTitle = title, ogDescription = d
     `<meta property="og:image:width" content="${size[0]}">`,
     `<meta property="og:image:height" content="${size[1]}">`,
     '<meta name="twitter:card" content="summary_large_image">',
-    '<meta name="theme-color" content="#3DA0F2">',
+    '<meta name="theme-color" content="#3D63F5">',
     ...extra,
   ]
     .filter(Boolean)
@@ -78,13 +82,14 @@ const verifyTags = () =>
 const BANNER = `<script>if(!/^\\/(k|kkti)(\\/|$)/.test(location.pathname))document.write('<meta name="apple-itunes-app" content="app-id=${IOS_APP_ID}">');</script>`;
 
 // 로봇용 본문 스타일 — JS 가 뜨기 전 잠깐 보이므로 인트로 배경색에 맞춘다
-const SHELL_CSS = `<style>.seo{flex:1;overflow:auto;padding:40px 20px 64px;background:#EEF7FF;color:#191F28;font:16px/1.65 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif}.seo>*{max-width:560px;margin-left:auto;margin-right:auto}.seo h1{font-size:24px;line-height:1.35;margin-top:0}.seo h2{font-size:18px;margin-top:28px}.seo a{color:#1B6FD1;font-weight:600}.seo .cta a{display:inline-block;margin:4px 12px 4px 0}.seo-center{display:flex;flex-direction:column;justify-content:center;text-align:center;background:#FFF1F5}@media (prefers-color-scheme:dark){.seo{background:#0F1419;color:#E8EDF2}.seo a{color:#7FC0FF}}</style>`;
+const SHELL_CSS = `<style>.seo{flex:1;overflow:auto;padding:40px 20px 64px;background:#F4F6FF;color:#191F28;font:16px/1.65 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif}.seo>*{max-width:560px;margin-left:auto;margin-right:auto}.seo h1{font-size:24px;line-height:1.35;margin-top:0}.seo h2{font-size:18px;margin-top:28px}.seo a{color:#2F4FE0;font-weight:600}.seo .cta a{display:inline-block;margin:4px 12px 4px 0}.seo-center{display:flex;flex-direction:column;justify-content:center;text-align:center;background:#F4F6FF}@media (prefers-color-scheme:dark){.seo,.seo-center{background:#0D1018;color:#F2F4F8}.seo a{color:#9DB4FF}}</style>`;
 
 const ORG = { '@type': 'Organization', '@id': `${SITE}/#org`, name: '크레이빙(CRAVING)', url: `${SITE}/`, email: 'contact@craving.win', logo: `${SITE}/icon.png` };
 const APP_DESC = '대화 캡처를 올리면 상대에게 딱 맞는 답장 3개와 호감 온도를 알려주는 AI 연애 코치';
 const app = (os, url) => ({
   '@type': 'MobileApplication',
-  name: BRAND,
+  name: BRAND_FULL,
+  alternateName: BRAND_ALIASES,
   operatingSystem: os,
   applicationCategory: 'LifestyleApplication',
   inLanguage: 'ko',
@@ -99,9 +104,9 @@ const app = (os, url) => ({
 const HOME = {
   head: () =>
     headTags({
-      title: '나만의 연애코치 · 카톡 답장 추천·호감도 분석 AI 연애 상담',
-      description: '카톡·인스타 DM 캡처 한 장이면 AI가 상대 속마음과 호감 온도를 읽고 보낼 답장 3개를 추천해요. 썸·소개팅·읽씹 고민부터 연애 연습, 카톡 연애 MBTI 테스트까지.',
-      ogTitle: '나만의 연애코치 · 캡처 한 장이면 답장이 나와요',
+      title: '센딧 - 나만의 연애 코치 · 카톡 답장 추천·호감도 분석 AI 연애 상담',
+      description: '고려대학교 연구진이 개발한 연애 특화 AI 코치. 카톡·인스타 DM 캡처 한 장이면 상대 속마음과 호감 온도를 읽고 보낼 답장 3개를 추천해요. 썸·소개팅·읽씹 고민부터 연애 연습, 카톡 연애 MBTI 테스트까지.',
+      ogTitle: '센딧 - 나만의 연애 코치 · 캡처 한 장이면 답장이 나와요',
       ogDescription: APP_DESC,
       path: '/',
       extra: [
@@ -111,7 +116,7 @@ const HOME = {
           '@context': 'https://schema.org',
           '@graph': [
             ORG,
-            { '@type': 'WebSite', '@id': `${SITE}/#website`, url: `${SITE}/`, name: BRAND, alternateName: ['연애코치', '나만의연애코치'], inLanguage: 'ko-KR', publisher: { '@id': `${SITE}/#org` } },
+            { '@type': 'WebSite', '@id': `${SITE}/#website`, url: `${SITE}/`, name: BRAND_FULL, alternateName: BRAND_ALIASES, inLanguage: 'ko-KR', publisher: { '@id': `${SITE}/#org` } },
             app('iOS', APP_STORE_URL),
             app('Android', PLAY_URL),
           ],
@@ -120,8 +125,8 @@ const HOME = {
       ],
     }),
   body: () => `<main class="seo">
-<h1>나만의 연애코치 · 카톡 캡처 한 장으로 받는 AI 연애 상담</h1>
-<p>카톡·인스타 DM 캡처를 올리거나 지금 상황을 글로 적으면, AI 연애 코치가 상대의 속마음과 호감 온도를 읽고 지금 보내기 좋은 답장 3개를 추천해요. 회원가입 없이 먼저 체험할 수 있어요.</p>
+<h1>센딧 - 나만의 연애 코치 · 카톡 캡처 한 장으로 받는 AI 연애 상담</h1>
+<p>고려대학교 연구진이 개발한 연애 특화 AI 코치예요. 카톡·인스타 DM 캡처를 올리거나 지금 상황을 글로 적으면, 센딧이 상대의 속마음과 호감 온도를 읽고 지금 보내기 좋은 답장 3개를 추천해요. 회원가입 없이 먼저 체험할 수 있어요.</p>
 <h2>이런 고민에 써요</h2>
 <ul>
 <li><b>카톡 답장 추천</b> — 썸남·썸녀가 「뭐해?」라고 보냈을 때, 톤별 답장 3개를 바로 복사</li>
@@ -191,13 +196,13 @@ export function appVariants(expoHtml) {
       .replace('<html lang="en">', '<html lang="ko">')
       .replace(/<title>[^<]*<\/title>\s*/, '')
       .replace('</head>', `${head()}\n</head>`)
-      .replace(/<noscript>[\s\S]*?<\/noscript>/, '<noscript>자바스크립트를 켜면 나만의 연애코치를 바로 쓸 수 있어요.</noscript>')
+      .replace(/<noscript>[\s\S]*?<\/noscript>/, '<noscript>자바스크립트를 켜면 센딧을 바로 쓸 수 있어요.</noscript>')
       .replace('<div id="root"></div>', `<div id="root">${body()}</div>`);
   return { 'index.html': make(HOME), 'kkti.html': make(KKTI), 'kkti-result.html': make(RESULT) };
 }
 
 // ───────── 정적 페이지 (유형 16개 + 모아 보기) ─────────
-const PAGE_CSS = `:root{color-scheme:light dark}*{box-sizing:border-box}body{margin:0;background:#FFF1F5;color:#191F28;font:16px/1.7 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif}main{max-width:640px;margin:0 auto;padding:32px 20px 72px}nav{font-size:14px;color:#6B7684}nav a,main a{color:#C2185B}h1{font-size:26px;line-height:1.35;margin:12px 0}h2{font-size:19px;margin-top:32px}.card{background:#fff;border-radius:20px;padding:18px 20px;margin:12px 0}.cta{display:block;text-align:center;background:#FF5C8A;color:#fff!important;text-decoration:none;font-weight:700;border-radius:16px;padding:16px;margin:28px 0}img{width:100%;height:auto;border-radius:16px}ul.grid{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}ul.grid a{display:block;background:#fff;border-radius:14px;padding:10px 12px;text-decoration:none}small{color:#6B7684}@media (prefers-color-scheme:dark){body{background:#17121A;color:#EDE7EE}.card,ul.grid a{background:#241C27}nav,small{color:#A99FAD}main a{color:#FF8FB1}}`;
+const PAGE_CSS = `:root{color-scheme:light dark}*{box-sizing:border-box}body{margin:0;background:#F4F6FF;color:#191F28;font:16px/1.7 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif}main{max-width:640px;margin:0 auto;padding:32px 20px 72px}nav{font-size:14px;color:#6B7684}nav a,main a{color:#2F4FE0}h1{font-size:26px;line-height:1.35;margin:12px 0}h2{font-size:19px;margin-top:32px}.card{background:#fff;border-radius:20px;padding:18px 20px;margin:12px 0}.cta{display:block;text-align:center;background:linear-gradient(135deg,#5D86FF 0%,#3D63F5 50%,#7559F6 100%);box-shadow:0 10px 24px rgba(61,79,232,.28);color:#fff!important;text-decoration:none;font-weight:700;border-radius:16px;padding:16px;margin:28px 0}img{width:100%;height:auto;border-radius:16px}ul.grid{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}ul.grid a{display:block;background:#fff;border-radius:14px;padding:10px 12px;text-decoration:none}small{color:#6B7684}@media (prefers-color-scheme:dark){body{background:#0D1018;color:#F2F4F8}.card,ul.grid a{background:#161A24}nav,small{color:#AEB6C4}main a{color:#9DB4FF}}`;
 
 const KKTI_FOOTER = `KKTI는 카톡 습관으로 보는 재미용 연애 유형 테스트예요. 공식 MBTI® 검사와는 관계가 없어요. · <a href="/">${BRAND}</a> · <a href="/privacy.html">개인정보 처리방침</a>`;
 function page({ path, title, description, image, size = [1200, 630], jsonLd, main, siteName = 'KKTI', footer = KKTI_FOOTER }) {
@@ -313,7 +318,7 @@ ${g.replies.map((r) => `<div class="card"><p><b>${e(r.tone)}</b></p><p>「${e(r.
 <h2>이런 말은 피해요</h2>
 <ul>${g.avoid.map((a) => `<li>${e(a)}</li>`).join('')}</ul>
 <a class="cta" href="${e(cta)}">내 상황에 맞는 답장 3가지 받기</a>
-<p>캡처 한 장이나 상황 한 줄이면 AI 연애코치가 호칭·말투를 살린 답장 3가지와 호감 온도를 알려 줘요.</p>
+<p>캡처 한 장이나 상황 한 줄이면 센딧이 호칭·말투를 살린 답장 3가지와 호감 온도를 알려 줘요.</p>
 ${storeLinks}
 <h2>자주 묻는 질문</h2>
 ${g.faq.map((f) => `<h3>${e(f.q)}</h3><p>${e(f.a)}</p>`).join('\n')}

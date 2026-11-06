@@ -131,7 +131,7 @@ it('아이폰으로 보면 App Store 버튼 하나를 큰 버튼으로 보여 �
   onWeb(UA.iphone, 5);
   mount();
   expect(titles()).toEqual(['App Store에서 앱 받기']);
-  expect(buttons()[0].props.variant ?? 'primary').toBe('primary');
+  expect(buttons()[0].props.variant).toBe('brand');
   expect(screenText()).not.toMatch(/Google ?Play/);
   expect(screenText()).toContain('매일 무료 코칭');
 });
@@ -146,7 +146,7 @@ it('안드로이드로 보면 Google Play 버튼 하나를 큰 버튼으로 보�
   onWeb(UA.android, 5);
   mount();
   expect(titles()).toEqual(['Google Play에서 앱 받기']);
-  expect(buttons()[0].props.variant ?? 'primary').toBe('primary');
+  expect(buttons()[0].props.variant).toBe('brand');
   expect(screenText()).not.toContain('App Store');
 });
 

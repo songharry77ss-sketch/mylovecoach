@@ -135,7 +135,7 @@ it('결제를 취소하고 닫으면 마지막 결과(취소)를 함께 남긴�
   (purchasePlan as jest.Mock).mockResolvedValue({ status: 'cancelled' });
   mount();
   await act(async () => {
-    await pressable('결제하기').props.onPress();
+    await pressable('시작하기').props.onPress();
   });
   expect(names()).toEqual(expect.arrayContaining(['purchase_start', 'purchase_cancelled']));
   act(() => renderer.unmount());
@@ -146,7 +146,7 @@ it('결제가 끝나 닫힌 경우는 「결제 없이 닫음」으로 세지 �
   (purchasePlan as jest.Mock).mockResolvedValue({ status: 'granted', plan: 'day' });
   mount();
   await act(async () => {
-    await pressable('결제하기').props.onPress();
+    await pressable('시작하기').props.onPress();
   });
   act(() => renderer.unmount());
   expect(names()).toContain('purchase_granted');

@@ -1,34 +1,27 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
-import Animated, {
-  Easing,
-  interpolateColor,
-  runOnJS,
-  useAnimatedReaction,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withSequence,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated, { Easing, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 
 import { useCelebrate } from '@/components/fx/celebration';
 import { AppText } from '@/components/ui/app-text';
-import { Radius, Spacing, palette } from '@/constants/theme';
+import { Brand, Radius, Spacing, palette } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { haptic } from '@/lib/haptics';
 import { HEAT_MAX, HEAT_MIN } from '@/store/app-store';
 
-/** 누적 호감 온도 구간별 이름·색 */
+/**
+ * 누적 호감 온도 구간별 이름·색 — 센딧 그라데이션처럼 낮으면 하늘색, 오를수록 파랑 → 보라.
+ * 홈 목록·연습·채팅방이 같이 쓴다
+ */
 export function heatMeta(value: number): { label: string; emoji: string; color: string } {
-  if (value >= 90) return { label: '불타는 중', emoji: '🔥', color: palette.red500 };
-  if (value >= 70) return { label: '뜨거움', emoji: '❤️‍🔥', color: palette.pink600 };
-  if (value >= 50) return { label: '설렘', emoji: '💗', color: palette.pink500 };
-  if (value >= 30) return { label: '따뜻함', emoji: '🌤️', color: palette.peach500 };
-  if (value >= 10) return { label: '미지근', emoji: '☁️', color: palette.sky500 };
-  if (value >= 0) return { label: '아직 덤덤', emoji: '🌱', color: palette.sky400 };
-  return { label: '영하', emoji: '🧊', color: palette.sky600 };
+  if (value >= 90) return { label: '불타는 중', emoji: '🔥', color: palette.sendViolet600 };
+  if (value >= 70) return { label: '뜨거움', emoji: '❤️‍🔥', color: palette.sendViolet500 };
+  if (value >= 50) return { label: '설렘', emoji: '💜', color: palette.sendBlue600 };
+  if (value >= 30) return { label: '따뜻함', emoji: '🌤️', color: palette.sendBlue500 };
+  if (value >= 10) return { label: '미지근', emoji: '☁️', color: palette.sky600 };
+  if (value >= 0) return { label: '아직 덤덤', emoji: '🌱', color: palette.sky500 };
+  return { label: '영하', emoji: '🧊', color: palette.gray500 };
 }
 
 const RANGE = HEAT_MAX - HEAT_MIN;
@@ -48,16 +41,22 @@ interface HeatGaugeProps {
   value: number;
   /** 바뀌기 전 온도 (있으면 여기서부터 차오른다) */
   from?: number;
-  /** 이번 변화 폭 (배지로 표시) */
+  /** 이번 변화 폭 (칩으로 표시) */
   delta?: number;
   /** 애니메이션을 한 번만 보여 주기 위한 키 (메시지 id 등). 없으면 애니메이션 없음 */
   revealKey?: string;
   compact?: boolean;
-  /** 숫자 옆 작은 설명 (예: 이번 대화 분위기) */
+  /** 숫자 아래 작은 설명 (예: 이번 대화 분위기) */
   caption?: string;
+  /** 제목 (기본: 호감 온도) — 예: 「민지님과의 호감 온도」 */
+  title?: string;
 }
 
-export function HeatGauge({ value, from, delta, revealKey, compact, caption }: HeatGaugeProps) {
+/**
+ * 누적 호감 온도 — 큰 숫자가 세어 올라가고, 그라데이션 막대가 차오르고, 변화 폭 칩(+10°)이 튀어나온다.
+ * 큰 구간을 넘거나 크게 오르면 축하가 터지고, 내려가면 살짝 흔들린다
+ */
+export function HeatGauge({ value, from, delta, revealKey, compact, caption, title = '호감 온도' }: HeatGaugeProps) {
   const theme = useTheme();
   const celebrate = useCelebrate();
   const shouldAnimate = Boolean(revealKey && !revealed.has(revealKey) && from != null && from !== value);
@@ -81,7 +80,7 @@ export function HeatGauge({ value, from, delta, revealKey, compact, caption }: H
     const crossed = MILESTONES.some((m) => start < m && value >= m);
     if (crossed || d >= 10) {
       anchor.current?.measureInWindow?.((x, y, w) => {
-        celebrate({ kind: value >= 70 ? 'fire' : 'hearts', x: Number.isFinite(x) ? x + w * ratio(value) : undefined, y: Number.isFinite(y) ? y : undefined, count: crossed ? 22 : 14 });
+        celebrate({ kind: 'sparkles', x: Number.isFinite(x) ? x + w * ratio(value) : undefined, y: Number.isFinite(y) ? y : undefined, count: crossed ? 22 : 14 });
       });
     } else {
       haptic.heartbeat();
@@ -116,44 +115,45 @@ export function HeatGauge({ value, from, delta, revealKey, compact, caption }: H
     },
   );
 
-  const fill = useAnimatedStyle(() => ({
-    width: Math.max(8, ratio(v.value) * width),
-    backgroundColor: interpolateColor(v.value, [-20, 0, 30, 60, 100], [palette.sky600, palette.sky400, palette.peach500, palette.pink400, palette.red500]),
-  }));
+  const fill = useAnimatedStyle(() => ({ width: Math.max(10, ratio(v.value) * width) }));
   const badgeStyle = useAnimatedStyle(() => ({ opacity: badge.value, transform: [{ scale: 0.6 + badge.value * 0.4 }] }));
   const shakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shake.value }] }));
 
   const meta = heatMeta(shown);
   const zeroLeft = ratio(0) * width;
   const d = delta ?? (from != null ? value - from : undefined);
+  const up = d != null && d > 0;
 
   return (
-    <Animated.View style={[styles.wrap, shakeStyle]}>
+    <Animated.View style={[styles.wrap, shakeStyle]} accessible accessibilityLabel={`${title} ${value}도, ${heatMeta(value).label}${d ? `, ${d > 0 ? '올라감' : '내려감'} ${Math.abs(d)}도` : ''}`}>
       <View style={styles.row}>
         <View style={styles.labelBox}>
-          <AppText variant={compact ? 'smallStrong' : 'title3'}>
-            {meta.emoji} 호감 온도 · {meta.label}
+          <AppText variant={compact ? 'bodyStrong' : 'title3'} numberOfLines={1}>
+            {title}
           </AppText>
-          {caption ? (
-            <AppText variant="caption" color="textTertiary">
-              {caption}
-            </AppText>
-          ) : null}
+          <AppText variant="caption" color="textSecondary" numberOfLines={1}>
+            {caption ? `${meta.label} · ${caption}` : meta.label}
+          </AppText>
         </View>
         <View style={styles.numberRow}>
           {d != null && d !== 0 ? (
-            <Animated.View style={[styles.badge, { backgroundColor: d > 0 ? theme.accentSoft : theme.primarySoft }, badgeStyle]}>
-              <AppText variant="caption" weight="800" color={d > 0 ? theme.accent : theme.primary}>
-                {d > 0 ? `▲ ${d}°` : `▼ ${Math.abs(d)}°`}
+            <Animated.View style={[styles.badge, { backgroundColor: up ? theme.primarySoft : theme.surface }, badgeStyle]}>
+              <AppText variant="smallStrong" color={up ? theme.primary : theme.textSecondary}>
+                {up ? `+${d}°` : `−${Math.abs(d)}°`}
               </AppText>
             </Animated.View>
           ) : null}
           <AppText style={[compact ? styles.numberCompact : styles.number, { color: meta.color }]}>{shown}°</AppText>
         </View>
       </View>
-      <View ref={anchor} onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)} style={[styles.track, { backgroundColor: theme.surfaceSelected }]}>
-        {width > 0 ? <Animated.View style={[styles.fill, fill]} /> : null}
-        {width > 0 ? <View style={[styles.zero, { left: zeroLeft, backgroundColor: theme.background }]} /> : null}
+      <View ref={anchor} onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)} style={[styles.track, compact && styles.trackCompact, { backgroundColor: theme.surfaceSelected }]}>
+        {width > 0 ? (
+          <Animated.View style={[styles.fill, fill]}>
+            <LinearGradient colors={Brand.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+          </Animated.View>
+        ) : null}
+        {/* 0° 눈금 — 영하일 때만 (그라데이션 위의 흰 줄이 흠처럼 보여서) */}
+        {width > 0 && shown < 0 ? <View style={[styles.zero, { left: zeroLeft, backgroundColor: theme.background }]} /> : null}
       </View>
       {!compact ? (
         <View style={styles.scale}>
@@ -173,15 +173,16 @@ export function HeatGauge({ value, from, delta, revealKey, compact, caption }: H
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: Spacing.sm },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: Spacing.sm },
+  wrap: { gap: Spacing.sm + 2 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.sm },
   labelBox: { flexShrink: 1, gap: 2 },
   numberRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  number: { fontSize: 32, lineHeight: 38, fontWeight: '800', letterSpacing: -1 },
-  numberCompact: { fontSize: 24, lineHeight: 30, fontWeight: '800', letterSpacing: -0.8 },
-  badge: { paddingHorizontal: Spacing.sm, paddingVertical: 3, borderRadius: Radius.pill },
+  number: { fontSize: 44, lineHeight: 50, fontWeight: '900', letterSpacing: -1.6 },
+  numberCompact: { fontSize: 34, lineHeight: 40, fontWeight: '900', letterSpacing: -1.2 },
+  badge: { paddingHorizontal: Spacing.md, paddingVertical: 5, borderRadius: Radius.pill },
   track: { height: 12, borderRadius: Radius.pill, overflow: 'hidden', justifyContent: 'center' },
-  fill: { height: '100%', borderRadius: Radius.pill },
+  trackCompact: { height: 8 },
+  fill: { height: '100%', borderRadius: Radius.pill, overflow: 'hidden' },
   zero: { position: 'absolute', width: 2, top: 2, bottom: 2, opacity: 0.8 },
   scale: { flexDirection: 'row', justifyContent: 'space-between' },
 });

@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "나만의 연애코치",
+    "name": "센딧",
     "slug": "mylovecoach",
-    "version": "1.0.8",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mylovecoach",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "primaryColor": "#3DA0F2",
+    "primaryColor": "#3D63F5",
     "backgroundColor": "#FFFFFF",
-    "description": "대화 캡처를 올리면 상대에게 딱 맞는 답장과 호감 온도를 알려주는 AI 연애 코치",
+    "description": "센딧 - 나만의 연애 코치. 대화 캡처 한 장이면 상대에게 딱 맞는 답장 3가지와 호감 온도를 알려 주는 연애 특화 AI 코치",
     "ios": {
       "bundleIdentifier": "app.mylovecoach.ios",
       "buildNumber": "1",
@@ -18,7 +18,7 @@
       "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "CFBundleDisplayName": "연애코치",
+        "CFBundleDisplayName": "센딧",
         "NSPhotoLibraryUsageDescription": "대화 캡처와 상대 사진을 불러오기 위해 사진 보관함 접근 권한이 필요해요. 사진은 기기에만 저장되고 코칭 요청에만 사용돼요.",
         "NSCameraUsageDescription": "상대 프로필 사진을 촬영하기 위해 카메라 권한이 필요해요."
       }
@@ -27,7 +27,7 @@
       "package": "app.mylovecoach.android",
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#6491F2",
+        "backgroundColor": "#3D63F5",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -63,11 +63,11 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#EEF7FF",
+          "backgroundColor": "#F4F6FF",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 160,
           "dark": {
-            "backgroundColor": "#0F1419"
+            "backgroundColor": "#0D1018"
           }
         }
       ]
