@@ -77,25 +77,33 @@ export function MemorySheet({ crushId, partnerName, visible, onClose }: { crushI
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const facts = useAppStore((s) => s.crushes[crushId]?.memory?.facts) ?? EMPTY;
-  const setCrushMemory = useAppStore((s) => s.setCrushMemory);
+  const forgotten = useAppStore((s) => s.crushes[crushId]?.memoryForgotten) ?? EMPTY;
+  const forget = useAppStore((s) => s.forgetCrushMemory);
+  const clearForgotten = useAppStore((s) => s.clearForgottenMemory);
   const [confirm, setConfirm] = useState(false);
 
   useEffect(() => {
     if (!visible) setConfirm(false);
   }, [visible]);
 
+  // 지운 줄은 「다시 기억하지 않을 이야기」로 남아, 다음 대화에서 같은 이야기가 다시 생기지 않는다
   const remove = (index: number) => {
     haptic.tap();
-    const next = facts.filter((_, i) => i !== index);
-    setCrushMemory(crushId, next.length ? next : null);
-    toast.show(next.length ? '그 이야기는 잊었어요. 다음 요청부터 빠져요.' : '기억을 모두 지웠어요.');
-    if (!next.length) onClose();
+    const left = facts.length - 1;
+    forget(crushId, [facts[index]]);
+    toast.show(left ? '그 이야기는 잊었어요. 다시 기억하지 않을게요.' : '기억을 모두 지웠어요. 다시 기억하지 않을게요.');
   };
   const clearAll = () => {
     haptic.heavy();
-    setCrushMemory(crushId, null);
-    toast.show('기억을 모두 지웠어요. 다음 요청부터 빠져요.');
+    forget(crushId);
+    toast.show('기억을 모두 지웠어요. 다시 기억하지 않을게요.');
     onClose();
+  };
+  const clearForgottenList = () => {
+    haptic.tap();
+    clearForgotten(crushId);
+    toast.show('잊은 이야기 목록을 비웠어요.');
+    if (!facts.length) onClose();
   };
 
   const who = partnerName && partnerName !== '상대' ? `${partnerName}님과의` : '이 채팅방의';
@@ -140,6 +148,39 @@ export function MemorySheet({ crushId, partnerName, visible, onClose }: { crushI
                 </Animated.View>
               ))}
             </View>
+
+            {!facts.length ? (
+              <AppText variant="small" color="textTertiary" align="center">
+                지금 기억하는 이야기는 없어요.
+              </AppText>
+            ) : null}
+
+            {/* 지운 이야기도 숨기지 않고 보여 준다 — 다시 기억하지 않으려고 이 기기에 남겨 두는 목록이라 비울 수 있게 */}
+            {forgotten.length ? (
+              <View style={[styles.forgotten, { borderColor: theme.border }]}>
+                <View style={styles.forgottenHead}>
+                  <Ionicons name="eye-off-outline" size={15} color={theme.textSecondary} />
+                  <AppText variant="smallStrong" color="textSecondary" style={styles.flex}>
+                    다시 기억하지 않을 이야기 {forgotten.length}개
+                  </AppText>
+                  <Pressable accessibilityRole="button" accessibilityLabel="다시 기억하지 않을 이야기 목록 비우기" onPress={clearForgottenList} hitSlop={10}>
+                    <AppText variant="smallStrong" color="primary">
+                      비우기
+                    </AppText>
+                  </Pressable>
+                </View>
+                {forgotten.slice(-3).map((line) => (
+                  <AppText key={line} variant="caption" color="textTertiary" numberOfLines={1}>
+                    · {line}
+                  </AppText>
+                ))}
+                {forgotten.length > 3 ? (
+                  <AppText variant="caption" color="textTertiary">
+                    외 {forgotten.length - 3}개
+                  </AppText>
+                ) : null}
+              </View>
+            ) : null}
 
             <View style={[styles.notice, { backgroundColor: theme.primarySoft }]}>
               <Ionicons name="lock-closed" size={15} color={theme.primary} style={styles.noticeIcon} />
@@ -195,6 +236,8 @@ const styles = StyleSheet.create({
   rowTexts: { flex: 1, gap: 1 },
   remove: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   notice: { flexDirection: 'row', gap: Spacing.sm, borderRadius: Radius.md, padding: Spacing.md },
+  forgotten: { borderWidth: 1, borderRadius: Radius.md, padding: Spacing.md, gap: 4 },
+  forgottenHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
   noticeIcon: { marginTop: 1 },
   actions: { gap: Spacing.xs, paddingTop: Spacing.sm },
   confirm: { gap: Spacing.md },

@@ -107,7 +107,7 @@ export function DemoReel() {
                   ))}
                   <AppText variant="caption" color="textTertiary">
                     {' '}
-                    넘겨서 다른 버전 보기
+                    3가지 중 골라 복사
                   </AppText>
                 </View>
               </View>

@@ -115,7 +115,7 @@ export default function MindTab() {
           onPress={() => openFeature('secret')}
           accessibilityLabel="비밀 상담, 기록이 남지 않아요"
           colors={SECRET_GRADIENT}
-          badge="흔적 없이"
+          badge="기기에 안 남아요"
           icon={<Ionicons name="glasses" size={22} color={Brand.onBrand} />}
           title="비밀 상담"
           body={'나가면 대화·캡처가\n바로 지워져요'}

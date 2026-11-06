@@ -16,7 +16,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 import { APP_NAME, APP_SUBTITLE } from '../src/constants/brand';
 import { buildTask, parseAiRequest, type AiMode, type AiTask } from '../src/lib/ai-tasks';
-import { IMAGE_TOO_LARGE_MESSAGE, MAX_IMAGE_BASE64_LENGTH, isImageTooLarge } from '../src/lib/coach-schema';
+import { IMAGE_TOO_LARGE_MESSAGE, MAX_IMAGE_BASE64_LENGTH, isImageTooLarge, salvageTruncatedCoach } from '../src/lib/coach-schema';
 import { callGeminiTask, type GeminiUsage } from '../src/lib/gemini';
 import { aiFlagsFor } from './_ai-flags';
 import { clientIp, rateLimited, storedKb } from './_limits';
@@ -162,6 +162,8 @@ export interface UsageLine {
   flex?: string;
   /** Flex 를 기다린 시간 (ms) */
   flexMs?: number;
+  /** 출력 상한에 걸려 잘린 코칭 응답을 살렸을 때 'memory' (맨 끝의 기억 칸에서 끊겨 기억만 비우고 돌려줌) */
+  salvaged?: 'memory';
 }
 
 /** 본문의 mode — 아는 값만 (모르는 글자를 로그에 그대로 남기지 않는다) */
@@ -340,6 +342,11 @@ async function handle(req: VercelRequest, res: VercelResponse, send: (status: nu
       raw = JSON.parse(result.text);
     } catch {
       raw = undefined;
+    }
+    // 코칭 응답은 맨 끝이 기억(memory) 칸이다 — 그 안에서 잘렸으면 답장까지는 다 나온 것이니 기억만 비우고 살린다
+    if (raw === undefined && parsed.mode === 'coach' && result.finishReason === 'MAX_TOKENS') {
+      raw = salvageTruncatedCoach(result.text);
+      if (raw !== undefined) line.salvaged = 'memory';
     }
     const json = raw === undefined ? null : task.schema.safeParse(raw);
     if (!json?.success) {

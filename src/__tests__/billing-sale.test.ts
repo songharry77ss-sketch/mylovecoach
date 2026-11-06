@@ -6,7 +6,7 @@
  */
 import { reportMessage } from '../../api/daily-report';
 import { eventLine } from '../../api/_funnel-alert';
-import { listPriceKrw, planLabel, planOf, storeAlertText } from '../../api/_store';
+import { formatRevenue, listPriceKrw, planLabel, planOf, storeAlertText, sumRevenue } from '../../api/_store';
 import { DAY_PASS_MS, DAY_SALE_PRICE_KRW, DAY_SALE_PRODUCT_ID, PRODUCT_IDS, isConsumablePlan, isSaleProduct, planOfProduct, premiumPlanOfProduct } from '@/lib/billing/plans';
 import { EMPTY_WALLET, formatPassEnd, grantConsumable, passEndIfBoughtNow } from '@/lib/billing/quota';
 import { SALE_COOLDOWN_MS, SALE_WINDOW_MS, isSaleActive, priceNumber, saleAudience, saleOffer, saleWindow, shouldStartSale } from '@/lib/billing/sale';
@@ -80,6 +80,9 @@ describe('세일 상품 묶음 — 스토어가 둘 다 확인하고 특가가 �
     expect(saleOffer([regular, { ...sale, price: 3300, displayPrice: '₩3,300' }])).toBeNull();
     expect(saleOffer([{ ...regular, price: null, displayPrice: '$1.99' }, { ...sale, price: null, displayPrice: '$0.99' }])).toBeNull();
     expect(saleOffer([regular, { ...sale, currency: 'USD' }])).toBeNull();
+    // 한쪽이라도 통화를 모르면 열지 않는다
+    expect(saleOffer([regular, { ...sale, currency: null }])).toBeNull();
+    expect(saleOffer([{ ...regular, currency: undefined }, sale])).toBeNull();
   });
 
   it('숫자 가격이 없으면 원화 표시 가격에서 읽는다', () => {
@@ -155,4 +158,39 @@ it('어제 리포트는 정가 하루 이용권과 특가를 따로 센다', () 
   });
   expect(text).toContain(' · Android 하루 이용권 ₩2,700 (1건)');
   expect(text).toContain(' · Android 하루 이용권 특가 ₩1,900 (1건)');
+});
+
+describe('금액을 모르는 결제 (가격을 정하기 전의 Android 특가)', () => {
+  it('합계에서 빼고 「금액 미정」으로, 건수는 센다', () => {
+    const r = sumRevenue([
+      { amount: 2700, currency: 'KRW' },
+      { amount: null, currency: null },
+      { amount: null, currency: 'KRW' },
+    ]);
+    expect(r).toEqual({ krw: 2700, count: 3, other: {}, unknown: 2 });
+    expect(formatRevenue(r)).toBe('₩2,700 + 금액 미정 2건');
+    expect(formatRevenue(sumRevenue([{ amount: null, currency: null }]))).toBe('금액 미정');
+    expect(formatRevenue(sumRevenue([{ amount: '9900', currency: 'KRW' }, { amount: 1.99, currency: 'USD' }]))).toBe('₩9,900 + USD 1.99');
+    expect(formatRevenue(sumRevenue([]))).toBe('₩0');
+  });
+
+  it('어제 리포트에 ₩0 대신 「금액 미정」, 합계에는 넣지 않는다', () => {
+    const text = reportMessage({
+      day: '2026-11-06',
+      newMembers: 0,
+      members: [],
+      totalMembers: 1,
+      sales: [
+        { store: 'google', kind: 'purchase', plan: 'day', product_id: PRODUCT_IDS.day, amount: 2700, currency: 'KRW' },
+        { store: 'google', kind: 'purchase', plan: 'day', product_id: DAY_SALE_PRODUCT_ID, amount: null, currency: null },
+      ],
+      launches: 1,
+      coaching: 1,
+      paywall: 1,
+      checkout: 1,
+    });
+    expect(text).toContain('💰 매출 ₩2,700 + 금액 미정 1건 (2건)');
+    expect(text).toContain(' · Android 하루 이용권 특가 금액 미정 (1건)');
+    expect(text).not.toContain('₩0');
+  });
 });

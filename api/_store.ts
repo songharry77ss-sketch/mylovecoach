@@ -75,15 +75,20 @@ export interface Revenue {
   count: number;
   /** 원화가 아닌 통화별 합계 (해외 스토어 결제) */
   other: Record<string, number>;
+  /** 금액을 모르는 건수 — 가격을 정하기 전의 하루 이용권 특가(Google 알림에는 금액이 없음) 등. 합계에는 넣지 않는다 */
+  unknown: number;
 }
 
-/** 실제 결제(Production)의 결제·갱신 행에서 매출을 더한다 */
+/** 실제 결제(Production)의 결제·갱신 행에서 매출을 더한다. 금액이 없는 행은 건수만 세고 「금액 미정」으로 따로 둔다 */
 export function sumRevenue(rows: { amount: number | string | null; currency: string | null }[]): Revenue {
-  const out: Revenue = { krw: 0, count: 0, other: {} };
+  const out: Revenue = { krw: 0, count: 0, other: {}, unknown: 0 };
   for (const row of rows) {
     out.count += 1;
-    const amount = Number(row.amount ?? 0);
-    if (!Number.isFinite(amount)) continue;
+    const amount = row.amount == null || row.amount === '' ? NaN : Number(row.amount);
+    if (!Number.isFinite(amount)) {
+      out.unknown += 1;
+      continue;
+    }
     const currency = (row.currency ?? 'KRW').toUpperCase();
     if (currency === 'KRW') out.krw += amount;
     else out.other[currency] = (out.other[currency] ?? 0) + amount;
@@ -91,8 +96,13 @@ export function sumRevenue(rows: { amount: number | string | null; currency: str
   return out;
 }
 
-export const formatRevenue = (r: Revenue): string =>
-  [formatWon(r.krw), ...Object.entries(r.other).map(([c, v]) => `${escapeHtml(c)} ${Math.round(v * 100) / 100}`)].join(' + ');
+/** 「₩12,600」 · 「₩12,600 + USD 1.99」 · 금액을 모르는 건이 섞이면 「₩2,700 + 금액 미정 1건」, 전부 모르면 「금액 미정」 */
+export function formatRevenue(r: Revenue): string {
+  const unknown = r.unknown ?? 0;
+  if (unknown > 0 && unknown >= r.count) return '금액 미정';
+  const known = [formatWon(r.krw), ...Object.entries(r.other).map(([c, v]) => `${escapeHtml(c)} ${Math.round(v * 100) / 100}`)];
+  return [...known, ...(unknown > 0 ? [`금액 미정 ${unknown}건`] : [])].join(' + ');
+}
 
 /** 알림에 「오늘 매출」 줄을 붙일 기록인지 — 실제 결제(Production)의 결제·갱신만 */
 export const countsAsRevenue = (row: StoreEventRow): boolean => row.environment === 'Production' && (row.kind === 'purchase' || row.kind === 'renewal');

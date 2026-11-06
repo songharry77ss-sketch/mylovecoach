@@ -6,7 +6,7 @@ import { freeRules, type ConsumablePlanKey } from '@/lib/billing/plans';
 import type { Acquisition } from '@/lib/analytics';
 import type { AppUpdate } from '@/lib/app-update';
 import { consumeOne, EMPTY_USAGE, EMPTY_WALLET, grantConsumable, grantSignupBonus, type PremiumState, type TeamState, type UsageState, type WalletState } from '@/lib/billing/quota';
-import { cleanMemory, type CoachRequest } from '@/lib/coach-schema';
+import { MEMORY_FORGOTTEN_MAX, cleanMemory, memoryKey, type CoachRequest } from '@/lib/coach-schema';
 import { createId } from '@/lib/id';
 import { authAvailable } from '@/lib/supabase';
 import type {
@@ -122,8 +122,8 @@ export interface AppState {
   /** 처음 실행 소개(사용법 슬라이드)를 끝냈거나 건너뛰었는지 */
   onboardingSeen: boolean;
   /**
-   * 마지막으로 본 사용법 안내의 판 (GUIDE_VERSION). 다르면 업데이트한 기존 이용자에게 「새로워진 센딧」 사용법을 한 번 보여 준다.
-   * null 이면 아직 못 봄 (센딧으로 바뀌기 전부터 쓰던 사람)
+   * 마지막으로 본 사용법 안내의 판 (GUIDE_VERSION). 센딧 전 판을 쓰던 기기는 GUIDE_BEFORE_SENDIT 로 읽혀 「센딧으로 새로워졌어요」 안내를 한 번 본다.
+   * null 이면 센딧 판에서 시작해 아직 못 봄 (lib/intro-paths entryRoute)
    */
   guideSeen: string | null;
   /** 타임 세일(하루 이용권 특가)이 시작된 시각 — 정해진 시간이 지나면 끝나고, 한동안 다시 열리지 않는다 (lib/billing/sale) */
@@ -207,6 +207,10 @@ export interface AppState {
   startSaleOffer: (at: number) => void;
   /** 센딧이 기억하는 이야기를 바꾼다 (null 이면 모두 지움) */
   setCrushMemory: (crushId: string, facts: string[] | null) => void;
+  /** 사용자가 기억 줄을 지운다 (lines 를 주지 않으면 모두) — 지운 줄은 다시 기억하지 않게 memoryForgotten 에 남긴다 */
+  forgetCrushMemory: (crushId: string, lines?: string[]) => void;
+  /** 「다시 기억하지 않을 이야기」 목록을 비운다 */
+  clearForgottenMemory: (crushId: string) => void;
   setPracticeEnabled: (on: boolean) => void;
   noteReviewWin: () => void;
   markReviewAsked: (at: number) => void;
@@ -273,6 +277,40 @@ function savedContentConsent(saved: Partial<AppState> & LegacySaved): boolean | 
   return saved.analyticsConsent === true && saved.analyticsConsentVersion === LEGACY_CONSENT_VERSION ? true : null;
 }
 
+/** 결과에서 기억(memory)을 뺀 사본 — 메시지·재사용 사본에는 기억을 남기지 않는다 */
+export function withoutMemory(analysis: CoachAnalysis): CoachAnalysis {
+  if (!('memory' in analysis)) return analysis;
+  const rest = { ...analysis };
+  delete rest.memory;
+  return rest;
+}
+
+/** 저장돼 있던 메시지의 결과에서 기억 사본을 지운다 */
+function stripSavedMemory(messages: Record<string, ChatMessage[]>): Record<string, ChatMessage[]> {
+  return Object.fromEntries(
+    Object.entries(messages).map(([crushId, list]) => [crushId, Array.isArray(list) ? list.map((m) => (m.analysis && 'memory' in m.analysis ? { ...m, analysis: withoutMemory(m.analysis) } : m)) : list]),
+  );
+}
+
+/** 저장돼 있던 재사용 사본에서 기억을 지운다 */
+function stripCachedMemory(cache: AppState['analysisCache']): AppState['analysisCache'] {
+  return Object.fromEntries(Object.entries(cache).map(([key, hit]) => [key, hit?.analysis && 'memory' in hit.analysis ? { ...hit, analysis: withoutMemory(hit.analysis) } : hit]));
+}
+
+/** 지운 기억 목록에 더한다 — 같은 줄은 한 번, 최근 20줄까지 */
+function mergeForgotten(before: readonly string[] | undefined, added: readonly string[]): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const line of [...added].reverse().concat([...(before ?? [])].reverse())) {
+    const clean = line.replace(/\s+/g, ' ').trim();
+    const key = memoryKey(clean);
+    if (!clean || seen.has(key)) continue;
+    seen.add(key);
+    out.unshift(clean);
+  }
+  return out.slice(-MEMORY_FORGOTTEN_MAX);
+}
+
 /** 「분석 중」인 채로 저장된 코치 말풍선을 「다시 시도」할 수 있는 실패로 바꾼다 */
 function settlePending(messages: Record<string, ChatMessage[]>): Record<string, ChatMessage[]> {
   return Object.fromEntries(
@@ -282,6 +320,9 @@ function settlePending(messages: Record<string, ChatMessage[]>): Record<string, 
     ]),
   );
 }
+
+/** 센딧 전 판(「나만의 연애 코치」)을 쓰던 기기의 guideSeen — 업데이트 뒤 「센딧으로 새로워졌어요」 안내를 한 번 본다 (아래 merge 가 쓰므로 저장소보다 먼저 둔다) */
+export const GUIDE_BEFORE_SENDIT = 'before-sendit';
 
 export const useAppStore = create<AppState>()(
   persist(
@@ -406,8 +447,9 @@ export const useAppStore = create<AppState>()(
         const delta = options.applyHeat ? (analysis.heatDelta ?? FALLBACK_DELTA[analysis.temperature]) : 0;
         const after = clampHeat(before + delta);
         const now = Date.now();
+        // 기억(memory)은 채팅방의 기억에만 둔다 — 메시지에 사본을 남기면 사용자가 지운 기억이 기기에 그대로 남는다
         get().updateMessage(crushId, messageId, {
-          analysis,
+          analysis: withoutMemory(analysis),
           pending: false,
           error: undefined,
           heat: options.applyHeat ? { before, after, delta: after - before } : undefined,
@@ -452,7 +494,8 @@ export const useAppStore = create<AppState>()(
             .filter(([, v]) => Date.now() - v.at <= CACHE_TTL_MS)
             .sort((a, b) => b[1].at - a[1].at)
             .slice(0, CACHE_MAX - 1);
-          return { analysisCache: { ...Object.fromEntries(entries), [key]: { analysis, at: Date.now() } } };
+          // 재사용 사본에도 기억은 넣지 않는다 (지운 기억이 남지 않게 · 재사용한 결과는 기억을 고치지 않는다)
+          return { analysisCache: { ...Object.fromEntries(entries), [key]: { analysis: withoutMemory(analysis), at: Date.now() } } };
         }),
       // 첫 화면 동의 창 — 필수 항목에 답한 시각을 남기고, 선택 항목은 아래 setContentConsent 와 같이 처리한다. 새 이용자는 바뀐 안내를 여기서 본다
       agreeToStart: (contentConsent) => {
@@ -511,10 +554,33 @@ export const useAppStore = create<AppState>()(
           const prev = s.crushes[crushId];
           // 비밀 상담은 기억하지 않는다
           if (!prev || prev.secret) return {};
-          const clean = cleanMemory(facts ?? []);
+          // 사용자가 지운 줄은 다시 넣지 않는다
+          const forgotten = new Set((prev.memoryForgotten ?? []).map(memoryKey));
+          const clean = cleanMemory(facts ?? []).filter((f) => !forgotten.has(memoryKey(f)));
           const next = { ...prev };
           if (clean.length) next.memory = { facts: clean, at: Date.now() };
           else delete next.memory;
+          return { crushes: { ...s.crushes, [crushId]: next } };
+        }),
+      forgetCrushMemory: (crushId, lines) =>
+        set((s) => {
+          const prev = s.crushes[crushId];
+          if (!prev) return {};
+          const facts = prev.memory?.facts ?? [];
+          const drop = new Set((lines ?? facts).map(memoryKey));
+          const removed = facts.filter((f) => drop.has(memoryKey(f)));
+          const kept = facts.filter((f) => !drop.has(memoryKey(f)));
+          const next = { ...prev, memoryForgotten: mergeForgotten(prev.memoryForgotten, lines ?? removed) };
+          if (kept.length) next.memory = { facts: kept, at: Date.now() };
+          else delete next.memory;
+          return { crushes: { ...s.crushes, [crushId]: next } };
+        }),
+      clearForgottenMemory: (crushId) =>
+        set((s) => {
+          const prev = s.crushes[crushId];
+          if (!prev?.memoryForgotten) return {};
+          const next = { ...prev };
+          delete next.memoryForgotten;
           return { crushes: { ...s.crushes, [crushId]: next } };
         }),
       setPracticeEnabled: (practiceEnabled) => set({ practiceEnabled }),
@@ -713,7 +779,9 @@ export const useAppStore = create<AppState>()(
             : { contentConsent: savedContent, contentConsentAt: typeof saved.contentConsentAt === 'number' ? saved.contentConsentAt : null }),
           termsAgreedAt: current.termsAgreedAt ?? (typeof saved.termsAgreedAt === 'number' ? saved.termsAgreedAt : null),
           privacyNoticeSeen: Math.max(current.privacyNoticeSeen, typeof saved.privacyNoticeSeen === 'number' ? saved.privacyNoticeSeen : 0),
-          ...(saved.messages ? { messages: settlePending(saved.messages) } : {}),
+          ...(saved.messages ? { messages: stripSavedMemory(settlePending(saved.messages)) } : {}),
+          // 예전 판(11-06 개편 직후)이 결과 사본에 남긴 기억을 지운다 — 기억은 채팅방의 기억에만 둔다
+          ...(saved.analysisCache ? { analysisCache: stripCachedMemory(saved.analysisCache) } : {}),
           ...legacyDeletion,
           ...withdrawnMeanwhile,
           ...(prechecked ? { legacyServerRecords: true } : {}),
@@ -722,7 +790,14 @@ export const useAppStore = create<AppState>()(
           // 소개를 넣기 전부터 쓰던 사람은 소개를 다시 보지 않는다
           onboardingSeen: saved.onboardingSeen === true || current.onboardingSeen || Boolean(saved.user) || Object.keys(saved.crushes ?? {}).length > 0,
           // 센딧으로 바뀌기 전 판에는 없던 값 — 기존 이용자는 null 로 읽혀 업데이트 뒤 사용법을 한 번 본다
-          guideSeen: typeof saved.guideSeen === 'string' ? saved.guideSeen : current.guideSeen,
+          // 센딧 전 판은 이 칸을 쓰지 않았다(센딧 판은 null 이라도 늘 쓴다) — 칸이 없는데 쓰던 흔적(소개·프로필·채팅방)이 있으면 센딧 전 이용자로 적어
+          // 「새로워졌어요」 안내를 한 번 보여 준다. null 은 센딧 판에서 시작해 아직 안내를 못 본 사람 (lib/intro-paths entryRoute)
+          guideSeen:
+            typeof saved.guideSeen === 'string'
+              ? saved.guideSeen
+              : !('guideSeen' in saved) && (saved.onboardingSeen === true || Boolean(saved.user) || Object.keys(saved.crushes ?? {}).length > 0)
+                ? GUIDE_BEFORE_SENDIT
+                : current.guideSeen,
           saleOfferStartedAt: typeof saved.saleOfferStartedAt === 'number' ? saved.saleOfferStartedAt : current.saleOfferStartedAt,
           legacyDeletionChecked: true,
         };
@@ -912,10 +987,17 @@ export function reportProfileKey(profile: { crush: CoachRequest['crush']; user: 
  * - 예전 서버(memory 없음)·빈 목록은 지금 기억을 그대로 둔다 — 모델이 빠뜨렸다고 쌓인 기억을 지우지 않는다(지우는 건 사용자만)
  * - 요청을 보낸 뒤 사용자가 기억을 지웠으면(sent 와 지금이 다름) 이번 결과로 덮지 않는다 — 지운 줄이 되살아나지 않게.
  *   이번 대화는 다음 요청의 최근 맥락에 있으니 그때 다시 기억된다
+ * - 사용자가 지운 줄(forgotten)과 같은 줄은 모델이 다시 적어 와도 걸러 낸다
  */
-export function memoryAfterResult(sent: readonly string[] | undefined, current: readonly string[] | undefined, returned: readonly string[] | undefined): string[] | null {
+export function memoryAfterResult(
+  sent: readonly string[] | undefined,
+  current: readonly string[] | undefined,
+  returned: readonly string[] | undefined,
+  forgotten: readonly string[] = [],
+): string[] | null {
   if (!returned) return null;
-  const next = cleanMemory(returned);
+  const gone = new Set(forgotten.map(memoryKey));
+  const next = cleanMemory(returned).filter((f) => !gone.has(memoryKey(f)));
   if (!next.length) return null;
   const same = (a: readonly string[] = [], b: readonly string[] = []) => a.length === b.length && a.every((v, i) => v === b[i]);
   if (!same(sent, current)) return null;

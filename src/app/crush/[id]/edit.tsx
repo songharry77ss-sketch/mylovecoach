@@ -24,6 +24,8 @@ export default function EditCrush() {
 
   if (!crush) return <EmptyState emoji="🫥" title="채팅방을 찾을 수 없어요" />;
   const memoryCount = crush.secret ? 0 : (crush.memory?.facts.length ?? 0);
+  // 기억은 없어도 지운 이야기 목록이 남아 있으면 시트를 열어 비울 수 있게 한다
+  const showMemory = !crush.secret && (memoryCount > 0 || Boolean(crush.memoryForgotten?.length));
 
   const confirmDelete = () => {
     const run = () => {
@@ -55,9 +57,9 @@ export default function EditCrush() {
         }}
       />
       {/* 센딧이 기억하는 이야기 — 채팅방 위 카드와 같은 시트로 보고 지운다 */}
-      {memoryCount ? <MemoryCard count={memoryCount} onPress={() => setMemoryOpen(true)} inline /> : null}
+      {showMemory ? <MemoryCard count={memoryCount} onPress={() => setMemoryOpen(true)} inline /> : null}
       <Button title="채팅방 삭제" variant="danger" onPress={confirmDelete} style={styles.delete} />
-      {memoryCount ? <MemorySheet crushId={crush.id} partnerName={crush.name} visible={memoryOpen} onClose={() => setMemoryOpen(false)} /> : null}
+      {showMemory ? <MemorySheet crushId={crush.id} partnerName={crush.name} visible={memoryOpen} onClose={() => setMemoryOpen(false)} /> : null}
     </Screen>
   );
 }

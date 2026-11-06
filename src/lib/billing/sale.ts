@@ -86,7 +86,7 @@ export function priceNumber(p: Pick<SaleProductLike, 'price' | 'displayPrice'>):
 
 /**
  * 스토어에서 확인된 정가 하루 이용권과 특가 상품이 둘 다 있고, 특가가 숫자로 확인되게 더 쌀 때만 세일 묶음을 준다.
- * 하나라도 없거나(스토어에 아직 안 만듦·조회 실패) 가격을 비교할 수 없거나 통화가 다르면 null — 세일을 숨긴다.
+ * 하나라도 없거나(스토어에 아직 안 만듦·조회 실패) 가격을 비교할 수 없거나 통화를 모르거나 다르면 null — 세일을 숨긴다.
  */
 export function saleOffer<P extends SaleProductLike>(products: readonly P[] | null | undefined): SaleOffer<P> | null {
   const regular = products?.find((p) => p.plan === 'day' && !isSaleProduct(p.productId) && p.available === true);
@@ -95,7 +95,8 @@ export function saleOffer<P extends SaleProductLike>(products: readonly P[] | nu
   const a = priceNumber(regular);
   const b = priceNumber(sale);
   if (a == null || b == null || b >= a) return null;
-  if (regular.currency && sale.currency && regular.currency !== sale.currency) return null;
+  // 두 상품 모두 통화를 알고 같을 때만 (한쪽이라도 모르면 비교를 믿을 수 없어 열지 않는다)
+  if (!regular.currency || !sale.currency || regular.currency !== sale.currency) return null;
   const percent = Math.floor((1 - b / a) * 100);
   if (percent < 1) return null;
   return { regular, sale, percent };

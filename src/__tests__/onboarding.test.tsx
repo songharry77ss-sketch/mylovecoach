@@ -15,7 +15,7 @@ import Welcome from '@/app/welcome';
 import { GUIDE_STEPS } from '@/components/guide/guide-steps';
 import { track } from '@/lib/analytics';
 import { REVIEW_GAP_MS, REVIEW_MIN_WINS, shouldAskReview } from '@/lib/store-review';
-import { GUIDE_VERSION, useAppStore } from '@/store/app-store';
+import { GUIDE_BEFORE_SENDIT, GUIDE_VERSION, useAppStore } from '@/store/app-store';
 
 jest.mock('@react-native-async-storage/async-storage', () => {
   const mem = new Map<string, string>();
@@ -147,11 +147,10 @@ describe('처음 열면', () => {
     expect(mockRedirect).toBe('/(tabs)');
   });
 
-  it('업데이트한 기존 이용자(이번 판 안내를 아직 못 봄)는 「새로워졌어요」 안내로 한 번 보낸다', () => {
-    useAppStore.setState({ onboardingSeen: true, user: PROFILE });
+  it('센딧 전 판을 쓰던 이용자는 「새로워졌어요」 안내로 한 번 보낸다 (예전 판 안내를 본 사람도)', () => {
+    useAppStore.setState({ onboardingSeen: true, user: PROFILE, guideSeen: GUIDE_BEFORE_SENDIT });
     mount(<Index />);
     expect(mockRedirect).toBe('/welcome?from=update');
-    // 예전 판 안내를 본 사람도 마찬가지
     act(() => {
       useAppStore.setState({ guideSeen: 'old-version' });
     });
@@ -162,23 +161,41 @@ describe('처음 열면', () => {
     expect(mockRedirect).toBe('/(tabs)');
   });
 
-  it('업데이트 뒤 저장값을 읽으면 기존 이용자는 안내를 아직 못 본 것으로 읽힌다', () => {
+  it('센딧 판에서 링크(빠른 코칭·KKTI)로 먼저 시작한 새 이용자는 「새로워졌어요」가 아니라 처음 설치용 표지로 (다음 실행에 소개를 본 것으로 읽혀도)', () => {
+    useAppStore.setState({ user: PROFILE });
+    mount(<Index />);
+    expect(mockRedirect).toBe('/welcome?from=intro');
+    // 다음 실행 때 저장소가 프로필을 보고 onboardingSeen 을 켜도 마찬가지
+    act(() => {
+      useAppStore.setState({ onboardingSeen: true });
+    });
+    expect(mockRedirect).toBe('/welcome?from=intro');
+  });
+
+  it('저장값 읽기 — 센딧 전 판 저장값(guideSeen 칸 없음)은 before-sendit, 센딧 판 저장값의 null 은 그대로 null', () => {
     const merge = (saved: object) => useAppStore.persist.getOptions().merge!(saved, useAppStore.getState()) as ReturnType<typeof useAppStore.getState>;
-    const old = merge({ deviceId: 'd_old', user: PROFILE, onboardingSeen: true });
-    expect(old.onboardingSeen).toBe(true);
-    expect(old.guideSeen).toBeNull();
-    expect(merge({ deviceId: 'd_new', onboardingSeen: true, guideSeen: GUIDE_VERSION }).guideSeen).toBe(GUIDE_VERSION);
+    // 센딧 전 판: 프로필·채팅방·소개 기록 중 하나라도 있으면 기존 이용자
+    expect(merge({ deviceId: 'd_old1', user: PROFILE, onboardingSeen: true }).guideSeen).toBe(GUIDE_BEFORE_SENDIT);
+    expect(merge({ deviceId: 'd_old2', crushes: { c1: { id: 'c1' } } }).guideSeen).toBe(GUIDE_BEFORE_SENDIT);
+    expect(merge({ deviceId: 'd_old3', onboardingSeen: true }).guideSeen).toBe(GUIDE_BEFORE_SENDIT);
+    // 쓰던 흔적이 없으면 처음 설치와 같다
+    expect(merge({ deviceId: 'd_old4' }).guideSeen).toBeNull();
+    // 센딧 판에서 링크로 먼저 시작한 사람 — null 이 그대로 남아 처음 설치용 표지로 간다
+    const linkFirst = merge({ deviceId: 'd_new1', user: PROFILE, onboardingSeen: false, guideSeen: null });
+    expect(linkFirst.guideSeen).toBeNull();
+    expect(linkFirst.onboardingSeen).toBe(true);
+    expect(merge({ deviceId: 'd_new2', onboardingSeen: true, guideSeen: GUIDE_VERSION }).guideSeen).toBe(GUIDE_VERSION);
   });
 
   it('링크로 연 화면(검색 가이드의 /start?q= 등)은 안내로 막지 않고, 다음에 앱을 처음 화면으로 열 때 보여 준다', () => {
-    useAppStore.setState({ onboardingSeen: true, user: PROFILE, termsAgreedAt: Date.now() });
+    useAppStore.setState({ onboardingSeen: true, user: PROFILE, guideSeen: GUIDE_BEFORE_SENDIT, termsAgreedAt: Date.now() });
     mockParams = { q: '썸남이 뭐해? 라고 보냈어' };
     const t = mount(<Start />);
     // 링크가 연 화면이 그대로 보이고, 안내로 돌리지 않는다
     expect(t.root.findByProps({ accessibilityLabel: '지금 상황 적기' }).props.value).toBe('썸남이 뭐해? 라고 보냈어');
     expect(mockRedirect).toBeNull();
     expect(mockRouter.replace).not.toHaveBeenCalled();
-    expect(useAppStore.getState().guideSeen).toBeNull();
+    expect(useAppStore.getState().guideSeen).toBe(GUIDE_BEFORE_SENDIT);
     act(() => tree?.unmount());
     // 다음 앱 시작 (처음 화면)
     mockParams = {};
@@ -285,6 +302,27 @@ describe('사용법 안내 — 업데이트한 기존 이용자', () => {
     expect(mockRouter.replace).toHaveBeenCalledWith('/(tabs)');
     expect(useAppStore.getState().guideSeen).toBe(GUIDE_VERSION);
     spy.mockRestore();
+  });
+});
+
+describe('사용법 안내 — 센딧 판에서 링크로 먼저 시작한 이용자', () => {
+  it('처음 설치와 같은 표지(로고·부제·연구진)로 사용법을 보여 주고, 「다 봤어요」는 동의 창·나에 대해 없이 원래 가던 곳으로', () => {
+    useAppStore.setState({ user: PROFILE });
+    mockParams = { from: 'intro' };
+    const t = mount(<Welcome />);
+    const shown = texts(t);
+    expect(shown).toContain('고려대학교 연구진이 개발한 연애 특화 AI 코치');
+    expect(shown).toContain('센딧이 같이 골라 줄게요');
+    expect(shown).not.toContain('새로워졌어요');
+    pageThrough(t, GUIDE_STEPS.length + 1);
+    act(() => pressable(t, '다 봤어요').props.onPress());
+    expect(texts(t)).not.toContain('시작하기 전에 확인해 주세요');
+    expect(mockRouter.replace).toHaveBeenCalledWith('/(tabs)');
+    expect(mockRouter.replace).not.toHaveBeenCalledWith('/about-me');
+    expect(useAppStore.getState().termsAgreedAt).toBeNull();
+    expect(useAppStore.getState().guideSeen).toBe(GUIDE_VERSION);
+    expect(useAppStore.getState().onboardingSeen).toBe(true);
+    expect(track).toHaveBeenCalledWith('onboarding', { step: 'slides', action: 'done', mode: 'intro' });
   });
 });
 

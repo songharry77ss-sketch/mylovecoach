@@ -9,7 +9,6 @@ import { BrandPill, HeroCard, Icon3D, ResearchBadge, SenditLogo } from '@/compon
 import { WhoSheet, type WhoTarget } from '@/components/coach/who-sheet';
 import { CrushListItem } from '@/components/crush/crush-list-item';
 import { DemoReel } from '@/components/fx/demo-reel';
-import { AnimatedNumber } from '@/components/ui/animated-number';
 import { AppText } from '@/components/ui/app-text';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { StatusBarScrim } from '@/components/ui/system-bars';
@@ -362,7 +361,8 @@ function Remaining({ quota }: { quota: QuotaStatus & { enforced: boolean } }) {
   return (
     <Text style={styles.remaining} accessibilityLabel={`${count.lead}${count.n}회 남았어요${count.extra}`}>
       {count.lead}
-      <AnimatedNumber value={count.n} suffix="회" ticks={false} duration={700} delay={500} style={styles.remainingNum} />
+      {/* 남은 횟수는 세어 올라가지 않고 바로 보여 준다 — 0 에서 시작하면 잠깐 「0회」로 보여 다 쓴 줄 안다 */}
+      <Text style={styles.remainingNum}>{count.n}회</Text>
       {' 남았어요'}
       {count.extra}
     </Text>

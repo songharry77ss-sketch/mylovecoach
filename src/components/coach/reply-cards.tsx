@@ -84,11 +84,14 @@ function ReplyCard({ reply, index, best, copied, chosen, partnerName, locked, re
   const tone = toneLabel(reply.tone);
   const rate = reply.successRate;
   const initial = (partnerName?.trim() && partnerName !== '상대' ? partnerName.trim() : '상').slice(0, 1);
-  const label = locked ? `답장 ${index + 1}: 가입하면 볼 수 있어요` : `답장 ${index + 1}, ${tone.label}${rate != null ? `, 성공 확률 ${rate}%` : ''}: ${reply.text}. 눌러서 복사`;
+  // 답장 글을 읽을 때 몇 번째·말투·성공 확률을 같이 읽어 준다 (복사는 바로 옆 「복사」 버튼으로)
+  const label = `답장 ${index + 1}, ${tone.label}${rate != null ? `, 성공 확률 ${rate}%` : ''}: ${reply.text}`;
   return (
-    // 카드 어디를 눌러도 복사 — 안에 복사·공유 버튼이 있어 카드 자체는 버튼으로 알리지 않는다(웹에서 버튼 안의 버튼이 되지 않게)
+    // 카드 어디를 눌러도 복사 — 화면 읽기에서는 카드를 한 덩어리로 묶지 않는다(accessible={false}).
+    // 묶으면 iOS VoiceOver 가 안쪽 「공유」·「복사」 버튼을 따로 고르지 못한다. 글·확률·버튼이 하나씩 읽힌다
     <Pressable
-      accessibilityLabel={label}
+      accessible={false}
+      testID={`reply-card-${index}`}
       onPress={(e) => (locked ? onUnlock() : onCopy(e))}
       style={[
         styles.card,
@@ -116,9 +119,13 @@ function ReplyCard({ reply, index, best, copied, chosen, partnerName, locked, re
       </View>
 
       {locked ? (
-        <AppText style={[styles.replyText, styles.veiled, veilShadow(theme.text)]}>{veil(reply.text)}</AppText>
+        <AppText accessibilityLabel={`답장 ${index + 1}: 가입하면 볼 수 있어요`} style={[styles.replyText, styles.veiled, veilShadow(theme.text)]}>
+          {veil(reply.text)}
+        </AppText>
       ) : (
-        <AppText style={[styles.replyText, { color: theme.text }]}>{reply.text}</AppText>
+        <AppText accessibilityLabel={label} style={[styles.replyText, { color: theme.text }]}>
+          {reply.text}
+        </AppText>
       )}
 
       <View style={styles.foot}>
@@ -133,7 +140,7 @@ function ReplyCard({ reply, index, best, copied, chosen, partnerName, locked, re
               </AppText>
               <View style={[styles.reactionBubble, { backgroundColor: theme.bubbleCoach }]}>
                 {locked ? (
-                  <AppText variant="small" style={[styles.veiled, veilShadow(theme.text)]} numberOfLines={2}>
+                  <AppText variant="small" accessibilityLabel="가려진 예상 반응" style={[styles.veiled, veilShadow(theme.text)]} numberOfLines={2}>
                     {veil(reply.expectedReaction)}
                   </AppText>
                 ) : (

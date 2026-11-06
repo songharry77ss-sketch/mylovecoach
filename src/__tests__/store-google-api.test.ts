@@ -156,7 +156,7 @@ describe('/api/store-google 처리', () => {
     );
     expect(res.statusCode).toBe(200);
     const row = JSON.parse(inserts()[0].body ?? '[]')[0];
-    expect(row).toMatchObject({ kind: 'purchase', product_id: 'mylovecoach.pass.day.sale', plan: 'day', amount: DAY_SALE_PRICE_KRW });
+    expect(row).toMatchObject({ kind: 'purchase', product_id: 'mylovecoach.pass.day.sale', plan: 'day', amount: DAY_SALE_PRICE_KRW, currency: DAY_SALE_PRICE_KRW == null ? null : 'KRW' });
     expect(telegramTexts()[0]).toMatch(DAY_SALE_PRICE_KRW == null ? /^💳 결제 · 하루 이용권 특가 · Android/ : /^💳 결제 · 하루 이용권 특가 ₩[\d,]+ · Android/);
   });
 

@@ -103,13 +103,16 @@ export function googleEventRow(n: DeveloperNotification, messageId: string | nul
     const hash = tokenHash(one.purchaseToken);
     const kind = oneTimeKind(one.notificationType);
     const plan = planOf(one.sku);
+    // 하루 이용권 특가는 가격을 정하기 전(DAY_SALE_PRICE_KRW 가 null)이면 금액을 모른다 → 금액·통화 없이 기록 (리포트에 「금액 미정」)
+    const amount = kind === 'purchase' ? listPriceKrw(plan, one.sku) : null;
     return {
       ...base,
       kind,
       notification: ONE_TIME_TYPES[one.notificationType ?? 0] ?? `ONE_TIME_${one.notificationType ?? '?'}`,
       product_id: one.sku ?? null,
       plan,
-      amount: kind === 'purchase' ? listPriceKrw(plan, one.sku) : null,
+      amount,
+      currency: amount == null ? null : 'KRW',
       transaction_id: kind === 'other' ? `${hash}:${at}` : hash,
       original_transaction_id: hash,
       raw: { eventTimeMillis: at || null, notificationType: one.notificationType ?? null },
@@ -144,6 +147,7 @@ export function googleEventRow(n: DeveloperNotification, messageId: string | nul
       product_id: earlier?.product_id ?? null,
       plan,
       amount: listPriceKrw(plan, earlier?.product_id),
+      currency: listPriceKrw(plan, earlier?.product_id) == null ? null : 'KRW',
       // 구독 취소(REVOKED)와 같은 환불이 함께 오므로 같은 토큰의 환불은 한 번만 센다
       transaction_id: hash,
       original_transaction_id: hash,

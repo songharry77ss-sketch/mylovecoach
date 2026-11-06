@@ -50,7 +50,7 @@ export async function demoAnalysis(req: CoachRequest): Promise<CoachAnalysis> {
     replies,
     nextStep: '답이 긍정적이면 바로 시간과 장소를 정해서 확정해요. 애매하면 다음 주로 살짝 미뤄 여지를 남기세요.',
     warnings: ['같은 날 두 번 이상 약속을 재촉하지 마세요.', '이 결과는 데모용 샘플이에요. 실제 앱에서는 AI가 캡처를 분석해 답장을 만들어요.'],
-    memory: req.remember === false ? [] : demoMemory(req, remembered),
+    memory: req.remember === false || !req.today ? [] : demoMemory(req, remembered),
   };
 }
 

@@ -159,6 +159,20 @@ describe('센딧이 기억하는 이야기 — 채팅방 흐름', () => {
     expect(useAppStore.getState().crushes[id].memory).toBeUndefined();
   });
 
+  it('지운 기억은 요청에 싣지 않고(AI 로 보내지 않음), 모델이 다시 적어 와도 이 기기에서 걸러 낸다', async () => {
+    const coach = mountCoach();
+    const id = newCrush();
+    useAppStore.getState().setCrushMemory(id, ['민지는 성수 카페를 좋아함', '토요일 오후에 만나기로 함']);
+    useAppStore.getState().forgetCrushMemory(id, ['토요일 오후에 만나기로 함']);
+    reply = { memory: ['민지는 성수 카페를 좋아함', '토요일 오후에 만나기로 함.', '민지는 강아지를 키움'] };
+    await send(coach, { crushId: id, image: null, text: '주말에 뭐 하자고 할까' });
+    const raw = (fetchMock.mock.calls[0][1] as { body: string }).body;
+    expect(bodies[0].crush).not.toHaveProperty('memoryForgotten');
+    expect(raw).not.toContain('토요일 오후에 만나기로 함');
+    expect(useAppStore.getState().crushes[id].memory?.facts).toEqual(['민지는 성수 카페를 좋아함', '민지는 강아지를 키움']);
+    expect(useAppStore.getState().crushes[id].memoryForgotten).toEqual(['토요일 오후에 만나기로 함']);
+  });
+
   it('보낸 뒤 결과를 기다리는 사이 기억을 지웠으면 이번 결과로 되살리지 않는다', async () => {
     const coach = mountCoach();
     const id = newCrush();

@@ -22,12 +22,15 @@ describe('앱을 처음 화면으로 열 때 갈 곳 (사용법 안내)', () => 
     expect(entryRoute({ started: false, onboardingSeen: false, guideSeen: null }, V)).toBe('/welcome');
   });
 
-  it('업데이트한 기존 이용자는 이번 판 안내를 볼 때까지 「새로워졌어요」 안내로 한 번', () => {
-    expect(entryRoute({ started: true, onboardingSeen: true, guideSeen: null }, V)).toBe('/welcome?from=update');
-    expect(entryRoute({ started: false, onboardingSeen: true, guideSeen: null }, V)).toBe('/welcome?from=update');
+  it('센딧 전 판(또는 예전 판 안내)을 쓰던 사람은 이번 판 안내를 볼 때까지 「새로워졌어요」 안내로', () => {
+    expect(entryRoute({ started: true, onboardingSeen: true, guideSeen: 'before-sendit' }, V)).toBe('/welcome?from=update');
+    expect(entryRoute({ started: false, onboardingSeen: true, guideSeen: 'before-sendit' }, V)).toBe('/welcome?from=update');
     expect(entryRoute({ started: true, onboardingSeen: true, guideSeen: 'old' }, V)).toBe('/welcome?from=update');
-    // 소개를 거치지 않고 링크로 시작한 사람도 프로필·채팅방이 있으면 기존 이용자로 본다
-    expect(entryRoute({ started: true, onboardingSeen: false, guideSeen: null }, V)).toBe('/welcome?from=update');
+  });
+
+  it('센딧 판에서 링크로 먼저 시작한 사람(guideSeen 없음)은 처음 설치용 표지로 — 소개를 본 것으로 읽혀도', () => {
+    expect(entryRoute({ started: true, onboardingSeen: false, guideSeen: null }, V)).toBe('/welcome?from=intro');
+    expect(entryRoute({ started: true, onboardingSeen: true, guideSeen: null }, V)).toBe('/welcome?from=intro');
   });
 
   it('이번 판 안내를 봤으면 시작한 사람은 홈, 아직이면 첫 캡처 화면', () => {
@@ -36,5 +39,4 @@ describe('앱을 처음 화면으로 열 때 갈 곳 (사용법 안내)', () => 
     expect(homeRoute(true)).toBe('/(tabs)');
     expect(homeRoute(false)).toBe('/start');
   });
-
 });

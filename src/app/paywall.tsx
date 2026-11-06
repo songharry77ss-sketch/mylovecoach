@@ -222,8 +222,16 @@ export default function Paywall() {
 
   const buy = async () => {
     if (busy) return;
-    // 누르는 순간에 특가가 아직 열려 있을 때만 특가 상품을 산다 (마감이 지나면 정가)
-    const useSale = chosen === 'day' && offer != null && isSaleActive(useAppStore.getState().saleOfferStartedAt, Date.now());
+    // 화면에 특가가 보이던 채로 눌렀는데 그 사이 마감이 지났으면 정가 결제창을 열지 않는다 — 알리고 화면을 정가로 바꾼다
+    const shownSale = chosen === 'day' && salePrice != null;
+    const stillOpen = offer != null && isSaleActive(useAppStore.getState().saleOfferStartedAt, Date.now());
+    if (shownSale && !stillOpen) {
+      track('sale_offer_missed', { reason });
+      // iOS 모달 위에서는 앱 토스트가 가려지므로 버튼 바로 위에 보여 준다 (다시 그리면서 화면이 정가로 바뀐다)
+      setNotice({ kind: 'info', text: '특가가 방금 끝났어요. 지금은 정가로 살 수 있어요.' });
+      return;
+    }
+    const useSale = shownSale && stillOpen && offer != null;
     const product = useSale ? offer.sale : products?.find((p) => p.plan === chosen && !p.sale);
     if (!product) return;
     setBusy('purchase');
@@ -488,7 +496,7 @@ function fineText(plan: PlanKey, display: string, storeName: string, sale = fals
     return `평생권은 ${price} 1회 결제이며 자동으로 다시 결제되지 않아요. 「평생」은 서비스가 운영되는 기간을 뜻하고, 같은 ${storeName} 계정이면 기기를 바꿔도 「구매 복원」으로 다시 쓸 수 있어요. 자세한 내용은 이용약관의 평생권 조항을 확인해 주세요.`;
   const common = '자동으로 다시 결제되지 않고, 결제한 이 기기에서 쓸 수 있어요 (다른 기기로 옮기거나 복원되지 않아요).';
   if (plan === 'day' && sale)
-    return `하루 이용권 특가는 ${price} 1회 결제로 결제한 때부터 24시간 동안 무제한이에요 (하루 이용권과 똑같아요). 특가는 표시된 마감 시각까지만 살 수 있고, 마감 뒤에는 정가로 돌아가요. 이미 이용 중이면 24시간이 이어서 늘어나요. ${common}`;
+    return `하루 이용권 특가는 ${price} 1회 결제로 결제한 때부터 24시간 동안 무제한이에요 (하루 이용권과 똑같아요). 특가는 7일에 한 번, 30분 동안 열려요. 표시된 마감 시각까지만 살 수 있고, 마감 뒤에는 정가로 돌아가요. 이미 이용 중이면 24시간이 이어서 늘어나요. ${common}`;
   if (plan === 'day') return `하루 이용권은 ${price} 1회 결제로 결제한 때부터 24시간 동안 무제한이에요. 이미 이용 중이면 24시간이 이어서 늘어나요. ${common}`;
   return `횟수권은 ${price} 1회 결제로 코칭 ${CREDITS_PER_PACK}회가 충전되고 기간 제한이 없어요. 무료 횟수를 먼저 쓰고 그다음 횟수권이 차감돼요. ${common}`;
 }

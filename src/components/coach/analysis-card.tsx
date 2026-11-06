@@ -170,6 +170,23 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
             {vibe.description}
           </AppText>
         </Animated.View>
+      ) : analysis.temperature !== 'unknown' ? (
+        // 관심도 점수가 없는 예전 결과 — 예전처럼 이번 대화의 호감 온도(분위기)는 보여 준다
+        <Animated.View entering={enter()} style={styles.block}>
+          <View style={styles.rowBetween}>
+            <View style={styles.flexShrink}>
+              <AppText variant="title3">이번 대화 호감 온도</AppText>
+              <AppText variant="caption" color="textSecondary">
+                {vibe.description}
+              </AppText>
+            </View>
+            <View style={[styles.vibePill, { backgroundColor: theme.primarySoft }]}>
+              <AppText variant="title3" color="primary">
+                {vibe.label}
+              </AppText>
+            </View>
+          </View>
+        </Animated.View>
       ) : null}
 
       {/* 답장 3가지 */}
@@ -332,6 +349,7 @@ const styles = StyleSheet.create({
   chip: { paddingHorizontal: Spacing.sm + 2, paddingVertical: 4, borderRadius: Radius.pill },
   bigNumber: { fontSize: 44, lineHeight: 50, fontWeight: '900', letterSpacing: -1.6 },
   bigUnit: { fontSize: 22, fontWeight: '800' },
+  vibePill: { paddingHorizontal: Spacing.md + 2, paddingVertical: Spacing.sm, borderRadius: Radius.pill },
   track: { height: 10, borderRadius: Radius.pill, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: Radius.pill, overflow: 'hidden' },
   heatBox: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: Spacing.lg },

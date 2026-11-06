@@ -216,6 +216,22 @@ describe('사용량 로그', () => {
     ]);
   });
 
+  it('맨 끝 기억(memory) 칸에서 잘린 코칭 응답(MAX_TOKENS)은 기억만 비우고 200 으로 살린다 — 로그에 salvaged', async () => {
+    const full = JSON.stringify({ ...ANALYSIS, memory: ['민지는 카페를 좋아함', '토요일 약속을 잡는 중'] });
+    const cut = full.slice(0, full.indexOf('토요일') + 3);
+    gemini.mockImplementationOnce(async () => ({ ok: true, text: cut, model: 'gemini-3.5-flash', attempts: 1, finishReason: 'MAX_TOKENS', usage: { output: 2560 } }));
+    const res = await post();
+    expect(res.statusCode).toBe(200);
+    const analysis = (res.body as { analysis: { summary: string; replies: { text: string }[]; memory: string[] } }).analysis;
+    expect(analysis.summary).toBe('좋은 분위기예요');
+    expect(analysis.replies[0].text).toBe('나도 좋아!');
+    expect(analysis.memory).toEqual([]);
+    expect(logLines(logSpy)[0]).toEqual(expect.objectContaining({ status: 200, finishReason: 'MAX_TOKENS', salvaged: 'memory' }));
+    // 잘리지 않았는데 깨진 JSON(종료 이유 STOP)은 살리지 않는다
+    gemini.mockImplementationOnce(async () => ({ ok: true, text: cut, model: 'gemini-3.5-flash', attempts: 1, finishReason: 'STOP' }));
+    expect((await post()).statusCode).toBe(502);
+  });
+
   it('잘린 JSON(MAX_TOKENS)은 502 이고, 로그에 종료 이유가 남는다', async () => {
     gemini.mockImplementationOnce(async () => ({ ok: true, text: '{"summary":"잘', model: 'gemini-3.5-flash', attempts: 1, finishReason: 'MAX_TOKENS', usage: { thoughts: 2000 } }));
     const res = await post();

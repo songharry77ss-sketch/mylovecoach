@@ -10,7 +10,7 @@
 // ※ App Store: 처음 내는 소모성 상품은 새 앱 버전과 함께 심사에 올려야 한다 — App Store Connect 웹의 버전 페이지
 //   「앱 내 구입 및 구독」에서 이 상품을 골라야 묶음에 들어간다(API 불가). 심사용 스크린샷이 없으면 「제출 준비 완료」가 되지 않는다.
 // ※ Play: 결제 권한이 든 AAB 가 이미 올라가 있어 바로 만들 수 있다. 만들면 바로 활성(판매 가능)이 되지만, 앱은 특가를 지원하는 새 빌드부터 보여 준다.
-// ※ 만든 뒤 src/lib/billing/plans.ts 의 DAY_SALE_PRICE_KRW 를 같은 가격으로 고친다 (Google 실시간 알림에 금액이 없어 서버가 이 값으로 매출을 적는다).
+// ※ 만들기 전에 src/lib/billing/plans.ts 의 DAY_SALE_PRICE_KRW 를 같은 가격으로 고쳐 서버를 배포한다 (Google 실시간 알림에 금액이 없어 서버가 이 값으로 매출을 적는다). --apply 는 값이 다르면 멈춘다.
 // 자세한 순서: docs/DAY_PASS_SALE.md
 import { Buffer } from 'node:buffer';
 import { createSign } from 'node:crypto';
@@ -50,6 +50,15 @@ if (price != null && price >= REGULAR_PRICE) {
 if (apply && price == null) {
   console.error('--apply 에는 --price 가 꼭 필요하다 (사장님이 정한 특가, 예: --price 1900).');
   process.exit(1);
+}
+// 순서: 앱·서버의 가격 상수(DAY_SALE_PRICE_KRW)를 먼저 같은 값으로 고쳐 배포한 뒤에 만든다 — 그래야 Android 특가 매출이 「금액 미정」으로 빠지지 않는다
+if (apply) {
+  const plansSrc = readFileSync(join(repo, 'src', 'lib', 'billing', 'plans.ts'), 'utf8');
+  const declared = (plansSrc.match(/DAY_SALE_PRICE_KRW\s*:\s*number\s*\|\s*null\s*=\s*(\d+|null)/) ?? [])[1];
+  if (declared !== String(price)) {
+    console.error(`src/lib/billing/plans.ts 의 DAY_SALE_PRICE_KRW(${declared ?? '찾지 못함'})가 --price ${price} 와 다르다. 먼저 같은 값으로 고쳐 서버를 배포한 뒤 다시 실행한다 (docs/DAY_PASS_SALE.md).`);
+    process.exit(1);
+  }
 }
 const shot = argOf('--shot') ?? join(repo, 'docs', 'store-assets', 'iap-review-paywall-sale.png');
 
@@ -205,7 +214,7 @@ async function main() {
   if (!onlyIos) await android().catch((e) => console.log(`✗ Google Play — ${e.message}`));
   console.log(
     apply
-      ? `\n잊지 말 것: src/lib/billing/plans.ts 의 DAY_SALE_PRICE_KRW 를 ${price} 로 고쳐 서버(vercel)에 배포 · 이용약관에 특가 안내 추가 · 앱은 특가 지원 빌드부터 세일을 보여 준다.`
+      ? '\n잊지 말 것: 이용약관에 특가 안내 추가 · 앱은 특가 지원 빌드부터 세일을 보여 준다.'
       : '\n확인만 했다. 실제로 만들려면 가격을 정한 뒤 --apply --price <원> (예: --apply --price 1900).',
   );
 }

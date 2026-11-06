@@ -72,7 +72,7 @@ describe('센딧이 기억하는 이야기 — 요청과 프롬프트', () => {
   });
 
   it('비밀 상담·다른 답장은 「기억: 남기지 않음」으로 보낸다', () => {
-    const task = buildTaskBlock(CoachRequestSchema.parse({ crush, user, tone: 'natural', text: '안녕', remember: false }));
+    const task = buildTaskBlock(CoachRequestSchema.parse({ crush, user, tone: 'natural', text: '안녕', remember: false, today: '11/6(금)' }));
     expect(task).toContain('[기억: 남기지 않음]');
   });
 
@@ -80,6 +80,8 @@ describe('센딧이 기억하는 이야기 — 요청과 프롬프트', () => {
     const parsed = CoachRequestSchema.parse({ crush, user, tone: 'natural', text: '안녕' });
     expect(buildContextText(parsed)).not.toContain('[센딧이 기억하는');
     expect(buildTaskBlock(parsed)).not.toContain('[오늘]');
+    // 예전 앱은 기억을 읽지 않으니 모델이 기억을 쓰지 않게 한다 (출력 토큰 절약)
+    expect(buildTaskBlock(parsed)).toContain('[기억: 남기지 않음]');
   });
 
   it('저장해 둔 기억이 길면 거절하지 않고 잘라서 받고, 줄 수는 12줄까지', () => {

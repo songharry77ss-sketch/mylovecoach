@@ -106,6 +106,11 @@ export interface Crush {
    * 코치가 대화마다 고쳐 돌려주고(오래된 순, 짧은 문장 몇 개), 다음 요청에 같이 보내 지난 대화의 맥락을 잇는다. 사용자가 지울 수 있다
    */
   memory?: { facts: string[]; at: number };
+  /**
+   * 사용자가 지운 기억 (오래된 순, 최근 20줄) — 같은 이야기가 다음 응답에서 다시 생기지 않게 돌려받은 기억에서 걸러 낸다.
+   * 이 기기에만 두고 AI 로 보내지 않는다. 기억 시트에서 비울 수 있다
+   */
+  memoryForgotten?: string[];
 }
 
 export interface CoachReply {

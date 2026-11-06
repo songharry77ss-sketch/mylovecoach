@@ -83,10 +83,10 @@ const OTHERS = [
   { plan: 'lifetime', productId: 'mylovecoach.premium.lifetime', displayPrice: '₩29,800', available: true },
 ];
 let mockProducts: unknown[] = [];
+// 상품 목록만 가짜로 — 정가를 고르는 onSalePrice 는 진짜 함수를 쓴다 (특가 상품을 정가로 잘못 고르지 않는지까지 확인)
 jest.mock('@/hooks/use-plan-products', () => ({
+  ...jest.requireActual('@/hooks/use-plan-products'),
   usePlanProducts: () => mockProducts,
-  onSalePrice: (products: { plan: string; available?: boolean; sale?: boolean; displayPrice: string }[] | null, plan: string) =>
-    products?.find((p) => p.plan === plan && p.available && !p.sale)?.displayPrice ?? null,
 }));
 
 const MIN = 60 * 1000;
@@ -222,6 +222,26 @@ it('보고 있는 동안 마감되면 정가로 바뀐다', async () => {
   });
   expect(screen()).not.toContain('특가 마감까지');
   expect(textOf(buyButton())).toBe('하루 무제한 시작하기');
+});
+
+it('화면은 특가인데 누르는 순간 마감이 지났으면 정가 결제창을 열지 않고 알린 뒤 정가로 바꾼다', async () => {
+  useAppStore.setState({ saleOfferStartedAt: T - 30 * MIN + 1500 });
+  mount();
+  expect(textOf(buyButton())).toBe('특가로 하루 무제한 시작하기');
+  now = T + 2000;
+  await act(async () => {
+    await buyButton().props.onPress();
+  });
+  expect(purchasePlan).not.toHaveBeenCalled();
+  expect(tracked).toHaveBeenCalledWith('sale_offer_missed', { reason: 'quota' });
+  expect(screen()).toContain('특가가 방금 끝났어요');
+  expect(screen()).not.toContain('특가 마감까지');
+  expect(textOf(buyButton())).toBe('하루 무제한 시작하기');
+});
+
+it('특가 안내: 7일에 한 번, 30분', () => {
+  mount();
+  expect(screen()).toContain('특가는 7일에 한 번, 30분 동안 열려요');
 });
 
 it('특가 상품이 스토어에 없으면 세일을 보여 주지도 시작하지도 않는다', () => {

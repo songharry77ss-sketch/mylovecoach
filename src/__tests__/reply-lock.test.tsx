@@ -70,7 +70,8 @@ describe('답장 가리기', () => {
     await act(async () => unlock.props.onPress());
     expect(onUnlock).toHaveBeenCalledWith(1);
     // 가린 카드 자체를 눌러도 가입으로 (복사하지 않는다)
-    const card = t.root.findAll((n) => n.props.accessibilityLabel === '답장 3: 가입하면 볼 수 있어요' && typeof n.props.onPress === 'function')[0];
+    expect(t.root.findAll((n) => n.props.accessibilityLabel === '답장 3: 가입하면 볼 수 있어요').length).toBeGreaterThan(0);
+    const card = t.root.findAll((n) => n.props.testID === 'reply-card-2' && typeof n.props.onPress === 'function')[0];
     await act(async () => card.props.onPress());
     expect(onUnlock).toHaveBeenLastCalledWith(2);
     act(() => t.unmount());

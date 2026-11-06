@@ -139,7 +139,8 @@ export function useCoach() {
       useAppStore.getState().completeAnalysis(crush.id, coachMessage.id, analysis, { applyHeat: !cached && !seenBefore && !input.variationOf, fromCapture: Boolean(image) });
       // 새로 받은 결과의 기억만 저장한다 — 저장해 둔 예전 결과를 다시 쓴 경우(cached)는 그때의 기억이라 지금 기억을 되돌릴 수 있다
       if (remember && !cached) {
-        const nextMemory = memoryAfterResult(sentMemory, useAppStore.getState().crushes[crush.id]?.memory?.facts, analysis.memory);
+        const now = useAppStore.getState().crushes[crush.id];
+        const nextMemory = memoryAfterResult(sentMemory, now?.memory?.facts, analysis.memory, now?.memoryForgotten);
         if (nextMemory) useAppStore.getState().setCrushMemory(crush.id, nextMemory);
       }
       // 비밀 상담은 내용(결과 온도·톤·캡처 여부)을 이용 기록으로 보내지 않고 이용했다는 사실만 남긴다.

@@ -17,8 +17,11 @@ import { haptic } from '@/lib/haptics';
 import { homeRoute } from '@/lib/intro-paths';
 import { GUIDE_VERSION, useAppStore } from '@/store/app-store';
 
-/** 어떤 경우로 열었는지 — 처음 설치 · 업데이트한 기존 이용자(?from=update) · 마이의 「사용법 다시 보기」(?from=my) */
-export type GuideMode = 'fresh' | 'update' | 'replay';
+/**
+ * 어떤 경우로 열었는지 — 처음 설치 · 센딧 전 판을 쓰던 이용자(?from=update) · 센딧 판에서 링크로 먼저 시작한 이용자(?from=intro)
+ * · 마이의 「사용법 다시 보기」(?from=my)
+ */
+export type GuideMode = 'fresh' | 'update' | 'intro' | 'replay';
 
 type Page = { kind: 'cover' } | { kind: 'step'; step: GuideStep };
 
@@ -39,8 +42,9 @@ const COVER = {
  * 「센딧 사용법」 안내 — 실제 앱 화면을 휴대폰 틀에 담아 한 장씩 보여 주고, 누르는 곳을 반짝이는 원으로 짚는다
  * (그림·자르기·강조 위치는 components/guide/guide-steps).
  * - 처음 설치: 첫 장에 로고·부제·연구진 문구 → 사용법 → 「시작하기」로 이용약관 동의 → 「나에 대해」 → 첫 캡처. 「건너뛰기」는 첫 캡처 화면으로.
- * - 업데이트한 기존 이용자(?from=update, app/index 가 한 번 보냄): 「센딧으로 새로워졌어요」 → 같은 사용법 → 「다 봤어요」로 원래 가던 곳(홈).
+ * - 센딧 전 판을 쓰던 이용자(?from=update, app/index 가 한 번 보냄): 「센딧으로 새로워졌어요」 → 같은 사용법 → 「다 봤어요」로 원래 가던 곳(홈).
  *   동의 창·나에 대해로 보내지 않는다.
+ * - 센딧 판에서 링크(빠른 코칭·KKTI 등)로 먼저 시작한 이용자(?from=intro): 처음 설치와 같은 표지 + 사용법, 끝나면 동의 창·나에 대해 없이 원래 가던 곳.
  * - 마이 → 「사용법 다시 보기」(?from=my): 사용법만 보여 주고 「닫기」·「다 봤어요」로 마이에 돌아간다.
  * 어느 경우든 끝나면(건너뛰기·닫기 포함) 이번 판의 안내를 본 것으로 적는다 (guideSeen).
  */
@@ -48,7 +52,7 @@ export default function Welcome() {
   const router = useRouter();
   const theme = useTheme();
   const from = useLocalSearchParams<{ from?: string }>().from;
-  const mode: GuideMode = from === 'my' ? 'replay' : from === 'update' ? 'update' : 'fresh';
+  const mode: GuideMode = from === 'my' ? 'replay' : from === 'update' ? 'update' : from === 'intro' ? 'intro' : 'fresh';
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
   const width = Math.min(windowWidth, MaxContentWidth);
@@ -84,13 +88,14 @@ export default function Welcome() {
     }
   };
 
-  /** 기존 이용자·다시 보기는 원래 가던 곳으로 */
+  /** 이미 시작한 이용자·다시 보기는 원래 가던 곳으로 */
   const leave = () => {
     setGuideSeen(GUIDE_VERSION);
     if (mode === 'replay') {
       router.back();
       return;
     }
+    setOnboardingSeen();
     const s = useAppStore.getState();
     router.replace(homeRoute(Boolean(s.user) || Object.keys(s.crushes).length > 0));
   };

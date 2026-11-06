@@ -20,6 +20,16 @@ export const EmojiPrefSchema = z.enum(['auto', 'on', 'off']);
 export const MEMORY_MAX = 8;
 /** 기억 한 줄의 최대 길이 (글자). 모델에게는 40~60자로 부탁하고, 넘치면 잘라서 저장한다 */
 export const MEMORY_FACT_MAX = 100;
+/**
+ * 사용자가 지운 기억 — 같은 이야기를 다시 기억하지 않게 기기에 최근 몇 줄까지 남겨 두는지.
+ * 이 목록은 앱이 돌려받은 기억에서 걸러 내는 데만 쓰고 AI 로 보내지 않는다
+ */
+export const MEMORY_FORGOTTEN_MAX = 20;
+
+/** 기억 줄을 견줄 때 쓰는 열쇠 — 띄어쓰기·문장부호·따옴표·대소문자가 달라도 같은 줄로 본다 */
+export function memoryKey(line: string): string {
+  return line.toLowerCase().replace(/[\s.,!?~…·:;'"“”‘’「」『』()\[\]{}<>\-—_]/g, '');
+}
 
 export const CoachReplySchema = z.object({
   tone: ToneSchema.describe('이 답장의 톤'),
@@ -371,7 +381,8 @@ export function buildTaskBlock(req: CoachRequest): string {
   lines.push(`[이번 요청]`);
   if (req.today?.trim()) lines.push(`- [오늘] ${req.today.trim()}`);
   // 비밀 상담·「다른 답장 더 보기」는 기억을 고치지 않는다 — 모델이 기억을 다시 쓰느라 토큰을 쓰지 않게
-  if (req.remember === false) lines.push(`- [기억: 남기지 않음] 이번 결과는 기억에 남기지 않아요. memory는 빈 배열로 두세요.`);
+  // 예전 앱(오늘 날짜를 보내지 않음)은 기억을 읽지 않으므로 같이 막는다 — 쓸모없는 출력 토큰을 줄인다
+  if (req.remember === false || !req.today?.trim()) lines.push(`- [기억: 남기지 않음] 이번 결과는 기억에 남기지 않아요. memory는 빈 배열로 두세요.`);
   // 입력창에서 직접 바꿔 고른 값이면 그렇다고 적는다 — 앞 대화의 요청보다 우선 (예전 앱은 표시 없이 지금처럼)
   const chosen = (v: boolean | undefined) => (v === true ? ' (이번에 직접 고름)' : '');
   lines.push(`- 원하는 답장 톤${chosen(req.toneChosen)}: ${TONE_GUIDE[req.tone]}`);
@@ -490,12 +501,32 @@ export function cleanMemory(list: readonly string[]): string[] {
     if (!line) continue;
     const chars = Array.from(line);
     const clippedLine = chars.length > MEMORY_FACT_MAX ? `${chars.slice(0, MEMORY_FACT_MAX - 1).join('')}…` : line;
-    const key = clippedLine.replace(/[\s.。!]/g, '');
+    const key = memoryKey(clippedLine);
     if (seen.has(key)) continue;
     seen.add(key);
     out.push(clippedLine);
   }
   return out.slice(-MEMORY_MAX);
+}
+
+/**
+ * 출력 상한(MAX_TOKENS)에 걸려 잘린 코칭 응답 살리기 — memory 는 출력의 맨 끝 칸이라, 그 안에서 끊겼으면
+ * 앞의 요약·답장은 다 나온 것이다. memory 를 빈 배열로 닫아 다시 읽는다(잘린 기억을 반쪽만 저장하지 않게 비운다 —
+ * 앱은 빈 기억이면 지금 기억을 그대로 둔다). memory 앞에서 끊겼으면 살릴 수 없어 undefined
+ */
+export function salvageTruncatedCoach(text: string): unknown {
+  let at = text.lastIndexOf('"memory"');
+  if (at < 0) {
+    // 기억 칸 바로 앞(주의할 점 끝·쉼표·칸 이름 일부)에서 끊긴 경우 — 다른 칸 중간에서 끊겼으면 아래 JSON 읽기에서 걸러지고,
+    // 다른 칸이 빠졌으면 서버의 형식 검사에서 걸러진다
+    at = /(?:,\s*(?:"(?:m(?:e(?:m(?:o(?:r(?:y)?)?)?)?)?)?)?)?$/.exec(text)?.index ?? text.length;
+  }
+  const head = text.slice(0, at).replace(/[\s,]*$/, '');
+  try {
+    return JSON.parse(`${head}${head.endsWith('{') ? '' : ','}"memory":[]}`);
+  } catch {
+    return undefined;
+  }
 }
 
 /** 요청에 싣는 오늘 날짜 (기기 시각) — 예: 11/6(목) */

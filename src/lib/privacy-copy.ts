@@ -29,7 +29,7 @@ export const CONTENT_CONSENT_DETAIL =
  */
 export const MEMORY_NOTICE =
   '센딧이 기억하는 이야기는 이 기기에만 저장돼요. 코칭이나 상대 분석 보고서를 요청할 때 다른 대화 내용과 함께 AI로 보내 지난 대화를 이어 가는 데 써요. ' +
-  '언제든 지울 수 있고, 지우면 다음 요청부터 빠져요. 비밀 상담은 기억하지 않아요.';
+  '언제든 지울 수 있어요. 지운 줄은 이 기기에서 다시 기억하지 않도록 걸러 내는 데만 쓰고 AI로 보내지 않아요(「다시 기억하지 않을 이야기」에서 비울 수 있어요). 비밀 상담은 기억하지 않아요.';
 
 export const privacyUrl = (section?: 'analytics' | 'content') => (section ? `${APP_CONFIG.privacyUrl}#${section}` : APP_CONFIG.privacyUrl);
 
