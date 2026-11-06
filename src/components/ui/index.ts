@@ -10,6 +10,7 @@ export { ProgressDots } from './progress-dots';
 export { Screen } from './screen';
 export { SectionHeader } from './section-header';
 export { SelectSheet } from './select-sheet';
+export { Switch } from './switch';
 export { TagPicker } from './tag-picker';
 export { TextField } from './text-field';
 export { ToastProvider, useToast } from './toast';

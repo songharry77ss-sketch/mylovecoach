@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import * as Bubble from '../../modules/floating-bubble';
 
 /**
- * 플로팅 버블(다른 앱 위에 떠 있는 연애코치 바로가기) 앱용 진입점.
+ * 플로팅 버블(다른 앱 위에 떠 있는 센딧 바로가기) 앱용 진입점.
  * 안드로이드 네이티브 빌드에서만 동작하고, iOS·웹·Expo Go 에서는 모두 false / 아무것도 안 함.
  */
 export const {

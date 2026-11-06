@@ -1,6 +1,7 @@
 import { act } from 'react';
 import { create, type ReactTestRenderer } from 'react-test-renderer';
 import { useReducedMotion } from 'react-native-reanimated';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { INTRO_EXIT_MS, INTRO_MIN_MS, IntroSplash, SPLASH_BACKGROUND, SPLASH_LOGO_SIZE, makePieces } from '@/components/fx/intro-splash';
 
@@ -8,6 +9,7 @@ import { INTRO_EXIT_MS, INTRO_MIN_MS, IntroSplash, SPLASH_BACKGROUND, SPLASH_LOG
 jest.mock('react-native-worklets', () => jest.requireActual('react-native-worklets/src/mock'));
 jest.mock('react-native-reanimated', () => ({ ...jest.requireActual('react-native-reanimated/mock'), useReducedMotion: jest.fn(() => false) }));
 
+const METRICS = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 47, left: 0, right: 0, bottom: 34 } };
 const appJson = require('../../app.json') as { expo: { plugins: (string | [string, Record<string, unknown>])[] } };
 
 describe('인트로 — 네이티브 스플래시와 첫 화면이 같아야 끊김이 없다', () => {
@@ -61,10 +63,10 @@ describe('인트로 — 언제 닫히나', () => {
     const onBeat = jest.fn();
     let tree: ReactTestRenderer | null = null;
     act(() => {
-      tree = create(<IntroSplash ready={ready} onShown={onShown} onBeat={onBeat} onDone={onDone} />);
+      tree = create(<SafeAreaProvider initialMetrics={METRICS}><IntroSplash ready={ready} onShown={onShown} onBeat={onBeat} onDone={onDone} /></SafeAreaProvider>);
     });
     mounted.push(tree as unknown as ReactTestRenderer);
-    const rerender = (next: boolean) => act(() => (tree as unknown as ReactTestRenderer).update(<IntroSplash ready={next} onShown={onShown} onBeat={onBeat} onDone={onDone} />));
+    const rerender = (next: boolean) => act(() => (tree as unknown as ReactTestRenderer).update(<SafeAreaProvider initialMetrics={METRICS}><IntroSplash ready={next} onShown={onShown} onBeat={onBeat} onDone={onDone} /></SafeAreaProvider>));
     return { tree: tree as unknown as ReactTestRenderer, onShown, onDone, onBeat, rerender };
   }
   const advance = (ms: number) => act(() => void jest.advanceTimersByTime(ms));

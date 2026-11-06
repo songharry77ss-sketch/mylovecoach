@@ -41,10 +41,11 @@ export function usePlanProducts(attempt = 0): PlanProduct[] | null {
 }
 
 /**
- * 스토어에서 확인된 상품이면 그 표시 가격, 아니면 null.
+ * 스토어에서 확인된 상품이면 그 표시 가격(정가), 아니면 null.
  * 웹·스토어 연결 실패처럼 확인하지 못한 경우에도 null — 없는 상품을 안내하지 않도록 문구는 일반 표현으로 돌린다.
+ * 하루 이용권 특가 상품은 타임 세일 동안 결제 화면에서만 쓰므로 여기서는 세지 않는다.
  */
 export function onSalePrice(products: PlanProduct[] | null, plan: PlanKey): string | null {
-  const product = products?.find((p) => p.plan === plan && p.available === true);
+  const product = products?.find((p) => p.plan === plan && p.available === true && !p.sale);
   return product ? product.displayPrice : null;
 }

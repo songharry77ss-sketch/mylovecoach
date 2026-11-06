@@ -1,0 +1,2378 @@
+{
+  "passed": true,
+  "failed": [],
+  "rawUnchanged": {
+    "home.png": true,
+    "replies.png": true,
+    "mind.png": true,
+    "memory.png": true,
+    "report.png": true,
+    "explore.png": true
+  },
+  "results": [
+    {
+      "file": "ios-6.7-framed\\1-hero.png",
+      "dimensions": {
+        "width": 1290,
+        "height": 2796
+      },
+      "checks": {
+        "dimensions": true,
+        "loadedImages": true,
+        "fontsLoaded": true,
+        "textInsideCanvas": true,
+        "headlinesIn80Percent": true,
+        "noScriptErrors": true,
+        "screenRatio": true,
+        "topSafeMargin": true
+      },
+      "details": {
+        "fonts": [
+          {
+            "family": "P",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "P",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ],
+        "texts": [
+          {
+            "selector": "brand",
+            "text": "센딧",
+            "x": 104,
+            "y": 164,
+            "right": 304.921875,
+            "bottom": 244,
+            "fontSize": 60,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(25, 31, 40)"
+          },
+          {
+            "selector": "line",
+            "text": "생각났으면,",
+            "x": 104,
+            "y": 341,
+            "right": 637.046875,
+            "bottom": 489,
+            "fontSize": 124,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(25, 31, 40)"
+          },
+          {
+            "selector": "line",
+            "text": "지금 센딧.",
+            "x": 104,
+            "y": 487.3125,
+            "right": 557.859375,
+            "bottom": 635.3125,
+            "fontSize": 124,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(25, 31, 40)"
+          },
+          {
+            "selector": "subtitle",
+            "text": "카톡 캡처 한 장이면 답장 3가지와 호감 온도까지",
+            "x": 104,
+            "y": 679.625,
+            "right": 927.53125,
+            "bottom": 734.625,
+            "fontSize": 46,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(91, 101, 115)"
+          },
+          {
+            "selector": "badge",
+            "text": "고려대학교 심리학 연구진이 개발한 연애 특화 AI 코치",
+            "x": 134,
+            "y": 820,
+            "right": 891.25,
+            "bottom": 864,
+            "fontSize": 35,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(61, 80, 173)"
+          },
+          {
+            "selector": "folio",
+            "text": "01 / 06",
+            "x": 1102.203125,
+            "y": 2687,
+            "right": 1223,
+            "bottom": 2727,
+            "fontSize": 34,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(91, 101, 115)"
+          }
+        ],
+        "images": [
+          {
+            "src": "sendit-mark.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 104,
+              "y": 164,
+              "width": 80,
+              "height": 80,
+              "right": 184,
+              "bottom": 244
+            }
+          },
+          {
+            "src": "home.png",
+            "loaded": true,
+            "natural": [
+              1290,
+              2796
+            ],
+            "rendered": {
+              "x": 117,
+              "y": 1014,
+              "width": 1016,
+              "height": 2202.109375,
+              "right": 1133,
+              "bottom": 3216.109375
+            }
+          },
+          {
+            "src": "3d-send.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 973.381591796875,
+              "y": 848.381591796875,
+              "width": 343.23681640625,
+              "height": 343.23681640625,
+              "right": 1316.618408203125,
+              "bottom": 1191.618408203125
+            }
+          }
+        ],
+        "screen": {
+          "x": 117,
+          "y": 1014,
+          "width": 1016,
+          "height": 2202.109375,
+          "right": 1133,
+          "bottom": 3216.109375
+        },
+        "phone": {
+          "x": 103,
+          "y": 1000,
+          "width": 1044,
+          "height": 2287.078125,
+          "right": 1147,
+          "bottom": 3287.078125
+        },
+        "viewport": {
+          "width": 1290,
+          "height": 2796
+        }
+      },
+      "errors": []
+    },
+    {
+      "file": "ios-6.7-framed\\2-replies.png",
+      "dimensions": {
+        "width": 1290,
+        "height": 2796
+      },
+      "checks": {
+        "dimensions": true,
+        "loadedImages": true,
+        "fontsLoaded": true,
+        "textInsideCanvas": true,
+        "headlinesIn80Percent": true,
+        "noScriptErrors": true,
+        "screenRatio": true,
+        "topSafeMargin": true
+      },
+      "details": {
+        "fonts": [
+          {
+            "family": "P",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "P",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ],
+        "texts": [
+          {
+            "selector": "brand",
+            "text": "센딧",
+            "x": 104,
+            "y": 164,
+            "right": 304.921875,
+            "bottom": 244,
+            "fontSize": 60,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "line",
+            "text": "뭐라고 보낼지,",
+            "x": 104,
+            "y": 341,
+            "right": 760,
+            "bottom": 489,
+            "fontSize": 124,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "line",
+            "text": "답장 3가지로",
+            "x": 104,
+            "y": 487.3125,
+            "right": 702.828125,
+            "bottom": 635.3125,
+            "fontSize": 124,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "subtitle",
+            "text": "내 말투 그대로, 성공 확률까지 보여 줘요",
+            "x": 104,
+            "y": 679.625,
+            "right": 785.921875,
+            "bottom": 734.625,
+            "fontSize": 46,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "folio",
+            "text": "02 / 06",
+            "x": 1102.203125,
+            "y": 2687,
+            "right": 1223,
+            "bottom": 2727,
+            "fontSize": 34,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(255, 255, 255)"
+          }
+        ],
+        "images": [
+          {
+            "src": "sendit-mark.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 104,
+              "y": 164,
+              "width": 80,
+              "height": 80,
+              "right": 184,
+              "bottom": 244
+            }
+          },
+          {
+            "src": "replies.png",
+            "loaded": true,
+            "natural": [
+              1290,
+              2796
+            ],
+            "rendered": {
+              "x": 117,
+              "y": 934,
+              "width": 1016,
+              "height": 2202.109375,
+              "right": 1133,
+              "bottom": 3136.109375
+            }
+          },
+          {
+            "src": "3d-heart.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 973.381591796875,
+              "y": 768.381591796875,
+              "width": 343.23681640625,
+              "height": 343.23681640625,
+              "right": 1316.618408203125,
+              "bottom": 1111.618408203125
+            }
+          }
+        ],
+        "screen": {
+          "x": 117,
+          "y": 934,
+          "width": 1016,
+          "height": 2202.109375,
+          "right": 1133,
+          "bottom": 3136.109375
+        },
+        "phone": {
+          "x": 103,
+          "y": 920,
+          "width": 1044,
+          "height": 2287.078125,
+          "right": 1147,
+          "bottom": 3207.078125
+        },
+        "viewport": {
+          "width": 1290,
+          "height": 2796
+        }
+      },
+      "errors": []
+    },
+    {
+      "file": "ios-6.7-framed\\3-mind.png",
+      "dimensions": {
+        "width": 1290,
+        "height": 2796
+      },
+      "checks": {
+        "dimensions": true,
+        "loadedImages": true,
+        "fontsLoaded": true,
+        "textInsideCanvas": true,
+        "headlinesIn80Percent": true,
+        "noScriptErrors": true,
+        "screenRatio": true,
+        "topSafeMargin": true
+      },
+      "details": {
+        "fonts": [
+          {
+            "family": "P",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "P",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ],
+        "texts": [
+          {
+            "selector": "brand",
+            "text": "센딧",
+            "x": 104,
+            "y": 164,
+            "right": 304.921875,
+            "bottom": 244,
+            "fontSize": 60,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(25, 31, 40)"
+          },
+          {
+            "selector": "line",
+            "text": "그 사람 마음,",
+            "x": 104,
+            "y": 341,
+            "right": 681.40625,
+            "bottom": 489,
+            "fontSize": 124,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(25, 31, 40)"
+          },
+          {
+            "selector": "line",
+            "text": "몇 %일까?",
+            "x": 104,
+            "y": 487.3125,
+            "right": 601.453125,
+            "bottom": 635.3125,
+            "fontSize": 124,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(25, 31, 40)"
+          },
+          {
+            "selector": "subtitle",
+            "text": "관심 있을 가능성과 호감 온도를 한눈에",
+            "x": 104,
+            "y": 679.625,
+            "right": 765.796875,
+            "bottom": 734.625,
+            "fontSize": 46,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(91, 101, 115)"
+          },
+          {
+            "selector": "folio",
+            "text": "03 / 06",
+            "x": 1102.203125,
+            "y": 2687,
+            "right": 1223,
+            "bottom": 2727,
+            "fontSize": 34,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(91, 101, 115)"
+          }
+        ],
+        "images": [
+          {
+            "src": "sendit-mark.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 104,
+              "y": 164,
+              "width": 80,
+              "height": 80,
+              "right": 184,
+              "bottom": 244
+            }
+          },
+          {
+            "src": "mind.png",
+            "loaded": true,
+            "natural": [
+              1290,
+              2796
+            ],
+            "rendered": {
+              "x": 117,
+              "y": 934,
+              "width": 1016,
+              "height": 2202.109375,
+              "right": 1133,
+              "bottom": 3136.109375
+            }
+          },
+          {
+            "src": "3d-heart.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 973.381591796875,
+              "y": 768.381591796875,
+              "width": 343.23681640625,
+              "height": 343.23681640625,
+              "right": 1316.618408203125,
+              "bottom": 1111.618408203125
+            }
+          }
+        ],
+        "screen": {
+          "x": 117,
+          "y": 934,
+          "width": 1016,
+          "height": 2202.109375,
+          "right": 1133,
+          "bottom": 3136.109375
+        },
+        "phone": {
+          "x": 103,
+          "y": 920,
+          "width": 1044,
+          "height": 2287.078125,
+          "right": 1147,
+          "bottom": 3207.078125
+        },
+        "viewport": {
+          "width": 1290,
+          "height": 2796
+        }
+      },
+      "errors": []
+    },
+    {
+      "file": "ios-6.7-framed\\4-memory.png",
+      "dimensions": {
+        "width": 1290,
+        "height": 2796
+      },
+      "checks": {
+        "dimensions": true,
+        "loadedImages": true,
+        "fontsLoaded": true,
+        "textInsideCanvas": true,
+        "headlinesIn80Percent": true,
+        "noScriptErrors": true,
+        "screenRatio": true,
+        "topSafeMargin": true
+      },
+      "details": {
+        "fonts": [
+          {
+            "family": "P",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "P",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ],
+        "texts": [
+          {
+            "selector": "brand",
+            "text": "센딧",
+            "x": 104,
+            "y": 164,
+            "right": 304.921875,
+            "bottom": 244,
+            "fontSize": 60,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "line",
+            "text": "지난 대화도",
+            "x": 104,
+            "y": 341,
+            "right": 630.03125,
+            "bottom": 489,
+            "fontSize": 124,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "line",
+            "text": "센딧이 기억해요",
+            "x": 104,
+            "y": 487.3125,
+            "right": 831.578125,
+            "bottom": 635.3125,
+            "fontSize": 124,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "subtitle",
+            "text": "있었던 일·약속을 기억해서 다음 답장에 살려요",
+            "x": 104,
+            "y": 679.625,
+            "right": 891.40625,
+            "bottom": 734.625,
+            "fontSize": 46,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "folio",
+            "text": "04 / 06",
+            "x": 1102.203125,
+            "y": 2687,
+            "right": 1223,
+            "bottom": 2727,
+            "fontSize": 34,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(255, 255, 255)"
+          }
+        ],
+        "images": [
+          {
+            "src": "sendit-mark.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 104,
+              "y": 164,
+              "width": 80,
+              "height": 80,
+              "right": 184,
+              "bottom": 244
+            }
+          },
+          {
+            "src": "memory.png",
+            "loaded": true,
+            "natural": [
+              1290,
+              2796
+            ],
+            "rendered": {
+              "x": 117,
+              "y": 889,
+              "width": 1016,
+              "height": 2202.109375,
+              "right": 1133,
+              "bottom": 3091.109375
+            }
+          },
+          {
+            "src": "3d-memory.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 973.381591796875,
+              "y": 723.381591796875,
+              "width": 343.23681640625,
+              "height": 343.23681640625,
+              "right": 1316.618408203125,
+              "bottom": 1066.618408203125
+            }
+          }
+        ],
+        "screen": {
+          "x": 117,
+          "y": 889,
+          "width": 1016,
+          "height": 2202.109375,
+          "right": 1133,
+          "bottom": 3091.109375
+        },
+        "phone": {
+          "x": 103,
+          "y": 875,
+          "width": 1044,
+          "height": 2287.078125,
+          "right": 1147,
+          "bottom": 3162.078125
+        },
+        "viewport": {
+          "width": 1290,
+          "height": 2796
+        }
+      },
+      "errors": []
+    },
+    {
+      "file": "ios-6.7-framed\\5-report.png",
+      "dimensions": {
+        "width": 1290,
+        "height": 2796
+      },
+      "checks": {
+        "dimensions": true,
+        "loadedImages": true,
+        "fontsLoaded": true,
+        "textInsideCanvas": true,
+        "headlinesIn80Percent": true,
+        "noScriptErrors": true,
+        "screenRatio": true,
+        "topSafeMargin": true
+      },
+      "details": {
+        "fonts": [
+          {
+            "family": "P",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "P",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ],
+        "texts": [
+          {
+            "selector": "brand",
+            "text": "센딧",
+            "x": 104,
+            "y": 164,
+            "right": 304.921875,
+            "bottom": 244,
+            "fontSize": 60,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(25, 31, 40)"
+          },
+          {
+            "selector": "line",
+            "text": "우리 사이,",
+            "x": 104,
+            "y": 341,
+            "right": 558.453125,
+            "bottom": 489,
+            "fontSize": 124,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(25, 31, 40)"
+          },
+          {
+            "selector": "line",
+            "text": "호감 온도로 봐요",
+            "x": 104,
+            "y": 487.3125,
+            "right": 853.75,
+            "bottom": 635.3125,
+            "fontSize": 124,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(25, 31, 40)"
+          },
+          {
+            "selector": "subtitle",
+            "text": "대화가 쌓일수록 정확해지는 상대 분석 보고서",
+            "x": 104,
+            "y": 679.625,
+            "right": 880.71875,
+            "bottom": 734.625,
+            "fontSize": 46,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(91, 101, 115)"
+          },
+          {
+            "selector": "folio",
+            "text": "05 / 06",
+            "x": 1102.203125,
+            "y": 2687,
+            "right": 1223,
+            "bottom": 2727,
+            "fontSize": 34,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(91, 101, 115)"
+          }
+        ],
+        "images": [
+          {
+            "src": "sendit-mark.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 104,
+              "y": 164,
+              "width": 80,
+              "height": 80,
+              "right": 184,
+              "bottom": 244
+            }
+          },
+          {
+            "src": "report.png",
+            "loaded": true,
+            "natural": [
+              1290,
+              2796
+            ],
+            "rendered": {
+              "x": 117,
+              "y": 889,
+              "width": 1016,
+              "height": 2202.109375,
+              "right": 1133,
+              "bottom": 3091.109375
+            }
+          },
+          {
+            "src": "3d-heart.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 973.381591796875,
+              "y": 723.381591796875,
+              "width": 343.23681640625,
+              "height": 343.23681640625,
+              "right": 1316.618408203125,
+              "bottom": 1066.618408203125
+            }
+          }
+        ],
+        "screen": {
+          "x": 117,
+          "y": 889,
+          "width": 1016,
+          "height": 2202.109375,
+          "right": 1133,
+          "bottom": 3091.109375
+        },
+        "phone": {
+          "x": 103,
+          "y": 875,
+          "width": 1044,
+          "height": 2287.078125,
+          "right": 1147,
+          "bottom": 3162.078125
+        },
+        "viewport": {
+          "width": 1290,
+          "height": 2796
+        }
+      },
+      "errors": []
+    },
+    {
+      "file": "ios-6.7-framed\\6-explore.png",
+      "dimensions": {
+        "width": 1290,
+        "height": 2796
+      },
+      "checks": {
+        "dimensions": true,
+        "loadedImages": true,
+        "fontsLoaded": true,
+        "textInsideCanvas": true,
+        "headlinesIn80Percent": true,
+        "noScriptErrors": true,
+        "screenRatio": true,
+        "topSafeMargin": true,
+        "pinkBalloonBelowCanvas": true
+      },
+      "details": {
+        "fonts": [
+          {
+            "family": "P",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "P",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ],
+        "texts": [
+          {
+            "selector": "brand",
+            "text": "센딧",
+            "x": 104,
+            "y": 164,
+            "right": 304.921875,
+            "bottom": 244,
+            "fontSize": 60,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "line",
+            "text": "연애가 더",
+            "x": 104,
+            "y": 341,
+            "right": 529.265625,
+            "bottom": 489,
+            "fontSize": 124,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "line",
+            "text": "재밌어지는 것들",
+            "x": 104,
+            "y": 487.3125,
+            "right": 831.5625,
+            "bottom": 635.3125,
+            "fontSize": 124,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "subtitle",
+            "text": "KKTI 테스트 · 속마음 카드 · 비밀 상담",
+            "x": 104,
+            "y": 679.625,
+            "right": 746.34375,
+            "bottom": 734.625,
+            "fontSize": 46,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "folio",
+            "text": "06 / 06",
+            "x": 1102.203125,
+            "y": 2687,
+            "right": 1223,
+            "bottom": 2727,
+            "fontSize": 34,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(255, 255, 255)"
+          }
+        ],
+        "images": [
+          {
+            "src": "sendit-mark.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 104,
+              "y": 164,
+              "width": 80,
+              "height": 80,
+              "right": 184,
+              "bottom": 244
+            }
+          },
+          {
+            "src": "explore.png",
+            "loaded": true,
+            "natural": [
+              1290,
+              2796
+            ],
+            "rendered": {
+              "x": 74,
+              "y": 1444,
+              "width": 1142,
+              "height": 2475.203125,
+              "right": 1216,
+              "bottom": 3919.203125
+            }
+          },
+          {
+            "src": "3d-ticket.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 631.1832885742188,
+              "y": 926.1832885742188,
+              "width": 647.6333618164062,
+              "height": 647.6333618164062,
+              "right": 1278.816650390625,
+              "bottom": 1573.816650390625
+            }
+          }
+        ],
+        "screen": {
+          "x": 74,
+          "y": 1444,
+          "width": 1142,
+          "height": 2475.203125,
+          "right": 1216,
+          "bottom": 3919.203125
+        },
+        "phone": {
+          "x": 60,
+          "y": 1430,
+          "width": 1170,
+          "height": 2563.109375,
+          "right": 1230,
+          "bottom": 3993.109375
+        },
+        "viewport": {
+          "width": 1290,
+          "height": 2796
+        }
+      },
+      "errors": []
+    },
+    {
+      "file": "play-framed\\1-hero.png",
+      "dimensions": {
+        "width": 1242,
+        "height": 2208
+      },
+      "checks": {
+        "dimensions": true,
+        "loadedImages": true,
+        "fontsLoaded": true,
+        "textInsideCanvas": true,
+        "headlinesIn80Percent": true,
+        "noScriptErrors": true,
+        "screenRatio": true,
+        "topSafeMargin": true
+      },
+      "details": {
+        "fonts": [
+          {
+            "family": "P",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "P",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ],
+        "texts": [
+          {
+            "selector": "brand",
+            "text": "센딧",
+            "x": 104,
+            "y": 164,
+            "right": 304.921875,
+            "bottom": 244,
+            "fontSize": 60,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(25, 31, 40)"
+          },
+          {
+            "selector": "line",
+            "text": "생각났으면,",
+            "x": 104,
+            "y": 309,
+            "right": 600.1875,
+            "bottom": 447,
+            "fontSize": 116,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(25, 31, 40)"
+          },
+          {
+            "selector": "line",
+            "text": "지금 센딧.",
+            "x": 104,
+            "y": 445.875,
+            "right": 526.09375,
+            "bottom": 583.875,
+            "fontSize": 116,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(25, 31, 40)"
+          },
+          {
+            "selector": "subtitle",
+            "text": "카톡 캡처 한 장이면 답장 3가지와 호감 온도까지",
+            "x": 104,
+            "y": 620.75,
+            "right": 890.03125,
+            "bottom": 673.75,
+            "fontSize": 44,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(91, 101, 115)"
+          },
+          {
+            "selector": "badge",
+            "text": "고려대학교 심리학 연구진이 개발한 연애 특화 AI 코치",
+            "x": 134,
+            "y": 740,
+            "right": 891.25,
+            "bottom": 784,
+            "fontSize": 35,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(61, 80, 173)"
+          },
+          {
+            "selector": "folio",
+            "text": "01 / 06",
+            "x": 1054.203125,
+            "y": 2099,
+            "right": 1175,
+            "bottom": 2139,
+            "fontSize": 34,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(91, 101, 115)"
+          }
+        ],
+        "images": [
+          {
+            "src": "sendit-mark.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 104,
+              "y": 164,
+              "width": 80,
+              "height": 80,
+              "right": 184,
+              "bottom": 244
+            }
+          },
+          {
+            "src": "home.png",
+            "loaded": true,
+            "natural": [
+              1290,
+              2796
+            ],
+            "rendered": {
+              "x": 138,
+              "y": 894,
+              "width": 926,
+              "height": 2007.046875,
+              "right": 1064,
+              "bottom": 2901.046875
+            }
+          },
+          {
+            "src": "3d-send.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 943.6243286132812,
+              "y": 731.6243286132812,
+              "width": 291.75128173828125,
+              "height": 291.7513427734375,
+              "right": 1235.3756103515625,
+              "bottom": 1023.3756713867188
+            }
+          }
+        ],
+        "screen": {
+          "x": 138,
+          "y": 894,
+          "width": 926,
+          "height": 2007.046875,
+          "right": 1064,
+          "bottom": 2901.046875
+        },
+        "phone": {
+          "x": 124,
+          "y": 880,
+          "width": 954,
+          "height": 2089.921875,
+          "right": 1078,
+          "bottom": 2969.921875
+        },
+        "viewport": {
+          "width": 1242,
+          "height": 2208
+        }
+      },
+      "errors": []
+    },
+    {
+      "file": "play-framed\\2-replies.png",
+      "dimensions": {
+        "width": 1242,
+        "height": 2208
+      },
+      "checks": {
+        "dimensions": true,
+        "loadedImages": true,
+        "fontsLoaded": true,
+        "textInsideCanvas": true,
+        "headlinesIn80Percent": true,
+        "noScriptErrors": true,
+        "screenRatio": true,
+        "topSafeMargin": true
+      },
+      "details": {
+        "fonts": [
+          {
+            "family": "P",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "P",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ],
+        "texts": [
+          {
+            "selector": "brand",
+            "text": "센딧",
+            "x": 104,
+            "y": 164,
+            "right": 304.921875,
+            "bottom": 244,
+            "fontSize": 60,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "line",
+            "text": "뭐라고 보낼지,",
+            "x": 104,
+            "y": 309,
+            "right": 714.375,
+            "bottom": 447,
+            "fontSize": 116,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "line",
+            "text": "답장 3가지로",
+            "x": 104,
+            "y": 445.875,
+            "right": 661.296875,
+            "bottom": 583.875,
+            "fontSize": 116,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "subtitle",
+            "text": "내 말투 그대로, 성공 확률까지 보여 줘요",
+            "x": 104,
+            "y": 620.75,
+            "right": 754.828125,
+            "bottom": 673.75,
+            "fontSize": 44,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "folio",
+            "text": "02 / 06",
+            "x": 1054.203125,
+            "y": 2099,
+            "right": 1175,
+            "bottom": 2139,
+            "fontSize": 34,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(255, 255, 255)"
+          }
+        ],
+        "images": [
+          {
+            "src": "sendit-mark.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 104,
+              "y": 164,
+              "width": 80,
+              "height": 80,
+              "right": 184,
+              "bottom": 244
+            }
+          },
+          {
+            "src": "replies.png",
+            "loaded": true,
+            "natural": [
+              1290,
+              2796
+            ],
+            "rendered": {
+              "x": 138,
+              "y": 794,
+              "width": 926,
+              "height": 2007.046875,
+              "right": 1064,
+              "bottom": 2801.046875
+            }
+          },
+          {
+            "src": "3d-heart.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 943.6243286132812,
+              "y": 631.6243286132812,
+              "width": 291.75128173828125,
+              "height": 291.7513427734375,
+              "right": 1235.3756103515625,
+              "bottom": 923.3756713867188
+            }
+          }
+        ],
+        "screen": {
+          "x": 138,
+          "y": 794,
+          "width": 926,
+          "height": 2007.046875,
+          "right": 1064,
+          "bottom": 2801.046875
+        },
+        "phone": {
+          "x": 124,
+          "y": 780,
+          "width": 954,
+          "height": 2089.921875,
+          "right": 1078,
+          "bottom": 2869.921875
+        },
+        "viewport": {
+          "width": 1242,
+          "height": 2208
+        }
+      },
+      "errors": []
+    },
+    {
+      "file": "play-framed\\3-mind.png",
+      "dimensions": {
+        "width": 1242,
+        "height": 2208
+      },
+      "checks": {
+        "dimensions": true,
+        "loadedImages": true,
+        "fontsLoaded": true,
+        "textInsideCanvas": true,
+        "headlinesIn80Percent": true,
+        "noScriptErrors": true,
+        "screenRatio": true,
+        "topSafeMargin": true
+      },
+      "details": {
+        "fonts": [
+          {
+            "family": "P",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "P",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ],
+        "texts": [
+          {
+            "selector": "brand",
+            "text": "센딧",
+            "x": 104,
+            "y": 164,
+            "right": 304.921875,
+            "bottom": 244,
+            "fontSize": 60,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(25, 31, 40)"
+          },
+          {
+            "selector": "line",
+            "text": "그 사람 마음,",
+            "x": 104,
+            "y": 309,
+            "right": 640.84375,
+            "bottom": 447,
+            "fontSize": 116,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(25, 31, 40)"
+          },
+          {
+            "selector": "line",
+            "text": "몇 %일까?",
+            "x": 104,
+            "y": 445.875,
+            "right": 566.890625,
+            "bottom": 583.875,
+            "fontSize": 116,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(25, 31, 40)"
+          },
+          {
+            "selector": "subtitle",
+            "text": "관심 있을 가능성과 호감 온도를 한눈에",
+            "x": 104,
+            "y": 620.75,
+            "right": 735.703125,
+            "bottom": 673.75,
+            "fontSize": 44,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(91, 101, 115)"
+          },
+          {
+            "selector": "folio",
+            "text": "03 / 06",
+            "x": 1054.203125,
+            "y": 2099,
+            "right": 1175,
+            "bottom": 2139,
+            "fontSize": 34,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(91, 101, 115)"
+          }
+        ],
+        "images": [
+          {
+            "src": "sendit-mark.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 104,
+              "y": 164,
+              "width": 80,
+              "height": 80,
+              "right": 184,
+              "bottom": 244
+            }
+          },
+          {
+            "src": "mind.png",
+            "loaded": true,
+            "natural": [
+              1290,
+              2796
+            ],
+            "rendered": {
+              "x": 138,
+              "y": 794,
+              "width": 926,
+              "height": 2007.046875,
+              "right": 1064,
+              "bottom": 2801.046875
+            }
+          },
+          {
+            "src": "3d-heart.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 943.6243286132812,
+              "y": 631.6243286132812,
+              "width": 291.75128173828125,
+              "height": 291.7513427734375,
+              "right": 1235.3756103515625,
+              "bottom": 923.3756713867188
+            }
+          }
+        ],
+        "screen": {
+          "x": 138,
+          "y": 794,
+          "width": 926,
+          "height": 2007.046875,
+          "right": 1064,
+          "bottom": 2801.046875
+        },
+        "phone": {
+          "x": 124,
+          "y": 780,
+          "width": 954,
+          "height": 2089.921875,
+          "right": 1078,
+          "bottom": 2869.921875
+        },
+        "viewport": {
+          "width": 1242,
+          "height": 2208
+        }
+      },
+      "errors": []
+    },
+    {
+      "file": "play-framed\\4-memory.png",
+      "dimensions": {
+        "width": 1242,
+        "height": 2208
+      },
+      "checks": {
+        "dimensions": true,
+        "loadedImages": true,
+        "fontsLoaded": true,
+        "textInsideCanvas": true,
+        "headlinesIn80Percent": true,
+        "noScriptErrors": true,
+        "screenRatio": true,
+        "topSafeMargin": true
+      },
+      "details": {
+        "fonts": [
+          {
+            "family": "P",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "P",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ],
+        "texts": [
+          {
+            "selector": "brand",
+            "text": "센딧",
+            "x": 104,
+            "y": 164,
+            "right": 304.921875,
+            "bottom": 244,
+            "fontSize": 60,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "line",
+            "text": "지난 대화도",
+            "x": 104,
+            "y": 309,
+            "right": 593.609375,
+            "bottom": 447,
+            "fontSize": 116,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "line",
+            "text": "센딧이 기억해요",
+            "x": 104,
+            "y": 445.875,
+            "right": 781.328125,
+            "bottom": 583.875,
+            "fontSize": 116,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "subtitle",
+            "text": "있었던 일·약속을 기억해서 다음 답장에 살려요",
+            "x": 104,
+            "y": 620.75,
+            "right": 855.59375,
+            "bottom": 673.75,
+            "fontSize": 44,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "folio",
+            "text": "04 / 06",
+            "x": 1054.203125,
+            "y": 2099,
+            "right": 1175,
+            "bottom": 2139,
+            "fontSize": 34,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(255, 255, 255)"
+          }
+        ],
+        "images": [
+          {
+            "src": "sendit-mark.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 104,
+              "y": 164,
+              "width": 80,
+              "height": 80,
+              "right": 184,
+              "bottom": 244
+            }
+          },
+          {
+            "src": "memory.png",
+            "loaded": true,
+            "natural": [
+              1290,
+              2796
+            ],
+            "rendered": {
+              "x": 138,
+              "y": 794,
+              "width": 926,
+              "height": 2007.046875,
+              "right": 1064,
+              "bottom": 2801.046875
+            }
+          },
+          {
+            "src": "3d-memory.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 943.6243286132812,
+              "y": 631.6243286132812,
+              "width": 291.75128173828125,
+              "height": 291.7513427734375,
+              "right": 1235.3756103515625,
+              "bottom": 923.3756713867188
+            }
+          }
+        ],
+        "screen": {
+          "x": 138,
+          "y": 794,
+          "width": 926,
+          "height": 2007.046875,
+          "right": 1064,
+          "bottom": 2801.046875
+        },
+        "phone": {
+          "x": 124,
+          "y": 780,
+          "width": 954,
+          "height": 2089.921875,
+          "right": 1078,
+          "bottom": 2869.921875
+        },
+        "viewport": {
+          "width": 1242,
+          "height": 2208
+        }
+      },
+      "errors": []
+    },
+    {
+      "file": "play-framed\\5-report.png",
+      "dimensions": {
+        "width": 1242,
+        "height": 2208
+      },
+      "checks": {
+        "dimensions": true,
+        "loadedImages": true,
+        "fontsLoaded": true,
+        "textInsideCanvas": true,
+        "headlinesIn80Percent": true,
+        "noScriptErrors": true,
+        "screenRatio": true,
+        "topSafeMargin": true
+      },
+      "details": {
+        "fonts": [
+          {
+            "family": "P",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "P",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ],
+        "texts": [
+          {
+            "selector": "brand",
+            "text": "센딧",
+            "x": 104,
+            "y": 164,
+            "right": 304.921875,
+            "bottom": 244,
+            "fontSize": 60,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(25, 31, 40)"
+          },
+          {
+            "selector": "line",
+            "text": "우리 사이,",
+            "x": 104,
+            "y": 309,
+            "right": 526.65625,
+            "bottom": 447,
+            "fontSize": 116,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(25, 31, 40)"
+          },
+          {
+            "selector": "line",
+            "text": "호감 온도로 봐요",
+            "x": 104,
+            "y": 445.875,
+            "right": 801.671875,
+            "bottom": 583.875,
+            "fontSize": 116,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(25, 31, 40)"
+          },
+          {
+            "selector": "subtitle",
+            "text": "대화가 쌓일수록 정확해지는 상대 분석 보고서",
+            "x": 104,
+            "y": 620.75,
+            "right": 845.4375,
+            "bottom": 673.75,
+            "fontSize": 44,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(91, 101, 115)"
+          },
+          {
+            "selector": "folio",
+            "text": "05 / 06",
+            "x": 1054.203125,
+            "y": 2099,
+            "right": 1175,
+            "bottom": 2139,
+            "fontSize": 34,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(91, 101, 115)"
+          }
+        ],
+        "images": [
+          {
+            "src": "sendit-mark.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 104,
+              "y": 164,
+              "width": 80,
+              "height": 80,
+              "right": 184,
+              "bottom": 244
+            }
+          },
+          {
+            "src": "report.png",
+            "loaded": true,
+            "natural": [
+              1290,
+              2796
+            ],
+            "rendered": {
+              "x": 138,
+              "y": 794,
+              "width": 926,
+              "height": 2007.046875,
+              "right": 1064,
+              "bottom": 2801.046875
+            }
+          },
+          {
+            "src": "3d-heart.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 943.6243286132812,
+              "y": 631.6243286132812,
+              "width": 291.75128173828125,
+              "height": 291.7513427734375,
+              "right": 1235.3756103515625,
+              "bottom": 923.3756713867188
+            }
+          }
+        ],
+        "screen": {
+          "x": 138,
+          "y": 794,
+          "width": 926,
+          "height": 2007.046875,
+          "right": 1064,
+          "bottom": 2801.046875
+        },
+        "phone": {
+          "x": 124,
+          "y": 780,
+          "width": 954,
+          "height": 2089.921875,
+          "right": 1078,
+          "bottom": 2869.921875
+        },
+        "viewport": {
+          "width": 1242,
+          "height": 2208
+        }
+      },
+      "errors": []
+    },
+    {
+      "file": "play-framed\\6-explore.png",
+      "dimensions": {
+        "width": 1242,
+        "height": 2208
+      },
+      "checks": {
+        "dimensions": true,
+        "loadedImages": true,
+        "fontsLoaded": true,
+        "textInsideCanvas": true,
+        "headlinesIn80Percent": true,
+        "noScriptErrors": true,
+        "screenRatio": true,
+        "topSafeMargin": true,
+        "pinkBalloonBelowCanvas": true
+      },
+      "details": {
+        "fonts": [
+          {
+            "family": "P",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "P",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ],
+        "texts": [
+          {
+            "selector": "brand",
+            "text": "센딧",
+            "x": 104,
+            "y": 164,
+            "right": 304.921875,
+            "bottom": 244,
+            "fontSize": 60,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "line",
+            "text": "연애가 더",
+            "x": 104,
+            "y": 309,
+            "right": 499.765625,
+            "bottom": 447,
+            "fontSize": 116,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "line",
+            "text": "재밌어지는 것들",
+            "x": 104,
+            "y": 445.875,
+            "right": 781.328125,
+            "bottom": 583.875,
+            "fontSize": 116,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "subtitle",
+            "text": "KKTI 테스트 · 속마음 카드 · 비밀 상담",
+            "x": 104,
+            "y": 620.75,
+            "right": 716.84375,
+            "bottom": 673.75,
+            "fontSize": 44,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "folio",
+            "text": "06 / 06",
+            "x": 1054.203125,
+            "y": 2099,
+            "right": 1175,
+            "bottom": 2139,
+            "fontSize": 34,
+            "font": "P, sans-serif",
+            "weight": "500",
+            "color": "rgb(255, 255, 255)"
+          }
+        ],
+        "images": [
+          {
+            "src": "sendit-mark.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 104,
+              "y": 164,
+              "width": 80,
+              "height": 80,
+              "right": 184,
+              "bottom": 244
+            }
+          },
+          {
+            "src": "explore.png",
+            "loaded": true,
+            "natural": [
+              1290,
+              2796
+            ],
+            "rendered": {
+              "x": 75,
+              "y": 944,
+              "width": 1092,
+              "height": 2366.84375,
+              "right": 1167,
+              "bottom": 3310.84375
+            }
+          },
+          {
+            "src": "3d-ticket.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 784.1221923828125,
+              "y": 627.1221923828125,
+              "width": 431.755615234375,
+              "height": 431.755615234375,
+              "right": 1215.8778076171875,
+              "bottom": 1058.8778076171875
+            }
+          }
+        ],
+        "screen": {
+          "x": 75,
+          "y": 944,
+          "width": 1092,
+          "height": 2366.84375,
+          "right": 1167,
+          "bottom": 3310.84375
+        },
+        "phone": {
+          "x": 61,
+          "y": 930,
+          "width": 1120,
+          "height": 2453.578125,
+          "right": 1181,
+          "bottom": 3383.578125
+        },
+        "viewport": {
+          "width": 1242,
+          "height": 2208
+        }
+      },
+      "errors": []
+    },
+    {
+      "file": "feature-graphic-1024x500.png",
+      "dimensions": {
+        "width": 1024,
+        "height": 500
+      },
+      "checks": {
+        "dimensions": true,
+        "loadedImages": true,
+        "fontsLoaded": true,
+        "textInsideCanvas": true,
+        "headlinesIn80Percent": true,
+        "noScriptErrors": true
+      },
+      "details": {
+        "fonts": [
+          {
+            "family": "P",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "P",
+            "weight": "500",
+            "status": "loaded"
+          }
+        ],
+        "texts": [
+          {
+            "selector": "brand",
+            "text": "센딧",
+            "x": 60,
+            "y": 66,
+            "right": 218.125,
+            "bottom": 132,
+            "fontSize": 46,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "sub",
+            "text": "나만의 연애 코치",
+            "x": 63,
+            "y": 168,
+            "right": 233.234375,
+            "bottom": 201,
+            "fontSize": 27,
+            "font": "P, sans-serif",
+            "weight": "400",
+            "color": "rgb(255, 255, 255)"
+          },
+          {
+            "selector": "title",
+            "text": "생각났으면,지금 센딧.",
+            "x": 60,
+            "y": 225,
+            "right": 326.53125,
+            "bottom": 371.53125,
+            "fontSize": 62,
+            "font": "P, sans-serif",
+            "weight": "700",
+            "color": "rgb(255, 255, 255)"
+          }
+        ],
+        "images": [
+          {
+            "src": "sendit-mark.png",
+            "loaded": true,
+            "natural": [
+              512,
+              512
+            ],
+            "rendered": {
+              "x": 60,
+              "y": 66,
+              "width": 66,
+              "height": 66,
+              "right": 126,
+              "bottom": 132
+            }
+          },
+          {
+            "src": "home.png",
+            "loaded": true,
+            "natural": [
+              1290,
+              2796
+            ],
+            "rendered": {
+              "x": 591.2067260742188,
+              "y": 43.93545913696289,
+              "width": 468.63812255859375,
+              "height": 763.5662231445312,
+              "right": 1059.8448486328125,
+              "bottom": 807.5016822814941
+            }
+          }
+        ],
+        "screen": {
+          "x": 591.2067260742188,
+          "y": 43.93545913696289,
+          "width": 468.63812255859375,
+          "height": 763.5662231445312,
+          "right": 1059.8448486328125,
+          "bottom": 807.5016822814941
+        },
+        "phone": {
+          "x": 577.8527221679688,
+          "y": 35.6330451965332,
+          "width": 490.29461669921875,
+          "height": 803.93701171875,
+          "right": 1068.1473388671875,
+          "bottom": 839.5700569152832
+        },
+        "viewport": {
+          "width": 1024,
+          "height": 500
+        }
+      },
+      "errors": []
+    },
+    {
+      "file": "board.png",
+      "dimensions": {
+        "width": 1968,
+        "height": 699
+      },
+      "checks": {
+        "dimensions": true,
+        "loadedImages": true,
+        "fontsLoaded": true,
+        "textInsideCanvas": true,
+        "headlinesIn80Percent": true,
+        "noScriptErrors": true
+      },
+      "details": {
+        "fonts": [],
+        "texts": [],
+        "images": [
+          {
+            "src": "1-hero.png",
+            "loaded": true,
+            "natural": [
+              1290,
+              2796
+            ],
+            "rendered": {
+              "x": 24,
+              "y": 24,
+              "width": 300,
+              "height": 650.21875,
+              "right": 324,
+              "bottom": 674.21875
+            }
+          },
+          {
+            "src": "2-replies.png",
+            "loaded": true,
+            "natural": [
+              1290,
+              2796
+            ],
+            "rendered": {
+              "x": 348,
+              "y": 24,
+              "width": 300,
+              "height": 650.21875,
+              "right": 648,
+              "bottom": 674.21875
+            }
+          },
+          {
+            "src": "3-mind.png",
+            "loaded": true,
+            "natural": [
+              1290,
+              2796
+            ],
+            "rendered": {
+              "x": 672,
+              "y": 24,
+              "width": 300,
+              "height": 650.21875,
+              "right": 972,
+              "bottom": 674.21875
+            }
+          },
+          {
+            "src": "4-memory.png",
+            "loaded": true,
+            "natural": [
+              1290,
+              2796
+            ],
+            "rendered": {
+              "x": 996,
+              "y": 24,
+              "width": 300,
+              "height": 650.21875,
+              "right": 1296,
+              "bottom": 674.21875
+            }
+          },
+          {
+            "src": "5-report.png",
+            "loaded": true,
+            "natural": [
+              1290,
+              2796
+            ],
+            "rendered": {
+              "x": 1320,
+              "y": 24,
+              "width": 300,
+              "height": 650.21875,
+              "right": 1620,
+              "bottom": 674.21875
+            }
+          },
+          {
+            "src": "6-explore.png",
+            "loaded": true,
+            "natural": [
+              1290,
+              2796
+            ],
+            "rendered": {
+              "x": 1644,
+              "y": 24,
+              "width": 300,
+              "height": 650.21875,
+              "right": 1944,
+              "bottom": 674.21875
+            }
+          }
+        ],
+        "screen": null,
+        "phone": null,
+        "viewport": {
+          "width": 1968,
+          "height": 699
+        }
+      },
+      "errors": []
+    },
+    {
+      "file": "board-play.png",
+      "dimensions": {
+        "width": 1968,
+        "height": 582
+      },
+      "checks": {
+        "dimensions": true,
+        "loadedImages": true,
+        "fontsLoaded": true,
+        "textInsideCanvas": true,
+        "headlinesIn80Percent": true,
+        "noScriptErrors": true
+      },
+      "details": {
+        "fonts": [],
+        "texts": [],
+        "images": [
+          {
+            "src": "1-hero.png",
+            "loaded": true,
+            "natural": [
+              1242,
+              2208
+            ],
+            "rendered": {
+              "x": 24,
+              "y": 24,
+              "width": 300,
+              "height": 533.328125,
+              "right": 324,
+              "bottom": 557.328125
+            }
+          },
+          {
+            "src": "2-replies.png",
+            "loaded": true,
+            "natural": [
+              1242,
+              2208
+            ],
+            "rendered": {
+              "x": 348,
+              "y": 24,
+              "width": 300,
+              "height": 533.328125,
+              "right": 648,
+              "bottom": 557.328125
+            }
+          },
+          {
+            "src": "3-mind.png",
+            "loaded": true,
+            "natural": [
+              1242,
+              2208
+            ],
+            "rendered": {
+              "x": 672,
+              "y": 24,
+              "width": 300,
+              "height": 533.328125,
+              "right": 972,
+              "bottom": 557.328125
+            }
+          },
+          {
+            "src": "4-memory.png",
+            "loaded": true,
+            "natural": [
+              1242,
+              2208
+            ],
+            "rendered": {
+              "x": 996,
+              "y": 24,
+              "width": 300,
+              "height": 533.328125,
+              "right": 1296,
+              "bottom": 557.328125
+            }
+          },
+          {
+            "src": "5-report.png",
+            "loaded": true,
+            "natural": [
+              1242,
+              2208
+            ],
+            "rendered": {
+              "x": 1320,
+              "y": 24,
+              "width": 300,
+              "height": 533.328125,
+              "right": 1620,
+              "bottom": 557.328125
+            }
+          },
+          {
+            "src": "6-explore.png",
+            "loaded": true,
+            "natural": [
+              1242,
+              2208
+            ],
+            "rendered": {
+              "x": 1644,
+              "y": 24,
+              "width": 300,
+              "height": 533.328125,
+              "right": 1944,
+              "bottom": 557.328125
+            }
+          }
+        ],
+        "screen": null,
+        "phone": null,
+        "viewport": {
+          "width": 1968,
+          "height": 582
+        }
+      },
+      "errors": []
+    }
+  ]
+}

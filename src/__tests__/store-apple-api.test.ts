@@ -291,6 +291,14 @@ describe('/api/store-apple', () => {
     expect(telegramTexts()[0]).toMatch(/^💳 결제 · 하루 이용권 ₩2,700 · iOS\n오늘 매출 /);
   });
 
+  it('하루 이용권 특가(타임 세일 상품) 결제 → 하루 이용권으로 세고 「하루 이용권 특가」로 알린다', async () => {
+    const res = fakeRes();
+    await testHandler(post(chain.jws(notification('ONE_TIME_CHARGE', undefined, transaction({ productId: 'mylovecoach.pass.day.sale', price: 1900000, transactionReason: 'PURCHASE', type: 'Consumable' })))), res as never);
+    expect(res.statusCode).toBe(200);
+    expect(insertedRow()).toMatchObject({ kind: 'purchase', product_id: 'mylovecoach.pass.day.sale', plan: 'day', amount: 1900 });
+    expect(telegramTexts()[0]).toMatch(/^💳 결제 · 하루 이용권 특가 ₩1,900 · iOS\n오늘 매출 /);
+  });
+
   it('샌드박스 결제는 [샌드박스] 를 붙이고 매출 줄을 넣지 않는다', async () => {
     const res = fakeRes();
     await testHandler(post(chain.jws(notification('SUBSCRIBED', 'RESUBSCRIBE', transaction({ environment: 'Sandbox' }), 'Sandbox'))), res as never);

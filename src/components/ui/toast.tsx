@@ -1,10 +1,12 @@
+import { Ionicons } from '@expo/vector-icons';
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/app-text';
-import { Radius, Spacing, palette } from '@/constants/theme';
+import { Brand, Colors, Radius, Spacing, palette } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface ToastState {
   id: number;
@@ -30,15 +32,25 @@ export function ToastProvider({ children }: PropsWithChildren) {
   }, []);
 
   const value = useMemo(() => ({ show }), [show]);
-  const bg = toast?.tone === 'success' ? palette.espresso800 : toast?.tone === 'error' ? palette.pink600 : palette.gray800;
+  // 토스 결의 짙은 알약 하나 — 성공은 하늘색 체크, 실패는 빨간 느낌표로만 구분한다 (분홍·에스프레소 바탕은 쓰지 않는다)
+  const scheme = useColorScheme();
+  const bg = scheme === 'dark' ? Colors.dark.surfaceSelected : palette.sendInk;
+  const icon = toast?.tone === 'success' ? ('checkmark-circle' as const) : toast?.tone === 'error' ? ('alert-circle' as const) : null;
+  const iconColor = toast?.tone === 'success' ? Brand.sky : Colors.dark.danger;
 
   return (
     <ToastContext.Provider value={value}>
       {children}
       {toast ? (
         <View pointerEvents="none" style={[styles.host, { bottom: insets.bottom + 90 }]}>
-          <Animated.View key={toast.id} entering={FadeInDown.duration(180)} exiting={FadeOutDown.duration(180)} style={[styles.toast, { backgroundColor: bg }]}>
-            <AppText variant="smallStrong" color={palette.white} align="center">
+          <Animated.View
+            key={toast.id}
+            entering={FadeInDown.springify().damping(16)}
+            exiting={FadeOutDown.duration(180)}
+            accessibilityLiveRegion="polite"
+            style={[styles.toast, { backgroundColor: bg }]}>
+            {icon ? <Ionicons name={icon} size={18} color={iconColor} /> : null}
+            <AppText variant="smallStrong" color={palette.white} style={styles.text}>
               {toast.message}
             </AppText>
           </Animated.View>
@@ -52,5 +64,6 @@ export const useToast = () => useContext(ToastContext);
 
 const styles = StyleSheet.create({
   host: { position: 'absolute', left: 0, right: 0, alignItems: 'center', paddingHorizontal: Spacing.lg },
-  toast: { paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md, borderRadius: Radius.pill, maxWidth: 420 },
+  toast: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.lg + 2, paddingVertical: Spacing.md, borderRadius: Radius.lg, maxWidth: 420 },
+  text: { flexShrink: 1 },
 });

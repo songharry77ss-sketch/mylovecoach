@@ -47,7 +47,7 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 
 /**
- * 다른 앱 위에 떠 있는 「연애코치 버블」을 띄우고 유지하는 포그라운드 서비스.
+ * 다른 앱 위에 떠 있는 「센딧 버블」을 띄우고 유지하는 포그라운드 서비스.
  *
  * - 짧게 탭: `mylovecoach://quick` 으로 앱을 연다
  * - 드래그: 손가락을 따라 움직이고, 놓으면 가까운 좌우 가장자리로 부드럽게 붙는다
@@ -804,12 +804,12 @@ class FloatingBubbleService : Service() {
 
     private const val CHANNEL_ID = "floating_bubble"
     private const val CHANNEL_NAME = "플로팅 버블"
-    private const val CHANNEL_DESCRIPTION = "다른 앱 위에 연애코치 버블이 떠 있는 동안 보이는 알림이에요"
+    private const val CHANNEL_DESCRIPTION = "다른 앱 위에 센딧 버블이 떠 있는 동안 보이는 알림이에요"
     private const val NOTIFICATION_ID = 4207
-    private const val NOTIFICATION_TITLE = "연애코치 버블이 켜져 있어요"
+    private const val NOTIFICATION_TITLE = "센딧 버블이 켜져 있어요"
     private const val NOTIFICATION_TEXT = "탭하면 버블을 꺼요"
-    private const val NOTIFICATION_COLOR = 0xFF3DA0F2.toInt()
-    private const val BUBBLE_DESCRIPTION = "연애코치 열기"
+    private const val NOTIFICATION_COLOR = 0xFF3D63F5.toInt()
+    private const val BUBBLE_DESCRIPTION = "센딧 열기"
 
     private const val PREFS_NAME = "expo.modules.floatingbubble"
     private const val KEY_ON_RIGHT = "onRight"

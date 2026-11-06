@@ -6,7 +6,7 @@ import { palette } from '@/constants/theme';
 import { haptic } from '@/lib/haptics';
 
 /**
- * 화면 전체 위로 하트·꽃가루가 터지는 축하 효과.
+ * 화면 전체 위로 하트·꽃가루가 터지는 축하 효과 — 센딧 색(하늘색·파랑·보라·흰 반짝임). 분홍은 쓰지 않는다.
  * 루트에 Provider 를 한 번 두고, 어디서든 useCelebrate()(...) 로 터뜨린다.
  * 터치를 막지 않도록 pointerEvents="none".
  */
@@ -36,13 +36,14 @@ const CelebrationContext = createContext<(options?: CelebrateOptions) => void>((
 export const useCelebrate = () => useContext(CelebrationContext);
 
 const EMOJI: Record<Exclude<BurstKind, 'confetti'>, string[]> = {
-  hearts: ['💗', '💖', '💕', '💘', '✨'],
-  sparkles: ['✨', '⭐️', '💫', '🌟'],
-  fire: ['🔥', '❤️‍🔥', '💥', '✨'],
+  hearts: ['💙', '💜', '🤍', '✨', '💙', '💫'],
+  sparkles: ['✨', '💫', '⭐️', '✨'],
+  fire: ['🔥', '💥', '✨', '💫'],
   ice: ['🧊', '❄️', '💧'],
 };
 
-const CONFETTI_COLORS = [palette.pink400, palette.sky400, palette.lavender400, palette.yellow500, palette.mint500, palette.peach500];
+/** 앱 아이콘 그라데이션의 색 + 흰 반짝임 (흰 조각은 테두리를 둘러 흰 바탕에서도 보이게) */
+const CONFETTI_COLORS = [palette.sendSky, palette.sendBlue400, palette.sendViolet400, palette.white, palette.sendBlue500, palette.sendViolet500, palette.sendBlue300];
 
 let seq = 0;
 
@@ -149,9 +150,11 @@ function Particle({ angle, distance, size, delay, spin, emoji, color, x, y }: Pa
   if (emoji) {
     return <Animated.Text style={[styles.particle, { fontSize: size, lineHeight: size * 1.2 }, style]}>{emoji}</Animated.Text>;
   }
-  return <Animated.View style={[styles.particle, { width: size, height: size * 0.55, borderRadius: 2, backgroundColor: color }, style]} />;
+  const white = color === palette.white;
+  return <Animated.View style={[styles.particle, { width: size, height: size * 0.55, borderRadius: 2, backgroundColor: color }, white ? styles.whiteBit : null, style]} />;
 }
 
 const styles = StyleSheet.create({
   particle: { position: 'absolute', left: 0, top: 0 },
+  whiteBit: { borderWidth: 1, borderColor: palette.sendBlue300 },
 });

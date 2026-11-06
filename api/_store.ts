@@ -3,7 +3,7 @@
  * 받은 알림은 store_event 표(supabase/store_event.sql)에 한 줄씩 남기고, 처음 받은 알림만 운영자 텔레그램으로 알린다.
  * 매출은 실제 결제(Production)만 더한다 — 샌드박스·연결 확인 알림은 빼고.
  */
-import { FALLBACK_PRICES, planOfProduct, type PlanKey } from '../src/lib/billing/plans';
+import { DAY_SALE_PRICE_KRW, FALLBACK_PRICES, isSaleProduct, planOfProduct, type PlanKey } from '../src/lib/billing/plans';
 
 import { insertNew, query } from './_supabase';
 import { escapeHtml, formatWon, kstMidnight } from './_telegram';
@@ -38,16 +38,24 @@ export const PLAN_LABELS: Record<PlanKey, string> = {
 
 export const STORE_LABELS: Record<StoreName, string> = { apple: 'iOS', google: 'Android' };
 
-export const planLabel = (plan: PlanKey | null, productId: string | null): string =>
-  plan ? PLAN_LABELS[plan] : productId ? escapeHtml(productId) : '상품 모름';
+/** 하루 이용권 특가(타임 세일 상품) — plan 은 'day' 로 같이 세고 이름만 구분한다 */
+export const SALE_LABEL = '하루 이용권 특가';
 
-/** 정가(원) — 스토어가 금액을 알려 주지 않을 때(Google 실시간 알림) 쓴다 */
-export const listPriceKrw = (plan: PlanKey | null): number | null => {
+export const planLabel = (plan: PlanKey | null, productId: string | null): string =>
+  isSaleProduct(productId) ? SALE_LABEL : plan ? PLAN_LABELS[plan] : productId ? escapeHtml(productId) : '상품 모름';
+
+/**
+ * 정가(원) — 스토어가 금액을 알려 주지 않을 때(Google 실시간 알림) 쓴다.
+ * 특가 상품은 plans 의 DAY_SALE_PRICE_KRW (가격을 정하기 전에는 null → 금액 없이 기록·알림)
+ */
+export const listPriceKrw = (plan: PlanKey | null, productId?: string | null): number | null => {
+  if (isSaleProduct(productId)) return DAY_SALE_PRICE_KRW;
   if (!plan) return null;
   const digits = FALLBACK_PRICES[plan].replace(/[^0-9]/g, '');
   return digits ? Number(digits) : null;
 };
 
+/** 상품 ID → 요금제. 특가 상품은 하루 이용권('day')으로 인정한다 */
 export const planOf = (productId: string | null | undefined): PlanKey | null => (productId ? planOfProduct(productId) : null);
 
 /**
@@ -67,15 +75,20 @@ export interface Revenue {
   count: number;
   /** 원화가 아닌 통화별 합계 (해외 스토어 결제) */
   other: Record<string, number>;
+  /** 금액을 모르는 건수 — 가격을 정하기 전의 하루 이용권 특가(Google 알림에는 금액이 없음) 등. 합계에는 넣지 않는다 */
+  unknown: number;
 }
 
-/** 실제 결제(Production)의 결제·갱신 행에서 매출을 더한다 */
+/** 실제 결제(Production)의 결제·갱신 행에서 매출을 더한다. 금액이 없는 행은 건수만 세고 「금액 미정」으로 따로 둔다 */
 export function sumRevenue(rows: { amount: number | string | null; currency: string | null }[]): Revenue {
-  const out: Revenue = { krw: 0, count: 0, other: {} };
+  const out: Revenue = { krw: 0, count: 0, other: {}, unknown: 0 };
   for (const row of rows) {
     out.count += 1;
-    const amount = Number(row.amount ?? 0);
-    if (!Number.isFinite(amount)) continue;
+    const amount = row.amount == null || row.amount === '' ? NaN : Number(row.amount);
+    if (!Number.isFinite(amount)) {
+      out.unknown += 1;
+      continue;
+    }
     const currency = (row.currency ?? 'KRW').toUpperCase();
     if (currency === 'KRW') out.krw += amount;
     else out.other[currency] = (out.other[currency] ?? 0) + amount;
@@ -83,8 +96,13 @@ export function sumRevenue(rows: { amount: number | string | null; currency: str
   return out;
 }
 
-export const formatRevenue = (r: Revenue): string =>
-  [formatWon(r.krw), ...Object.entries(r.other).map(([c, v]) => `${escapeHtml(c)} ${Math.round(v * 100) / 100}`)].join(' + ');
+/** 「₩12,600」 · 「₩12,600 + USD 1.99」 · 금액을 모르는 건이 섞이면 「₩2,700 + 금액 미정 1건」, 전부 모르면 「금액 미정」 */
+export function formatRevenue(r: Revenue): string {
+  const unknown = r.unknown ?? 0;
+  if (unknown > 0 && unknown >= r.count) return '금액 미정';
+  const known = [formatWon(r.krw), ...Object.entries(r.other).map(([c, v]) => `${escapeHtml(c)} ${Math.round(v * 100) / 100}`)];
+  return [...known, ...(unknown > 0 ? [`금액 미정 ${unknown}건`] : [])].join(' + ');
+}
 
 /** 알림에 「오늘 매출」 줄을 붙일 기록인지 — 실제 결제(Production)의 결제·갱신만 */
 export const countsAsRevenue = (row: StoreEventRow): boolean => row.environment === 'Production' && (row.kind === 'purchase' || row.kind === 'renewal');

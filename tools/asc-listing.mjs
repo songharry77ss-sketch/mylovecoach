@@ -40,7 +40,7 @@ function stripEmoji(text) {
 }
 
 const LISTING = {
-  name: field('앱 이름') ?? '나만의 연애코치',
+  name: field('앱 이름') ?? '센딧 - 나만의 연애 코치',
   subtitle: field('부제') ?? '',
   keywords: field('키워드') ?? '',
   // 문서에는 기본 주소로 적혀 있으므로 실제 배포 주소로 바꿔 넣는다

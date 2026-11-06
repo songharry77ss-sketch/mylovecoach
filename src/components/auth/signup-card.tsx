@@ -18,6 +18,8 @@ interface Props {
   onDone: (result: LinkResult) => void;
   title?: string;
   subtitle?: string;
+  /** 카드 맨 위 제목·설명 — 화면에 같은 제목이 이미 있으면(가입 화면) 끈다 */
+  heading?: boolean;
 }
 
 const KAKAO_YELLOW = '#FEE500';
@@ -25,7 +27,7 @@ const GOOGLE_FONT = { GoogleSansMedium: require('../../../assets/auth/GoogleSans
 type SignInProvider = 'kakao' | 'google' | 'apple';
 
 /** 카카오·Google·Apple로 가입하고 무료 코칭 보너스 받기 */
-export function SignupCard({ onDone, title, subtitle }: Props) {
+export function SignupCard({ onDone, title, subtitle, heading = true }: Props) {
   const theme = useTheme();
   const scheme = useColorScheme();
   const [apple, setApple] = useState(false);
@@ -67,15 +69,20 @@ export function SignupCard({ onDone, title, subtitle }: Props) {
   };
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.primarySoft }]}>
-      <View style={styles.texts}>
-        <AppText variant="title3" align="center">
-          {title ?? `가입하고 무료 코칭 ${SIGNUP_BONUS}회 더 받기 🎁`}
-        </AppText>
-        <AppText variant="small" color="textSecondary" align="center">
-          {subtitle ?? '사용 중인 계정으로 간편하게 가입하세요. 매일 무료 코칭 1회도 충전돼요.'}
-        </AppText>
-      </View>
+    <View style={[styles.card, heading ? { backgroundColor: theme.surface } : styles.bare]}>
+      {heading ? (
+        <View style={styles.texts}>
+          <View style={[styles.gift, { backgroundColor: theme.primarySoft }]}>
+            <Ionicons name="gift" size={22} color={theme.primary} />
+          </View>
+          <AppText variant="title3" align="center" weight="800">
+            {title ?? `가입하고 무료 코칭 ${SIGNUP_BONUS}회 더 받기`}
+          </AppText>
+          <AppText variant="small" color="textSecondary" align="center">
+            {subtitle ?? '사용 중인 계정으로 간편하게 가입하세요. 매일 무료 코칭 1회도 충전돼요.'}
+          </AppText>
+        </View>
+      ) : null}
 
       {apple ? (
         <View pointerEvents={busy ? 'none' : 'auto'} style={{ opacity: busy && busy !== 'apple' ? 0.5 : 1 }}>
@@ -136,8 +143,11 @@ export function SignupCard({ onDone, title, subtitle }: Props) {
 
 const styles = StyleSheet.create({
   card: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.md },
-  texts: { gap: Spacing.xs, marginBottom: Spacing.xs },
-  button: { height: 50, width: '100%' },
+  // 가입 화면처럼 제목이 바깥에 있으면 카드 테두리 없이 버튼만
+  bare: { padding: 0 },
+  texts: { gap: Spacing.xs, marginBottom: Spacing.xs, alignItems: 'center' },
+  gift: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
+  button: { height: 52, width: '100%' },
   // Google 공식 버튼 규격: 흰 배경·표준 다색 로고·전용 글꼴, 다른 로그인과 같은 크기.
   google: { backgroundColor: '#FFFFFF', borderColor: '#747775', borderWidth: 1, borderRadius: Radius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Platform.OS === 'ios' ? 12 : 10, paddingHorizontal: Platform.OS === 'ios' ? 16 : 12 },
   googleLogo: { width: 20, height: 20 },

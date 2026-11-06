@@ -1,15 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { BackHandler, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { Easing, FadeInUp, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { StageBackground } from '@/components/stage/stage';
-import { Button } from '@/components/ui/button';
-import { FocusStatusBar } from '@/components/ui/system-bars';
-import { MaxContentWidth, Radius, Spacing, Stage } from '@/constants/theme';
+import { BrandGradient, GradientButton, WashBackground } from '@/components/brand/brand';
+import { APP_NAME, APP_SUBTITLE } from '@/constants/brand';
+import { Brand, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useKeyboardVisible } from '@/hooks/use-keyboard';
+import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
 import { josa } from '@/lib/kkti';
@@ -46,8 +47,8 @@ const MAX_VIBES = 3;
 
 function introOf(knownName: string | undefined): string[] {
   return knownName
-    ? [`다시 반가워요, ${knownName}님! 💘`, '답장을 더 「나답게」 만들려고 몇 가지만 더 물어볼게요. 모르는 건 건너뛰어도 돼요.']
-    : ['안녕하세요! 오늘부터 함께할 연애 코치예요 💘', '답장을 「나답게」 만들려고 몇 가지만 물어볼게요. 30초면 끝나고, 모르는 건 건너뛰어도 돼요.'];
+    ? [`다시 반가워요, ${knownName}님! 👋`, '답장을 더 「나답게」 만들려고 몇 가지만 더 물어볼게요. 모르는 건 건너뛰어도 돼요.']
+    : [`안녕하세요! 오늘부터 함께할 연애 코치, ${APP_NAME}이에요 👋`, '답장을 「나답게」 만들려고 몇 가지만 물어볼게요. 30초면 끝나고, 모르는 건 건너뛰어도 돼요.'];
 }
 
 /** 이미 알고 있는 항목 — 홈·마이에서 다시 열면 묻지 않는다 */
@@ -104,6 +105,7 @@ function endingOf(a: Answers, fromHome: boolean, knownName: string | undefined):
  */
 export default function AboutMe() {
   const router = useRouter();
+  const theme = useTheme();
   const from = useLocalSearchParams<{ from?: string }>().from;
   const fromHome = from === 'home' || from === 'my';
   const insets = useSafeAreaInsets();
@@ -229,28 +231,37 @@ export default function AboutMe() {
   };
 
   return (
-    <StageBackground>
+    <WashBackground>
       {/* 안드로이드도 화면 끝까지 그리는 방식이라 adjustResize 만으로는 입력칸이 올라오지 않는다 — 채팅방처럼 두 기기 모두 padding */}
       <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <View style={[styles.head, { paddingTop: insets.top + Spacing.md }]}>
           <View style={styles.headRow}>
             <View style={styles.coachId}>
-              <CoachAvatar />
+              <CoachAvatar size={36} />
               <View>
-                <Text style={styles.coachName}>연애 코치</Text>
-                <Text style={styles.coachSub}>{typing ? '입력 중…' : '보통 30초면 끝나요'}</Text>
+                <Text style={[styles.coachName, { color: theme.text }]}>{APP_NAME}</Text>
+                <Text style={[styles.coachSub, { color: typing ? theme.primary : theme.textTertiary }]}>{typing ? '입력 중…' : `${APP_SUBTITLE} · 30초면 끝나요`}</Text>
               </View>
             </View>
             {!done ? (
-              <Pressable accessibilityRole="button" accessibilityLabel="나에 대해 알려주기 나중에 하기" onPress={() => finish('later')} hitSlop={12} style={styles.skip}>
-                <Text style={styles.skipText}>나중에 할게요</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="나에 대해 알려주기 나중에 하기"
+                onPress={() => finish('later')}
+                hitSlop={12}
+                style={({ pressed }) => [styles.skip, { backgroundColor: theme.surface }, pressed && styles.pressed]}>
+                <Text style={[styles.skipText, { color: theme.textSecondary }]}>나중에 할게요</Text>
               </Pressable>
             ) : null}
           </View>
           <View style={styles.progress} accessibilityLabel={`질문 ${steps.length}개 중 ${Math.min(step, steps.length)}개 답함`}>
-            {steps.map((s, i) => (
-              <View key={s} style={[styles.seg, i < step ? styles.segOn : i === step ? styles.segNow : null]} />
-            ))}
+            {steps.map((s, i) =>
+              i < step ? (
+                <BrandGradient key={s} style={styles.seg} />
+              ) : (
+                <View key={s} style={[styles.seg, { backgroundColor: i === step ? theme.surfaceSelected : theme.border }]} />
+              ),
+            )}
           </View>
         </View>
 
@@ -268,31 +279,37 @@ export default function AboutMe() {
               <Animated.View key={line.id} entering={FadeInUp.duration(260)} style={styles.coachRow}>
                 {/* 이어지는 코치 말풍선은 얼굴을 한 번만 */}
                 {lines[i - 1]?.from === 'coach' ? <View style={styles.avatarGap} /> : <CoachAvatar />}
-                <View style={[styles.bubble, styles.coachBubble]}>
-                  <Text style={styles.coachText}>{line.text}</Text>
+                <View style={[styles.bubble, styles.coachBubble, { backgroundColor: theme.surface }]}>
+                  <Text style={[styles.coachText, { color: theme.text }]}>{line.text}</Text>
                 </View>
               </Animated.View>
             ) : (
               <Animated.View key={line.id} entering={FadeInUp.duration(220)} style={styles.meRow}>
-                <View style={[styles.bubble, line.skipped ? styles.skippedBubble : styles.meBubble]}>
-                  <Text style={line.skipped ? styles.skippedText : styles.meText}>{line.text}</Text>
-                </View>
+                {line.skipped ? (
+                  <View style={[styles.bubble, styles.skippedBubble, { borderColor: theme.border }]}>
+                    <Text style={[styles.skippedText, { color: theme.textSecondary }]}>{line.text}</Text>
+                  </View>
+                ) : (
+                  <BrandGradient style={[styles.bubble, styles.meBubble]}>
+                    <Text style={styles.meText}>{line.text}</Text>
+                  </BrandGradient>
+                )}
               </Animated.View>
             ),
           )}
           {typing ? (
             <View style={styles.coachRow}>
               {lines[lines.length - 1]?.from === 'coach' ? <View style={styles.avatarGap} /> : <CoachAvatar />}
-              <View style={[styles.bubble, styles.coachBubble, styles.typingBubble]} accessibilityLabel="코치가 입력 중">
+              <View style={[styles.bubble, styles.coachBubble, styles.typingBubble, { backgroundColor: theme.surface }]} accessibilityLabel="코치가 입력 중">
                 {[0, 1, 2].map((d) => (
-                  <TypingDot key={d} index={d} />
+                  <TypingDot key={d} index={d} color={theme.textTertiary} />
                 ))}
               </View>
             </View>
           ) : null}
         </ScrollView>
 
-        <View style={[styles.dock, { paddingBottom: (keyboardVisible ? 0 : insets.bottom) + Spacing.md }]}>
+        <View style={[styles.dock, { paddingBottom: (keyboardVisible ? 0 : insets.bottom) + Spacing.md, backgroundColor: theme.background, borderTopColor: theme.border }]}>
           {ready && current === 'name' ? (
             <Animated.View entering={FadeInUp.duration(220)} style={styles.dockInner}>
               <InputRow value={draft} onChange={setDraft} onSend={sendText} placeholder="이름이나 별명 (예: 지은)" label="부를 이름" maxLength={20} />
@@ -329,9 +346,8 @@ export default function AboutMe() {
               <View style={styles.dockActions}>
                 <SkipChip onPress={() => answer(null)} />
                 <View style={styles.flex}>
-                  <Button
+                  <GradientButton
                     title={vibes.length ? `${vibes.length}개 골랐어요` : `${MAX_VIBES}개까지 골라 주세요`}
-                    variant="gold"
                     size="md"
                     disabled={!vibes.length}
                     onPress={() => answer(vibes.join(' · '), { vibes })}
@@ -348,34 +364,30 @@ export default function AboutMe() {
             </Animated.View>
           ) : ready && done ? (
             <Animated.View entering={FadeInUp.duration(260)} style={styles.dockInner}>
-              <Button
+              <GradientButton
                 title={fromHome ? '완료' : '첫 캡처 올리러 가기'}
-                variant="gold"
+                shine={!fromHome}
                 onPress={() => finish('done')}
-                icon={<Ionicons name={fromHome ? 'checkmark' : 'image'} size={18} color={Stage.onGold} />}
+                icon={<Ionicons name={fromHome ? 'checkmark' : 'image'} size={18} color={Brand.onBrand} />}
               />
-              <Text style={styles.footnote}>알려 주신 내용은 마이 → 내 프로필에서 언제든 바꿀 수 있어요</Text>
+              <Text style={[styles.footnote, { color: theme.textTertiary }]}>알려 주신 내용은 마이 → 내 프로필에서 언제든 바꿀 수 있어요</Text>
             </Animated.View>
           ) : (
             <View style={styles.dockWaiting} />
           )}
         </View>
       </KeyboardAvoidingView>
-      <FocusStatusBar style="light" />
-    </StageBackground>
+    </WashBackground>
   );
 }
 
-function CoachAvatar() {
-  return (
-    <View style={styles.avatar}>
-      <Ionicons name="heart" size={15} color={Stage.onGold} />
-    </View>
-  );
+/** 코치 얼굴 — 앱 아이콘 */
+function CoachAvatar({ size = 30 }: { size?: number }) {
+  return <Image source={require('../../assets/images/sendit-mark.png')} style={{ width: size, height: size, borderRadius: size * 0.3 }} contentFit="cover" accessibilityIgnoresInvertColors />;
 }
 
 /** 「입력 중…」 점 세 개 — 차례로 밝아진다 */
-function TypingDot({ index }: { index: number }) {
+function TypingDot({ index, color }: { index: number; color: string }) {
   const t = useSharedValue(0);
   useEffect(() => {
     t.value = withRepeat(withTiming(1, { duration: 900, easing: Easing.linear }), -1);
@@ -384,10 +396,11 @@ function TypingDot({ index }: { index: number }) {
     const p = (t.value + index / 3) % 1;
     return { opacity: p < 0.5 ? 0.3 + p * 1.4 : 1 - (p - 0.5) * 1.4 };
   });
-  return <Animated.View style={[styles.dot, style]} />;
+  return <Animated.View style={[styles.dot, { backgroundColor: color }, style]} />;
 }
 
 function InputRow({ value, onChange, onSend, placeholder, label, maxLength, numeric }: { value: string; onChange: (v: string) => void; onSend: () => void; placeholder: string; label: string; maxLength: number; numeric?: boolean }) {
+  const theme = useTheme();
   const can = value.trim().length > 0;
   return (
     <View style={styles.inputRow}>
@@ -396,70 +409,72 @@ function InputRow({ value, onChange, onSend, placeholder, label, maxLength, nume
         onChangeText={onChange}
         onSubmitEditing={onSend}
         placeholder={placeholder}
-        placeholderTextColor={Stage.textFaint}
+        placeholderTextColor={theme.textTertiary}
         keyboardType={numeric ? 'number-pad' : 'default'}
         returnKeyType="send"
         maxLength={maxLength}
         autoFocus
         accessibilityLabel={label}
-        style={styles.input}
+        style={[styles.input, { backgroundColor: theme.surface, color: theme.text }]}
       />
-      <Pressable accessibilityRole="button" accessibilityLabel="보내기" accessibilityState={{ disabled: !can }} onPress={onSend} disabled={!can} style={[styles.send, !can && styles.sendOff]}>
-        <Ionicons name="arrow-up" size={20} color={can ? Stage.onGold : Stage.textFaint} />
+      <Pressable accessibilityRole="button" accessibilityLabel="보내기" accessibilityState={{ disabled: !can }} onPress={onSend} disabled={!can} style={({ pressed }) => [styles.send, pressed && styles.pressed]}>
+        {can ? <BrandGradient style={StyleSheet.absoluteFill} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.surface }]} />}
+        <Ionicons name="arrow-up" size={20} color={can ? Brand.onBrand : theme.textTertiary} />
       </Pressable>
     </View>
   );
 }
 
 function SkipChip({ onPress }: { onPress: () => void }) {
+  const theme = useTheme();
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel="이 질문 건너뛰기" onPress={onPress} hitSlop={6} style={styles.skipChip}>
-      <Text style={styles.skipChipText}>건너뛰기</Text>
+    <Pressable accessibilityRole="button" accessibilityLabel="이 질문 건너뛰기" onPress={onPress} hitSlop={6} style={({ pressed }) => [styles.skipChip, { borderColor: theme.textTertiary }, pressed && styles.pressed]}>
+      <Text style={[styles.skipChipText, { color: theme.textSecondary }]}>건너뛰기</Text>
     </Pressable>
   );
 }
 
-/** 무대 화면용 답 칩 — 누르면 바로 답이 된다 (추구미만 골드로 켜지고 끔) */
+/** 답 칩 — 누르면 바로 답이 된다 (추구미만 그라데이션으로 켜지고 끔) */
 function Choice({ label, selected, onPress, big, grid, wide }: { label: string; selected?: boolean; onPress: () => void; big?: boolean; grid?: boolean; wide?: boolean }) {
+  const theme = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={selected != null ? { selected } : undefined}
       onPress={onPress}
-      style={({ pressed }) => [styles.choice, big && styles.choiceBig, grid && styles.choiceGrid, wide && styles.choiceWide, selected && styles.choiceOn, pressed && styles.pressed]}>
-      <Text style={[styles.choiceText, big && styles.choiceTextBig, selected && styles.choiceTextOn]}>{label}</Text>
+      style={({ pressed }) => [styles.choice, { backgroundColor: theme.surface }, big && styles.choiceBig, grid && styles.choiceGrid, wide && styles.choiceWide, pressed && styles.choicePressed]}>
+      {selected ? <BrandGradient style={StyleSheet.absoluteFill} /> : null}
+      <Text style={[styles.choiceText, { color: selected ? Brand.onBrand : theme.text }, big && styles.choiceTextBig]}>{label}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  pressed: { opacity: 0.7 },
   head: { paddingHorizontal: Spacing.xl, gap: Spacing.md, paddingBottom: Spacing.sm, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   headRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   coachId: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  coachName: { fontSize: 15, fontWeight: '800', color: Stage.text },
-  coachSub: { fontSize: 12, fontWeight: '600', color: Stage.textFaint },
-  skip: { paddingHorizontal: Spacing.md, paddingVertical: 6, borderRadius: Radius.pill, backgroundColor: Stage.chip, borderWidth: 1, borderColor: Stage.chipBorder },
-  skipText: { fontSize: 13, fontWeight: '700', color: Stage.text },
+  coachName: { fontSize: 16, fontWeight: '800', letterSpacing: -0.3 },
+  coachSub: { fontSize: 12, fontWeight: '600' },
+  skip: { paddingHorizontal: Spacing.md, paddingVertical: 7, borderRadius: Radius.pill },
+  skipText: { fontSize: 13, fontWeight: '700' },
   progress: { flexDirection: 'row', gap: 4 },
-  seg: { flex: 1, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.14)' },
-  segOn: { backgroundColor: Stage.gold },
-  segNow: { backgroundColor: 'rgba(255,214,102,0.45)' },
+  seg: { flex: 1, height: 4, borderRadius: 2, overflow: 'hidden' },
   chat: { paddingHorizontal: Spacing.xl, paddingVertical: Spacing.lg, gap: Spacing.sm, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   coachRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
   meRow: { flexDirection: 'row', justifyContent: 'flex-end', marginVertical: Spacing.xs },
-  avatar: { width: 30, height: 30, borderRadius: 15, backgroundColor: Stage.gold, alignItems: 'center', justifyContent: 'center' },
   avatarGap: { width: 30 },
-  bubble: { maxWidth: '82%', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10 },
-  coachBubble: { backgroundColor: Stage.card, borderBottomLeftRadius: 6 },
-  coachText: { fontSize: 15, lineHeight: 22, fontWeight: '600', color: Stage.cardText },
-  meBubble: { backgroundColor: Stage.gold, borderBottomRightRadius: 6 },
-  meText: { fontSize: 15, lineHeight: 22, fontWeight: '700', color: Stage.onGold },
-  skippedBubble: { backgroundColor: Stage.chip, borderWidth: 1, borderColor: Stage.chipBorder, borderBottomRightRadius: 6 },
-  skippedText: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: Stage.textDim },
+  bubble: { maxWidth: '82%', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10, overflow: 'hidden' },
+  coachBubble: { borderTopLeftRadius: 6 },
+  coachText: { fontSize: 15, lineHeight: 22, fontWeight: '600', letterSpacing: -0.2 },
+  meBubble: { borderBottomRightRadius: 6 },
+  meText: { fontSize: 15, lineHeight: 22, fontWeight: '700', color: Brand.onBrand, letterSpacing: -0.2 },
+  skippedBubble: { borderWidth: 1, borderStyle: 'dashed', borderBottomRightRadius: 6 },
+  skippedText: { fontSize: 14, lineHeight: 20, fontWeight: '600' },
   typingBubble: { flexDirection: 'row', gap: 5, paddingVertical: 15 },
-  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#B9A9AB' },
-  dock: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Stage.chipBorder, backgroundColor: 'rgba(18,10,12,0.55)' },
+  dot: { width: 7, height: 7, borderRadius: 4 },
+  dock: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.md, borderTopWidth: StyleSheet.hairlineWidth },
   dockInner: { gap: Spacing.md, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   dockWaiting: { height: 52 },
   dockActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
@@ -467,30 +482,16 @@ const styles = StyleSheet.create({
   chipScroll: { maxHeight: 220, flexGrow: 0 },
   mbtiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  input: {
-    flex: 1,
-    height: 50,
-    borderRadius: Radius.pill,
-    backgroundColor: Stage.chip,
-    borderWidth: 1,
-    borderColor: Stage.chipBorder,
-    paddingHorizontal: Spacing.lg,
-    fontSize: 16,
-    fontWeight: '600',
-    color: Stage.text,
-  },
-  send: { width: 50, height: 50, borderRadius: 25, backgroundColor: Stage.gold, alignItems: 'center', justifyContent: 'center' },
-  sendOff: { backgroundColor: Stage.chip },
-  skipChip: { alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 9, borderRadius: Radius.pill, borderWidth: 1, borderStyle: 'dashed', borderColor: Stage.chipBorder },
-  skipChipText: { fontSize: 14, fontWeight: '700', color: Stage.textDim },
-  choice: { borderRadius: Radius.pill, borderWidth: 1, borderColor: Stage.chipBorder, backgroundColor: Stage.chip, paddingHorizontal: 14, paddingVertical: 9 },
-  choiceBig: { paddingHorizontal: 22, paddingVertical: 12 },
-  choiceGrid: { flexBasis: '22%', flexGrow: 1, alignItems: 'center', paddingHorizontal: 0 },
+  input: { flex: 1, height: 50, borderRadius: Radius.pill, paddingHorizontal: Spacing.lg, fontSize: 16, fontWeight: '600' },
+  send: { width: 50, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  skipChip: { alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 10, borderRadius: Radius.pill, borderWidth: 1, borderStyle: 'dashed' },
+  skipChipText: { fontSize: 14, fontWeight: '700' },
+  choice: { borderRadius: Radius.pill, paddingHorizontal: 16, paddingVertical: 10, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  choiceBig: { paddingHorizontal: 24, paddingVertical: 13 },
+  choiceGrid: { flexBasis: '22%', flexGrow: 1, paddingHorizontal: 0 },
   choiceWide: { alignItems: 'center' },
-  choiceOn: { backgroundColor: Stage.gold, borderColor: Stage.gold },
-  pressed: { opacity: 0.7 },
-  choiceText: { fontSize: 14, fontWeight: '700', color: Stage.text },
+  choicePressed: { opacity: 0.75, transform: [{ scale: 0.97 }] },
+  choiceText: { fontSize: 14, fontWeight: '700' },
   choiceTextBig: { fontSize: 16 },
-  choiceTextOn: { color: Stage.onGold },
-  footnote: { fontSize: 12, fontWeight: '500', color: Stage.textFaint, textAlign: 'center' },
+  footnote: { fontSize: 12, fontWeight: '500', textAlign: 'center' },
 });

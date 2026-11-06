@@ -1,0 +1,104 @@
+{
+  "jobs": [
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\_source\\ios-1-hero.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\ios-6.7-framed\\1-hero.png",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\_source\\ios-2-replies.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\ios-6.7-framed\\2-replies.png",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\_source\\ios-3-mind.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\ios-6.7-framed\\3-mind.png",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\_source\\ios-4-memory.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\ios-6.7-framed\\4-memory.png",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\_source\\ios-5-report.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\ios-6.7-framed\\5-report.png",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\_source\\ios-6-explore.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\ios-6.7-framed\\6-explore.png",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\_source\\play-1-hero.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\play-framed\\1-hero.png",
+      "width": 1242,
+      "height": 2208
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\_source\\play-2-replies.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\play-framed\\2-replies.png",
+      "width": 1242,
+      "height": 2208
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\_source\\play-3-mind.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\play-framed\\3-mind.png",
+      "width": 1242,
+      "height": 2208
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\_source\\play-4-memory.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\play-framed\\4-memory.png",
+      "width": 1242,
+      "height": 2208
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\_source\\play-5-report.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\play-framed\\5-report.png",
+      "width": 1242,
+      "height": 2208
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\_source\\play-6-explore.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\play-framed\\6-explore.png",
+      "width": 1242,
+      "height": 2208
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\_source\\feature.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\feature-graphic-1024x500.png",
+      "width": 1024,
+      "height": 500
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\_source\\ios-board.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\board.png",
+      "width": 1968,
+      "height": 699,
+      "board": true
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\_source\\play-board.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-sendit-20261106\\docs\\store-assets\\sendit-1.1\\board-play.png",
+      "width": 1968,
+      "height": 582,
+      "board": true
+    }
+  ],
+  "sourceHashes": {
+    "home.png": "4261e3ab23f85b7fe6df0e6653325dae734ccc42634db0b6cbcdd1e05d26f95f",
+    "replies.png": "4e48283673945158e4ec5961ace8720ba38165ff1ce87f32cf815c4f28e73a53",
+    "mind.png": "4b08b524e115b79fbf094c690fdd78023e38c7b009ac317aef44afb668d662c8",
+    "memory.png": "96fd672d70ff2e05f2742b4e2f2ed43531cfc5ec2d0618b6d06ccfe61f541128",
+    "report.png": "477096499bb539955417468fcc92743fec5ac4956e98c2c6294464d16493a95e",
+    "explore.png": "a56d9835362623e08d03829a83141cbf5e2d6b573c125ef99be4f6d6abd9722b"
+  }
+}

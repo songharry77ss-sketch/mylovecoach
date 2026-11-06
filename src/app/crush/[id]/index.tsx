@@ -1,15 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
+import { GradientButton, Icon3D } from '@/components/brand/brand';
 import { useAiReport } from '@/components/coach/ai-report-sheet';
 import { AnalysisCard } from '@/components/coach/analysis-card';
+import { CoachLabel } from '@/components/coach/coach-avatar';
 import { Composer } from '@/components/coach/composer';
-import { heatMeta } from '@/components/coach/heat-gauge';
-import { PendingBubble } from '@/components/coach/pending-bubble';
+import { MemoryCard, MemorySheet } from '@/components/coach/memory-sheet';
+import { COACH_PHRASES, PendingBubble } from '@/components/coach/pending-bubble';
 import { UserBubble } from '@/components/coach/user-bubble';
 import { AppText } from '@/components/ui/app-text';
 import { Avatar } from '@/components/ui/avatar';
@@ -18,7 +21,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { IconButton } from '@/components/ui/icon-button';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { useToast } from '@/components/ui/toast';
-import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { APP_NAME } from '@/constants/brand';
+import { Brand, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useCoach, type SendInput } from '@/hooks/use-coach';
 import { useKeyboardVisible } from '@/hooks/use-keyboard';
 import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
@@ -73,6 +77,15 @@ export default function CrushChat() {
   const autoSent = useRef(false);
   const keyboardVisible = useKeyboardVisible();
   const secret = Boolean(crush?.secret);
+  // 센딧이 기억하는 이야기 — 처음 생기면 작게 알려 주고, 카드를 누르면 시트로 본다
+  const memoryCount = secret ? 0 : (crush?.memory?.facts.length ?? 0);
+  const [memoryOpen, setMemoryOpen] = useState(false);
+  const memoryBefore = useRef<number | null>(null);
+  useEffect(() => {
+    const before = memoryBefore.current;
+    memoryBefore.current = memoryCount;
+    if (before === 0 && memoryCount > 0) toast.show(`${APP_NAME}이 이 대화를 기억해 뒀어요. 다음 답장부터 이어서 써요`, 'success');
+  }, [memoryCount, toast]);
   // AI 답변 신고 시트는 이 화면에 하나만 둔다 — 결과 카드마다 두면 목록이 위쪽 카드를 내렸다 다시 그릴 때 열린 시트가 사라질 수 있다
   const report = useAiReport();
 
@@ -347,8 +360,23 @@ export default function CrushChat() {
 
   const rel = relationshipLabel(crush.relationship);
   const heat = crush.heat ?? 0;
-  const hm = heatMeta(heat);
   const lastAnalysisId = [...messages].reverse().find((m) => m.analysis)?.id;
+  const who = crush.name === '상대' ? '그 사람' : `${crush.name}님`;
+  // 기억이 있으면 「분석 중」 문구에 「기억하는 이야기를 떠올리는 중」을 넣는다
+  const phrases = memoryCount ? [COACH_PHRASES[0], `${APP_NAME}이 기억하는 이야기를 떠올리는 중…`, ...COACH_PHRASES.slice(2)] : COACH_PHRASES;
+
+  /** 빈 채팅방의 큰 버튼 — 캡처를 고르면 바로 분석을 보낸다 (입력창의 사진 버튼은 첨부만) */
+  const captureAndSend = async () => {
+    try {
+      const picked = await pickImage('screenshot');
+      if (!picked) return;
+      haptic.select();
+      resume.forget();
+      guardedSend({ crushId: crush.id, image: picked, text: '', tone, emoji, toneChosen, emojiChosen }, 'quota', true);
+    } catch (e) {
+      toast.show(e instanceof Error ? e.message : '사진을 불러오지 못했어요.', 'error');
+    }
+  };
 
   const renderItem = ({ item, index }: { item: ChatMessage; index: number }) => {
     const prev = messages[index - 1];
@@ -356,59 +384,61 @@ export default function CrushChat() {
     return (
       <View style={styles.item}>
         {showDate ? (
-          <AppText variant="caption" color="textTertiary" align="center" style={styles.date}>
-            {dateLabel(item.createdAt)}
-          </AppText>
+          <View style={[styles.datePill, { backgroundColor: theme.surface }]}>
+            <AppText variant="caption" color="textSecondary">
+              {dateLabel(item.createdAt)}
+            </AppText>
+          </View>
         ) : null}
         {item.role === 'user' ? (
           <UserBubble message={item} onPressImage={setViewer} />
         ) : (
-          <Animated.View entering={FadeInUp.springify().damping(16)} style={styles.coachRow}>
-            <View style={[styles.coachAvatar, { backgroundColor: theme.accentSoft }]}>
-              <AppText style={styles.coachAvatarText}>{secret ? '🕶️' : '✨'}</AppText>
-            </View>
-            <View style={styles.coachBody}>
-              {item.pending ? (
-                <PendingBubble />
-              ) : item.error ? (
-                <View style={[styles.error, { backgroundColor: theme.accentSoft }]}>
-                  <AppText variant="small" color="danger">
+          <Animated.View entering={FadeInUp.springify().damping(16)} style={styles.coachCol}>
+            <CoachLabel secret={secret} />
+            {item.pending ? (
+              <PendingBubble phrases={phrases} />
+            ) : item.error ? (
+              <View style={[styles.error, { backgroundColor: theme.bubbleCoach, borderColor: theme.border }]}>
+                <View style={styles.errorHead}>
+                  <Ionicons name="alert-circle" size={18} color={theme.danger} style={styles.errorIcon} />
+                  <AppText variant="small" color="danger" style={styles.flexShrink}>
                     {item.error}
                   </AppText>
-                  {/* 캡처를 읽지 못했으면 같은 파일로 다시 해도 안 되니 캡처를 다시 고르게 한다 */}
-                  {item.text === 'image' ? (
-                    <View style={styles.errorActions}>
-                      <Button title="캡처 다시 올리기" size="sm" variant="secondary" fullWidth={false} onPress={chooseImage} icon={<Ionicons name="image" size={16} color={theme.primary} />} />
-                    </View>
-                  ) : null}
-                  {/* 캡처가 너무 크면 같은 캡처로 다시 해도 또 막히니 안내만 남긴다 */}
-                  {item.text !== 'too_large' && item.text !== 'image' ? (
-                    <View style={styles.errorActions}>
-                      <Button title="다시 시도" size="sm" variant="secondary" fullWidth={false} onPress={() => retry(item)} />
-                      {item.text === 'not_configured' || item.text === 'auth' ? (
-                        <Button title="AI 연결 설정" size="sm" variant="soft" fullWidth={false} onPress={() => router.push('/settings/api-key')} />
-                      ) : null}
-                    </View>
-                  ) : null}
                 </View>
-              ) : item.analysis ? (
-                <AnalysisCard
-                  analysis={item.analysis}
-                  heat={item.heat}
-                  // 가장 최근 결과만 처음 볼 때 온도가 차오르는 연출을 보여 준다
-                  revealKey={item.id === lastAnalysisId && Date.now() - item.createdAt < 5 * 60 * 1000 ? item.id : undefined}
-                  partnerName={secret ? '상대' : crush.name}
-                  selectedReplyIndex={item.selectedReplyIndex}
-                  onSelectReply={(i) => selectReply(crush.id, item.id, i)}
-                  onRegenerate={item.analysis.replies.length ? () => regenerate(item) : undefined}
-                  regenerating={sending}
-                  // 비밀 상담이면 신고하면 이 답변은 저장된다고 시트가 먼저 알린다
-                  onReport={report.available ? (content) => report.open({ mode: 'coach', content, secret }) : undefined}
-                  lockedFrom={lockExtraReplies ? 1 : undefined}
-                  onUnlock={lockExtraReplies ? (i) => unlockReplies(i) : undefined}
-                />
-              ) : null}
-            </View>
+                {/* 캡처를 읽지 못했으면 같은 파일로 다시 해도 안 되니 캡처를 다시 고르게 한다 */}
+                {item.text === 'image' ? (
+                  <View style={styles.errorActions}>
+                    <Button title="캡처 다시 올리기" size="sm" variant="soft" fullWidth={false} onPress={chooseImage} icon={<Ionicons name="image" size={16} color={theme.primary} />} />
+                  </View>
+                ) : null}
+                {/* 캡처가 너무 크면 같은 캡처로 다시 해도 또 막히니 안내만 남긴다 */}
+                {item.text !== 'too_large' && item.text !== 'image' ? (
+                  <View style={styles.errorActions}>
+                    <Button title="다시 시도" size="sm" variant="soft" fullWidth={false} onPress={() => retry(item)} icon={<Ionicons name="refresh" size={15} color={theme.primary} />} />
+                    {item.text === 'not_configured' || item.text === 'auth' ? (
+                      <Button title="AI 연결 설정" size="sm" variant="secondary" fullWidth={false} onPress={() => router.push('/settings/api-key')} />
+                    ) : null}
+                  </View>
+                ) : null}
+              </View>
+            ) : item.analysis ? (
+              <AnalysisCard
+                analysis={item.analysis}
+                heat={item.heat}
+                // 가장 최근 결과만 처음 볼 때 숫자가 세어 올라가는 연출을 보여 준다
+                revealKey={item.id === lastAnalysisId && Date.now() - item.createdAt < 5 * 60 * 1000 ? item.id : undefined}
+                latest={item.id === lastAnalysisId}
+                partnerName={secret ? '상대' : crush.name}
+                selectedReplyIndex={item.selectedReplyIndex}
+                onSelectReply={(i) => selectReply(crush.id, item.id, i)}
+                onRegenerate={item.analysis.replies.length ? () => regenerate(item) : undefined}
+                regenerating={sending}
+                // 비밀 상담이면 신고하면 이 답변은 저장된다고 시트가 먼저 알린다
+                onReport={report.available ? (content) => report.open({ mode: 'coach', content, secret }) : undefined}
+                lockedFrom={lockExtraReplies ? 1 : undefined}
+                onUnlock={lockExtraReplies ? (i) => unlockReplies(i) : undefined}
+              />
+            ) : null}
           </Animated.View>
         )}
       </View>
@@ -423,7 +453,7 @@ export default function CrushChat() {
             secret ? (
               <View style={styles.headerTitle}>
                 <View style={[styles.secretIcon, { backgroundColor: theme.text }]}>
-                  <AppText style={styles.secretEmoji}>🕶️</AppText>
+                  <Ionicons name="eye-off" size={16} color={theme.background} />
                 </View>
                 <View>
                   <AppText variant="bodyStrong">비밀 상담</AppText>
@@ -433,14 +463,19 @@ export default function CrushChat() {
                 </View>
               </View>
             ) : (
-              <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/crush/[id]/edit', params: { id: crush.id } })} style={styles.headerTitle}>
-                <Avatar name={crush.name} uri={crush.photoUri} size={32} seed={crush.id} />
-                <View>
-                  <AppText variant="bodyStrong">{crush.name}</AppText>
-                  <AppText variant="caption" color="textTertiary">
-                    {rel.emoji} {rel.label}
+              <Pressable accessibilityRole="button" accessibilityLabel={`${crush.name} 정보 수정`} onPress={() => router.push({ pathname: '/crush/[id]/edit', params: { id: crush.id } })} style={styles.headerTitle}>
+                <Avatar name={crush.name} uri={crush.photoUri} size={34} seed={crush.id} />
+                <View style={styles.flexShrink}>
+                  <AppText variant="bodyStrong" numberOfLines={1}>
+                    {crush.name}
+                  </AppText>
+                  <AppText variant="caption" color="textSecondary" numberOfLines={1}>
+                    {rel.label}
                     {crush.mbti ? ` · ${crush.mbti}` : ''}
-                    {` · ${hm.emoji} ${heat}°`}
+                    {' · 호감 '}
+                    <AppText variant="caption" color="primary" weight="800">
+                      {heat}°
+                    </AppText>
                   </AppText>
                 </View>
               </Pressable>
@@ -459,10 +494,13 @@ export default function CrushChat() {
 
       {secret ? (
         <View style={[styles.secretBanner, { backgroundColor: theme.surface }]}>
-          <AppText variant="caption" color="textSecondary" align="center">
-            🕶️ 비밀 상담은 기기에 저장되지 않아요. 이 화면을 나가면 대화와 캡처가 모두 지워져요.
+          <Ionicons name="eye-off-outline" size={14} color={theme.textSecondary} />
+          <AppText variant="caption" color="textSecondary" style={styles.flexShrink}>
+            비밀 상담은 기기에 저장되지 않고 {APP_NAME}도 기억하지 않아요. 이 화면을 나가면 대화와 캡처가 모두 지워져요.
           </AppText>
         </View>
+      ) : memoryCount ? (
+        <MemoryCard count={memoryCount} onPress={() => setMemoryOpen(true)} />
       ) : null}
 
       <KeyboardAvoidingView style={styles.flex} behavior="padding" keyboardVerticalOffset={headerOffset}>
@@ -476,73 +514,95 @@ export default function CrushChat() {
           keyboardDismissMode="interactive"
           ListEmptyComponent={
             <View style={styles.empty}>
-              <EmptyState
-                emoji={secret ? '🕶️' : '📸'}
-                // 이름을 아직 모르는 기본 채팅방은 「상대님」 대신 「그 사람」
-                title={secret ? '아무도 모르게 물어보세요' : `${crush.name === '상대' ? '그 사람' : `${crush.name}님`}과의 대화를\n캡처해서 올려보세요`}
-                description={
-                  secret
+              <Animated.View entering={FadeInDown.duration(380)} style={styles.emptyHead}>
+                {secret ? (
+                  <View style={[styles.secretHero, { backgroundColor: theme.text }]}>
+                    <Ionicons name="eye-off" size={34} color={theme.background} />
+                  </View>
+                ) : (
+                  <Icon3D name="send" size={96} float />
+                )}
+                <AppText variant="title1" align="center">
+                  {secret ? '아무도 모르게 물어보세요' : `${who}과의 대화를\n캡처해서 올려보세요`}
+                </AppText>
+                <AppText variant="small" color="textSecondary" align="center">
+                  {secret
                     ? '캡처를 올리거나 상황을 적어 주세요. 이 방의 대화는 저장되지 않고 나가는 순간 사라져요.'
-                    : '코치가 대화 분위기와 호칭·말투를 읽고, 딱 맞는 답장 여러 버전과 호감 온도를 알려드려요. 캡처가 없다면 상황을 글로 적어도 돼요.'
-                }
-              />
+                    : '대화 분위기와 호칭·말투를 읽고, 딱 맞는 답장 3가지와 호감 온도를 알려드려요.'}
+                </AppText>
+              </Animated.View>
+              <Animated.View entering={FadeInDown.delay(70).duration(380)} style={styles.emptyCta}>
+                <GradientButton title="대화 캡처 올리기" shine icon={<Ionicons name="image" size={20} color={Brand.onBrand} />} onPress={captureAndSend} disabled={sending} />
+              </Animated.View>
               {!secret ? (
-                <View style={[styles.heatIntro, { backgroundColor: theme.surface }]}>
-                  <AppText variant="smallStrong">🌡️ 호감 온도는 0°에서 시작해요</AppText>
-                  <AppText variant="caption" color="textSecondary">
-                    대화를 올릴 때마다 온도가 오르내려요. 100°까지 올려 보세요!
-                  </AppText>
-                </View>
+                <Animated.View entering={FadeInDown.delay(140).duration(380)} style={styles.perks}>
+                  <Perk icon="thermometer-outline" text="호감 온도는 0°에서 시작해 대화마다 오르내려요" />
+                  <Perk icon="sparkles-outline" text={`대화가 쌓이면 ${APP_NAME}이 이야기를 기억해서 이어서 답해요`} />
+                </Animated.View>
               ) : null}
-              <View style={styles.starterRow}>
-                {STARTERS.map((s) => (
-                  <PressableScale
-                    key={s}
-                    feedback="tap"
-                    onPress={() => guardedSend({ crushId: crush.id, image: null, text: s, tone, emoji })}
-                    style={[styles.starter, { backgroundColor: theme.surface }]}>
-                    <AppText variant="small" color="textSecondary">
-                      {s}
-                    </AppText>
-                  </PressableScale>
-                ))}
-              </View>
+              <Animated.View entering={FadeInDown.delay(210).duration(380)} style={styles.starters}>
+                <AppText variant="caption" color="textTertiary" align="center">
+                  캡처 없이 바로 물어보기
+                </AppText>
+                <View style={styles.starterRow}>
+                  {STARTERS.map((s) => (
+                    <PressableScale
+                      key={s}
+                      feedback="tap"
+                      onPress={() => guardedSend({ crushId: crush.id, image: null, text: s, tone, emoji })}
+                      style={[styles.starter, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                      <AppText variant="small" weight="600">
+                        {s}
+                      </AppText>
+                    </PressableScale>
+                  ))}
+                </View>
+              </Animated.View>
             </View>
           }
           ListFooterComponent={
             needsCrushInfo ? (
-              <Animated.View entering={FadeInDown.delay(400)} style={[styles.upsell, { backgroundColor: theme.primarySoft }]}>
-                <View style={styles.upsellTexts}>
-                  <AppText variant="smallStrong">상대 정보를 알려주면 더 정확해져요</AppText>
-                  <AppText variant="caption" color="textSecondary">
-                    이름, MBTI, 어떤 사이인지, 부르는 호칭만 알려주면 그 사람에게 맞춘 말투로 답장을 만들어드려요.
-                  </AppText>
+              <Animated.View entering={FadeInDown.delay(400)} style={[styles.promo, { backgroundColor: theme.surface }]}>
+                <View style={styles.promoRow}>
+                  <View style={[styles.promoIcon, { backgroundColor: theme.primarySoft }]}>
+                    <Ionicons name="person-add" size={20} color={theme.primary} />
+                  </View>
+                  <View style={styles.promoTexts}>
+                    <AppText variant="bodyStrong">상대 정보를 알려주면 더 정확해져요</AppText>
+                    <AppText variant="caption" color="textSecondary">
+                      이름, MBTI, 어떤 사이인지, 부르는 호칭만 알려주면 그 사람에게 맞춘 말투로 답장을 만들어드려요.
+                    </AppText>
+                  </View>
                 </View>
-                <View style={styles.upsellActions}>
-                  <Button title="상대 정보 입력" size="sm" fullWidth={false} onPress={() => router.push({ pathname: '/crush/[id]/edit', params: { id: crush.id } })} />
-                </View>
+                <Button title="상대 정보 입력" size="md" variant="brand" onPress={() => router.push({ pathname: '/crush/[id]/edit', params: { id: crush.id } })} />
               </Animated.View>
             ) : showUpsell ? (
-              <Animated.View entering={FadeInDown.delay(400)} style={[styles.upsell, { backgroundColor: theme.primarySoft }]}>
-                <View style={styles.upsellTexts}>
-                  <AppText variant="smallStrong">답장이 도움이 됐나요?</AppText>
-                  <AppText variant="caption" color="textSecondary">
-                    {hasDayPass ? '하루 이용권이면 오늘 하루 무제한, 마음에 드는 답장이 나올 때까지 받아볼 수 있어요.' : '이용권이면 횟수 제한 없이, 마음에 드는 답장이 나올 때까지 받아볼 수 있어요.'}
-                  </AppText>
+              <Animated.View entering={FadeInDown.delay(400)} style={[styles.promo, { backgroundColor: theme.surface }]}>
+                <View style={styles.promoRow}>
+                  <Icon3D name="ticket" size={44} />
+                  <View style={styles.promoTexts}>
+                    <AppText variant="bodyStrong">답장이 도움이 됐나요?</AppText>
+                    <AppText variant="caption" color="textSecondary">
+                      {hasDayPass ? '하루 이용권이면 오늘 하루 무제한, 마음에 드는 답장이 나올 때까지 받아볼 수 있어요.' : '이용권이면 횟수 제한 없이, 마음에 드는 답장이 나올 때까지 받아볼 수 있어요.'}
+                    </AppText>
+                  </View>
                 </View>
-                <View style={styles.upsellActions}>
-                  <Button title="이용권 보기" size="sm" fullWidth={false} onPress={() => openPaywall('upsell')} />
-                  <Button title="괜찮아요" size="sm" variant="ghost" fullWidth={false} onPress={dismissUpsell} />
+                <View style={styles.promoActions}>
+                  <Button title="괜찮아요" size="md" variant="ghost" onPress={dismissUpsell} style={styles.flex} />
+                  <Button title="이용권 보기" size="md" variant="brand" onPress={() => openPaywall('upsell')} style={styles.flex2} />
                 </View>
               </Animated.View>
             ) : showReport ? (
               <Animated.View entering={FadeInDown.delay(500)}>
                 <PressableScale
+                  accessibilityLabel={`${crush.name}님 분석 보고서 보기`}
                   onPress={() => router.push({ pathname: '/crush/[id]/report', params: { id: crush.id } })}
-                  style={[styles.reportCta, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                  <AppText style={styles.reportEmoji}>📊</AppText>
-                  <View style={styles.upsellTexts}>
-                    <AppText variant="smallStrong">{crush.name}님 분석 보고서</AppText>
+                  style={[styles.promo, styles.promoRow, { backgroundColor: theme.surface }]}>
+                  <LinearGradient colors={Brand.button} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.promoIcon}>
+                    <Ionicons name="analytics" size={20} color={Brand.onBrand} />
+                  </LinearGradient>
+                  <View style={styles.promoTexts}>
+                    <AppText variant="bodyStrong">{crush.name}님 분석 보고서</AppText>
                     <AppText variant="caption" color="textSecondary">
                       성향 · 호감 신호 · 공략법 · 궁합까지 한눈에
                     </AppText>
@@ -589,7 +649,23 @@ export default function CrushChat() {
           </View>
         </Pressable>
       </Modal>
+      {!secret ? <MemorySheet crushId={crush.id} partnerName={crush.name} visible={memoryOpen} onClose={() => setMemoryOpen(false)} /> : null}
       {report.sheet}
+    </View>
+  );
+}
+
+/** 빈 채팅방의 작은 안내 한 줄 */
+function Perk({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
+  const theme = useTheme();
+  return (
+    <View style={styles.perk}>
+      <View style={[styles.perkIcon, { backgroundColor: theme.primarySoft }]}>
+        <Ionicons name={icon} size={14} color={theme.primary} />
+      </View>
+      <AppText variant="caption" color="textSecondary" style={styles.flexShrink}>
+        {text}
+      </AppText>
     </View>
   );
 }
@@ -616,29 +692,35 @@ const STARTERS = ['첫 메시지 뭐라고 보낼까?', '주말에 만나자고 
 const styles = StyleSheet.create({
   root: { flex: 1 },
   flex: { flex: 1 },
-  list: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.lg, gap: Spacing.lg, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', flexGrow: 1 },
-  item: { gap: Spacing.sm },
-  date: { marginBottom: Spacing.sm },
-  coachRow: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'flex-start' },
-  coachAvatar: { width: 32, height: 32, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  coachAvatarText: { fontSize: 16, lineHeight: 20 },
-  coachBody: { flex: 1 },
-  error: { borderRadius: Radius.lg, borderTopLeftRadius: Radius.sm, padding: Spacing.lg, gap: Spacing.md },
+  flex2: { flex: 2 },
+  flexShrink: { flexShrink: 1 },
+  list: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, paddingBottom: Spacing.xl, gap: Spacing.xl, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', flexGrow: 1 },
+  item: { gap: Spacing.md },
+  datePill: { alignSelf: 'center', paddingHorizontal: Spacing.md, paddingVertical: 4, borderRadius: Radius.pill },
+  coachCol: { gap: Spacing.sm },
+  error: { borderRadius: Radius.xl, borderTopLeftRadius: 6, borderWidth: 1, padding: Spacing.lg, gap: Spacing.md },
+  errorHead: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'flex-start' },
+  errorIcon: { marginTop: 1 },
   errorActions: { flexDirection: 'row', gap: Spacing.sm, flexWrap: 'wrap' },
-  empty: { flex: 1, justifyContent: 'center' },
-  heatIntro: { alignSelf: 'center', borderRadius: Radius.md, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, gap: 2, marginBottom: Spacing.lg, alignItems: 'center' },
-  starterRow: { gap: Spacing.sm, alignItems: 'center' },
-  starter: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderRadius: Radius.pill },
-  upsell: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.md, marginLeft: 40 },
-  upsellTexts: { gap: 2, flex: 1 },
-  upsellActions: { flexDirection: 'row', gap: Spacing.sm },
-  reportCta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: Radius.lg, borderWidth: 1, padding: Spacing.lg, marginLeft: 40 },
-  reportEmoji: { fontSize: 26, lineHeight: 32 },
-  headerTitle: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  empty: { flex: 1, justifyContent: 'center', gap: Spacing.lg + 4, paddingVertical: Spacing.md },
+  emptyHead: { alignItems: 'center', gap: Spacing.md, paddingHorizontal: Spacing.sm },
+  emptyCta: { paddingHorizontal: Spacing.sm },
+  secretHero: { width: 84, height: 84, borderRadius: 30, alignItems: 'center', justifyContent: 'center' },
+  perks: { gap: Spacing.sm, paddingHorizontal: Spacing.md },
+  perk: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  perkIcon: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  starters: { gap: Spacing.sm },
+  starterRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: Spacing.sm },
+  starter: { paddingHorizontal: Spacing.md + 2, minHeight: 44, justifyContent: 'center', borderRadius: Radius.pill, borderWidth: 1 },
+  promo: { borderRadius: Radius.xl, padding: Spacing.lg, gap: Spacing.md },
+  promoRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  promoIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  promoTexts: { gap: 2, flex: 1 },
+  promoActions: { flexDirection: 'row', gap: Spacing.sm },
+  headerTitle: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, maxWidth: 230 },
   headerActions: { flexDirection: 'row', alignItems: 'center' },
-  secretIcon: { width: 32, height: 32, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  secretEmoji: { fontSize: 16, lineHeight: 20 },
-  secretBanner: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm },
+  secretIcon: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  secretBanner: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm },
   viewer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center' },
   viewerImage: { width: '100%', height: '85%' },
   viewerClose: { position: 'absolute', top: 56, right: 20 },

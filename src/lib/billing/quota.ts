@@ -152,15 +152,33 @@ export function grantSignupBonus(wallet: WalletState, memberKey: string): Wallet
 export function grantConsumable(wallet: WalletState, plan: ConsumablePlanKey, transactionId: string, now: number): WalletState | null {
   if (transactionId && wallet.granted.includes(transactionId)) return null;
   const granted = transactionId ? [...wallet.granted, transactionId].slice(-50) : wallet.granted;
-  if (plan === 'day') return { ...wallet, passUntil: Math.max(now, wallet.passUntil) + DAY_PASS_MS, granted };
+  if (plan === 'day') return { ...wallet, passUntil: passEndIfBoughtNow(wallet.passUntil, now), granted };
   return { ...wallet, credits: wallet.credits + CREDITS_PER_PACK, granted };
 }
+
+/**
+ * 지금 하루 이용권을 사면 언제까지 무제한인지 — 충전(grantConsumable)과 같은 계산.
+ * 이미 이용 중이면 남은 시간 뒤에 24시간이 이어 붙는다.
+ */
+export const passEndIfBoughtNow = (passUntil: number, now: number): number => Math.max(now, passUntil) + DAY_PASS_MS;
 
 const clock = (at: number) => {
   const d = new Date(at);
   const h = d.getHours();
   return `${h < 12 ? '오전' : '오후'} ${h % 12 === 0 ? 12 : h % 12}:${String(d.getMinutes()).padStart(2, '0')}`;
 };
+
+/** 「오늘 오후 3:42」 · 「내일 오후 3:42」 · 「모레 …」 · 그 뒤는 「11월 9일 오후 3:42」 (기기 현지 시간) */
+export function formatPassEnd(at: number, now: number): string {
+  const day = (t: number) => {
+    const d = new Date(t);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  };
+  const diff = Math.round((day(at) - day(now)) / DAY_MS);
+  const d = new Date(at);
+  const label = diff === 0 ? '오늘' : diff === 1 ? '내일' : diff === 2 ? '모레' : `${d.getMonth() + 1}월 ${d.getDate()}일`;
+  return `${label} ${clock(at)}`;
+}
 
 /** 화면에 보여 줄 남은 횟수 안내 문구 */
 export function quotaLabel(status: QuotaStatus): string {

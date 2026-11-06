@@ -4,6 +4,7 @@
  * Supabase·텔레그램은 fetch 를 가짜로 바꿔 어떤 요청이 나가는지만 본다.
  */
 import handler, { googleEventRow, readPush, subscriptionKind, tokenHash } from '../../api/store-google';
+import { DAY_SALE_PRICE_KRW } from '@/lib/billing/plans';
 
 interface FakeRes {
   statusCode: number;
@@ -145,6 +146,18 @@ describe('/api/store-google 처리', () => {
     const revenueQuery = calls.find((c) => c.url.includes('/rest/v1/store_event?select=amount'))!.url;
     expect(revenueQuery).toContain('environment=eq.Production');
     expect(revenueQuery).toContain('kind=in.(purchase,renewal)');
+  });
+
+  it('하루 이용권 특가(타임 세일 상품) 결제 → plan 은 하루 이용권, 이름은 「하루 이용권 특가」 (금액은 정한 특가 가격)', async () => {
+    const res = fakeRes();
+    await handler(
+      req(push({ version: '1.0', packageName: 'app.mylovecoach.android', eventTimeMillis: '1761000000001', oneTimeProductNotification: { version: '1.0', notificationType: 1, purchaseToken: 'sale-token', sku: 'mylovecoach.pass.day.sale' } })),
+      res as never,
+    );
+    expect(res.statusCode).toBe(200);
+    const row = JSON.parse(inserts()[0].body ?? '[]')[0];
+    expect(row).toMatchObject({ kind: 'purchase', product_id: 'mylovecoach.pass.day.sale', plan: 'day', amount: DAY_SALE_PRICE_KRW, currency: DAY_SALE_PRICE_KRW == null ? null : 'KRW' });
+    expect(telegramTexts()[0]).toMatch(DAY_SALE_PRICE_KRW == null ? /^💳 결제 · 하루 이용권 특가 · Android/ : /^💳 결제 · 하루 이용권 특가 ₩[\d,]+ · Android/);
   });
 
   it('같은 알림을 다시 받으면(이미 기록됨) 알리지 않고 200', async () => {

@@ -80,7 +80,7 @@ async function listing() {
   if (dryRun) {
     try {
       const cur = await call('GET', `${E}/listings/${LANG}`);
-      const want = { title: field('앱 이름') ?? '나만의 연애코치', shortDescription: field('짧은 설명') ?? '', fullDescription: description };
+      const want = { title: field('앱 이름') ?? '센딧 - 나만의 연애 코치', shortDescription: field('짧은 설명') ?? '', fullDescription: description };
       for (const key of Object.keys(want)) {
         const same = (cur[key] ?? '').replace(/\r\n/g, '\n') === want[key].replace(/\r\n/g, '\n');
         console.log(`${same ? '=' : '≠'} ${key}: 지금 ${(cur[key] ?? '').length}자 → 문서 ${want[key].length}자`);
@@ -92,7 +92,7 @@ async function listing() {
     return;
   }
   let ok = await step('제목·짧은 설명·전체 설명', () =>
-    call('PUT', `${E}/listings/${LANG}`, { language: LANG, title: field('앱 이름') ?? '나만의 연애코치', shortDescription: field('짧은 설명') ?? '', fullDescription: description }).then(() => `${description.length}자`),
+    call('PUT', `${E}/listings/${LANG}`, { language: LANG, title: field('앱 이름') ?? '센딧 - 나만의 연애 코치', shortDescription: field('짧은 설명') ?? '', fullDescription: description }).then(() => `${description.length}자`),
   );
   const email = argOf('--email');
   ok =

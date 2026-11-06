@@ -84,7 +84,7 @@ export default function ApiKeySettings() {
               : 'Anthropic: console.anthropic.com · Gemini: aistudio.google.com 에서 발급할 수 있어요.'
         }
       />
-      <Button title="저장" onPress={save} disabled={!loaded} />
+      <Button title="저장" variant="brand" onPress={save} disabled={!loaded} />
       <Button title="Anthropic 키 발급 페이지" variant="ghost" onPress={() => Linking.openURL('https://console.anthropic.com/settings/keys')} />
       <Button title="Gemini 키 발급 페이지" variant="ghost" onPress={() => Linking.openURL('https://aistudio.google.com/apikey')} />
     </Screen>

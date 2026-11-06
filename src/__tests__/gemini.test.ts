@@ -54,18 +54,18 @@ describe('buildGeminiBody', () => {
     expect('text' in body.contents[0].parts[2]).toBe(true);
     expect(body.generationConfig.mediaResolution).toBe('MEDIA_RESOLUTION_MEDIUM');
     expect(body.generationConfig.responseMimeType).toBe('application/json');
-    expect(body.systemInstruction.parts[0].text).toContain('연애코치');
+    expect(body.systemInstruction.parts[0].text).toContain('센딧');
   });
 
   it('기본은 지금 그대로 (생각 low · 모드별 temperature), 스위치를 주면 바뀐다', () => {
     const task = buildCoachTask(req) as AiTask;
     const base = buildGeminiTaskBody(task);
-    expect(base.generationConfig).toEqual(expect.objectContaining({ temperature: 0.8, thinkingConfig: { thinkingLevel: 'low' }, maxOutputTokens: 2560 }));
+    expect(base.generationConfig).toEqual(expect.objectContaining({ temperature: 0.8, thinkingConfig: { thinkingLevel: 'low' }, maxOutputTokens: 3072 }));
     const tuned = buildGeminiTaskBody(task, { thinkingLevel: 'minimal', omitTemperature: true });
     expect(tuned.generationConfig).not.toHaveProperty('temperature');
     expect(tuned.generationConfig.thinkingConfig).toEqual({ thinkingLevel: 'minimal' });
     // 나머지(출력 상한·이미지 해상도·응답 형식)는 그대로
-    expect(tuned.generationConfig.maxOutputTokens).toBe(2560);
+    expect(tuned.generationConfig.maxOutputTokens).toBe(3072);
     expect(tuned.generationConfig.responseSchema).toEqual(base.generationConfig.responseSchema);
   });
 });

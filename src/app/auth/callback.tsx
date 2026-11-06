@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
 
+import { Icon3D, SenditLogo } from '@/components/brand/brand';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
@@ -73,17 +74,19 @@ export default function AuthCallback() {
       <View style={styles.center}>
         {error ? (
           <>
-            <AppText variant="title3" align="center">
+            <Icon3D name="heart" size={88} />
+            <AppText variant="title2" align="center">
               가입을 마치지 못했어요
             </AppText>
             <AppText variant="small" color="textSecondary" align="center">
               {error}
             </AppText>
-            <Button title="돌아가기" onPress={() => router.replace('/(tabs)/my')} />
+            <Button title="돌아가기" variant="brand" onPress={() => router.replace('/(tabs)/my')} style={styles.back} />
           </>
         ) : (
           <>
-            <ActivityIndicator color={theme.primary} />
+            <SenditLogo size="lg" subtitle />
+            <ActivityIndicator color={theme.primary} style={styles.spinner} />
             <AppText variant="small" color="textSecondary" align="center">
               가입을 마무리하는 중…
             </AppText>
@@ -97,4 +100,6 @@ export default function AuthCallback() {
 const styles = StyleSheet.create({
   content: { flexGrow: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md, paddingHorizontal: Spacing.lg },
+  spinner: { marginTop: Spacing.lg },
+  back: { marginTop: Spacing.md },
 });

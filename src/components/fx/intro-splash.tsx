@@ -1,8 +1,10 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useMemo, useRef } from 'react';
-import { Image, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, Extrapolation, interpolate, ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { APP_NAME, APP_SUBTITLE, RESEARCH_LINE, SPLASH_COPY } from '@/constants/brand';
 import { palette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -10,18 +12,19 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
  * 앱을 켤 때 나오는 로고 인트로.
  * 네이티브 스플래시(app.json 의 expo-splash-screen — 같은 배경색·같은 로고·같은 크기·같은 위치)와 첫 화면이 똑같아서 끊김 없이 이어진다.
  * 로고가 살짝 움츠렸다 두근 튀어 오르면서 빛이 번지고 물결이 퍼지고 하트·반짝이가 터진 뒤,
- * 로고 위로 빛이 한 번 스치고 별이 반짝, 로고가 올라가며 앱 이름이 한 글자씩 올라온다. 저장소를 다 읽으면 살짝 커지며 사라진다.
+ * 로고 위로 빛이 한 번 스치고 별이 반짝, 로고가 올라가며 「생각났으면, / 지금 센딧.」이 한 글자씩 올라온다(스플래시 시안 B).
+ * 아래에는 「고려대학교 심리학 연구진이 개발한 연애 특화 AI 코치」가 작게 나온다. 저장소를 다 읽으면 살짝 커지며 사라진다.
  * 탭하면 건너뛴다(저장소를 다 읽은 뒤). 「동작 줄이기」를 켠 기기에서는 움직임 없이 짧게 보여 준다.
  */
 
 /** 네이티브 스플래시 배경 (app.json expo-splash-screen 의 backgroundColor · dark.backgroundColor 와 같아야 한다 — 테스트로 확인) */
-export const SPLASH_BACKGROUND = { light: '#EEF7FF', dark: '#0F1419' } as const;
+export const SPLASH_BACKGROUND = { light: '#F4F6FF', dark: '#0D1018' } as const;
 /** 네이티브 스플래시 로고 폭 (app.json imageWidth) */
 export const SPLASH_LOGO_SIZE = 160;
 
-// splash-icon.png(512px)를 160 으로 줄였을 때: 둥근 사각형 17.5~142.5(모서리 약 29), 보라 별 중심 (99.8, 75.5)
-const SQUARE = { inset: 17.5, size: 125, radius: 29 };
-const STAR = { x: 99.8, y: 75.5 };
+// splash-icon.png(512px, tools/brand/icon.html ?v=splash)를 160 으로 줄였을 때: 둥근 사각형 25~135(모서리 약 25), 화살표 끝 (80, 58)
+const SQUARE = { inset: 25, size: 110, radius: 25 };
+const STAR = { x: 80, y: 58 };
 
 /** 타임라인 (ms) — 하나의 시계(clock)로 모든 움직임을 맞춘다 */
 const T = {
@@ -53,10 +56,10 @@ const IMAGE_WAIT_MS = 450;
 /** 로고가 올라가는 거리 (아래에 앱 이름이 들어올 자리) */
 const LIFT = 44;
 
-const TITLE = '나만의 연애코치';
-const TAGLINE = '캡처 한 장으로 완성하는 답장';
-/** 「연애코치」 글자는 로고처럼 파랑 → 보라로 */
-const TITLE_ACCENT = ['#4F8FF6', '#6487F5', '#7D82F6', '#9A7CF8'];
+/** 큰 줄 「지금 센딧.」 — 「센딧.」은 로고처럼 파랑 → 보라로 */
+const TITLE = SPLASH_COPY.main;
+const TITLE_ACCENT_FROM = TITLE.indexOf('센');
+const TITLE_ACCENT = ['#3D63F5', '#5A5DF6', '#7559F6'];
 
 const logoImage = require('../../../assets/images/splash-icon.png');
 
@@ -116,10 +119,11 @@ function seeded(seed: number) {
   };
 }
 
+// 앱 아이콘과 같은 하늘색 · 파랑 · 보라 (분홍은 쓰지 않는다)
 const PIECE_COLORS: Record<PieceKind, { light: string[]; dark: string[] }> = {
-  heart: { light: [palette.pink400, palette.pink500, palette.pink300], dark: [palette.pink400, palette.pink300, '#FF7DA0'] },
-  sparkle: { light: [palette.lavender400, palette.sky400, palette.yellow500], dark: [palette.lavender400, palette.sky300, palette.yellow500, palette.white] },
-  dot: { light: [palette.sky300, palette.pink200, palette.lavender400], dark: [palette.sky400, palette.pink300, palette.lavender400] },
+  heart: { light: [palette.sendBlue400, palette.sendViolet500, palette.sendSky], dark: [palette.sendBlue300, palette.sendViolet400, palette.sendSky] },
+  sparkle: { light: [palette.sendViolet400, palette.sky400, palette.sendBlue400], dark: [palette.sendViolet400, palette.sky300, palette.white] },
+  dot: { light: [palette.sendSky, palette.sendBlue300, palette.sendViolet400], dark: [palette.sky400, palette.sendBlue300, palette.sendViolet400] },
 };
 
 /** 로고 둘레로 고르게 퍼지는 조각 목록 */
@@ -160,6 +164,7 @@ export interface IntroSplashProps {
 
 export function IntroSplash({ ready, onShown, onBeat, onDone }: IntroSplashProps) {
   const scheme = useColorScheme();
+  const insets = useSafeAreaInsets();
   const reduced = useReducedMotion();
   const clock = useSharedValue(0);
   const exit = useSharedValue(0);
@@ -249,20 +254,20 @@ export function IntroSplash({ ready, onShown, onBeat, onDone }: IntroSplashProps
     // 화면 낭독기: 인트로가 떠 있는 동안은 이 덮개만 읽게 하고(iOS accessibilityViewIsModal, 안드로이드는 _layout 이 아래 화면을 숨김),
     // 그림·글자 층은 숨겨 앱 이름을 한 글자씩 따로 읽지 않게 한다 — 건너뛰기 버튼 이름이 앱 이름을 대신 읽는다
     <Animated.View accessibilityViewIsModal pointerEvents="auto" style={[StyleSheet.absoluteFill, styles.root, { backgroundColor: bg }, overlayStyle]}>
-      <Pressable style={StyleSheet.absoluteFill} onPress={skip} accessibilityRole="button" accessibilityLabel={`${TITLE}, ${TAGLINE}. 누르면 바로 시작해요`} />
+      <Pressable style={StyleSheet.absoluteFill} onPress={skip} accessibilityRole="button" accessibilityLabel={`${APP_NAME}, ${APP_SUBTITLE}. ${SPLASH_COPY.lead} ${SPLASH_COPY.main} 누르면 바로 시작해요`} />
       <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.center}>
         <Animated.View style={[styles.stage, stageStyle]}>
           {reduced ? null : (
             <>
               {GLOW_SUPPORTED ? (
                 <>
-                  <Glow clock={clock} exit={exit} color={dark ? 'rgba(84,140,255,0.55)' : 'rgba(120,170,255,0.45)'} size={92} dx={0} dy={0} from={200} drift={[0, -6]} />
-                  <Glow clock={clock} exit={exit} color={dark ? 'rgba(160,130,255,0.5)' : 'rgba(170,150,252,0.38)'} size={70} dx={34} dy={26} from={300} drift={[10, 6]} />
-                  <Glow clock={clock} exit={exit} color={dark ? 'rgba(255,120,170,0.35)' : 'rgba(255,150,185,0.3)'} size={56} dx={-38} dy={-22} from={380} drift={[-8, -6]} />
+                  <Glow clock={clock} exit={exit} color={dark ? 'rgba(84,120,255,0.55)' : 'rgba(110,150,255,0.42)'} size={92} dx={0} dy={0} from={200} drift={[0, -6]} />
+                  <Glow clock={clock} exit={exit} color={dark ? 'rgba(130,100,255,0.5)' : 'rgba(140,115,250,0.36)'} size={70} dx={34} dy={26} from={300} drift={[10, 6]} />
+                  <Glow clock={clock} exit={exit} color={dark ? 'rgba(120,210,255,0.4)' : 'rgba(130,215,255,0.38)'} size={56} dx={-38} dy={-22} from={380} drift={[-8, -6]} />
                 </>
               ) : null}
               {T.ripples.map((startAt, i) => (
-                <Ripple key={startAt} clock={clock} startAt={startAt} color={[palette.sky400, palette.lavender400, palette.pink400][i]} />
+                <Ripple key={startAt} clock={clock} startAt={startAt} color={[palette.sendSky, palette.sendBlue400, palette.sendViolet400][i]} />
               ))}
               {pieces.map((p, i) => (
                 <PieceView key={i} piece={p} clock={clock} />
@@ -275,19 +280,22 @@ export function IntroSplash({ ready, onShown, onBeat, onDone }: IntroSplashProps
               <>
                 <Shine clock={clock} />
                 <Twinkle clock={clock} at={T.twinkle} x={STAR.x} y={STAR.y} size={30} />
-                <Twinkle clock={clock} at={T.twinkle2} x={SQUARE.inset + SQUARE.size - 6} y={SQUARE.inset + 4} size={20} />
+                <Twinkle clock={clock} at={T.twinkle2} x={SQUARE.inset + 14} y={SQUARE.inset + 12} size={20} />
               </>
             )}
           </Animated.View>
           <View style={styles.titleBlock}>
+            <Lead clock={clock} reduced={reduced} color={dark ? palette.gray400 : palette.gray600} />
             <View style={styles.titleRow}>
               {Array.from(TITLE).map((ch, i) => (
-                <Letter key={i} ch={ch} index={i} clock={clock} reduced={reduced} color={i >= 4 ? TITLE_ACCENT[i - 4] : dark ? palette.white : palette.gray900} />
+                <Letter key={i} ch={ch} index={i} clock={clock} reduced={reduced} color={i >= TITLE_ACCENT_FROM ? TITLE_ACCENT[Math.min(TITLE_ACCENT.length - 1, i - TITLE_ACCENT_FROM)] : dark ? palette.white : palette.gray900} />
               ))}
             </View>
-            <Tagline clock={clock} reduced={reduced} color={dark ? palette.gray400 : palette.gray600} />
           </View>
         </Animated.View>
+      </View>
+      <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.footer, { bottom: insets.bottom + 28 }]}>
+        <Footer clock={clock} reduced={reduced} color={palette.gray500} />
       </View>
     </Animated.View>
   );
@@ -402,15 +410,31 @@ function Letter({ ch, index, clock, reduced, color }: { ch: string; index: numbe
   );
 }
 
-function Tagline({ clock, reduced, color }: { clock: SharedValue<number>; reduced: boolean; color: string }) {
+/** 작은 윗줄 「생각났으면,」 — 큰 줄보다 조금 먼저 올라온다 */
+function Lead({ clock, reduced, color }: { clock: SharedValue<number>; reduced: boolean; color: string }) {
   const style = useAnimatedStyle(() => {
-    const p = reduced ? seg(clock.value, 250, 550) : easeOutCubic(seg(clock.value, T.tagline[0], T.tagline[1]));
+    const p = reduced ? seg(clock.value, 150, 450) : easeOutCubic(seg(clock.value, T.title - 120, T.title + 280));
     return { opacity: p, transform: [{ translateY: reduced ? 0 : 10 * (1 - p) }] };
   });
   return (
-    <Animated.Text maxFontSizeMultiplier={1.3} style={[styles.tagline, { color }, style]}>
-      {TAGLINE}
+    <Animated.Text allowFontScaling={false} style={[styles.lead, { color }, style]}>
+      {SPLASH_COPY.lead}
     </Animated.Text>
+  );
+}
+
+/** 맨 아래 「고려대학교 심리학 연구진이 개발한 연애 특화 AI 코치」 */
+function Footer({ clock, reduced, color }: { clock: SharedValue<number>; reduced: boolean; color: string }) {
+  const style = useAnimatedStyle(() => {
+    const p = reduced ? seg(clock.value, 250, 550) : easeOutCubic(seg(clock.value, T.tagline[0], T.tagline[1]));
+    return { opacity: p };
+  });
+  return (
+    <Animated.View style={style}>
+      <Text maxFontSizeMultiplier={1.2} style={[styles.footerText, { color }]}>
+        {RESEARCH_LINE}
+      </Text>
+    </Animated.View>
   );
 }
 
@@ -469,9 +493,12 @@ const styles = StyleSheet.create({
   },
   shineBar: { position: 'absolute', top: -50, left: 30, width: 56, height: SQUARE.size + 100 },
   twinkle: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
-  titleBlock: { position: 'absolute', top: SPLASH_LOGO_SIZE + 6, left: SPLASH_LOGO_SIZE / 2 - 170, width: 340, alignItems: 'center' },
-  titleRow: { flexDirection: 'row', alignItems: 'flex-end' },
-  letter: { fontSize: 30, lineHeight: 40, fontWeight: '800', letterSpacing: -0.6 },
-  space: { width: 8 },
-  tagline: { marginTop: 6, fontSize: 15, lineHeight: 22, fontWeight: '500', letterSpacing: -0.2 },
+  // 아이콘(25~135) 바로 아래 — 시안 B4 처럼 작은 윗줄 + 조금 큰 아랫줄
+  titleBlock: { position: 'absolute', top: SPLASH_LOGO_SIZE - 6, left: SPLASH_LOGO_SIZE / 2 - 170, width: 340, alignItems: 'center' },
+  lead: { fontSize: 14, lineHeight: 20, fontWeight: '600', letterSpacing: -0.2 },
+  titleRow: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 2 },
+  letter: { fontSize: 26, lineHeight: 34, fontWeight: '800', letterSpacing: -0.6 },
+  space: { width: 7 },
+  footer: { position: 'absolute', left: 24, right: 24, alignItems: 'center' },
+  footerText: { fontSize: 12, lineHeight: 17, fontWeight: '600', letterSpacing: -0.2, textAlign: 'center' },
 });

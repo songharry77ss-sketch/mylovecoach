@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSequence, withSpring } from 'react-native-reanimated';
@@ -7,8 +8,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/app-text';
 import { Chip } from '@/components/ui/chip';
-import { IconButton } from '@/components/ui/icon-button';
-import { Radius, Spacing, Typography } from '@/constants/theme';
+import { PressableScale } from '@/components/ui/pressable-scale';
+import { Brand, Radius, Spacing, Typography } from '@/constants/theme';
 import { useKeyboardVisible } from '@/hooks/use-keyboard';
 import { useTheme } from '@/hooks/use-theme';
 import { haptic } from '@/lib/haptics';
@@ -84,12 +85,12 @@ export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPi
           accessibilityRole={notice.onAction ? 'button' : 'text'}
           onPress={notice.onAction}
           disabled={!notice.onAction}
-          style={[styles.notice, { backgroundColor: notice.emphasized ? theme.accentSoft : theme.surface }]}>
-          <AppText variant="caption" color="textSecondary" style={styles.noticeText}>
+          style={[styles.notice, { backgroundColor: notice.emphasized ? theme.primarySoft : theme.surface }]}>
+          <AppText variant="caption" color={notice.emphasized ? 'text' : 'textSecondary'} weight={notice.emphasized ? '700' : undefined} style={styles.noticeText}>
             {notice.text}
           </AppText>
           {notice.actionLabel ? (
-            <AppText variant="caption" color={notice.emphasized ? 'accent' : 'primary'} weight="700">
+            <AppText variant="caption" color="primary" weight="800">
               {notice.actionLabel} ›
             </AppText>
           ) : null}
@@ -107,8 +108,9 @@ export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPi
                 haptic.select();
                 onShuffleQuestions();
               }}
-              style={[styles.dice, { backgroundColor: theme.accentSoft }]}>
-              <AppText style={styles.diceText}>🎲</AppText>
+              hitSlop={6}
+              style={[styles.dice, { backgroundColor: theme.primarySoft }]}>
+              <Ionicons name="shuffle" size={16} color={theme.primary} />
             </Pressable>
           ) : null}
           {questions!.map((q) => (
@@ -119,8 +121,8 @@ export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPi
                   haptic.tap();
                   onQuestion?.(q);
                 }}
-                style={({ pressed }) => [styles.question, { backgroundColor: theme.surface, borderColor: theme.border, opacity: pressed ? 0.7 : 1 }]}>
-                <AppText variant="caption" color="textSecondary">
+                style={({ pressed }) => [styles.question, { backgroundColor: theme.background, borderColor: theme.border, opacity: pressed ? 0.7 : 1 }]}>
+                <AppText variant="caption" color="text" weight="600">
                   {q}
                 </AppText>
               </Pressable>
@@ -149,21 +151,25 @@ export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPi
           <Pressable accessibilityRole="button" accessibilityLabel="캡처 제거" onPress={onClearImage} style={[styles.previewClose, { backgroundColor: theme.text }]}>
             <Ionicons name="close" size={14} color={theme.background} />
           </Pressable>
-          <AppText variant="caption" color="textSecondary">
-            캡처 1장 첨부됨 · 호칭과 말투도 같이 읽어요
-          </AppText>
+          <View style={styles.previewTexts}>
+            <AppText variant="smallStrong">캡처 1장 첨부됨</AppText>
+            <AppText variant="caption" color="textSecondary">
+              호칭과 말투도 같이 읽어요
+            </AppText>
+          </View>
         </View>
       ) : null}
 
       <View style={styles.row}>
-        <IconButton
-          name="image-outline"
+        <PressableScale
           accessibilityLabel="대화 캡처 올리기"
+          accessibilityState={{ disabled: sending }}
+          feedback="tap"
           onPress={onPickImage}
-          color={theme.primary}
-          background={theme.primarySoft}
           disabled={sending}
-        />
+          style={[styles.round, { backgroundColor: theme.primarySoft, opacity: sending ? 0.5 : 1 }]}>
+          <Ionicons name="image" size={21} color={theme.primary} />
+        </PressableScale>
         <View style={[styles.inputBox, { backgroundColor: theme.surface }]}>
           <TextInput
             value={text}
@@ -181,15 +187,14 @@ export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPi
           />
         </View>
         <Animated.View style={sendStyle}>
-          <IconButton
-            name="arrow-up"
-            accessibilityLabel="코치에게 보내기"
-            onPress={submit}
-            disabled={!canSend}
-            color={theme.primaryText}
-            background={canSend ? theme.primary : theme.surfaceSelected}
-            haptic={false}
-          />
+          <PressableScale accessibilityLabel="코치에게 보내기" accessibilityState={{ disabled: !canSend }} feedback={false} onPress={submit} disabled={!canSend} style={styles.round}>
+            {canSend ? (
+              <LinearGradient colors={Brand.button} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, styles.roundFill]} />
+            ) : (
+              <View style={[StyleSheet.absoluteFill, styles.roundFill, { backgroundColor: theme.surfaceSelected }]} />
+            )}
+            <Ionicons name="arrow-up" size={22} color={canSend ? Brand.onBrand : theme.textTertiary} />
+          </PressableScale>
         </Animated.View>
       </View>
     </View>
@@ -197,19 +202,21 @@ export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPi
 }
 
 const styles = StyleSheet.create({
-  wrap: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: Spacing.sm, paddingHorizontal: Spacing.md, gap: Spacing.sm },
-  notice: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
+  wrap: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: Spacing.sm + 2, paddingHorizontal: Spacing.md, gap: Spacing.sm },
+  notice: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, minHeight: 36 },
   noticeText: { flex: 1 },
   questions: { gap: Spacing.xs, paddingHorizontal: Spacing.xs, alignItems: 'center' },
-  dice: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  diceText: { fontSize: 16, lineHeight: 20 },
-  question: { paddingHorizontal: Spacing.md, paddingVertical: 7, borderRadius: Radius.pill, borderWidth: 1 },
+  dice: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  question: { paddingHorizontal: Spacing.md, paddingVertical: 8, borderRadius: Radius.pill, borderWidth: 1 },
   tones: { gap: Spacing.sm, paddingHorizontal: Spacing.xs, alignItems: 'center' },
   divider: { width: 1, height: 18 },
-  preview: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  preview: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingHorizontal: Spacing.xs },
   previewImage: { width: 44, height: 60, borderRadius: Radius.sm },
+  previewTexts: { flex: 1, gap: 1 },
   previewClose: { position: 'absolute', left: 32, top: -6, width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'flex-end', gap: Spacing.sm },
-  inputBox: { flex: 1, borderRadius: Radius.lg, paddingHorizontal: Spacing.lg, minHeight: 44, maxHeight: 140, justifyContent: 'center' },
+  round: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  roundFill: { borderRadius: 22 },
+  inputBox: { flex: 1, borderRadius: 22, paddingHorizontal: Spacing.lg, minHeight: 44, maxHeight: 140, justifyContent: 'center' },
   input: { paddingVertical: Spacing.sm + 2 },
 });

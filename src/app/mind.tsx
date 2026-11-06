@@ -1,9 +1,11 @@
+import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, ZoomIn, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 
+import { BrandGradient, HeroCard, Icon3D } from '@/components/brand/brand';
 import { AiReportLink } from '@/components/coach/ai-report-sheet';
 import { PendingBubble } from '@/components/coach/pending-bubble';
 import { useCelebrate } from '@/components/fx/celebration';
@@ -13,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { Screen } from '@/components/ui/screen';
 import { useToast } from '@/components/ui/toast';
-import { Radius, Spacing } from '@/constants/theme';
+import { Brand, Radius, Spacing } from '@/constants/theme';
 import { useMindReading, type MindOutcome } from '@/hooks/use-mind-reading';
 import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
 import { useResumeAfterPaywall } from '@/hooks/use-resume-after-paywall';
@@ -79,23 +81,29 @@ export default function MindScreen() {
 
   return (
     <Screen contentStyle={styles.content}>
-      <View style={[styles.situation, { backgroundColor: theme.surface }]}>
-        <AppText variant="caption" color="accent" weight="700">
-          🎲 상황
-        </AppText>
-        <AppText variant="bodyStrong">{situation || '물어볼 상황이 없어요.'}</AppText>
-      </View>
+      <Animated.View entering={FadeInDown.duration(320)} style={[styles.situation, { backgroundColor: theme.surface }]}>
+        <View style={styles.labelRow}>
+          <Ionicons name="chatbubble-ellipses" size={14} color={theme.primary} />
+          <AppText variant="caption" color="primary" weight="700">
+            물어본 상황
+          </AppText>
+        </View>
+        <AppText variant="title3">{situation || '물어볼 상황이 없어요.'}</AppText>
+      </Animated.View>
 
       {busy ? <PendingBubble phrases={PHRASES} /> : null}
 
       {blocked && !reading ? (
         <View style={[styles.error, { backgroundColor: theme.primarySoft }]}>
-          <AppText variant="smallStrong">무료 횟수를 다 썼어요</AppText>
+          <View style={styles.labelRow}>
+            <Icon3D name="ticket" size={36} />
+            <AppText variant="bodyStrong">무료 횟수를 다 썼어요</AppText>
+          </View>
           <AppText variant="small" color="textSecondary">
             {hasDayPass ? '하루 이용권이면 지금부터 24시간 동안 속마음을 마음껏 물어볼 수 있어요.' : '이용권이면 횟수 걱정 없이 속마음을 마음껏 물어볼 수 있어요.'}
           </AppText>
           <View style={styles.row}>
-            <Button title="이용권 보기" size="sm" fullWidth={false} onPress={() => openPaywall('mind')} />
+            <Button title="이용권 보기" size="sm" variant="brand" fullWidth={false} onPress={() => openPaywall('mind')} />
             <Button title="다시 시도" size="sm" variant="soft" fullWidth={false} onPress={() => retry().then(feel)} />
           </View>
         </View>
@@ -117,13 +125,24 @@ export default function MindScreen() {
               전에 풀어 본 상황이라 저장된 풀이를 보여 드려요
             </AppText>
           ) : null}
-          <Animated.View entering={ZoomIn.springify().damping(14)} style={[styles.voiceWrap]}>
-            <AppText variant="caption" color="textTertiary">
-              💭 {who}의 속마음
-            </AppText>
-            <View style={[styles.voice, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}>
-              <Typewriter text={reading.innerVoice} />
-            </View>
+          {/* 이 화면의 주인공 — 그 사람의 속마음 한마디가 그라데이션 카드 위에 타닥타닥 써진다 */}
+          <Animated.View entering={ZoomIn.springify().damping(14)}>
+            <HeroCard>
+              <View style={styles.voiceHead}>
+                <View style={styles.voiceLabel}>
+                  <AppText variant="caption" weight="700" color={Brand.onBrandDim}>
+                    {who}의 속마음
+                  </AppText>
+                  <AppText variant="small" color={Brand.onBrandDim}>
+                    이런 생각일 가능성이 커요
+                  </AppText>
+                </View>
+                <Icon3D name="heart" size={60} float />
+              </View>
+              <View style={styles.voice}>
+                <Typewriter text={reading.innerVoice} color={Brand.onBrand} />
+              </View>
+            </HeroCard>
           </Animated.View>
 
           <Animated.View entering={FadeInDown.delay(200).duration(300)} style={[styles.section, { backgroundColor: theme.surface }]}>
@@ -134,19 +153,28 @@ export default function MindScreen() {
           </Animated.View>
 
           <Animated.View entering={FadeInDown.delay(400).duration(300)} style={[styles.section, { backgroundColor: theme.primarySoft }]}>
-            <AppText variant="smallStrong" color="primary">
-              👉 이렇게 해보세요
-            </AppText>
-            <AppText variant="small">{reading.advice}</AppText>
+            <View style={styles.labelRow}>
+              <Ionicons name="bulb" size={16} color={theme.primary} />
+              <AppText variant="smallStrong" color="primary">
+                이렇게 해 보세요
+              </AppText>
+            </View>
+            <AppText variant="body">{reading.advice}</AppText>
           </Animated.View>
 
           {reading.sampleReply ? (
-            <Animated.View entering={FadeInDown.delay(550).duration(300)}>
-              <PressableScale feedback={false} onPress={copySample} style={[styles.sample, { backgroundColor: theme.bubbleUser }]}>
-                <AppText variant="caption" color="textTertiary">
-                  보낼 메시지 예시 · 탭하면 복사
-                </AppText>
+            <Animated.View entering={FadeInDown.delay(550).duration(300)} style={styles.sampleWrap}>
+              <AppText variant="caption" color="textTertiary" style={styles.sampleCaption}>
+                이렇게 보내 보세요 · 누르면 복사돼요
+              </AppText>
+              <PressableScale feedback={false} onPress={copySample} accessibilityLabel={`보낼 메시지 예시 복사: ${reading.sampleReply}`} style={[styles.sample, { backgroundColor: theme.bubbleUser }]}>
                 <AppText variant="body">{reading.sampleReply}</AppText>
+                <View style={[styles.copyChip, { backgroundColor: theme.surfaceElevated }]}>
+                  <Ionicons name="copy-outline" size={13} color={theme.primary} />
+                  <AppText variant="caption" weight="700" color="primary">
+                    복사
+                  </AppText>
+                </View>
               </PressableScale>
             </Animated.View>
           ) : null}
@@ -169,7 +197,7 @@ export default function MindScreen() {
 }
 
 /** 속마음 한마디가 한 글자씩 타닥타닥 써진다 */
-function Typewriter({ text }: { text: string }) {
+function Typewriter({ text, color }: { text: string; color?: string }) {
   const [n, setN] = useState(0);
   useEffect(() => {
     setN(0);
@@ -186,7 +214,7 @@ function Typewriter({ text }: { text: string }) {
     return () => clearInterval(t);
   }, [text]);
   return (
-    <AppText variant="title3">
+    <AppText variant="title2" color={color}>
       {text.slice(0, n)}
       {n < text.length ? '▍' : ''}
     </AppText>
@@ -204,14 +232,24 @@ function Possibility({ label, percent, reason, index }: { label: string; percent
   return (
     <View style={styles.possibility}>
       <View style={styles.possHead}>
-        <AppText variant="smallStrong" style={styles.flex}>
-          {top ? '🥇 ' : ''}
-          {label}
-        </AppText>
-        <AnimatedNumber value={percent} suffix="%" delay={300 + index * 180} duration={900} variant="smallStrong" color={top ? 'accent' : 'textSecondary'} ticks={top} />
+        <View style={[styles.flex, styles.labelRow]}>
+          {top ? (
+            <View style={[styles.topBadge, { backgroundColor: theme.primary }]}>
+              <AppText variant="caption" weight="800" color={Brand.onBrand}>
+                1위
+              </AppText>
+            </View>
+          ) : null}
+          <AppText variant={top ? 'bodyStrong' : 'smallStrong'} style={styles.flex}>
+            {label}
+          </AppText>
+        </View>
+        <AnimatedNumber value={percent} suffix="%" delay={300 + index * 180} duration={900} variant={top ? 'title2' : 'smallStrong'} color={top ? 'primary' : 'textSecondary'} ticks={top} />
       </View>
-      <View style={[styles.track, { backgroundColor: theme.surfaceSelected }]}>
-        <Animated.View style={[styles.fill, { backgroundColor: top ? theme.accent : theme.primary }, bar]} />
+      <View style={[styles.track, top ? styles.trackTop : null, { backgroundColor: theme.surfaceSelected }]}>
+        <Animated.View style={[styles.fill, bar]}>
+          {top ? <BrandGradient style={StyleSheet.absoluteFill} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.primary, opacity: 0.45 }]} />}
+        </Animated.View>
       </View>
       <AppText variant="caption" color="textSecondary">
         {reason}
@@ -223,16 +261,23 @@ function Possibility({ label, percent, reason, index }: { label: string; percent
 const styles = StyleSheet.create({
   content: { gap: Spacing.lg, paddingTop: Spacing.md },
   flex: { flex: 1 },
-  situation: { borderRadius: Radius.lg, padding: Spacing.lg, gap: 4 },
-  error: { borderRadius: Radius.md, padding: Spacing.md, gap: Spacing.sm },
+  situation: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.xs + 2 },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  error: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.sm },
   row: { flexDirection: 'row', gap: Spacing.sm },
   actions: { gap: Spacing.xs },
-  voiceWrap: { gap: Spacing.xs },
-  voice: { borderRadius: Radius.xl, borderTopLeftRadius: 6, borderWidth: 1, padding: Spacing.lg },
+  voiceHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.md },
+  voiceLabel: { flexShrink: 1, gap: 2 },
+  voice: { marginTop: Spacing.md, minHeight: 56 },
   section: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.md },
-  possibility: { gap: 4 },
-  possHead: { flexDirection: 'row', alignItems: 'center' },
+  possibility: { gap: 6 },
+  possHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  topBadge: { paddingHorizontal: Spacing.sm, paddingVertical: 2, borderRadius: Radius.pill },
   track: { height: 8, borderRadius: 4, overflow: 'hidden' },
-  fill: { height: '100%', borderRadius: 4 },
-  sample: { borderRadius: Radius.lg, borderTopRightRadius: 6, padding: Spacing.lg, gap: 4, alignSelf: 'flex-end', maxWidth: '92%' },
+  trackTop: { height: 12, borderRadius: 6 },
+  fill: { height: '100%', borderRadius: 6, overflow: 'hidden' },
+  sampleWrap: { alignItems: 'flex-end', gap: Spacing.xs },
+  sampleCaption: { marginRight: Spacing.xs },
+  sample: { borderRadius: Radius.lg, borderTopRightRadius: 6, padding: Spacing.lg, gap: Spacing.sm, maxWidth: '92%' },
+  copyChip: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-end', paddingHorizontal: Spacing.sm + 2, paddingVertical: 4, borderRadius: Radius.pill },
 });

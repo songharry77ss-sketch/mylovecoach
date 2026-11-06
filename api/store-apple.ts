@@ -156,6 +156,7 @@ export function appleKind(type: string | undefined, subtype: string | undefined)
 export function appleEventRow(n: AppleNotification, tx: AppleTransaction | null): StoreEventRow {
   const kind = appleKind(n.notificationType, n.subtype);
   const productId = tx?.productId ?? null;
+  // 하루 이용권 특가(mylovecoach.pass.day.sale)도 plan 'day' — 알림 문구만 「하루 이용권 특가」로 (_store.planLabel)
   const plan = planOf(productId);
   const hasPrice = typeof tx?.price === 'number' && Number.isFinite(tx.price);
   return {
@@ -165,8 +166,8 @@ export function appleEventRow(n: AppleNotification, tx: AppleTransaction | null)
     notification: [n.notificationType, n.subtype].filter(Boolean).join('/') || null,
     product_id: productId,
     plan,
-    amount: hasPrice ? (tx!.price as number) / 1000 : tx ? listPriceKrw(plan) : null,
-    currency: hasPrice ? (tx!.currency ?? null) : tx && listPriceKrw(plan) != null ? 'KRW' : null,
+    amount: hasPrice ? (tx!.price as number) / 1000 : tx ? listPriceKrw(plan, productId) : null,
+    currency: hasPrice ? (tx!.currency ?? null) : tx && listPriceKrw(plan, productId) != null ? 'KRW' : null,
     transaction_id: tx?.transactionId ?? null,
     original_transaction_id: tx?.originalTransactionId ?? null,
     raw: {

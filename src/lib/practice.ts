@@ -5,7 +5,7 @@ import type { Crush, Gender, PracticePersona, PracticeSession, PracticeTurn, Rel
 /** 한 번의 연습에서 보낼 수 있는 내 메시지 수 */
 export const PRACTICE_MAX_TURNS = 12;
 
-const PASTELS = ['#FFE1E9', '#D9EEFF', '#EDE9FF', '#E3F9F1', '#FFEFE3', '#FFF6D6'];
+const PASTELS = ['#D9EEFF', '#E6EDFF', '#EDE9FF', '#E3F9F1', '#FFEFE3', '#EEF8FF'];
 
 const genderEmoji = (g: Gender) => (g === 'male' ? '🧑🏻' : g === 'female' ? '👩🏻' : '🙂');
 
@@ -72,7 +72,7 @@ export function myTurnCount(session: PracticeSession): number {
 /** 연습 결과 한 줄 평가 */
 export function practiceVerdict(heat: number): { title: string; emoji: string; body: string } {
   if (heat >= 60) return { title: '연애 고수', emoji: '🔥', body: '상대가 완전히 빠져들었어요. 실전에서도 이 느낌 그대로!' };
-  if (heat >= 30) return { title: '썸 가능성 높음', emoji: '💗', body: '호감이 쌓이고 있어요. 약속 제안까지 한 걸음이에요.' };
+  if (heat >= 30) return { title: '썸 가능성 높음', emoji: '💜', body: '호감이 쌓이고 있어요. 약속 제안까지 한 걸음이에요.' };
   if (heat >= 10) return { title: '나쁘지 않아요', emoji: '🌤️', body: '대화는 이어졌지만 설렘 포인트가 조금 아쉬워요.' };
   if (heat >= 0) return { title: '조금 더 연습', emoji: '🌱', body: '질문으로 이어가고, 리액션을 한 줄 더 붙여 보세요.' };
   return { title: '다시 도전', emoji: '🧊', body: '부담스러웠을 수 있어요. 코치 피드백을 보고 다시 해 봐요.' };

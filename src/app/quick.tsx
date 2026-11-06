@@ -5,12 +5,14 @@ import { useMemo, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { BrandGradient, Icon3D } from '@/components/brand/brand';
 import { AppText } from '@/components/ui/app-text';
 import { Avatar } from '@/components/ui/avatar';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { Screen } from '@/components/ui/screen';
 import { useToast } from '@/components/ui/toast';
-import { Radius, Spacing } from '@/constants/theme';
+import { APP_NAME } from '@/constants/brand';
+import { Brand, BrandShadow, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { haptic } from '@/lib/haptics';
 import { pickImage } from '@/lib/images';
@@ -70,7 +72,12 @@ export default function QuickCoach() {
 
   return (
     <Screen sheet contentStyle={styles.content}>
-      <AppText variant="title2">누구와의 대화예요?</AppText>
+      <View style={styles.head}>
+        <AppText variant="title1">누구와의 대화예요?</AppText>
+        <AppText variant="small" color="textSecondary">
+          고른 채팅방에서 바로 코칭이 시작돼요
+        </AppText>
+      </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.targets} style={styles.targetsWrap}>
         {crushes.map((c) => {
           const on = target === c.id;
@@ -93,43 +100,56 @@ export default function QuickCoach() {
         </PressableScale>
       </ScrollView>
 
+      {/* 이 화면의 주요 행동 하나 — 그라데이션 큰 카드 */}
       <Animated.View entering={FadeInDown.duration(260)}>
-        <PressableScale onPress={withCapture} disabled={busy} style={[styles.big, { backgroundColor: theme.primary }]}>
-          <Ionicons name="image" size={26} color={theme.primaryText} />
-          <View style={styles.flex}>
-            <AppText variant="title3" color={theme.primaryText}>
-              {busy ? '사진 여는 중…' : '방금 찍은 캡처 올리기'}
-            </AppText>
-            <AppText variant="caption" color={theme.primaryText}>
-              고르자마자 바로 분석을 시작해요
-            </AppText>
-          </View>
+        <PressableScale
+          feedback="thud"
+          onPress={withCapture}
+          disabled={busy}
+          accessibilityLabel="방금 찍은 캡처 올리기"
+          accessibilityState={{ busy, disabled: busy }}
+          style={[styles.bigOuter, BrandShadow, busy ? styles.dim : null]}>
+          <BrandGradient style={styles.bigFill}>
+            <View style={styles.flex}>
+              <AppText variant="title2" color={Brand.onBrand}>
+                {busy ? '사진 여는 중…' : '방금 찍은 캡처 올리기'}
+              </AppText>
+              <AppText variant="small" color={Brand.onBrandDim}>
+                고르자마자 바로 분석을 시작해요
+              </AppText>
+            </View>
+            <Icon3D name="send" size={72} float />
+          </BrandGradient>
         </PressableScale>
       </Animated.View>
 
       <Animated.View entering={FadeInDown.delay(80).duration(260)}>
-        <PressableScale onPress={withClipboard} style={[styles.big, { backgroundColor: theme.surface }]}>
-          <Ionicons name="clipboard-outline" size={26} color={theme.primary} />
+        <PressableScale onPress={withClipboard} accessibilityLabel="복사한 대화 붙여넣기" style={[styles.big, { backgroundColor: theme.surface }]}>
+          <View style={[styles.iconTile, { backgroundColor: theme.surfaceElevated }]}>
+            <Ionicons name="clipboard-outline" size={22} color={theme.primary} />
+          </View>
           <View style={styles.flex}>
             <AppText variant="title3">복사한 대화 붙여넣기</AppText>
             <AppText variant="caption" color="textSecondary">
               카톡에서 메시지를 길게 눌러 복사했다면 이걸로
             </AppText>
           </View>
+          <Ionicons name="chevron-forward" size={18} color={theme.textTertiary} />
         </PressableScale>
       </Animated.View>
 
       {Platform.OS === 'ios' ? (
         <View style={[styles.guide, { backgroundColor: theme.surface }]}>
-          <PressableScale feedback="select" onPress={() => setGuide((v) => !v)} style={styles.guideHead}>
+          <PressableScale feedback="select" onPress={() => setGuide((v) => !v)} accessibilityState={{ expanded: guide }} style={styles.guideHead}>
+            <Ionicons name="phone-portrait-outline" size={18} color={theme.primary} />
             <AppText variant="smallStrong" style={styles.flex}>
-              📱 아이폰 뒷면을 두 번 톡 치면 이 화면이 열리게 하기
+              아이폰 뒷면을 두 번 톡 치면 이 화면이 열리게 하기
             </AppText>
             <Ionicons name={guide ? 'chevron-up' : 'chevron-down'} size={16} color={theme.textTertiary} />
           </PressableScale>
           {guide ? (
             <AppText variant="caption" color="textSecondary">
-              1. 「단축어」 앱 → + → 「URL 열기」 추가 → 주소에 mylovecoach://quick 입력 → 이름 「연애코치 빠른 코칭」으로 저장{'\n'}
+              1. 「단축어」 앱 → + → 「URL 열기」 추가 → 주소에 mylovecoach://quick 입력 → 이름 「{APP_NAME} 빠른 코칭」으로 저장{'\n'}
               2. 설정 → 손쉬운 사용 → 터치 → 뒷면 탭 → 이중 탭 → 방금 만든 단축어 선택{'\n'}
               이제 카톡을 보다가 폰 뒷면을 두 번 톡 치면 바로 여기로 와요.
             </AppText>
@@ -142,13 +162,18 @@ export default function QuickCoach() {
 
 const styles = StyleSheet.create({
   content: { gap: Spacing.lg, paddingTop: Spacing.lg },
+  head: { gap: 4 },
   flex: { flex: 1 },
+  dim: { opacity: 0.6 },
   targetsWrap: { marginHorizontal: -Spacing.lg, flexGrow: 0 },
   targets: { gap: Spacing.sm, paddingHorizontal: Spacing.lg },
   target: { width: 76, alignItems: 'center', gap: 4, paddingVertical: Spacing.sm, borderRadius: Radius.md, borderWidth: 1.5 },
   secretAvatar: { width: 40, height: 40, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   secretEmoji: { fontSize: 18, lineHeight: 22 },
-  big: { flexDirection: 'row', alignItems: 'center', gap: Spacing.lg, borderRadius: Radius.xl, padding: Spacing.xl },
+  bigOuter: { borderRadius: Radius.xl },
+  bigFill: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: Radius.xl, overflow: 'hidden', paddingLeft: Spacing.xl, paddingRight: Spacing.lg, paddingVertical: Spacing.xl, minHeight: 124 },
+  big: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: Radius.xl, padding: Spacing.lg },
+  iconTile: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   guide: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.sm },
   guideHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
 });

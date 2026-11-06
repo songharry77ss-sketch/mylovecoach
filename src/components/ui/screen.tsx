@@ -3,7 +3,7 @@ import { Dimensions, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Vie
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FocusStatusBar, StatusBarScrim, useScrolledPast } from '@/components/ui/system-bars';
-import { MaxContentWidth, Spacing, Stage } from '@/constants/theme';
+import { Brand, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 interface ScreenProps extends PropsWithChildren {
@@ -17,7 +17,7 @@ interface ScreenProps extends PropsWithChildren {
   tab?: boolean;
   /** 모달로 뜨는 화면 — 아이폰에서는 상태 표시줄 아래에서 올라오는 카드라 위를 상태 표시줄만큼 띄우지 않는다 */
   sheet?: boolean;
-  /** 맨 위가 짙은 무대 배경인 화면 — 상태 표시줄 글자를 흰색으로, 스크롤하면 그 뒤에 짙은 띠를 깐다 */
+  /** 맨 위가 그라데이션 면인 화면 — 상태 표시줄 글자를 흰색으로, 스크롤하면 그 뒤에 파란 띠를 깐다 */
   stage?: boolean;
   keyboard?: boolean;
   style?: ViewStyle;
@@ -106,8 +106,8 @@ export function Screen({
   return (
     <View ref={rootRef} onLayout={keyboard ? measure : undefined} style={[styles.flex, { backgroundColor: bg }, style]}>
       {wrapped}
-      {/* 스크롤한 내용이 시계·배터리 글자 뒤로 비치지 않게 — 무대 화면은 내려갈 때만 짙은 띠, 그 밖에는 바탕색 띠 */}
-      {scroll && stage ? <StatusBarScrim height={top} color={Stage.bg[1]} visible={scrolled} /> : null}
+      {/* 스크롤한 내용이 시계·배터리 글자 뒤로 비치지 않게 — 그라데이션 머리 화면은 내려갈 때만 파란 띠, 그 밖에는 바탕색 띠 */}
+      {scroll && stage ? <StatusBarScrim height={top} color={Brand.blue} visible={scrolled} /> : null}
       {scroll && safeTop && !stage ? <StatusBarScrim height={top} color={bg} /> : null}
       {stage || (sheet && Platform.OS === 'ios') ? <FocusStatusBar style="light" /> : null}
     </View>

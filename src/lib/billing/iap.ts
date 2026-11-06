@@ -8,6 +8,7 @@ import { entitlementFrom } from '@/lib/billing/entitlement';
 import {
   ANDROID_PACKAGE,
   ANDROID_WEEKLY_BASE_PLAN,
+  DAY_SALE_PRODUCT_ID,
   FALLBACK_PRICES,
   PRODUCT_IDS,
   isConsumablePlan,
@@ -36,6 +37,11 @@ export interface PlanProduct {
   offerToken?: string | null;
   /** 스토어에서 이 상품을 찾았는지 (스토어에 아직 없는 상품은 화면에서 숨긴다) */
   available?: boolean;
+  /** 스토어가 준 숫자 가격과 통화 (타임 세일 할인율 계산용 — lib/billing/sale.ts) */
+  price?: number | null;
+  currency?: string | null;
+  /** 하루 이용권 특가 상품(plan 은 'day')인지 — 이용권 고르기 목록에는 넣지 않고 타임 세일에만 쓴다 */
+  sale?: boolean;
 }
 
 export type PurchaseOutcome =
@@ -118,6 +124,7 @@ async function ensureConnected(): Promise<boolean> {
       const plan = planOfProduct(purchase.productId);
       if (purchase.purchaseState !== 'purchased' || !plan) return;
       if (isConsumablePlan(plan)) {
+        // 하루 이용권 특가(DAY_SALE_PRODUCT_ID)도 plan 'day' 라 똑같이 24시간 충전된다
         // 충전 먼저, 그다음 「소비 완료」 — 순서가 바뀌면 앱이 그 사이 꺼졌을 때 충전 없이 결제만 끝난다
         handlers?.onConsumable(plan, transactionKey(purchase));
         await iap.finishTransaction({ purchase, isConsumable: true }).catch(() => {});
@@ -193,7 +200,10 @@ export function endBilling() {
   connected = false;
 }
 
-/** 스토어에서 상품 정보(현지 통화 표시 가격)를 가져온다. 실패하면 기본 표시 가격을 쓴다 */
+/**
+ * 스토어에서 상품 정보(현지 통화 표시 가격)를 가져온다. 실패하면 기본 표시 가격을 쓴다.
+ * 하루 이용권 특가 상품은 스토어가 돌려줬을 때만 목록 끝에 붙인다 (기본 가격이 없어 확인 전에는 보여 줄 수 없다).
+ */
 export async function loadPlanProducts(): Promise<PlanProduct[]> {
   const order: PlanKey[] = ['day', 'weekly', 'lifetime', 'credits'];
   const fallback: PlanProduct[] = order.map((plan) => ({ plan, productId: PRODUCT_IDS[plan], displayPrice: FALLBACK_PRICES[plan] }));
@@ -204,7 +214,7 @@ export async function loadPlanProducts(): Promise<PlanProduct[]> {
     return fallback;
   }
   // 일회성 상품과 구독을 따로 묻는다 — 한쪽 조회가 실패해도(구독 미지원 기기 등) 다른 쪽 상품은 팔 수 있게
-  const oneTime = order.filter((plan) => plan !== 'weekly').map((plan) => PRODUCT_IDS[plan]);
+  const oneTime = [...order.filter((plan) => plan !== 'weekly').map((plan) => PRODUCT_IDS[plan]), DAY_SALE_PRODUCT_ID];
   const results = [
     await fetchWithReconnect({ skus: oneTime, type: 'in-app' }).catch(() => null),
     await fetchWithReconnect({ skus: [PRODUCT_IDS.weekly], type: 'subs' }).catch(() => null),
@@ -212,7 +222,11 @@ export async function loadPlanProducts(): Promise<PlanProduct[]> {
   if (results.every((r) => r == null)) return fallback;
   try {
     const items = results.flatMap((r) => r ?? []);
-    return fallback.map((f) => {
+    const numeric = (item: (typeof items)[number]) => ({
+      price: typeof item.price === 'number' && Number.isFinite(item.price) ? item.price : null,
+      currency: item.currency || null,
+    });
+    const list: PlanProduct[] = fallback.map((f) => {
       const item = items.find((i) => i.id === f.productId);
       if (!item) return { ...f, available: false };
       let offerToken: string | null | undefined;
@@ -222,9 +236,13 @@ export async function loadPlanProducts(): Promise<PlanProduct[]> {
         const offer = offers.find((o) => o.basePlanIdAndroid === ANDROID_WEEKLY_BASE_PLAN) ?? offers[0];
         offerToken = offer?.offerTokenAndroid;
         displayPrice = offer?.displayPrice || displayPrice;
+        return { ...f, displayPrice: displayPrice || f.displayPrice, offerToken, available: true };
       }
-      return { ...f, displayPrice: displayPrice || f.displayPrice, offerToken, available: true };
+      return { ...f, displayPrice: displayPrice || f.displayPrice, offerToken, available: true, ...numeric(item) };
     });
+    const sale = items.find((i) => i.id === DAY_SALE_PRODUCT_ID);
+    if (sale?.displayPrice) list.push({ plan: 'day', productId: DAY_SALE_PRODUCT_ID, displayPrice: sale.displayPrice, available: true, sale: true, ...numeric(sale) });
+    return list;
   } catch {
     return fallback;
   }

@@ -4,10 +4,10 @@ import { track } from '@/lib/analytics';
 import { beginAiRequest } from '@/lib/ai-request-lifetime';
 import { currentQuota } from '@/lib/billing/gate';
 import { aiRouteOf, CoachError, requestCoaching, requireAiConsent } from '@/lib/coach-client';
-import { crushToRequest, userToRequest } from '@/lib/coach-schema';
+import { crushToRequest, todayLabel, userToRequest } from '@/lib/coach-schema';
 import { encodeForModel, ImageReadError, type PickedImage } from '@/lib/images';
 import type { EmojiPref, KktiSaved, Tone } from '@/lib/types';
-import { analysisCacheKey, analyzedCaptureBefore, buildEarlierNotes, buildHistory, lastRequestAt, quickHash, useAppStore } from '@/store/app-store';
+import { analysisCacheKey, analyzedCaptureBefore, buildEarlierNotes, buildHistory, lastRequestAt, memoryAfterResult, quickHash, useAppStore } from '@/store/app-store';
 import { loadApiKey } from '@/store/storage';
 
 export interface SendInput {
@@ -107,6 +107,9 @@ export function useCoach() {
       const seenBefore = Boolean(useAppStore.getState().analysisCache[cacheKey]) || (imageHash ? analyzedCaptureBefore(past, imageHash) : false);
       const cached = input.variationOf || secret ? null : useAppStore.getState().getCachedAnalysis(cacheKey, lastRequestAt(past));
       const latest = useAppStore.getState().crushes[crush.id] ?? crush;
+      // 센딧이 기억하는 이야기 — 상대 정보에 실려 간다(crushToRequest). 비밀 상담과 「다른 답장 더 보기」는 기억을 고치지 않는다
+      const remember = !secret && !input.variationOf;
+      const sentMemory = latest.memory?.facts;
       const analysis =
         cached ??
         (await requestCoaching(
@@ -122,6 +125,8 @@ export function useCoach() {
             image,
             history,
             ...(earlierNotes.length ? { earlierNotes } : {}),
+            ...(remember ? {} : { remember: false }),
+            today: todayLabel(),
           },
           { directApiKey, deviceId: secret ? undefined : useAppStore.getState().deviceId, signal: controller.signal },
         ));
@@ -132,6 +137,12 @@ export function useCoach() {
       if (!cached && quota.kind !== 'premium') useAppStore.getState().consumeQuota();
       // 누적 온도는 처음 분석한 대화에서만 움직인다 (같은 캡처 재사용·다시 분석·다른 답장 더 보기는 그대로)
       useAppStore.getState().completeAnalysis(crush.id, coachMessage.id, analysis, { applyHeat: !cached && !seenBefore && !input.variationOf, fromCapture: Boolean(image) });
+      // 새로 받은 결과의 기억만 저장한다 — 저장해 둔 예전 결과를 다시 쓴 경우(cached)는 그때의 기억이라 지금 기억을 되돌릴 수 있다
+      if (remember && !cached) {
+        const now = useAppStore.getState().crushes[crush.id];
+        const nextMemory = memoryAfterResult(sentMemory, now?.memory?.facts, analysis.memory, now?.memoryForgotten);
+        if (nextMemory) useAppStore.getState().setCrushMemory(crush.id, nextMemory);
+      }
       // 비밀 상담은 내용(결과 온도·톤·캡처 여부)을 이용 기록으로 보내지 않고 이용했다는 사실만 남긴다.
       // 결과 온도는 대화 내용에서 나온 값이라 「코칭 내용 저장」에 동의한 경우에만 싣는다 (기본 이용 기록에는 설정·흐름만)
       track(

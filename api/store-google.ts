@@ -6,6 +6,7 @@
  * 인증: 주소의 token 을 환경변수 GOOGLE_RTDN_TOKEN 과 비교 (없으면 503, 다르면 401 — Pub/Sub 은 2xx 가 아니면 다시 보낸다).
  * 처리: 앱 패키지 확인 → store_event 에 한 줄(같은 알림은 한 번만) → 처음 받은 알림이면 운영자 텔레그램. 처리했으면 항상 200.
  * 금액: Google 알림에는 금액이 없어 요금제 정가(src/lib/billing/plans 의 FALLBACK_PRICES, 원)로 적는다 — 할인·해외 가격은 반영되지 않음.
+ *       하루 이용권 특가(mylovecoach.pass.day.sale)는 plan 'day' 로 세고 금액은 DAY_SALE_PRICE_KRW (정하기 전에는 금액 없음).
  * 라이선스 테스터의 시험 결제도 실제 결제와 똑같이 오므로(구분하려면 Play Developer API 조회가 필요) 실제 매출로 셈한다.
  * 구매 토큰은 그대로 저장하지 않고 SHA-256 으로 바꾼 값만 남긴다.
  * 환경변수: GOOGLE_RTDN_TOKEN (필수), SUPABASE_URL·SUPABASE_SERVICE_ROLE_KEY, TELEGRAM_BOT_TOKEN·TELEGRAM_CHAT_ID
@@ -102,13 +103,16 @@ export function googleEventRow(n: DeveloperNotification, messageId: string | nul
     const hash = tokenHash(one.purchaseToken);
     const kind = oneTimeKind(one.notificationType);
     const plan = planOf(one.sku);
+    // 하루 이용권 특가는 가격을 정하기 전(DAY_SALE_PRICE_KRW 가 null)이면 금액을 모른다 → 금액·통화 없이 기록 (리포트에 「금액 미정」)
+    const amount = kind === 'purchase' ? listPriceKrw(plan, one.sku) : null;
     return {
       ...base,
       kind,
       notification: ONE_TIME_TYPES[one.notificationType ?? 0] ?? `ONE_TIME_${one.notificationType ?? '?'}`,
       product_id: one.sku ?? null,
       plan,
-      amount: kind === 'purchase' ? listPriceKrw(plan) : null,
+      amount,
+      currency: amount == null ? null : 'KRW',
       transaction_id: kind === 'other' ? `${hash}:${at}` : hash,
       original_transaction_id: hash,
       raw: { eventTimeMillis: at || null, notificationType: one.notificationType ?? null },
@@ -126,7 +130,7 @@ export function googleEventRow(n: DeveloperNotification, messageId: string | nul
       notification: SUBSCRIPTION_TYPES[sub.notificationType ?? 0] ?? `SUBSCRIPTION_${sub.notificationType ?? '?'}`,
       product_id: sub.subscriptionId ?? null,
       plan,
-      amount: kind === 'purchase' || kind === 'renewal' || kind === 'refund' ? listPriceKrw(plan) : null,
+      amount: kind === 'purchase' || kind === 'renewal' || kind === 'refund' ? listPriceKrw(plan, sub.subscriptionId) : null,
       transaction_id: once ? hash : `${hash}:${at}`,
       original_transaction_id: hash,
       raw: { eventTimeMillis: at || null, notificationType: sub.notificationType ?? null },
@@ -142,7 +146,8 @@ export function googleEventRow(n: DeveloperNotification, messageId: string | nul
       notification: 'VOIDED_PURCHASE',
       product_id: earlier?.product_id ?? null,
       plan,
-      amount: listPriceKrw(plan),
+      amount: listPriceKrw(plan, earlier?.product_id),
+      currency: listPriceKrw(plan, earlier?.product_id) == null ? null : 'KRW',
       // 구독 취소(REVOKED)와 같은 환불이 함께 오므로 같은 토큰의 환불은 한 번만 센다
       transaction_id: hash,
       original_transaction_id: hash,

@@ -1,63 +1,60 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { BackHandler, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BrandGradient, BrandPill, GradientButton, Icon3D, SenditLogo, WashBackground } from '@/components/brand/brand';
 import { StartConsentSheet, type StartConsentAnswer } from '@/components/consent/start-consent-sheet';
-import { GoldSticker, HeartMark, Highlight, StageBackground, StageCard, StagePill, type StagePhoto } from '@/components/stage/stage';
-import { Button } from '@/components/ui/button';
-import { FocusStatusBar } from '@/components/ui/system-bars';
-import { MaxContentWidth, Radius, Spacing, Stage, palette } from '@/constants/theme';
+import { GuidePhone } from '@/components/guide/guide-phone';
+import { GUIDE_STEPS, type GuideStep } from '@/components/guide/guide-steps';
+import { APP_NAME, RESEARCH_LINE } from '@/constants/brand';
+import { Brand, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
-import { useAppStore } from '@/store/app-store';
-
-interface Slide {
-  key: string;
-  photo: StagePhoto;
-  step: string;
-  title: string;
-  body: string;
-}
-
-/** 스토어 상세 페이지와 같은 문장 · 같은 인물 (AI 가상 인물) */
-const SLIDES: Slide[] = [
-  {
-    key: 'capture',
-    photo: 'cafeWoman',
-    step: '1 · 캡처 올리기',
-    title: '뭐라고 답장하지?\n*캡처 한 장*이면 끝',
-    body: '카톡·인스타 DM 대화를 캡처해서 올리면 코치가 분위기와 호칭·말투를 읽어요.',
-  },
-  {
-    key: 'replies',
-    photo: 'sofaMan',
-    step: '2 · 답장 고르기',
-    title: '호칭·말투 그대로\n*답장 3가지* 추천',
-    body: '옆으로 넘겨 보며 마음에 드는 답장을 고르고, 탭 한 번이면 복사돼요.',
-  },
-  {
-    key: 'heat',
-    photo: 'lamplightWoman',
-    step: '3 · 마음 읽기',
-    title: '그 사람 속마음과\n*호감 온도*까지',
-    body: '대화를 올릴 때마다 0°에서 시작한 호감 온도가 오르내리고, 속마음 카드로 상대 마음도 짐작해 봐요.',
-  },
-];
+import { homeRoute } from '@/lib/intro-paths';
+import { GUIDE_VERSION, useAppStore } from '@/store/app-store';
 
 /**
- * 처음 실행 소개 — 무엇을 해 주는 앱인지 세 장으로 보여 준다 (스토어 이미지와 같은 무대 화면).
- * 마지막 「시작하기」에서 이용약관 동의 창을 띄우고, 답하면 「나에 대해 알려주세요」로 간다. 「건너뛰기」는 바로 첫 캡처 화면으로.
- * 마이 → 「사용법 다시 보기」로 열면(?from=my) 같은 세 장을 보여 주고, 「닫기」·「다 봤어요」로 마이에 돌아간다.
+ * 어떤 경우로 열었는지 — 처음 설치 · 센딧 전 판을 쓰던 이용자(?from=update) · 센딧 판에서 링크로 먼저 시작한 이용자(?from=intro)
+ * · 마이의 「사용법 다시 보기」(?from=my)
+ */
+export type GuideMode = 'fresh' | 'update' | 'intro' | 'replay';
+
+type Page = { kind: 'cover' } | { kind: 'step'; step: GuideStep };
+
+const COVER = {
+  fresh: {
+    pill: null,
+    title: `뭐라고 보낼지,\n${APP_NAME}이 같이 골라 줄게요`,
+    body: '대화 캡처 한 장이면 답장 3가지와 호감 온도가 바로 나와요. 쓰는 법을 30초만 볼까요?',
+  },
+  update: {
+    pill: '새 이름 · 새 모습',
+    title: `나만의 연애 코치가\n${APP_NAME}으로 새로워졌어요`,
+    body: '채팅방과 기록은 그대로예요. 새로워진 사용법을 30초만 보고 갈까요?',
+  },
+} as const;
+
+/**
+ * 「센딧 사용법」 안내 — 실제 앱 화면을 휴대폰 틀에 담아 한 장씩 보여 주고, 누르는 곳을 반짝이는 원으로 짚는다
+ * (그림·자르기·강조 위치는 components/guide/guide-steps).
+ * - 처음 설치: 첫 장에 로고·부제·연구진 문구 → 사용법 → 「시작하기」로 이용약관 동의 → 「나에 대해」 → 첫 캡처. 「건너뛰기」는 첫 캡처 화면으로.
+ * - 센딧 전 판을 쓰던 이용자(?from=update, app/index 가 한 번 보냄): 「센딧으로 새로워졌어요」 → 같은 사용법 → 「다 봤어요」로 원래 가던 곳(홈).
+ *   동의 창·나에 대해로 보내지 않는다.
+ * - 센딧 판에서 링크(빠른 코칭·KKTI 등)로 먼저 시작한 이용자(?from=intro): 처음 설치와 같은 표지 + 사용법, 끝나면 동의 창·나에 대해 없이 원래 가던 곳.
+ * - 마이 → 「사용법 다시 보기」(?from=my): 사용법만 보여 주고 「닫기」·「다 봤어요」로 마이에 돌아간다.
+ * 어느 경우든 끝나면(건너뛰기·닫기 포함) 이번 판의 안내를 본 것으로 적는다 (guideSeen).
  */
 export default function Welcome() {
   const router = useRouter();
-  const replay = useLocalSearchParams<{ from?: string }>().from === 'my';
+  const theme = useTheme();
+  const from = useLocalSearchParams<{ from?: string }>().from;
+  const mode: GuideMode = from === 'my' ? 'replay' : from === 'update' ? 'update' : from === 'intro' ? 'intro' : 'fresh';
   const insets = useSafeAreaInsets();
-  const { width: windowWidth, height } = useWindowDimensions();
+  const { width: windowWidth } = useWindowDimensions();
   const width = Math.min(windowWidth, MaxContentWidth);
   const scroller = useRef<ScrollView>(null);
   const [page, setPage] = useState(0);
@@ -65,12 +62,18 @@ export default function Welcome() {
   const agreed = useAppStore((s) => s.termsAgreedAt != null);
   const agreeToStart = useAppStore((s) => s.agreeToStart);
   const setOnboardingSeen = useAppStore((s) => s.setOnboardingSeen);
-  const last = page === SLIDES.length - 1;
-  const compact = height < 720;
+  const setGuideSeen = useAppStore((s) => s.setGuideSeen);
+  // 다시 보기는 표지 없이 사용법부터
+  const [pages] = useState<Page[]>(() => [...(mode === 'replay' ? [] : [{ kind: 'cover' as const }]), ...GUIDE_STEPS.map((step) => ({ kind: 'step' as const, step }))]);
+  const last = page === pages.length - 1;
+  // 분석 이벤트에 경우를 함께 남긴다 (다시 보기는 예전처럼 replay 도)
+  const tag = { mode, ...(mode === 'replay' ? { replay: true } : {}) };
 
   useEffect(() => {
-    track('onboarding', { step: 'slides', action: 'open', ...(replay ? { replay: true } : {}) });
-  }, [replay]);
+    track('onboarding', { step: 'slides', action: 'open', ...tag });
+    // 처음 한 번만
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const goTo = (next: number) => {
     scroller.current?.scrollTo({ x: next * width, animated: true });
@@ -85,30 +88,44 @@ export default function Welcome() {
     }
   };
 
+  /** 이미 시작한 이용자·다시 보기는 원래 가던 곳으로 */
+  const leave = () => {
+    setGuideSeen(GUIDE_VERSION);
+    if (mode === 'replay') {
+      router.back();
+      return;
+    }
+    setOnboardingSeen();
+    const s = useAppStore.getState();
+    router.replace(homeRoute(Boolean(s.user) || Object.keys(s.crushes).length > 0));
+  };
+
   const toProfile = () => {
     setOnboardingSeen();
+    setGuideSeen(GUIDE_VERSION);
     router.replace('/about-me');
   };
 
   const skip = () => {
     haptic.tap();
-    track('onboarding', { step: 'slides', action: 'skip', page, ...(replay ? { replay: true } : {}) });
-    if (replay) {
-      router.back();
+    track('onboarding', { step: 'slides', action: 'skip', page, ...tag });
+    if (mode !== 'fresh') {
+      leave();
       return;
     }
     setOnboardingSeen();
+    setGuideSeen(GUIDE_VERSION);
     router.replace('/start');
   };
 
   const next = () => {
     if (!last) {
-      track('onboarding', { step: 'slides', action: 'next', page });
+      track('onboarding', { step: 'slides', action: 'next', page, ...tag });
       goTo(page + 1);
       return;
     }
-    track('onboarding', { step: 'slides', action: 'start', ...(replay ? { replay: true } : {}) });
-    if (replay) router.back();
+    track('onboarding', { step: 'slides', action: mode === 'fresh' ? 'start' : 'done', ...tag });
+    if (mode !== 'fresh') leave();
     else if (agreed) toProfile();
     else setAsking(true);
   };
@@ -121,8 +138,40 @@ export default function Welcome() {
     toProfile();
   };
 
+  // 안드로이드 뒤로 가기 — 앞 장으로. 첫 장에서는 기존 이용자·다시 보기면 닫기와 같고, 처음 설치면 기본 동작(앱 닫기)
+  const backRef = useRef<() => boolean>(() => false);
+  backRef.current = () => {
+    if (asking) return false;
+    if (page > 0) {
+      goTo(page - 1);
+      return true;
+    }
+    if (mode === 'fresh') return false;
+    skip();
+    return true;
+  };
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => backRef.current());
+    return () => sub.remove();
+  }, []);
+
+  const onCover = pages[page]?.kind === 'cover';
+  const closeLabel = mode === 'fresh' ? '건너뛰기' : '닫기';
+
   return (
-    <View style={styles.root}>
+    <WashBackground style={styles.root}>
+      <View style={[styles.topBar, { paddingTop: insets.top + Spacing.sm, width }]}>
+        <View style={styles.topLogo}>{onCover ? null : <SenditLogo size="sm" />}</View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={mode === 'fresh' ? '소개 건너뛰기' : '사용법 닫기'}
+          onPress={skip}
+          hitSlop={12}
+          style={({ pressed }) => [styles.skip, { backgroundColor: theme.surface }, pressed && styles.pressed]}>
+          <Text style={[styles.skipText, { color: theme.textSecondary }]}>{closeLabel}</Text>
+        </Pressable>
+      </View>
+
       <ScrollView
         ref={scroller}
         horizontal
@@ -130,172 +179,124 @@ export default function Welcome() {
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={onScrollEnd}
         style={[styles.pager, { width }]}
-        accessibilityLabel="앱 사용법 소개">
-        {SLIDES.map((slide, i) => (
-          <View key={slide.key} style={{ width, height }}>
-            <StageBackground photo={slide.photo} photoHeight={compact ? '62%' : '68%'}>
-              {/* 사진 위 제목이 잘 읽히게 위쪽을 어둡게 */}
-              <LinearGradient pointerEvents="none" colors={['rgba(18,10,12,0.82)', 'rgba(18,10,12,0.35)', 'rgba(18,10,12,0)']} locations={[0, 0.55, 1]} style={styles.topShade} />
-              <View style={[styles.slide, { paddingTop: insets.top + 64, paddingBottom: insets.bottom + 140 }]}>
-                <View style={styles.texts}>
-                  <StagePill label={slide.step} icon="heart" />
-                  <Highlight text={slide.title} variant={compact ? 'display' : 'hero'} />
-                  <Text style={styles.body}>{slide.body}</Text>
-                </View>
-                <View style={styles.flex} />
-                {page === i ? (
-                  <Animated.View entering={FadeInUp.delay(120).duration(420)}>
-                    <SlideCard kind={slide.key} />
-                  </Animated.View>
-                ) : (
-                  <SlideCard kind={slide.key} />
-                )}
-              </View>
-            </StageBackground>
-          </View>
-        ))}
+        accessibilityLabel={`${APP_NAME} 사용법`}>
+        {pages.map((p, i) =>
+          p.kind === 'cover' ? (
+            <CoverPage key="cover" width={width} mode={mode === 'update' ? 'update' : 'fresh'} />
+          ) : (
+            <StepPage key={p.step.key} width={width} step={p.step} active={page === i} />
+          ),
+        )}
       </ScrollView>
 
-      <View style={[styles.topBar, { paddingTop: insets.top + Spacing.sm }]}>
-        <View style={styles.brand}>
-          <Ionicons name="heart-outline" size={16} color={Stage.gold} />
-          <Text style={styles.brandText}>나만의 연애코치</Text>
-        </View>
-        <Pressable accessibilityRole="button" accessibilityLabel={replay ? '사용법 닫기' : '소개 건너뛰기'} onPress={skip} hitSlop={12} style={styles.skip}>
-          <Text style={styles.skipText}>{replay ? '닫기' : '건너뛰기'}</Text>
-        </Pressable>
-      </View>
-
-      <View style={[styles.bottom, { paddingBottom: insets.bottom + Spacing.lg }]}>
-        <View style={styles.dots} accessibilityLabel={`${SLIDES.length}장 중 ${page + 1}번째`}>
-          {SLIDES.map((s, i) => (
-            <View key={s.key} style={[styles.dot, i === page ? styles.dotOn : null]} />
+      <View style={[styles.bottom, { paddingBottom: insets.bottom + Spacing.lg, width }]}>
+        <View style={styles.dots} accessibilityLabel={`${pages.length}장 중 ${page + 1}번째`}>
+          {pages.map((p, i) => (
+            <View key={p.kind === 'cover' ? 'cover' : p.step.key} style={[styles.dot, { backgroundColor: i === page ? theme.primary : theme.border }, i === page && styles.dotOn]} />
           ))}
         </View>
-        <Button
-          title={last ? (replay ? '다 봤어요' : '시작하기') : '다음'}
-          variant="gold"
+        <GradientButton
+          title={last ? (mode === 'fresh' ? '시작하기' : '다 봤어요') : '다음'}
           onPress={next}
-          icon={last && !replay ? <Ionicons name="sparkles" size={18} color={Stage.onGold} /> : undefined}
+          shine={last}
+          icon={last ? <Ionicons name={mode === 'fresh' ? 'sparkles' : 'checkmark'} size={18} color={Brand.onBrand} /> : undefined}
         />
       </View>
 
       <StartConsentSheet visible={asking} onAgree={onAgree} onClose={() => setAsking(false)} />
-      <FocusStatusBar style="light" />
-    </View>
+    </WashBackground>
   );
 }
 
-/** 각 장 아래쪽의 실제 앱 화면 조각 */
-function SlideCard({ kind }: { kind: string }) {
-  if (kind === 'capture') {
-    return (
-      <View>
-        <StageCard style={styles.chatCard}>
-          <View style={styles.chatRow}>
-            <View style={[styles.bubble, styles.bubbleThem]}>
-              <Text style={styles.bubbleText}>이번 주말에 뭐 해요? 😊</Text>
-            </View>
-          </View>
-          <View style={[styles.chatRow, styles.chatRowMe]}>
-            <View style={[styles.bubble, styles.bubbleMe]}>
-              <Text style={styles.bubbleText}>아직 계획 없어요 ㅎㅎ</Text>
-            </View>
-          </View>
-          <View style={styles.captureBar}>
-            <Ionicons name="image" size={16} color={palette.rose600} />
-            <Text style={styles.captureText}>캡처 올리기 → 코치가 분석 중…</Text>
-          </View>
-        </StageCard>
-        <HeartMark size={40} rotate={14} style={styles.heartRight} />
-      </View>
-    );
-  }
-  if (kind === 'replies') {
-    return (
-      <View>
-        <StageCard>
-          <View style={styles.replyHead}>
-            <StagePill label="실제 답장 예시" style={styles.pillOnWhite} />
-            <Text style={styles.replyOdds}>성공 확률 95%</Text>
-          </View>
-          <Text style={styles.replyMeta}>😊 버전 1/3</Text>
-          <Text style={styles.replyText}>좋아요 언니! 그럼 토요일 오후에 만나요 ㅎㅎ 맛있는 거 먹을 생각에 벌써 신나네요 😊</Text>
-        </StageCard>
-        <GoldSticker text="+10°" rotate={-8} style={styles.stickerRight} />
-      </View>
-    );
-  }
+/** 카드 안 공간을 재어 휴대폰·장식 크기를 맞춘다 */
+function useArea() {
+  const [area, setArea] = useState<{ width: number; height: number } | null>(null);
+  const onLayout = (e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    setArea((prev) => (prev && Math.abs(prev.width - width) < 1 && Math.abs(prev.height - height) < 1 ? prev : { width, height }));
+  };
+  return { area, onLayout };
+}
+
+/** 첫 장 — 로고·부제·연구진 문구 (업데이트한 이용자에게는 「새로워졌어요」) */
+function CoverPage({ width, mode }: { width: number; mode: 'fresh' | 'update' }) {
+  const theme = useTheme();
+  const copy = COVER[mode];
+  const { area, onLayout } = useArea();
+  const icon = area ? Math.round(Math.max(88, Math.min(150, area.height * 0.34))) : 120;
   return (
-    <View>
-      <StageCard>
-        <View style={styles.replyHead}>
-          <Text style={styles.heatTitle}>🌡️ 호감 온도 · 미지근</Text>
-          <Text style={styles.heatValue}>25°</Text>
-        </View>
-        <View style={styles.heatTrack}>
-          <LinearGradient colors={[palette.gold400, palette.rose400]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.heatFill, { width: '25%' }]} />
-        </View>
-        <View style={styles.heatScale}>
-          <Text style={styles.heatScaleText}>0°에서 시작</Text>
-          <Text style={styles.heatScaleText}>100°</Text>
-        </View>
-        <View style={styles.mindRow}>
-          {['🔮 속마음 카드', '🧪 KKTI 테스트', '🕶️ 비밀 상담'].map((t) => (
-            <View key={t} style={styles.mindChip}>
-              <Text style={styles.mindChipText}>{t}</Text>
-            </View>
-          ))}
-        </View>
-      </StageCard>
-      <Animated.View entering={FadeInDown.delay(300)} style={styles.heartLeft}>
-        <HeartMark size={34} rotate={-16} />
+    <View style={[styles.page, { width }]}>
+      <Animated.View entering={FadeInDown.duration(420)} style={styles.texts}>
+        {copy.pill ? <BrandPill label={copy.pill} icon="sparkles" /> : null}
+        <Text style={[styles.title, { color: theme.text }]} accessibilityRole="header">
+          {copy.title}
+        </Text>
+        <Text style={[styles.body, { color: theme.textSecondary }]}>{copy.body}</Text>
+      </Animated.View>
+      <Animated.View entering={FadeInUp.delay(120).duration(520)} style={styles.cardWrap}>
+        <BrandGradient style={styles.card}>
+          <View pointerEvents="none" style={[styles.orb, styles.orbA]} />
+          <View pointerEvents="none" style={[styles.orb, styles.orbB]} />
+          <View style={styles.coverInner} onLayout={onLayout}>
+            <Icon3D name="send" size={icon} float />
+            <SenditLogo size="lg" subtitle tone="white" />
+            <BrandPill label={RESEARCH_LINE} icon="school" tone="glass" style={styles.center} />
+          </View>
+        </BrandGradient>
       </Animated.View>
     </View>
   );
 }
 
+/** 사용법 한 장 — 제목·설명 + 그라데이션 카드 안의 실제 화면 */
+function StepPage({ width, step, active }: { width: number; step: GuideStep; active: boolean }) {
+  const theme = useTheme();
+  const { area, onLayout } = useArea();
+  return (
+    <View style={[styles.page, { width }]}>
+      <View style={styles.texts}>
+        <BrandPill label={step.pill} />
+        <Text style={[styles.title, { color: theme.text }]} accessibilityRole="header">
+          {step.title}
+        </Text>
+        <Text style={[styles.body, { color: theme.textSecondary }]}>{step.body}</Text>
+      </View>
+      <View style={styles.cardWrap}>
+        <BrandGradient style={styles.card}>
+          <View pointerEvents="none" style={[styles.orb, styles.orbA]} />
+          <View pointerEvents="none" style={[styles.orb, styles.orbB]} />
+          {/* 휴대폰은 카드 위쪽에 붙고, 화면이 길면 카드 아래로 잘려 이어진다 */}
+          <View style={styles.phoneArea} onLayout={onLayout} accessibilityLabel={`${step.title} — 실제 앱 화면`} accessible>
+            {area ? <GuidePhone shot={step.shot} area={{ width: area.width, height: area.height - Spacing.xl }} active={active} /> : null}
+          </View>
+        </BrandGradient>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Stage.bg[2], alignItems: 'center' },
+  root: { alignItems: 'center' },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.xl, paddingBottom: Spacing.xs },
+  topLogo: { height: 32, justifyContent: 'center' },
+  skip: { paddingHorizontal: Spacing.md, paddingVertical: 7, borderRadius: Radius.pill },
+  skipText: { fontSize: 13, fontWeight: '700' },
+  pressed: { opacity: 0.7 },
   pager: { flex: 1 },
-  flex: { flex: 1 },
-  topShade: { position: 'absolute', top: 0, left: 0, right: 0, height: '48%' },
-  slide: { flex: 1, paddingHorizontal: Spacing.xl },
-  texts: { gap: Spacing.md },
-  body: { fontSize: 15, lineHeight: 22, fontWeight: '500', color: Stage.textDim, maxWidth: 340 },
-  topBar: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.xl, maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%' },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  brandText: { fontSize: 13, fontWeight: '800', color: Stage.text, letterSpacing: -0.2 },
-  skip: { paddingHorizontal: Spacing.md, paddingVertical: 6, borderRadius: Radius.pill, backgroundColor: Stage.chip, borderWidth: 1, borderColor: Stage.chipBorder },
-  skipText: { fontSize: 13, fontWeight: '700', color: Stage.text },
-  bottom: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: Spacing.xl, gap: Spacing.lg, maxWidth: MaxContentWidth, alignSelf: 'center', width: '100%' },
+  page: { flex: 1, paddingTop: Spacing.md },
+  texts: { paddingHorizontal: Spacing.xl, gap: Spacing.sm },
+  title: { fontSize: 27, lineHeight: 36, fontWeight: '800', letterSpacing: -0.8, marginTop: 2 },
+  body: { fontSize: 15, lineHeight: 22, fontWeight: '500', letterSpacing: -0.2 },
+  cardWrap: { flex: 1, marginTop: Spacing.lg, marginHorizontal: Spacing.lg },
+  card: { flex: 1, borderRadius: Radius.xl, overflow: 'hidden' },
+  orb: { position: 'absolute', borderRadius: 999, backgroundColor: Brand.glass },
+  orbA: { width: 260, height: 260, top: -110, right: -90, opacity: 0.7 },
+  orbB: { width: 180, height: 180, bottom: -70, left: -60, opacity: 0.5 },
+  coverInner: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.lg, padding: Spacing.xl },
+  center: { alignSelf: 'center' },
+  phoneArea: { flex: 1, alignItems: 'center', paddingTop: Spacing.xl },
+  bottom: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg, gap: Spacing.lg },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 6 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.3)' },
-  dotOn: { width: 22, backgroundColor: Stage.gold },
-  chatCard: { gap: Spacing.sm },
-  chatRow: { flexDirection: 'row' },
-  chatRowMe: { justifyContent: 'flex-end' },
-  bubble: { borderRadius: 16, paddingHorizontal: 12, paddingVertical: 8, maxWidth: '80%' },
-  bubbleThem: { backgroundColor: '#F2ECEA', borderTopLeftRadius: 4 },
-  bubbleMe: { backgroundColor: '#FEE500', borderTopRightRadius: 4 },
-  bubbleText: { fontSize: 14, lineHeight: 20, color: Stage.cardText, fontWeight: '500' },
-  captureBar: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2, paddingTop: Spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#E9DFDC' },
-  captureText: { fontSize: 13, fontWeight: '700', color: palette.rose600 },
-  heartRight: { position: 'absolute', right: -6, top: -30 },
-  heartLeft: { position: 'absolute', left: -10, top: -34 },
-  stickerRight: { position: 'absolute', right: -4, top: -26 },
-  replyHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  pillOnWhite: { backgroundColor: palette.rose50 },
-  replyOdds: { fontSize: 13, fontWeight: '800', color: palette.rose600 },
-  replyMeta: { fontSize: 12, fontWeight: '700', color: '#8A7A7C' },
-  replyText: { fontSize: 16, lineHeight: 24, fontWeight: '600', color: Stage.cardText, backgroundColor: '#EAF3FF', borderRadius: 14, padding: 12 },
-  heatTitle: { fontSize: 15, fontWeight: '800', color: Stage.cardText },
-  heatValue: { fontSize: 26, fontWeight: '900', color: palette.rose600, letterSpacing: -0.6 },
-  heatTrack: { height: 10, borderRadius: 5, backgroundColor: '#F2ECEA', overflow: 'hidden' },
-  heatFill: { height: '100%', borderRadius: 5 },
-  heatScale: { flexDirection: 'row', justifyContent: 'space-between' },
-  heatScaleText: { fontSize: 11, fontWeight: '600', color: '#8A7A7C' },
-  mindRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
-  mindChip: { backgroundColor: palette.rose50, borderRadius: Radius.pill, paddingHorizontal: 10, paddingVertical: 5 },
-  mindChipText: { fontSize: 12, fontWeight: '700', color: Stage.cardText },
+  dot: { width: 6, height: 6, borderRadius: 3 },
+  dotOn: { width: 22 },
 });

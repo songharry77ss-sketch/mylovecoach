@@ -59,7 +59,7 @@ export const PERSONAS: Persona[] = [
     speech: 'polite',
     difficulty: 1,
     hint: '저장한 파스타집이 애프터 핑계예요. 「토요일 저녁 어때요?」처럼 날짜까지 같이 제안해요.',
-    color: '#FFE1E9',
+    color: '#E6EDFF',
   },
   {
     id: 'p_siwoo',
@@ -195,7 +195,7 @@ export const PERSONAS: Persona[] = [
     speech: 'casual',
     difficulty: 3,
     hint: '플러팅에 휘둘리지 말고 웃으며 받아쳐요. 진짜 약속은 내가 구체적으로 제안해요.',
-    color: '#FFDCDC',
+    color: '#EDE9FF',
   },
   {
     id: 'p_taeyun',

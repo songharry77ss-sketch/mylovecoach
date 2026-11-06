@@ -12,7 +12,16 @@ import {
 } from '@/lib/ai-tasks';
 import { BASIC_LOG_VERSION, contentLoggingEnabled, currentSessionId } from '@/lib/analytics';
 import { requestUpdatePrompt } from '@/lib/app-update';
-import { COACH_MODEL, CoachAnalysisReadSchema, CoachRequestSchema, IMAGE_TOO_LARGE_MESSAGE, isImageTooLarge, normalizeAnalysis, type CoachRequestInput } from '@/lib/coach-schema';
+import {
+  COACH_MODEL,
+  CoachAnalysisReadSchema,
+  CoachRequestSchema,
+  IMAGE_TOO_LARGE_MESSAGE,
+  isImageTooLarge,
+  normalizeAnalysis,
+  salvageTruncatedCoach,
+  type CoachRequestInput,
+} from '@/lib/coach-schema';
 import { APP_CONFIG } from '@/lib/config';
 import { demoAnalysis, demoMind, demoPractice, demoReport, isDemoMode } from '@/lib/demo';
 import { callGeminiTask } from '@/lib/gemini';
@@ -134,7 +143,15 @@ export async function requestCoaching(input: CoachRequestInput, options: CoachCl
     return parseCoach((body as { analysis?: unknown })?.analysis);
   }
   const text = await runDirect('coach', buildCoachTask(req) as AiTask, options);
-  return parseCoach(parseJson(text));
+  // 개인 키 직접 호출도 출력 상한에 걸려 기억 칸에서 잘렸으면 기억만 비우고 살린다 (서버와 같은 처리)
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    json = salvageTruncatedCoach(text);
+    if (json === undefined) throw new CoachError('응답을 이해하지 못했어요. 다시 시도해주세요.', 'parse');
+  }
+  return parseCoach(json);
 }
 
 interface ModeIO {

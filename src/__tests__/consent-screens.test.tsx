@@ -424,12 +424,34 @@ describe('홈 — 채팅 먼저 (캡처 올리기 · 상황만 적기)', () => {
     return id;
   };
 
-  it('부가 기능 바로가기(탐색·KKTI)는 홈에 없고, 대화를 시작하는 두 길만 있다', () => {
+  it('부가 기능 바로가기(탐색·KKTI)는 홈에 없고, 대화를 시작하는 두 길(캡처 올리기 · 캡처 없이 적기)만 있다', () => {
     const t = mount(<HomeScreen />);
     const shown = texts(t).join('\n');
-    expect(shown).toContain('대화 캡처 올리기');
-    expect(shown).toContain('캡처 없이 상황만 적어서 물어보기');
-    expect(shown).not.toContain('탐색 · 속마음 · KKTI');
+    expect(shown).toContain('캡처 올리기');
+    expect(shown).toContain('캡처 없이도 괜찮아요');
+    expect(byLabel(t, '대화 캡처 올리기')).toBeDefined();
+    expect(byLabel(t, '캡처 없이 상황만 적기')).toBeDefined();
+    expect(shown).not.toContain('KKTI');
+    expect(shown).not.toContain('속마음 카드');
+  });
+
+  it('캡처 카드 아래에 남은 무료 횟수가 있고, 채팅방이 생기면 「최근 상담」에 이름·호감 온도 줄이 생겨 누르면 그 방으로 간다', () => {
+    const t = mount(<HomeScreen />);
+    expect(t.root.findAll((n) => typeof n.props.accessibilityLabel === 'string' && /무료 코칭 \d+회 남았어요/.test(n.props.accessibilityLabel)).length).toBeGreaterThan(0);
+    expect(texts(t).join('\n')).toContain('이렇게 나와요');
+    act(() => tree?.unmount());
+
+    const minsu = addRoom('민수');
+    act(() => {
+      useAppStore.setState((s) => ({ crushes: { ...s.crushes, [minsu]: { ...s.crushes[minsu], heat: 32 } } }));
+    });
+    const withRoom = mount(<HomeScreen />);
+    const shown = texts(withRoom).join('\n');
+    expect(shown).toContain('최근 상담');
+    expect(shown).toContain('민수');
+    expect(shown).not.toContain('이렇게 나와요');
+    act(() => byLabel(withRoom, '민수, 호감 온도 32도, 새 채팅방').props.onPress());
+    expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/crush/[id]', params: { id: minsu } });
   });
 
   it('채팅방이 없으면 「상황만 적기」는 묻지 않고 첫 채팅방을 열어 입력창을 띄운다', () => {

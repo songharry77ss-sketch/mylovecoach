@@ -28,7 +28,8 @@ const INK_SOFT = '#4E5968';
 const INK_FAINT = '#8B95A1';
 const WHITE = '#FFFFFF';
 const BRAND = 'KKTI · 카톡으로 보는 진짜 연애 MBTI';
-const FIT_COLOR: Record<KktiFit, string> = { good: '#12B886', ok: '#F59F00', care: '#F06595' };
+/** 궁합 축 표시 — 맞춰 가요(care)는 분홍 대신 센딧 보라 */
+const FIT_COLOR: Record<KktiFit, string> = { good: '#12B886', ok: '#F59F00', care: '#7559F6' };
 
 // ───────────────────────── 그림 재료 ─────────────────────────
 
@@ -326,7 +327,9 @@ function pairOg(a: KktiResult, b: KktiResult): Node {
 
 // ───────────────────────── 결과가 없을 때 (테스트 소개) ─────────────────────────
 
-const INTRO_BACKGROUND = 'linear-gradient(135deg, #FFD9E4 0%, #E6DEFF 50%, #D6ECFF 100%)';
+/** 결과 없이 테스트 소개만 보여 줄 때 — 센딧 앱 아이콘과 같은 하늘색 → 파랑 → 보라 (분홍은 쓰지 않는다) */
+const INTRO_BACKGROUND = 'linear-gradient(135deg, #EEF8FF 0%, #E9EEFF 50%, #EFEAFF 100%)';
+const INTRO_ORB = 'linear-gradient(135deg, #6FC8FF 0%, #3D63F5 55%, #7559F6 100%)';
 
 function intro(shape: KktiCardShape): Node {
   const tall = shape !== 'og';
@@ -334,7 +337,7 @@ function intro(shape: KktiCardShape): Node {
   const px = (n: number) => Math.round(n * scale);
   return box(
     { width: '100%', height: '100%', flexDirection: tall ? 'column' : 'row', alignItems: 'center', justifyContent: 'center', gap: px(tall ? 36 : 60), backgroundImage: INTRO_BACKGROUND, fontFamily: 'Pretendard', padding: px(70) },
-    box({ width: px(230), height: px(230), borderRadius: px(115), backgroundImage: 'linear-gradient(135deg, #FF7EA5 0%, #9B8CFF 100%)', alignItems: 'center', justifyContent: 'center' }, emoji('💬', px(124))),
+    box({ width: px(230), height: px(230), borderRadius: px(115), backgroundImage: INTRO_ORB, alignItems: 'center', justifyContent: 'center' }, emoji('💬', px(124))),
     box(
       { flexDirection: 'column', alignItems: tall ? 'center' : 'flex-start', gap: px(12) },
       text('KKTI', { fontSize: px(150), fontWeight: 700, color: INK, letterSpacing: -4, lineHeight: 1 }),
