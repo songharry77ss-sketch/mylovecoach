@@ -13,5 +13,10 @@ if (!current) {
   process.exit(0);
 }
 const next = await refreshToken(channel, current);
+if (next.note) {
+  console.log(`${channel} ${next.note}`);
+  process.exit(0);
+}
 writeFileSync(file, next.token, { mode: 0o600 });
-console.log(`${channel} 토큰 연장됨 — ${next.expiresInDays}일 남음 · ${next.token === current ? '같은 토큰' : '새 토큰(시크릿 갱신 필요)'}`);
+const left = next.expiresInDays === null ? '만료 없음' : `${next.expiresInDays}일 남음`;
+console.log(`${channel} 토큰 연장됨 — ${left} · ${next.token === current ? '같은 토큰' : '새 토큰(시크릿 갱신 필요)'}`);

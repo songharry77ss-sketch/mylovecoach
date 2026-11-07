@@ -1,13 +1,15 @@
 name: 인스타·쓰레드 자동 게시
 
-# 매일 21:00 KST 에 social-queue 가지의 marketing/social/queue.json 을 읽어,
+# 매시간 social-queue 가지의 marketing/social/queue.json 을 읽어,
 # 허락(approved: true)받고 시간이 된 항목을 올린다. 올린 기록은 같은 가지의 posted.json 에 남긴다.
+# 매시간인 까닭: GitHub 예약 실행이 몇 시간씩 밀린다(2026-11, 21:00 예약이 04:30 에 돎).
+# 올리는 건 예정 시각부터 3시간 안일 때뿐이라(tools/lib/social.mjs POST_WINDOW_HOURS) 새벽에 올라가지 않는다.
 # 손으로 돌릴 때: 「Run workflow」 → 항목 id(비우면 시간이 된 것 전부) · 연습(기본 켜짐 — 올리지 않고 검사만).
-# 필요한 시크릿: IG_ACCESS_TOKEN, THREADS_ACCESS_TOKEN (없는 채널은 건너뜀). 흐름: docs/SOCIAL_AUTOPOST.md
+# 필요한 시크릿: IG_ACCESS_TOKEN, THREADS_ACCESS_TOKEN (없는 채널은 건너뜀). 릴스 음원은 IG_ACCESS_TOKEN 이 페이스북 로그인 토큰일 때만. 흐름: docs/SOCIAL_AUTOPOST.md
 
 on:
   schedule:
-    - cron: '0 12 * * *' # 21:00 KST
+    - cron: '17 * * * *' # 매시 17분 (정각은 몰려서 더 밀림). 올릴 게 없으면 몇 초 만에 끝남
   workflow_dispatch:
     inputs:
       id:
@@ -44,6 +46,8 @@ jobs:
         env:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          IG_API: ${{ vars.IG_API }}
+          IG_USER_ID: ${{ vars.IG_USER_ID }}
           SOCIAL_EXPECT_IG: my.lovecoach
           SOCIAL_EXPECT_THREADS: my.lovecoach
           ENTRY_ID: ${{ inputs.id }}

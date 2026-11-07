@@ -19,6 +19,11 @@ jobs:
     env:
       IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
       THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+      IG_API: ${{ vars.IG_API }}
+      IG_USER_ID: ${{ vars.IG_USER_ID }}
+      SOCIAL_EXPECT_IG: my.lovecoach
+      META_APP_ID: ${{ secrets.META_APP_ID }}
+      META_APP_SECRET: ${{ secrets.META_APP_SECRET }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

@@ -1,0 +1,38 @@
+name: 인스타 음원 찾기
+
+# 릴스에 붙일 수 있는 인스타 음원 목록을 요약에 표로 남긴다 (읽기만). 검색어를 비우면 지금 인기 음원.
+# 표의 audio_id 를 social-queue 가지 queue.json 항목의 "audio": { "id": "…" } 에 넣으면 그 곡으로 고정된다.
+# 필요한 것: IG_ACCESS_TOKEN 이 페이스북 로그인 토큰이어야 한다 (인스타 로그인 토큰은 음원 API 가 안 됨). 흐름: docs/SOCIAL_AUTOPOST.md
+
+on:
+  workflow_dispatch:
+    inputs:
+      query:
+        description: '검색어 (곡 제목·가수, 비우면 인기 음원)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  audio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: social-queue
+          path: queue
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 음원 목록
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_API: ${{ vars.IG_API }}
+          IG_USER_ID: ${{ vars.IG_USER_ID }}
+          SOCIAL_EXPECT_IG: my.lovecoach
+          QUERY: ${{ inputs.query }}
+        run: node tools/social-audio.mjs "$QUERY"
