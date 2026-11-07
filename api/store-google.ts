@@ -7,6 +7,7 @@
  * 처리: 앱 패키지 확인 → store_event 에 한 줄(같은 알림은 한 번만) → 처음 받은 알림이면 운영자 텔레그램. 처리했으면 항상 200.
  * 금액: Google 알림에는 금액이 없어 요금제 정가(src/lib/billing/plans 의 FALLBACK_PRICES, 원)로 적는다 — 할인·해외 가격은 반영되지 않음.
  *       하루 이용권 특가(mylovecoach.pass.day.sale)는 plan 'day' 로 세고 금액은 DAY_SALE_PRICE_KRW (정하기 전에는 금액 없음).
+ *       1년권(mylovecoach.pass.year, 선불 요금제)은 plan 'year', 금액은 FALLBACK_PRICES.year(29,800원). 연장 결제(top-up)도 새 구매 토큰의 SUBSCRIPTION_PURCHASED 로 온다.
  * 라이선스 테스터의 시험 결제도 실제 결제와 똑같이 오므로(구분하려면 Play Developer API 조회가 필요) 실제 매출로 셈한다.
  * 구매 토큰은 그대로 저장하지 않고 SHA-256 으로 바꾼 값만 남긴다.
  * 환경변수: GOOGLE_RTDN_TOKEN (필수), SUPABASE_URL·SUPABASE_SERVICE_ROLE_KEY, TELEGRAM_BOT_TOKEN·TELEGRAM_CHAT_ID
@@ -18,7 +19,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { ANDROID_PACKAGE, type PlanKey } from '../src/lib/billing/plans';
 
 import { bodyTooLarge } from './_limits';
-import { countsAsRevenue, listPriceKrw, planOf, recordStoreEvent, storeAlertText, todayRevenue, type StoreEventRow, type StoreKind } from './_store';
+import { countsAsRevenue, kindForPlan, listPriceKrw, planOf, recordStoreEvent, storeAlertText, todayRevenue, type StoreEventRow, type StoreKind } from './_store';
 import { query } from './_supabase';
 import { notifyTelegram } from './_telegram';
 
@@ -84,13 +85,16 @@ export function subscriptionKind(type: number | undefined): StoreKind {
 /** 일회성 상품 알림 종류 → 기록 종류 (2 = 대기 중이던 결제가 취소됨 — 구독 「해지 예약」과 섞이지 않게 알리지 않는 other) */
 export const oneTimeKind = (type: number | undefined): StoreKind => (type === 1 ? 'purchase' : 'other');
 
-/** 구독 상품 ID 가 비어 오면 하나뿐인 구독(주간)으로 본다 */
-const subscriptionPlan = (subscriptionId: string | undefined): PlanKey | null => planOf(subscriptionId) ?? (subscriptionId ? null : 'weekly');
+/**
+ * 구독 상품 ID → 요금제. 구독 상품이 주간 구독·1년권(선불 요금제) 둘이라 상품 ID 가 비어 오면 어느 쪽인지 모른다 → null(「상품 모름」·금액 없음).
+ * Google 은 subscriptionId 를 2026-05-19 부터 「지원 중단 예정」으로 두고 2028-08-31 에 뺀다 — 그 전에 구매 토큰으로 Play Developer API(purchases.subscriptionsv2.get)를 조회하도록 바꿔야 한다
+ */
+const subscriptionPlan = (subscriptionId: string | undefined): PlanKey | null => planOf(subscriptionId);
 
 /**
  * 알림 하나를 store_event 한 줄로. 같은 알림의 재전송은 같은 거래 ID 가 되도록 만든다:
  *   결제·환불·만료는 구매 토큰마다 한 번, 갱신·해지 예약·결제 실패처럼 같은 구독에 여러 번 생기는 일은 토큰+알림 시각.
- * 환불(취소된 구매) 알림에는 상품이 없어 같은 토큰의 앞선 기록(earlier)에서 찾는다 — 못 찾으면 구독은 주간, 일회성은 상품 모름.
+ * 환불(취소된 구매) 알림에는 상품이 없어 같은 토큰의 앞선 기록(earlier)에서 찾는다 — 못 찾으면 상품 모름(금액 없음).
  */
 export function googleEventRow(n: DeveloperNotification, messageId: string | null, earlier: { product_id: string | null; plan: PlanKey | null } | null = null): StoreEventRow | null {
   const at = n.eventTimeMillis != null ? String(n.eventTimeMillis) : '';
@@ -121,16 +125,18 @@ export function googleEventRow(n: DeveloperNotification, messageId: string | nul
   const sub = n.subscriptionNotification;
   if (sub?.purchaseToken) {
     const hash = tokenHash(sub.purchaseToken);
-    const kind = subscriptionKind(sub.notificationType);
     const plan = subscriptionPlan(sub.subscriptionId);
+    // 1년권(선불 요금제)은 결제(연장 결제 포함 — 새 구매 토큰)·환불(REVOKED)·기간 끝남(EXPIRED)만 있다. 갱신·해지·보류류는 other (_store.kindForPlan)
+    const kind = kindForPlan(subscriptionKind(sub.notificationType), plan);
     const once = kind === 'purchase' || kind === 'refund' || kind === 'expire';
+    const amount = kind === 'purchase' || kind === 'renewal' || kind === 'refund' ? listPriceKrw(plan, sub.subscriptionId) : null;
     return {
       ...base,
       kind,
       notification: SUBSCRIPTION_TYPES[sub.notificationType ?? 0] ?? `SUBSCRIPTION_${sub.notificationType ?? '?'}`,
       product_id: sub.subscriptionId ?? null,
       plan,
-      amount: kind === 'purchase' || kind === 'renewal' || kind === 'refund' ? listPriceKrw(plan, sub.subscriptionId) : null,
+      amount,
       transaction_id: once ? hash : `${hash}:${at}`,
       original_transaction_id: hash,
       raw: { eventTimeMillis: at || null, notificationType: sub.notificationType ?? null },
@@ -139,7 +145,8 @@ export function googleEventRow(n: DeveloperNotification, messageId: string | nul
   const voided = n.voidedPurchaseNotification;
   if (voided?.purchaseToken) {
     const hash = tokenHash(voided.purchaseToken);
-    const plan = earlier?.plan ?? (voided.productType === 1 ? 'weekly' : null);
+    // 앞선 기록이 없으면 상품을 모른다 (구독도 주간 구독·1년권 둘이라 짐작하지 않는다)
+    const plan = earlier?.plan ?? null;
     return {
       ...base,
       kind: 'refund',

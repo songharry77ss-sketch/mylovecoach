@@ -8,10 +8,13 @@ import { entitlementFrom } from '@/lib/billing/entitlement';
 import {
   ANDROID_PACKAGE,
   ANDROID_WEEKLY_BASE_PLAN,
+  ANDROID_YEAR_BASE_PLAN,
   DAY_SALE_PRODUCT_ID,
   FALLBACK_PRICES,
   PRODUCT_IDS,
+  SELLING_PLANS,
   isConsumablePlan,
+  isSubscriptionPlan,
   planOfProduct,
   type ConsumablePlanKey,
   type PlanKey,
@@ -200,12 +203,16 @@ export function endBilling() {
   connected = false;
 }
 
+/** Android 구독 상품에서 고를 기본 요금제 — 주간 구독은 weekly, 1년권은 선불 요금제 year */
+const androidBasePlan = (plan: PlanKey) => (plan === 'year' ? ANDROID_YEAR_BASE_PLAN : ANDROID_WEEKLY_BASE_PLAN);
+
 /**
  * 스토어에서 상품 정보(현지 통화 표시 가격)를 가져온다. 실패하면 기본 표시 가격을 쓴다.
  * 하루 이용권 특가 상품은 스토어가 돌려줬을 때만 목록 끝에 붙인다 (기본 가격이 없어 확인 전에는 보여 줄 수 없다).
+ * 평생권은 2026-11-07 부터 팔지 않으므로 묻지 않는다 (이미 산 사람의 판정은 queryEntitlement 가 한다).
  */
 export async function loadPlanProducts(): Promise<PlanProduct[]> {
-  const order: PlanKey[] = ['day', 'weekly', 'lifetime', 'credits'];
+  const order = SELLING_PLANS;
   const fallback: PlanProduct[] = order.map((plan) => ({ plan, productId: PRODUCT_IDS[plan], displayPrice: FALLBACK_PRICES[plan] }));
   if (!IAP) return fallback;
   lastProblem = null;
@@ -213,11 +220,14 @@ export async function loadPlanProducts(): Promise<PlanProduct[]> {
     lastProblem = { code: 'not-connected' };
     return fallback;
   }
-  // 일회성 상품과 구독을 따로 묻는다 — 한쪽 조회가 실패해도(구독 미지원 기기 등) 다른 쪽 상품은 팔 수 있게
-  const oneTime = [...order.filter((plan) => plan !== 'weekly').map((plan) => PRODUCT_IDS[plan]), DAY_SALE_PRODUCT_ID];
+  // 일회성 상품과 구독을 따로 묻는다 — 한쪽 조회가 실패해도(구독 미지원 기기 등) 다른 쪽 상품은 팔 수 있게.
+  // 1년권은 iOS 「자동 갱신 없는 구독」·Android 「선불 요금제」라 구독(subs)으로 묻는다
+  // (OpenIAP Apple 3.4.0 은 자동 갱신 없는 구독을 in-app 조회 결과에서 빼고 subs 조회 결과에만 넣는다)
+  const oneTime = [...order.filter((plan) => !isSubscriptionPlan(plan)).map((plan) => PRODUCT_IDS[plan]), DAY_SALE_PRODUCT_ID];
+  const subs = order.filter(isSubscriptionPlan).map((plan) => PRODUCT_IDS[plan]);
   const results = [
     await fetchWithReconnect({ skus: oneTime, type: 'in-app' }).catch(() => null),
-    await fetchWithReconnect({ skus: [PRODUCT_IDS.weekly], type: 'subs' }).catch(() => null),
+    await fetchWithReconnect({ skus: subs, type: 'subs' }).catch(() => null),
   ];
   if (results.every((r) => r == null)) return fallback;
   try {
@@ -233,7 +243,7 @@ export async function loadPlanProducts(): Promise<PlanProduct[]> {
       let displayPrice = item.displayPrice;
       if (item.platform === 'android' && item.type === 'subs') {
         const offers = item.subscriptionOffers ?? [];
-        const offer = offers.find((o) => o.basePlanIdAndroid === ANDROID_WEEKLY_BASE_PLAN) ?? offers[0];
+        const offer = offers.find((o) => o.basePlanIdAndroid === androidBasePlan(f.plan)) ?? offers[0];
         offerToken = offer?.offerTokenAndroid;
         displayPrice = offer?.displayPrice || displayPrice;
         return { ...f, displayPrice: displayPrice || f.displayPrice, offerToken, available: true };
@@ -256,7 +266,7 @@ export async function purchasePlan(product: PlanProduct): Promise<PurchaseOutcom
   // 조회가 실패하면 연결을 새로 맺고 한 번 더 묻는다 (Android 결제 서비스 끊김)
   lastProblem = null;
   try {
-    const found = await fetchWithReconnect({ skus: [product.productId], type: product.plan === 'weekly' ? 'subs' : 'in-app' });
+    const found = await fetchWithReconnect({ skus: [product.productId], type: isSubscriptionPlan(product.plan) ? 'subs' : 'in-app' });
     if (!found.some((i) => i.id === product.productId))
       return { status: 'error', message: `스토어에서 이 상품을 찾지 못했어요. 잠시 후 다시 시도해주세요. (${product.productId})` };
   } catch (error) {
@@ -266,8 +276,9 @@ export async function purchasePlan(product: PlanProduct): Promise<PurchaseOutcom
   return new Promise<PurchaseOutcome>((resolve) => {
     inflight = resolve;
     const sku = product.productId;
+    // 주간 구독·1년권은 구독(subs) 흐름 — Android 는 고른 기본 요금제(weekly·year)의 오퍼 토큰을 같이 보낸다
     const request =
-      product.plan === 'weekly'
+      isSubscriptionPlan(product.plan)
         ? iap.requestPurchase({
             type: 'subs',
             request: { apple: { sku }, google: { skus: [sku], subscriptionOffers: product.offerToken ? [{ sku, offerToken: product.offerToken }] : [] } },

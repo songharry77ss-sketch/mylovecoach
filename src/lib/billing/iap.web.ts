@@ -1,5 +1,5 @@
 /** 웹에는 인앱결제가 없습니다. 프리미엄은 앱(iOS/Android)에서만 구매할 수 있어요. */
-import { FALLBACK_PRICES, PRODUCT_IDS, type ConsumablePlanKey, type PlanKey } from '@/lib/billing/plans';
+import { FALLBACK_PRICES, PRODUCT_IDS, SELLING_PLANS, type ConsumablePlanKey, type PlanKey } from '@/lib/billing/plans';
 import type { PremiumState } from '@/lib/billing/quota';
 
 export const billingSupported = false;
@@ -35,7 +35,7 @@ export interface StoreProblem {
 export const lastStoreProblem = (): StoreProblem | null => null;
 export function endBilling() {}
 export async function loadPlanProducts(): Promise<PlanProduct[]> {
-  return (['day', 'weekly', 'lifetime', 'credits'] as PlanKey[]).map((plan) => ({ plan, productId: PRODUCT_IDS[plan], displayPrice: FALLBACK_PRICES[plan] }));
+  return SELLING_PLANS.map((plan) => ({ plan, productId: PRODUCT_IDS[plan], displayPrice: FALLBACK_PRICES[plan] }));
 }
 export async function purchasePlan(_product: PlanProduct): Promise<PurchaseOutcome> {
   return { status: 'error', message: '프리미엄은 앱에서 구매할 수 있어요.' };

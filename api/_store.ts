@@ -32,9 +32,17 @@ export interface StoreEventRow {
 export const PLAN_LABELS: Record<PlanKey, string> = {
   day: '하루 이용권',
   weekly: '주간 구독',
+  year: '1년권',
   lifetime: '평생권',
   credits: '횟수권 10회',
 };
+
+/**
+ * 요금제에 맞게 기록 종류를 고친다. 1년권(iOS 자동 갱신 없는 구독 · Android 선불 요금제)은 자동 갱신이 없어
+ * 갱신·해지 예약·결제 실패가 생길 수 없다 — 그런 알림이 오면 매출·「해지 예약」으로 세지 않고 알리지 않는 other 로 남긴다
+ */
+export const kindForPlan = (kind: StoreKind, plan: PlanKey | null): StoreKind =>
+  plan === 'year' && (kind === 'renewal' || kind === 'cancel' || kind === 'fail') ? 'other' : kind;
 
 export const STORE_LABELS: Record<StoreName, string> = { apple: 'iOS', google: 'Android' };
 
@@ -147,7 +155,8 @@ export function storeAlertText(row: StoreEventRow, revenue: Revenue | null, note
       line = row.plan === 'weekly' || !row.plan ? `⚠️ 구독 해지 예약 · ${item} · ${store}${extra}` : `⚠️ 결제 취소 · ${item} · ${store}${extra}`;
       break;
     case 'expire':
-      line = `⌛ 구독 만료 · ${item} · ${store}${extra}`;
+      // 1년권은 구독이 아니라 기간이 끝난 것 (자동 갱신이 없다)
+      line = row.plan === 'year' ? `⌛ 기간 끝남 · ${item} · ${store}${extra}` : `⌛ 구독 만료 · ${item} · ${store}${extra}`;
       break;
     case 'fail':
       line = `❗ 구독 결제 실패 · ${item} · ${store}${extra}`;

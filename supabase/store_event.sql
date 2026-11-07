@@ -18,7 +18,7 @@ create table if not exists store_event (
   kind                    text not null,     -- purchase | renewal | refund | cancel | expire | fail | test | other
   notification            text,              -- 스토어가 붙인 알림 이름 (예: DID_RENEW, SUBSCRIPTION_RENEWED)
   product_id              text,
-  plan                    text,              -- day | weekly | lifetime | credits
+  plan                    text,              -- day | weekly | year | lifetime | credits
   amount                  numeric,           -- 결제 금액 (Apple 은 알림에 든 가격, Google 은 요금제 정가)
   currency                text,              -- KRW …
   transaction_id          text,              -- Apple 거래 ID · Google 구매 토큰 해시(갱신 등은 + 알림 시각) · 연결 확인은 메시지 ID

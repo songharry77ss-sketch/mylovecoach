@@ -76,7 +76,7 @@ jest.mock('@/hooks/use-plan-products', () => {
   const products = [
     { plan: 'day', productId: 'p.day', displayPrice: '₩2,700', available: true },
     { plan: 'weekly', productId: 'p.week', displayPrice: '₩9,900', available: true },
-    { plan: 'lifetime', productId: 'p.life', displayPrice: '₩29,000', available: true },
+    { plan: 'year', productId: 'p.year', displayPrice: '₩29,000', available: true },
   ];
   return { usePlanProducts: () => products, onSalePrice: () => '₩2,700' };
 });
@@ -124,10 +124,10 @@ it('결제 화면을 열면 이유를 남기고, 다른 상품을 고르면 그 
 
 it('결제 없이 닫으면 머문 시간·고른 상품·직접 골랐는지를 남긴다', () => {
   mount();
-  act(() => pressable('평생권').props.onPress());
+  act(() => pressable('1년권').props.onPress());
   act(() => renderer.unmount());
   const close = propsOf('paywall_close');
-  expect(close).toMatchObject({ reason: 'quota', plan: 'lifetime', picked: true, result: 'none' });
+  expect(close).toMatchObject({ reason: 'quota', plan: 'year', picked: true, result: 'none' });
   expect(typeof close.sec).toBe('number');
 });
 

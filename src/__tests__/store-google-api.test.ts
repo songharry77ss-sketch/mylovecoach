@@ -195,6 +195,47 @@ describe('/api/store-google 처리', () => {
     expect(telegramTexts()).toEqual(['↩️ 환불 · 평생권 ₩29,800 · Android']);
   });
 
+  it('1년권(선불 요금제) 결제(SUBSCRIPTION_PURCHASED) → plan year · ₩29,800 으로 기록하고 「결제 · 1년권」을 알린다', async () => {
+    const res = fakeRes();
+    await handler(req(push({ packageName: 'app.mylovecoach.android', eventTimeMillis: '1762500000000', subscriptionNotification: { version: '1.0', notificationType: 4, purchaseToken: 'year-token', subscriptionId: 'mylovecoach.pass.year' } })), res as never);
+    expect(res.statusCode).toBe(200);
+    const row = JSON.parse(inserts()[0].body ?? '[]')[0];
+    expect(row).toMatchObject({ kind: 'purchase', notification: 'SUBSCRIPTION_PURCHASED', product_id: 'mylovecoach.pass.year', plan: 'year', amount: 29800, currency: 'KRW', transaction_id: tokenHash('year-token') });
+    expect(telegramTexts()[0]).toMatch(/^💳 결제 · 1년권 ₩29,800 · Android\n오늘 매출 /);
+  });
+
+  it('1년권 연장 결제(새 구매 토큰의 SUBSCRIPTION_PURCHASED)도 결제 한 건으로 센다', async () => {
+    await handler(req(push({ packageName: 'app.mylovecoach.android', eventTimeMillis: '1', subscriptionNotification: { version: '1.0', notificationType: 4, purchaseToken: 'year-token', subscriptionId: 'mylovecoach.pass.year' } })), fakeRes() as never);
+    await handler(req(push({ packageName: 'app.mylovecoach.android', eventTimeMillis: '2', subscriptionNotification: { version: '1.0', notificationType: 4, purchaseToken: 'year-topup-token', subscriptionId: 'mylovecoach.pass.year' } })), fakeRes() as never);
+    const rows = inserts().map((c) => JSON.parse(c.body ?? '[]')[0]);
+    expect(rows.map((r) => [r.kind, r.plan, r.amount])).toEqual([
+      ['purchase', 'year', 29800],
+      ['purchase', 'year', 29800],
+    ]);
+    expect(rows[0].transaction_id).not.toBe(rows[1].transaction_id);
+  });
+
+  it('1년권은 자동 갱신이 없어 갱신·해지·보류 알림이 와도 매출·「해지 예약」으로 세지 않고 알리지 않는다', async () => {
+    for (const nt of [2, 1, 3, 5, 6]) await handler(req(push({ packageName: 'app.mylovecoach.android', eventTimeMillis: '3', subscriptionNotification: { version: '1.0', notificationType: nt, purchaseToken: 'year-token', subscriptionId: 'mylovecoach.pass.year' } })), fakeRes() as never);
+    const rows = inserts().map((c) => JSON.parse(c.body ?? '[]')[0]);
+    expect(rows.map((r) => r.kind)).toEqual(['other', 'other', 'other', 'other', 'other']);
+    expect(rows.every((r) => r.amount == null && r.plan === 'year')).toBe(true);
+    expect(telegramTexts()).toHaveLength(0);
+  });
+
+  it('1년권 기간이 끝나면 「기간 끝남」(구독 만료·자동 갱신 문구 없음), 환불(REVOKED)은 ₩29,800 환불', async () => {
+    await handler(req(push({ packageName: 'app.mylovecoach.android', eventTimeMillis: '4', subscriptionNotification: { version: '1.0', notificationType: 13, purchaseToken: 'year-token', subscriptionId: 'mylovecoach.pass.year' } })), fakeRes() as never);
+    await handler(req(push({ packageName: 'app.mylovecoach.android', eventTimeMillis: '5', subscriptionNotification: { version: '1.0', notificationType: 12, purchaseToken: 'year-token-2', subscriptionId: 'mylovecoach.pass.year' } })), fakeRes() as never);
+    expect(telegramTexts()).toEqual(['⌛ 기간 끝남 · 1년권 · Android', '↩️ 환불 · 1년권 ₩29,800 · Android']);
+  });
+
+  it('1년권 환불(취소된 구매) → 앞선 결제 기록에서 1년권을 찾아 ₩29,800 환불로 알린다', async () => {
+    earlierRows = [{ product_id: 'mylovecoach.pass.year', plan: 'year' }];
+    await handler(req(push({ packageName: 'app.mylovecoach.android', eventTimeMillis: '1', voidedPurchaseNotification: { purchaseToken: 'year-token', orderId: 'GPA.2', productType: 1, refundType: 1 } })), fakeRes() as never);
+    expect(JSON.parse(inserts()[0].body ?? '[]')[0]).toMatchObject({ kind: 'refund', plan: 'year', amount: 29800, currency: 'KRW' });
+    expect(telegramTexts()).toEqual(['↩️ 환불 · 1년권 ₩29,800 · Android']);
+  });
+
   it('구독 재시작처럼 알리지 않는 종류는 기록만 한다', async () => {
     const res = fakeRes();
     await handler(req(push({ packageName: 'app.mylovecoach.android', eventTimeMillis: '5', subscriptionNotification: { notificationType: 7, purchaseToken: 'sub-token', subscriptionId: 'mylovecoach.premium.weekly' } })), res as never);
@@ -233,9 +274,12 @@ describe('알림 해석', () => {
     expect([4, 2, 3, 12, 13, 6, 1, 7].map(subscriptionKind)).toEqual(['purchase', 'renewal', 'cancel', 'refund', 'expire', 'fail', 'renewal', 'other']);
   });
 
-  it('구독 상품 ID 가 비어 오면 주간 구독으로 본다', () => {
+  it('구독 상품 ID 가 비어 오면 상품을 짐작하지 않는다 (구독이 주간 구독·1년권 둘이라) — 「상품 모름」·금액 없음', () => {
     const row = googleEventRow({ packageName: 'app.mylovecoach.android', eventTimeMillis: 9, subscriptionNotification: { notificationType: 4, purchaseToken: 'p' } }, null);
-    expect(row).toMatchObject({ kind: 'purchase', plan: 'weekly', amount: 9900, transaction_id: tokenHash('p') });
+    expect(row).toMatchObject({ kind: 'purchase', plan: null, amount: null, transaction_id: tokenHash('p') });
+    // 앞선 기록이 없는 환불도 마찬가지
+    const voided = googleEventRow({ packageName: 'app.mylovecoach.android', eventTimeMillis: 9, voidedPurchaseNotification: { purchaseToken: 'p', productType: 1, refundType: 1 } }, null);
+    expect(voided).toMatchObject({ kind: 'refund', plan: null, amount: null, currency: null });
   });
 
   it('페이로드 래핑 해제(본문이 곧 알림)도 받는다', () => {

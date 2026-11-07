@@ -18,7 +18,7 @@ import { createHash, verify, X509Certificate } from 'node:crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 import { bodyTooLarge } from './_limits';
-import { countsAsRevenue, listPriceKrw, planOf, recordStoreEvent, storeAlertText, todayRevenue, type StoreEventRow, type StoreKind } from './_store';
+import { countsAsRevenue, kindForPlan, listPriceKrw, planOf, recordStoreEvent, storeAlertText, todayRevenue, type StoreEventRow, type StoreKind } from './_store';
 import { notifyTelegram } from './_telegram';
 
 export const config = { maxDuration: 15 };
@@ -132,6 +132,7 @@ export interface AppleTransaction {
 /** 알림 종류 → 기록 종류 */
 export function appleKind(type: string | undefined, subtype: string | undefined): StoreKind {
   switch (type) {
+    // 소모성·비소모성·자동 갱신 없는 구독(1년권) 결제
     case 'ONE_TIME_CHARGE':
     case 'SUBSCRIBED':
       return 'purchase';
@@ -154,10 +155,11 @@ export function appleKind(type: string | undefined, subtype: string | undefined)
 
 /** 검증한 알림·거래로 store_event 한 줄을 만든다 (이름·이메일 같은 항목은 애초에 없고, 고른 항목만 남긴다) */
 export function appleEventRow(n: AppleNotification, tx: AppleTransaction | null): StoreEventRow {
-  const kind = appleKind(n.notificationType, n.subtype);
   const productId = tx?.productId ?? null;
   // 하루 이용권 특가(mylovecoach.pass.day.sale)도 plan 'day' — 알림 문구만 「하루 이용권 특가」로 (_store.planLabel)
+  // 1년권(mylovecoach.pass.year, 자동 갱신 없는 구독)은 결제 ONE_TIME_CHARGE · 환불 REFUND 만 온다 — 갱신·해지류는 other (_store.kindForPlan)
   const plan = planOf(productId);
+  const kind = kindForPlan(appleKind(n.notificationType, n.subtype), plan);
   const hasPrice = typeof tx?.price === 'number' && Number.isFinite(tx.price);
   return {
     store: 'apple',

@@ -36,6 +36,7 @@ export const REASON_LABELS: Record<string, string> = {
 export const PLAN_LABELS: Record<string, string> = {
   day: '하루 이용권',
   weekly: '주간 구독',
+  year: '1년권',
   lifetime: '평생권',
   credits: '횟수권',
 };

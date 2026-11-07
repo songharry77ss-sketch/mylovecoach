@@ -46,6 +46,12 @@ describe('문구', () => {
     expect(text).toContain('👤 하리 · a@b.com (카카오)');
   });
 
+  it('1년권 — 결제 진행 줄과 「이용 중」에 이름이 나온다', () => {
+    const text = funnelMessage([{ name: 'purchase_purchased', props: { plan: 'year' } }], ctx({ premiumPlan: 'year' }));
+    expect(text).toContain('✅ 앱에서 결제 완료 · 1년권');
+    expect(text).toContain('이용 중: 1년권');
+  });
+
   it('이용자가 보낸 값은 HTML 로 해석되지 않게 escape 한다', () => {
     const text = funnelMessage(
       [{ name: 'purchase_error', props: { plan: '<b>x</b>', message: '<a href="x">오류</a>' } }],

@@ -80,7 +80,7 @@ const DAY_REGULAR = { plan: 'day', productId: 'mylovecoach.pass.day', displayPri
 const DAY_SALE = { plan: 'day', productId: 'mylovecoach.pass.day.sale', displayPrice: '₩1,900', available: true, price: 1900, currency: 'KRW', sale: true };
 const OTHERS = [
   { plan: 'weekly', productId: 'mylovecoach.premium.weekly', displayPrice: '₩9,900', available: true },
-  { plan: 'lifetime', productId: 'mylovecoach.premium.lifetime', displayPrice: '₩29,800', available: true },
+  { plan: 'year', productId: 'mylovecoach.pass.year', displayPrice: '₩29,800', available: true },
 ];
 let mockProducts: unknown[] = [];
 // 상품 목록만 가짜로 — 정가를 고르는 onSalePrice 는 진짜 함수를 쓴다 (특가 상품을 정가로 잘못 고르지 않는지까지 확인)
@@ -274,15 +274,15 @@ it('하루 이용권을 이미 쓰는 중이면 세일을 시작하지 않고, �
   expect(screen()).toContain('지금 연장하면 내일 오후 8:42까지 무제한');
 });
 
-it('평생권을 고르면 특가와 상관없이 평생권을 산다', async () => {
+it('1년권을 고르면 특가와 상관없이 1년권을 산다', async () => {
   (purchasePlan as jest.Mock).mockResolvedValue({ status: 'cancelled' });
   mount();
-  const lifetime = renderer!.root.findAll((n) => n.props.accessibilityRole === 'radio' && textOf(n).includes('평생권'))[0];
-  act(() => lifetime.props.onPress());
-  expect(textOf(buyButton())).toBe('평생권 시작하기');
+  const year = renderer!.root.findAll((n) => n.props.accessibilityRole === 'radio' && textOf(n).includes('1년권'))[0];
+  act(() => year.props.onPress());
+  expect(textOf(buyButton())).toBe('1년권 시작하기');
   await act(async () => {
     await buyButton().props.onPress();
   });
-  expect(purchasePlan).toHaveBeenCalledWith(expect.objectContaining({ plan: 'lifetime' }));
-  expect(tracked).toHaveBeenCalledWith('purchase_start', { plan: 'lifetime' });
+  expect(purchasePlan).toHaveBeenCalledWith(expect.objectContaining({ plan: 'year', productId: 'mylovecoach.pass.year' }));
+  expect(tracked).toHaveBeenCalledWith('purchase_start', { plan: 'year' });
 });

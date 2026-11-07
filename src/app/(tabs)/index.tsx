@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useTabBarSpace } from '@/components/ui/tab-bar-space';
 import { BrandPill, HeroCard, Icon3D, ResearchBadge, SenditLogo } from '@/components/brand/brand';
 import { WhoSheet, type WhoTarget } from '@/components/coach/who-sheet';
 import { CrushListItem } from '@/components/crush/crush-list-item';
@@ -38,6 +39,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const toast = useToast();
   const insets = useSafeAreaInsets();
+  const tabSpace = useTabBarSpace();
   const quota = useQuota();
   const user = useAppStore((s) => s.user);
   const crushMap = useAppStore((s) => s.crushes);
@@ -128,18 +130,11 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: theme.background }]}>
-      {/* 아래 시스템 영역은 탭 바가 맡으니 여백만 둔다 */}
-      <ScrollView showsVerticalScrollIndicator={false} scrollEventThrottle={32} contentContainerStyle={[styles.content, { paddingTop: insets.top + Spacing.sm }]}>
+      {/* 떠 있는 유리 탭 바에 마지막 내용이 가리지 않게 그만큼 아래를 비운다 */}
+      <ScrollView showsVerticalScrollIndicator={false} scrollEventThrottle={32} contentContainerStyle={[styles.content, { paddingTop: insets.top + Spacing.sm, paddingBottom: tabSpace }]}>
+        {/* 새 채팅방 + 는 탭 바 옆 「새 채팅」 구슬로 옮겼다 (2026-11-07 팀 제안 — 엄지가 닿는 자리) */}
         <Animated.View entering={enter(0)} style={styles.topRow}>
           <SenditLogo size="sm" />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="새 채팅방"
-            onPress={newRoom}
-            hitSlop={6}
-            style={({ pressed }) => [styles.addBtn, { backgroundColor: theme.surface, opacity: pressed ? 0.7 : 1 }]}>
-            <Ionicons name="add" size={24} color={theme.text} />
-          </Pressable>
         </Animated.View>
 
         <Animated.View entering={enter(1)} style={styles.greeting}>
@@ -374,7 +369,6 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xxl, gap: Spacing.xl, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 44 },
-  addBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   greeting: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: -Spacing.sm },
   title: { ...Typography.hero, fontSize: 32, lineHeight: 41, marginTop: 6 },
   icon3d: { marginRight: -6 },

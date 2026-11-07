@@ -9,6 +9,7 @@ import { create, type ReactTestInstance, type ReactTestRenderer } from 'react-te
 
 import Paywall from '@/app/paywall';
 import { track } from '@/lib/analytics';
+import { useAppStore } from '@/store/app-store';
 
 jest.mock('@react-native-async-storage/async-storage', () => {
   const mem = new Map<string, string>();
@@ -76,9 +77,9 @@ jest.mock('@/lib/billing/iap', () => ({
 const CONFIRMED = [
   { plan: 'day', productId: 'p.day', displayPrice: '₩2,700', available: true },
   { plan: 'weekly', productId: 'p.week', displayPrice: '₩9,900', available: true },
-  { plan: 'lifetime', productId: 'p.life', displayPrice: '₩29,800', available: true },
+  { plan: 'year', productId: 'p.year', displayPrice: '₩29,800', available: true },
 ];
-// 스토어에 닿지 못했을 때 — 확인 표시가 없는 기본 목록 (화면은 주간·평생만 보여 준다)
+// 스토어에 닿지 못했을 때 — 확인 표시가 없는 기본 목록 (화면은 주간 구독·1년권만 보여 준다)
 const UNCONFIRMED = CONFIRMED.map(({ available: _a, ...p }) => p);
 let mockProducts: unknown[] = CONFIRMED;
 const mockAttempts: number[] = [];
@@ -132,11 +133,11 @@ it('채팅 속 안내 카드(upsell)는 전용 문구를 보여 준다', () => {
   expect(allText()).toContain('마음에 드는 답장이');
 });
 
-it('스토어 확인 실패면 주간 구독이 아닌 평생권이 골라지고, 다시 불러오기를 누르면 다시 묻는다', () => {
+it('스토어 확인 실패면 주간 구독이 아닌 1년권이 골라지고, 다시 불러오기를 누르면 다시 묻는다', () => {
   mockReason = 'quota';
   mockProducts = UNCONFIRMED;
   mount();
-  expect(buyLabel()).toContain('평생권');
+  expect(buyLabel()).toContain('1년권');
   expect(allText()).toContain('다시 불러오기');
   const reload = renderer.root.findAll((n) => typeof n.props.onPress === 'function' && textOf(n).includes('다시 불러오기'))[0];
   act(() => reload.props.onPress());
@@ -155,4 +156,65 @@ it('스토어에서 확인되면 다시 불러오기를 보여 주지 않는다'
   mount();
   expect(allText()).not.toContain('다시 불러오기');
   expect(track).not.toHaveBeenCalledWith('store_unavailable', expect.anything());
+});
+
+describe('평생권 → 1년권 (2026-11-07)', () => {
+  // 지금 파는 상품 그대로 — 하루 이용권 → 주간 구독 → 1년권 → 횟수권
+  const SELLING = [
+    { plan: 'day', productId: 'mylovecoach.pass.day', displayPrice: '₩3,900', available: true },
+    { plan: 'weekly', productId: 'mylovecoach.premium.weekly', displayPrice: '₩9,900', available: true },
+    { plan: 'year', productId: 'mylovecoach.pass.year', displayPrice: '₩29,800', available: true },
+    { plan: 'credits', productId: 'mylovecoach.credits.10', displayPrice: '₩4,900', available: true },
+  ];
+  const radio = (label: string) => renderer.root.findAll((n) => n.props.accessibilityRole === 'radio' && textOf(n).includes(label))[0];
+
+  it('목록에 평생권은 없고, 1년권이 주간 구독 다음에 있다', () => {
+    mockReason = 'my';
+    mockProducts = SELLING;
+    mount();
+    const text = allText();
+    expect(text).not.toContain('평생');
+    expect(text).toContain('1년권');
+    expect(text.indexOf('주간 구독')).toBeLessThan(text.indexOf('1년권'));
+    expect(text.indexOf('1년권')).toBeLessThan(text.indexOf('횟수권'));
+    // 기본 선택은 그대로 하루 이용권
+    expect(buyLabel()).toContain('하루 무제한');
+  });
+
+  it('1년권을 고르면 1회 결제·결제한 날부터 1년·자동 갱신 없음·구매 복원을 안내하고, 아이폰에는 Google Play 를 적지 않는다', () => {
+    mockReason = 'my';
+    mockProducts = SELLING;
+    mount();
+    act(() => radio('1년권').props.onPress());
+    expect(buyLabel()).toBe('1년권 시작하기');
+    const text = allText();
+    expect(text).toContain('1년권 안내');
+    expect(text).toContain('1년권은 29,800원 1회 결제로 결제한 날부터 1년 동안 무제한이에요');
+    expect(text).toContain('자동으로 갱신되거나 다시 결제되지 않아요');
+    expect(text).toContain('같은 App Store 계정이면 기기를 바꿔도 「구매 복원」으로 다시 쓸 수 있어요');
+    expect(text).toContain('29,800원 한 번 결제 · 1년 무제한 · 자동 결제 없음');
+    expect(text).not.toMatch(/Google ?Play|평생/);
+  });
+
+  it('1년권 이용자는 상품 대신 「1년권으로 … 언제까지」를 본다, 평생권 이용자는 그대로 「평생권」', () => {
+    mockReason = 'my';
+    mockProducts = SELLING;
+    const until = new Date(Date.now() + 200 * 24 * 60 * 60 * 1000);
+    until.setHours(12, 0, 0, 0);
+    useAppStore.setState({ premium: { plan: 'year', productId: 'mylovecoach.pass.year', expiresAt: until.getTime(), verifiedAt: Date.now() } });
+    try {
+      mount();
+      const date = `${until.getFullYear()}년 ${until.getMonth() + 1}월 ${until.getDate()}일`;
+      expect(allText()).toContain(`1년권으로 모든 기능을 무제한으로 쓰고 있어요. ${date}까지 쓸 수 있어요.`);
+      expect(allText()).not.toContain('1년권 시작하기');
+      act(() => renderer.unmount());
+      useAppStore.setState({ premium: { plan: 'lifetime', productId: 'mylovecoach.premium.lifetime', expiresAt: null, verifiedAt: 1 } });
+      mount();
+      expect(allText()).toContain('평생권으로 모든 기능을 무제한으로 쓰고 있어요.');
+    } finally {
+      act(() => {
+        useAppStore.setState({ premium: null });
+      });
+    }
+  });
 });

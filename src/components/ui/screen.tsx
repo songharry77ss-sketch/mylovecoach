@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type PropsWithChildren } from
 import { Dimensions, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollViewProps, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useTabBarSpace } from '@/components/ui/tab-bar-space';
 import { FocusStatusBar, StatusBarScrim, useScrolledPast } from '@/components/ui/system-bars';
 import { Brand, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -13,7 +14,7 @@ interface ScreenProps extends PropsWithChildren {
   /** 상단 safe area 포함 여부 (헤더가 있는 스택 화면은 false) */
   safeTop?: boolean;
   safeBottom?: boolean;
-  /** 탭 화면 — 아래 시스템 영역(홈 막대·안드로이드 버튼)은 탭 바가 맡으니 여백만 둔다 */
+  /** 탭 화면 — 떠 있는 유리 탭 바(+ 기기 아래 영역)만큼 아래를 비운다 */
   tab?: boolean;
   /** 모달로 뜨는 화면 — 아이폰에서는 상태 표시줄 아래에서 올라오는 카드라 위를 상태 표시줄만큼 띄우지 않는다 */
   sheet?: boolean;
@@ -49,11 +50,13 @@ export function Screen({
 }: ScreenProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  // 떠 있는 유리 탭 바(glass-tab-bar)에 마지막 내용이 가리지 않게
+  const tabSpace = useTabBarSpace();
   const top = useScreenTopInset(sheet);
   const { scrolled, onScroll } = useScrolledPast();
   const paddingStyle: ViewStyle = {
     paddingTop: safeTop ? top + Spacing.sm : 0,
-    paddingBottom: tab ? Spacing.xl : safeBottom ? insets.bottom + Spacing.lg : 0,
+    paddingBottom: tab ? tabSpace : safeBottom ? insets.bottom + Spacing.lg : 0,
     paddingHorizontal: padded ? Spacing.lg : 0,
   };
 

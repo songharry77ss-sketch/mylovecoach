@@ -21,7 +21,7 @@ create table if not exists app_user (
   default_tone   text,
   platform       text,                       -- ios | android | web
   app_version    text,
-  premium_plan   text,                       -- null | weekly | lifetime
+  premium_plan   text,                       -- null | weekly | year | lifetime
   crush_count    int  default 0,
   first_seen_at  timestamptz not null default now(),
   last_seen_at   timestamptz not null default now()

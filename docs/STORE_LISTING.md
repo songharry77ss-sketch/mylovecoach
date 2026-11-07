@@ -78,7 +78,7 @@ KKTI는 공식 MBTI® 검사와 관련 없는 재미용 테스트예요.
 가입 전에는 맛보기 1회, 가입하면 무료 연애 코칭 3회를 더 받고 이후 매일 1회가 충전돼요. 더 쓰고 싶다면 필요한 만큼 골라 보세요.
 • 하루 이용권: 3,900원 (결제 후 24시간 무제한, 자동 결제 없음)
 • 주간 구독: 주 9,900원 (1주마다 자동 갱신, 언제든 해지 가능)
-• 평생권: 한 번 결제로 계속 사용 (자동 결제 없음)
+• 1년권: 결제한 날부터 1년 동안 무제한 (자동 결제 없음)
 주간 구독은 현재 기간이 끝나기 24시간 전까지 해지하지 않으면 자동으로 갱신되며, 구입 확정 시 스토어 계정으로 요금이 청구돼요. 구독 관리와 해지는 스토어 계정 설정에서 할 수 있어요.
 이용약관: https://mylovecoach.vercel.app/terms.html
 개인정보 처리방침: https://mylovecoach.vercel.app/privacy.html
@@ -121,7 +121,7 @@ KKTI는 공식 MBTI® 검사와 관련 없는 재미용 테스트예요.
 - AI 답변 신고는 답장 카드의 깃발, 연습 화면 상단 깃발·상대 말풍선 길게 누르기·피드백 깃발, 상대 분석 보고서·속마음 풀이 아래 신고, 마이 → AI 답변 신고하기에서 앱을 떠나지 않고 할 수 있습니다. 연습 화면의 「끝내기」는 신고와 별도입니다.
 - 회원 탈퇴는 마이 화면 맨 아래의 「회원 탈퇴」에서 시작합니다(「모든 데이터 삭제」도 같은 줄에 있습니다). 회원·연결 기기의 이용 기록·로그인 계정을 지우며, Google·카카오 제공사 연결과 스토어 구독 취소는 별도입니다. Apple 자동 연결 해제가 완료되지 않으면 재시도하거나 수동 연결 해제 안내를 확인한 뒤 별도 최종 확인으로 회원 삭제를 요청할 수 있습니다. 이 수동 경로를 Apple 자동 해제 성공으로 표시하지 않습니다. 기기의 채팅방 삭제는 별도이고, 외부에서 삭제를 요청하는 주소는 https://mylovecoach.vercel.app/delete-data.html 입니다.
 - Google 로그인은 openid·email·profile만 요청합니다. 계정 식별자·이메일·제공되는 이름과 프로필 사진 주소는 인증에 사용·보관될 수 있으나 앱이 비밀번호를 받거나 사진 파일을 별도로 저장하지 않습니다. 코칭 내용 저장 동의와 회원가입은 별개입니다.
-- 인앱결제: 무료 코칭(비회원 맛보기 1회, 가입 시 보너스 3회 + 이후 매일 1회)을 다 쓰면 결제 안내 화면이 나타납니다. 마이 탭 → 「이용권 보기」에서도 언제든 열 수 있습니다. 상품은 소모성 하루 이용권(mylovecoach.pass.day — 결제한 때부터 24시간 무제한, 자동 결제 없음), 주간 자동 갱신 구독(mylovecoach.premium.weekly), 비소모성 평생권(mylovecoach.premium.lifetime) 세 가지이며, 같은 화면에 가격, 자동 갱신 안내, 구매 복원, 이용약관, 개인정보 처리방침 링크가 있습니다. 하루 이용권은 소모성이라 구매 복원 대상이 아니고 결제한 기기에 24시간이 충전됩니다. 스토어의 테스트 구매 환경에서 해당 경로로 구매·복원을 확인합니다.
+- 인앱결제: 무료 코칭(비회원 맛보기 1회, 가입 시 보너스 3회 + 이후 매일 1회)을 다 쓰면 결제 안내 화면이 나타납니다. 마이 탭 → 「이용권 보기」에서도 언제든 열 수 있습니다. 상품은 소모성 하루 이용권(mylovecoach.pass.day — 결제한 때부터 24시간 무제한, 자동 결제 없음), 주간 자동 갱신 구독(mylovecoach.premium.weekly), 자동 갱신 없는 구독 1년권(mylovecoach.pass.year — 결제한 날부터 1년, 기간이 끝나면 자동 결제 없이 이용 종료, 같은 Apple 계정이면 「구매 복원」으로 다른 기기에서도 이용) 세 가지이며(예전 비소모성 평생권 mylovecoach.premium.lifetime 은 판매를 멈췄고 이미 산 사람만 복원·이용), 같은 화면에 가격, 자동 갱신 안내, 구매 복원, 이용약관, 개인정보 처리방침 링크가 있습니다. 하루 이용권은 소모성이라 구매 복원 대상이 아니고 결제한 기기에 24시간이 충전됩니다. 스토어의 테스트 구매 환경에서 해당 경로로 구매·복원을 확인합니다.
 - 새 버전 안내: 스토어에 더 새 버전이 나와 있으면 탭 첫 화면에서 「새 버전이 나왔어요」 시트로 업데이트를 권합니다(「나중에」로 닫을 수 있고 3일 뒤 다시 권함). 심사 중인 빌드는 스토어 버전보다 높으므로 이 시트가 뜨지 않습니다. 마이 탭 「앱 버전」 줄에서도 새 버전이 있으면 스토어로 이동할 수 있습니다.
 
 ## Play App access — 영어 안내 초안
@@ -129,6 +129,12 @@ KKTI는 공식 MBTI® 검사와 관련 없는 재미용 테스트예요.
 Some features are accessible without an account, but account management requires sign-in. On the first-capture screen, tap “캡처가 없다면? 상황만 적어도 돼요”, enter a short dating situation, tap “답장·조언 받기”, and accept the AI processing notice to try one coaching request. On first start, a terms sheet appears: tap “모두 동의하고 시작”, or check the two required items and tap “선택한 항목으로 시작” (the optional “코칭 내용 저장” item may stay off). To review sign-in, open “마이”, select the sign-up card, and use Google or Kakao. Account deletion is the “회원 탈퇴” link at the bottom of “마이” (next to “모든 데이터 삭제”). AI access without an account is limited to one request; a new account receives three bonus requests once per account and device, then one daily request. Subscription management and purchase restoration are in “마이”. Report AI content using the flag beside a response or the report link on each AI result screen.
 
 이 안내만으로 모든 제한 영역에 접근 가능한 것은 아닙니다. 제출 전에 반복 가능한 실제 심사 접근 정보와 결제 테스트 방법을 보안 입력란에 완성해야 합니다. 준비되지 않은 계정·OTP 우회·무제한 데모가 있다고 적지 않습니다.
+
+## 이번 버전의 새로운 기능 (1.1.1)
+
+- 아래 탭 바를 새로 꾸몄어요. 어느 화면에서든 오른쪽 + 버튼으로 새 채팅을 바로 시작해요.
+- 결제한 날부터 1년 동안 마음껏 쓰는 「1년권」이 생겼어요(자동 결제 없음). 이미 평생권을 산 분은 그대로 계속 쓸 수 있어요.
+- 결제 화면과 갤럭시 채팅 입력창 등 작은 화면 문제를 다듬었어요.
 
 ## 이번 버전의 새로운 기능 (1.1.0)
 
@@ -201,7 +207,7 @@ Some features are accessible without an account, but account management requires
 가입 전에는 맛보기 1회, 가입하면 무료 코칭 3회를 더 받고 이후 매일 1회가 충전돼요. 더 쓰고 싶다면 필요한 만큼 골라보세요.
 • 하루 이용권: 3,900원 (결제 후 24시간 무제한, 자동 결제 없음)
 • 주간 구독: 주 9,900원 (1주마다 자동 갱신, 언제든 해지 가능)
-• 평생권: 한 번 결제로 계속 사용 (자동 결제 없음)
+• 1년권: 결제한 날부터 1년 동안 무제한 (자동 결제 없음)
 • 횟수권: 코칭 10회 (기간 제한 없음)
 ```
 
@@ -225,7 +231,8 @@ Some features are accessible without an account, but account management requires
 | 상품 ID | 종류 | 가격 | 표시 이름 | 설명 |
 |---|---|---|---|---|
 | `mylovecoach.premium.weekly` | 자동 갱신 구독 (1주) · Play 기본 요금제 ID `weekly` | ₩9,900 / 주 | 주간 프리미엄 | 횟수 제한 없는 AI 연애 코칭 (매주 자동 갱신) |
-| `mylovecoach.premium.lifetime` | 비소모성 (iOS) / 일회성 상품 (Play) | App Store ₩29,900 / Play ₩29,800 | 평생 프리미엄 | 한 번 결제로 횟수 제한 없는 AI 연애 코칭 |
+| `mylovecoach.premium.lifetime` | 비소모성 (iOS) / 일회성 상품 (Play) | App Store ₩29,900 / Play ₩29,800 | 평생 프리미엄 | 한 번 결제로 횟수 제한 없는 AI 연애 코칭 — **2026-11-07 결정으로 1.1.1 부터 판매 중단**(이미 산 사람은 계속 이용·복원) |
+| `mylovecoach.pass.year` | 자동 갱신 없는 구독 (iOS) / 구독 상품의 선불 요금제 `year`·P1Y (Play) | App Store ₩29,900 / Play ₩29,800 | 1년권 | 결제한 날부터 1년 동안 AI 연애 코칭 무제한 (자동 결제 없음) — `node tools/year-pass-products.mjs` |
 | `mylovecoach.pass.day` | 소모성 (iOS) / 일회성 상품 (Play, 앱이 소비) | ₩3,900 (2026-11-07부터, 이전 ₩2,700) | 하루 이용권 | 결제 후 24시간 동안 AI 연애 코칭 무제한 |
 | `mylovecoach.credits.10` | 소모성 (iOS) / 일회성 상품 (Play, 앱이 소비) | ₩4,900 (가안) | 코칭 10회권 | AI 연애 코칭 10회 (기간 제한 없음) |
 
