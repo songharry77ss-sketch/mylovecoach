@@ -127,8 +127,8 @@ export default function Paywall() {
   const [loadAttempt, setLoadAttempt] = useState(0);
   const storeProducts = usePlanProducts(loadAttempt);
   const products = billingSupported && !previewStore ? storeProducts : DEFAULT_PRODUCTS;
-  // 쓰다가 들어온 사람(채팅 안내·막힘)에게는 가장 가벼운 하루 이용권부터, 마이 탭에서 둘러보러 온 사람에게는 평생권부터 보여 준다
-  const [selected, setSelected] = useState<PlanKey>(reason === 'my' ? 'lifetime' : 'day');
+  // 맨 위 큰 카드(「{이름}님을 위한 하루 무제한 이용권」)를 늘 먼저 고른다 — 마이 탭에서 와도 큰 카드와 아래 버튼이 어긋나지 않게 (2026-11-07)
+  const [selected, setSelected] = useState<PlanKey>('day');
   const [busy, setBusy] = useState<'purchase' | 'restore' | null>(null);
   const [done, setDone] = useState<Done | null>(null);
   // 이 화면은 iOS 네이티브 모달이라 앱 전체 토스트가 모달 뒤에 가려진다.

@@ -127,7 +127,7 @@ describe('서버 알림이 특가를 하루 이용권으로 센다', () => {
     expect(planLabel('day', DAY_SALE_PRODUCT_ID)).toBe('하루 이용권 특가');
     expect(planLabel('day', PRODUCT_IDS.day)).toBe('하루 이용권');
     expect(listPriceKrw('day', DAY_SALE_PRODUCT_ID)).toBe(DAY_SALE_PRICE_KRW);
-    expect(listPriceKrw('day', PRODUCT_IDS.day)).toBe(2700);
+    expect(listPriceKrw('day', PRODUCT_IDS.day)).toBe(3900);
   });
 
   it('텔레그램 문구', () => {
