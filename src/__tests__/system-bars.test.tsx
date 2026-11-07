@@ -1,12 +1,12 @@
 /**
  * 화면 위아래 시스템 영역 — 갤럭시(버튼 3개·제스처)·아이폰에서 탭 바와 화면이 잘리거나 겹치지 않는다.
- * - 탭 바는 기기 아래 영역만큼 키운다 (높이를 숫자로 고정하면 갤럭시에서 아이콘·이름이 버튼 뒤로 잘렸다)
+ * - 탭 바는 떠 있는 유리 알약 + 「새 채팅」 구슬 (2026-11-07). 기기 아래 영역(홈 막대·버튼 3개·제스처) 위로 띄우고, 탭 화면은 그만큼 아래를 비운다
  * - 아이폰 모달(아래에서 올라오는 카드)은 위를 상태 표시줄만큼 또 띄우지 않는다
  * - 짙은 화면은 보이는 동안에만 상태 표시줄 글자를 흰색으로 바꾼다
  * - 입력 화면은 안드로이드에서도 키보드만큼 올린다
  */
 import { act } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { create, type ReactTestRenderer } from 'react-test-renderer';
 import { StatusBar } from 'expo-status-bar';
@@ -14,18 +14,32 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import TabsLayout from '@/app/(tabs)/_layout';
+import { GlassTabBar } from '@/components/ui/glass-tab-bar';
+import { TAB_BAR_HEIGHT, tabBarBottom } from '@/components/ui/tab-bar-space';
 import { Screen } from '@/components/ui/screen';
 import { FocusStatusBar, SystemBarsReady } from '@/components/ui/system-bars';
 
 let mockFocused = true;
 let mockTabOptions: { tabBarStyle?: object; tabBarAllowFontScaling?: boolean } = {};
+let mockTabBar: unknown = null;
+const mockPush = jest.fn();
 jest.mock('expo-router', () => {
-  const Tabs = (props: { screenOptions: typeof mockTabOptions }) => {
+  const Tabs = (props: { screenOptions: typeof mockTabOptions; tabBar?: unknown }) => {
     mockTabOptions = props.screenOptions;
+    mockTabBar = props.tabBar;
     return null;
   };
   Tabs.Screen = function MockTabScreen() { return null; };
-  return { Tabs, useIsFocused: () => mockFocused };
+  return { Tabs, useIsFocused: () => mockFocused, useRouter: () => ({ push: mockPush }) };
+});
+jest.mock('@/lib/analytics', () => ({ track: jest.fn() }));
+// 탭 바 렌즈·구슬 움직임(Reanimated·worklets)은 바로 끝나는 흉내로
+jest.mock('react-native-worklets', () => jest.requireActual('react-native-worklets/src/mock'));
+jest.mock('react-native-reanimated', () => ({ ...jest.requireActual('react-native-reanimated/mock'), useReducedMotion: () => false }));
+jest.mock('@expo/vector-icons', () => ({ Ionicons: Object.assign(() => null, { glyphMap: {} }) }));
+jest.mock('expo-linear-gradient', () => {
+  const { View } = jest.requireActual('react-native');
+  return { LinearGradient: View };
 });
 jest.mock('expo-status-bar', () => ({ StatusBar: function MockStatusBar() { return null; } }));
 jest.mock('@/store/app-store', () => ({ useAppStore: (pick: (s: { practiceEnabled: boolean }) => unknown) => pick({ practiceEnabled: false }) }));
@@ -39,26 +53,78 @@ function mount(element: React.ReactElement, top: number, bottom: number): ReactT
   });
   return tree as unknown as ReactTestRenderer;
 }
-const tabBar = () => StyleSheet.flatten(mockTabOptions.tabBarStyle) as { height: number; paddingTop: number; paddingBottom: number };
+// 탭 바에 넘어오는 내비게이션 상태 — 홈·연애 연습(꺼짐)·탐색·마이
+const routes = [
+  { key: 'index-k', name: 'index' },
+  { key: 'practice-k', name: 'practice' },
+  { key: 'tips-k', name: 'tips' },
+  { key: 'my-k', name: 'my' },
+];
+const descriptors = Object.fromEntries(
+  routes.map((r) => [
+    r.key,
+    { options: { title: ({ index: '홈', practice: '연애 연습', tips: '탐색', my: '마이' } as Record<string, string>)[r.name], tabBarItemStyle: r.name === 'practice' ? { display: 'none' } : undefined, tabBarIcon: () => null } },
+  ]),
+);
+const fakeNav = () => ({ emit: jest.fn(() => ({ defaultPrevented: false })), navigate: jest.fn() });
+function mountBar(index: number, bottom: number, nav = fakeNav()) {
+  const props = { state: { index, routes, key: 'tabs', routeNames: routes.map((r) => r.name), type: 'tab', stale: false, history: [] }, descriptors, navigation: nav, insets: { top: 0, left: 0, right: 0, bottom } };
+  const t = mount(<GlassTabBar {...(props as unknown as Parameters<typeof GlassTabBar>[0])} />, 40, bottom);
+  return { t, nav };
+}
+// 누를 수 있는 컴포넌트(호스트 View 가 아닌 것) 하나씩만
+const pressables = (t: ReactTestRenderer, pick: (props: Record<string, unknown>) => boolean) => t.root.findAll((n) => typeof n.type !== 'string' && typeof n.props.onPress === 'function' && pick(n.props));
+const tabs = (t: ReactTestRenderer) => pressables(t, (p) => p.accessibilityRole === 'tab');
 
-describe('탭 바', () => {
-  it.each([
-    ['갤럭시 버튼 3개', 48],
-    ['갤럭시 제스처', 24],
-    ['아이폰 홈 막대', 34],
-  ])('%s — 아래 영역(%i)만큼 키워서 탭 칸(아이콘·이름)은 늘 같은 높이로 남는다', (_name, bottom) => {
-    mount(<TabsLayout />, 40, bottom);
-    const s = tabBar();
-    expect(s.paddingBottom).toBe(bottom);
-    expect(s.height - s.paddingTop - s.paddingBottom).toBeGreaterThanOrEqual(52);
+describe('떠 있는 유리 탭 바', () => {
+  afterEach(() => {
+    Platform.OS = 'ios';
+    mockPush.mockClear();
   });
 
-  it('아래 영역이 없는 기기(홈 버튼 아이폰)는 바닥에 조금만 띄우고, 이름 글자는 확대로 칸 밖에 밀리지 않는다', () => {
-    mount(<TabsLayout />, 20, 0);
-    const s = tabBar();
-    expect(s.paddingBottom).toBeGreaterThan(0);
-    expect(s.height - s.paddingTop - s.paddingBottom).toBeGreaterThanOrEqual(52);
+  it('탭 레이아웃은 유리 탭 바를 쓰고, 이름 글자는 확대로 칸 밖에 밀리지 않는다', () => {
+    mount(<TabsLayout />, 40, 34);
+    expect(typeof mockTabBar).toBe('function');
     expect(mockTabOptions.tabBarAllowFontScaling).toBe(false);
+  });
+
+  it.each([
+    ['아이폰 홈 막대', 'ios', 34],
+    ['갤럭시 버튼 3개', 'android', 48],
+    ['갤럭시 제스처', 'android', 24],
+    ['홈 버튼 아이폰', 'ios', 0],
+  ])('%s — 탭 바가 기기 아래 영역(버튼·홈 막대)과 겹치지 않게 떠 있다', (_name, os, bottom) => {
+    const at = tabBarBottom(bottom, os);
+    if (os === 'android') expect(at).toBeGreaterThanOrEqual(bottom);
+    // 아이폰은 iOS 26 탭 바처럼 홈 막대 영역에 조금 걸치되, 막대(바닥에서 약 13pt)보다는 위
+    if (os === 'ios') expect(at).toBeGreaterThanOrEqual(12);
+    Platform.OS = os as 'ios' | 'android';
+    const { t } = mountBar(0, bottom);
+    const root = t.root.findAll((n) => n.type === View && StyleSheet.flatten(n.props.style)?.position === 'absolute' && StyleSheet.flatten(n.props.style)?.bottom === 0)[0];
+    expect(StyleSheet.flatten(root.props.style).paddingBottom).toBe(at);
+  });
+
+  it('숨긴 탭(연애 연습 꺼짐)은 빼고 홈·탐색·마이만, 지금 탭은 선택됨으로 읽힌다', () => {
+    const { t } = mountBar(2, 34);
+    expect(tabs(t).map((n) => n.props.accessibilityLabel)).toEqual(['홈', '탐색', '마이']);
+    expect(tabs(t).map((n) => n.props.accessibilityState.selected)).toEqual([false, true, false]);
+  });
+
+  it('다른 탭을 누르면 tabPress 를 알리고 그 탭으로 간다 · 지금 탭을 다시 누르면 이동하지 않는다', () => {
+    const { t, nav } = mountBar(0, 34);
+    act(() => tabs(t)[2].props.onPress());
+    expect(nav.emit).toHaveBeenCalledWith({ type: 'tabPress', target: 'my-k', canPreventDefault: true });
+    expect(nav.navigate).toHaveBeenCalledWith('my', undefined);
+    nav.navigate.mockClear();
+    act(() => tabs(t)[0].props.onPress());
+    expect(nav.navigate).not.toHaveBeenCalled();
+  });
+
+  it('오른쪽 「새 채팅」 구슬 버튼은 어느 탭에서든 새 채팅방을 연다', () => {
+    const { t } = mountBar(2, 48);
+    const [fab] = pressables(t, (p) => p.accessibilityLabel === '새 채팅 시작');
+    act(() => fab.props.onPress());
+    expect(mockPush).toHaveBeenCalledWith('/crush/new');
   });
 });
 
@@ -84,8 +150,11 @@ describe('화면 여백 (Screen)', () => {
     expect(t.root.findAllByType(StatusBar)).toHaveLength(0);
   });
 
-  it('탭 화면은 아래 영역을 탭 바가 맡으니 또 더하지 않고, 일반 화면은 아래 영역만큼 띄운다', () => {
-    expect(padBottom(mount(<Screen tab><Text>마이</Text></Screen>, 40, 48))).toBeLessThan(48);
+  it('탭 화면은 떠 있는 탭 바(+ 기기 아래 영역)만큼 비워 마지막 내용이 가리지 않고, 일반 화면은 아래 영역만큼 띄운다', () => {
+    Platform.OS = 'android';
+    expect(padBottom(mount(<Screen tab><Text>마이</Text></Screen>, 40, 48))).toBeGreaterThanOrEqual(tabBarBottom(48, 'android') + TAB_BAR_HEIGHT);
+    Platform.OS = 'ios';
+    expect(padBottom(mount(<Screen tab><Text>마이</Text></Screen>, 59, 34))).toBeGreaterThanOrEqual(tabBarBottom(34, 'ios') + TAB_BAR_HEIGHT);
     expect(padBottom(mount(<Screen><Text>설정</Text></Screen>, 40, 48))).toBeGreaterThanOrEqual(48);
   });
 
