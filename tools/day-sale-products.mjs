@@ -2,7 +2,8 @@
 // 하루 이용권 타임 세일용 특가 상품 mylovecoach.pass.day.sale (소모성, 효과는 하루 이용권과 같은 24시간 무제한)을 두 스토어에 만든다.
 //
 //   기본은 확인만 한다(dry-run) — 상품이 이미 있는지, 원하는 가격에 맞는 App Store 가격대가 있는지 GET 으로만 본다. 아무것도 만들지 않는다.
-//   --apply  : 실제로 만든다. --price 가 꼭 있어야 하고(사장님이 정한 값, 예: 1900), 정가 하루 이용권(₩2,700)보다 싸야 한다(거짓 할인 방지).
+//   --apply  : 실제로 만든다. --price 가 꼭 있어야 하고(2026-11-07 결정: 2900), 정가 하루 이용권(₩3,900)보다 싸야 한다(거짓 할인 방지).
+//   ※ 정가를 ₩3,900 으로 올린 날(11-07)부터 20일이 지난 11-28 이후에 연다 — 할인 전 가격은 최근 20일 실제 판매가 중 가장 낮은 값이어야 한다.
 //   --ios / --android : 한쪽 스토어만 (없으면 둘 다)
 //   --shot   : App Store 심사용 스크린샷 — 특가가 보이는 결제 화면 캡처(실기기·TestFlight). 없으면 docs/store-assets/iap-review-paywall-sale.png
 //
@@ -31,7 +32,7 @@ const root = secretsRoot(args);
 // 앱 코드(src/lib/billing/plans.ts)와 같은 상품 ID 여야 한다
 const PRODUCT_ID = 'mylovecoach.pass.day.sale';
 const REGULAR_ID = 'mylovecoach.pass.day';
-const REGULAR_PRICE = 2700;
+const REGULAR_PRICE = 3900;
 const PACKAGE = 'app.mylovecoach.android';
 const LANG = 'ko-KR';
 const LOCALE = 'ko';
@@ -40,7 +41,7 @@ const TERRITORY = 'KOR';
 const priceArg = argOf('--price');
 const price = priceArg == null ? null : Number(priceArg);
 if (priceArg != null && (!Number.isInteger(price) || price <= 0)) {
-  console.error('--price 는 원 단위 정수로 적는다 (예: --price 1900).');
+  console.error('--price 는 원 단위 정수로 적는다 (예: --price 2900).');
   process.exit(1);
 }
 if (price != null && price >= REGULAR_PRICE) {
@@ -48,7 +49,7 @@ if (price != null && price >= REGULAR_PRICE) {
   process.exit(1);
 }
 if (apply && price == null) {
-  console.error('--apply 에는 --price 가 꼭 필요하다 (사장님이 정한 특가, 예: --price 1900).');
+  console.error('--apply 에는 --price 가 꼭 필요하다 (2026-11-07 결정: --price 2900).');
   process.exit(1);
 }
 // 순서: 앱·서버의 가격 상수(DAY_SALE_PRICE_KRW)를 먼저 같은 값으로 고쳐 배포한 뒤에 만든다 — 그래야 Android 특가 매출이 「금액 미정」으로 빠지지 않는다
@@ -215,7 +216,7 @@ async function main() {
   console.log(
     apply
       ? '\n잊지 말 것: 이용약관에 특가 안내 추가 · 앱은 특가 지원 빌드부터 세일을 보여 준다.'
-      : '\n확인만 했다. 실제로 만들려면 가격을 정한 뒤 --apply --price <원> (예: --apply --price 1900).',
+      : '\n확인만 했다. 실제로 만들려면 가격을 정한 뒤 --apply --price <원> (2026-11-07 결정: --apply --price 2900, 11-28 이후).',
   );
 }
 main().catch((e) => {
