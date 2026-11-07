@@ -3,6 +3,7 @@
  * 실제 표시 가격은 스토어에서 받아온 값(displayPrice)을 쓰고, 아래 값은 불러오기 전/실패 시의 표시용입니다.
  *
  * 요금 사다리 (2026-10 회의): 하루 2,700원 · 일주일 9,900원 · 평생 29,800원 · 횟수제
+ * 2026-11-07 사장님 결정: 하루 이용권 정가 3,900원(11-07부터) · 타임 세일 특가 2,900원(11-28부터 — 할인 전 가격은 최근 20일 판매가여야 해서)
  * - weekly / lifetime : 프리미엄. 스토어 구매 내역으로 상태를 판정한다 (복원 가능)
  * - day / credits     : 소모성 상품. 살 때마다 이 기기에 충전한다 (하루 이용권 24시간, 횟수권 10회)
  * - 하루 이용권 특가(DAY_SALE_PRODUCT_ID) : 타임 세일 동안만 파는 별도 소모성 상품. 효과는 하루 이용권과 같다
@@ -23,7 +24,7 @@ export const ANDROID_WEEKLY_BASE_PLAN = 'weekly';
 export const ANDROID_PACKAGE = 'app.mylovecoach.android';
 
 export const FALLBACK_PRICES: Record<PlanKey, string> = {
-  day: '₩2,700',
+  day: '₩3,900',
   weekly: '₩9,900',
   lifetime: '₩29,800',
   credits: '₩4,900',
@@ -87,9 +88,9 @@ export const DAY_SALE_PRODUCT_ID = 'mylovecoach.pass.day.sale';
 
 /**
  * 특가 상품 가격(원) — Google 실시간 알림에는 금액이 없어 서버가 이 값으로 매출을 적는다 (api/_store.ts).
- * 사장님이 가격을 정해 스토어에 만들 때 같은 값으로 고친다. 정하기 전(null)에는 금액 없이 알린다.
+ * 2026-11-07 결정: 2,900원 (정가 3,900원). 스토어 상품 가격과 같아야 한다. 정하기 전(null)에는 금액 없이 알린다.
  */
-export const DAY_SALE_PRICE_KRW: number | null = null;
+export const DAY_SALE_PRICE_KRW: number | null = 2900;
 
 export const isSaleProduct = (productId: string | null | undefined): boolean => productId === DAY_SALE_PRODUCT_ID;
 

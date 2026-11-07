@@ -117,7 +117,7 @@ describe('/api/store-google 처리', () => {
   });
 
   it('하루 이용권 결제 → store_event 에 한 줄(중복 무시) + 결제·오늘 매출 알림', async () => {
-    todayRows = [{ amount: 2700, currency: 'KRW' }, { amount: 9900, currency: 'KRW' }];
+    todayRows = [{ amount: 3900, currency: 'KRW' }, { amount: 9900, currency: 'KRW' }];
     const res = fakeRes();
     await handler(
       req(push({ version: '1.0', packageName: 'app.mylovecoach.android', eventTimeMillis: '1761000000000', oneTimeProductNotification: { version: '1.0', notificationType: 1, purchaseToken: 'secret-purchase-token', sku: 'mylovecoach.pass.day' } })),
@@ -135,13 +135,13 @@ describe('/api/store-google 처리', () => {
       notification: 'ONE_TIME_PRODUCT_PURCHASED',
       product_id: 'mylovecoach.pass.day',
       plan: 'day',
-      amount: 2700,
+      amount: 3900,
       currency: 'KRW',
       transaction_id: tokenHash('secret-purchase-token'),
     });
     // 구매 토큰 원문은 어디에도 저장하지 않는다
     expect(insert.body).not.toContain('secret-purchase-token');
-    expect(telegramTexts()).toEqual(['💳 결제 · 하루 이용권 ₩2,700 · Android\n오늘 매출 ₩12,600 (2건)']);
+    expect(telegramTexts()).toEqual(['💳 결제 · 하루 이용권 ₩3,900 · Android\n오늘 매출 ₩13,800 (2건)']);
     // 매출은 실제 결제(Production)의 결제·갱신만, 한국 자정부터
     const revenueQuery = calls.find((c) => c.url.includes('/rest/v1/store_event?select=amount'))!.url;
     expect(revenueQuery).toContain('environment=eq.Production');

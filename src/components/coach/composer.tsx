@@ -177,7 +177,7 @@ export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPi
               setText(value);
               onEdit?.();
             }}
-            placeholder={image ? '상황을 덧붙여도 좋아요 (선택)' : '캡처를 올리거나 상황을 적어주세요'}
+            placeholder={image ? '덧붙일 상황 (선택)' : '캡처나 상황을 보내 주세요'}
             placeholderTextColor={theme.textTertiary}
             multiline
             maxLength={800}

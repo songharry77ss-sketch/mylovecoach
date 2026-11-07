@@ -195,7 +195,7 @@ export function RequiredUpdate({ update, onUpdate }: { update: AppUpdate; onUpda
   return (
     <View accessibilityViewIsModal style={[StyleSheet.absoluteFill, { backgroundColor: theme.background }]}>
       <WashBackground>
-        <ScrollView contentContainerStyle={[styles.requiredBody, { paddingTop: insets.top + Spacing.xxl }]} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={[styles.requiredBody, { paddingTop: insets.top + Spacing.xl }]} showsVerticalScrollIndicator={false}>
           <View style={[styles.iconFrame, BrandShadow]}>
             <Image source={appMark} style={styles.appIcon} contentFit="cover" accessibilityIgnoresInvertColors accessible={false} />
             <BrandGradient style={[styles.iconBadge, { borderColor: theme.background }]}>
@@ -217,6 +217,17 @@ export function RequiredUpdate({ update, onUpdate }: { update: AppUpdate; onUpda
           <AppText variant="body" color="textSecondary" align="center" style={styles.requiredLead}>
             새로워진 {APP_NAME}이 기다리고 있어요.{'\n'}지금 버전으로는 더 이상 코칭을 받을 수 없어요.
           </AppText>
+          {/* 잃는 것이 없다는 약속을 먼저 — 좋아진 점이 길어 작은 화면에서 아래가 가려져도 이 줄은 보이게 */}
+          <View style={styles.promises}>
+            {PROMISES.map((p) => (
+              <View key={p.text} style={[styles.promise, { backgroundColor: theme.surface }]}>
+                <Ionicons name={p.icon} size={18} color={theme.primary} />
+                <AppText variant="caption" color="textSecondary" align="center">
+                  {p.text}
+                </AppText>
+              </View>
+            ))}
+          </View>
           {notes.length ? (
             <View style={[styles.notesCard, Shadow, { backgroundColor: theme.background, borderColor: theme.border }]}>
               <AppText variant="smallStrong" color="primary">
@@ -234,16 +245,6 @@ export function RequiredUpdate({ update, onUpdate }: { update: AppUpdate; onUpda
               ))}
             </View>
           ) : null}
-          <View style={styles.promises}>
-            {PROMISES.map((p) => (
-              <View key={p.text} style={[styles.promise, { backgroundColor: theme.surface }]}>
-                <Ionicons name={p.icon} size={18} color={theme.primary} />
-                <AppText variant="caption" color="textSecondary" align="center">
-                  {p.text}
-                </AppText>
-              </View>
-            ))}
-          </View>
         </ScrollView>
         <View style={[styles.requiredFooter, { paddingBottom: insets.bottom + Spacing.lg }]}>
           <GradientButton title="업데이트하기" onPress={onUpdate} shine icon={<Ionicons name="arrow-up-circle" size={19} color={Brand.onBrand} />} />
@@ -280,8 +281,8 @@ const styles = StyleSheet.create({
   actions: { gap: Spacing.xs, paddingTop: Spacing.xs },
   // 꼭 해야 하는 업데이트 (전체 화면)
   requiredBody: { flexGrow: 1, alignItems: 'center', gap: Spacing.lg, paddingHorizontal: Spacing.xl, paddingBottom: Spacing.xl, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
-  iconFrame: { width: 104, height: 104, borderRadius: 28, marginBottom: Spacing.xs },
-  appIcon: { width: '100%', height: '100%', borderRadius: 28 },
+  iconFrame: { width: 88, height: 88, borderRadius: 24, marginBottom: Spacing.xs },
+  appIcon: { width: '100%', height: '100%', borderRadius: 24 },
   iconBadge: { position: 'absolute', right: -6, bottom: -6, width: 32, height: 32, borderRadius: 16, borderWidth: 3, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   versionPill: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, borderRadius: Radius.pill, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.md },
   requiredLead: { marginTop: -Spacing.sm },
