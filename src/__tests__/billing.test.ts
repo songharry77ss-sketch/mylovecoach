@@ -1,5 +1,21 @@
 import { entitlementFrom } from '@/lib/billing/entitlement';
-import { CREDITS_PER_PACK, DAY_PASS_MS, FREE_DAILY, FREE_TRIAL_TOTAL, GUEST_TRIAL_TOTAL, PRODUCT_IDS, SIGNUP_BONUS, freeRules, isConsumablePlan, planOfProduct, premiumPlanOfProduct } from '@/lib/billing/plans';
+import {
+  CREDITS_PER_PACK,
+  DAY_PASS_MS,
+  FALLBACK_PRICES,
+  FREE_DAILY,
+  FREE_TRIAL_TOTAL,
+  GUEST_TRIAL_TOTAL,
+  PRODUCT_IDS,
+  SELLING_PLANS,
+  SIGNUP_BONUS,
+  freeRules,
+  isConsumablePlan,
+  isSubscriptionPlan,
+  planOfProduct,
+  premiumPlanOfProduct,
+  yearPassEnd,
+} from '@/lib/billing/plans';
 import {
   consumeFree,
   consumeOne,
@@ -10,6 +26,8 @@ import {
   grantSignupBonus,
   isPremiumActive,
   isTeamActive,
+  premiumUntilLabel,
+  premiumUntilSentence,
   quotaLabel,
   quotaStatus,
   type PremiumState,
@@ -219,5 +237,97 @@ describe('가입 규칙 (맛보기 1회 → 가입 보너스 3회 + 매일 1회)
     const spent = { total: 5, day: dayKey(NOW), dayCount: 1 };
     const next = consumeOne(null, spent, wallet, NOW, null, member).wallet;
     expect([next.bonus, next.credits]).toEqual([SIGNUP_BONUS - 1, 2]);
+  });
+});
+
+describe('1년권 (2026-11-07 평생권 판매 중지 → 1년권 29,800원)', () => {
+  const PAID = Date.UTC(2026, 10, 7, 1, 30, 0); // 2026-11-07 10:30 (한국)
+  const ios = (transactionDate: number) => ({ productId: PRODUCT_IDS.year, purchaseState: 'purchased' as const, store: 'apple', transactionDate });
+  const android = (transactionDate: number) => ({ productId: PRODUCT_IDS.year, purchaseState: 'purchased' as const, store: 'google', transactionDate });
+
+  it('상품·요금제 — 지금 파는 순서는 하루 → 주간 → 1년 → 횟수, 평생권은 팔지 않는다', () => {
+    expect(PRODUCT_IDS.year).toBe('mylovecoach.pass.year');
+    expect(FALLBACK_PRICES.year).toBe('₩29,800');
+    expect(planOfProduct('mylovecoach.pass.year')).toBe('year');
+    expect(premiumPlanOfProduct('mylovecoach.pass.year')).toBe('year');
+    expect(premiumPlanOfProduct(PRODUCT_IDS.lifetime)).toBe('lifetime');
+    expect(SELLING_PLANS).toEqual(['day', 'weekly', 'year', 'credits']);
+    expect(isSubscriptionPlan('year')).toBe(true);
+    expect(isSubscriptionPlan('weekly')).toBe(true);
+    expect(isSubscriptionPlan('lifetime')).toBe(false);
+    expect(isConsumablePlan('year')).toBe(false);
+  });
+
+  it('끝나는 시각은 달력으로 1년 뒤 같은 날짜·시각, 2월 29일은 다음 해 2월 28일', () => {
+    expect(yearPassEnd(PAID)).toBe(Date.UTC(2027, 10, 7, 1, 30, 0));
+    expect(yearPassEnd(Date.UTC(2028, 1, 29, 12, 0, 0))).toBe(Date.UTC(2029, 1, 28, 12, 0, 0));
+    expect(yearPassEnd(Date.UTC(2027, 11, 31, 23, 59, 59))).toBe(Date.UTC(2028, 11, 31, 23, 59, 59));
+  });
+
+  it('iOS: 결제 시각 + 1년 안이면 이용 중, 지나면 아니다 (StoreKit 이 끝난 거래도 돌려주므로 앱이 판정)', () => {
+    const end = yearPassEnd(PAID);
+    expect(entitlementFrom([ios(PAID)], PAID + DAY)).toEqual({ plan: 'year', productId: PRODUCT_IDS.year, expiresAt: end, verifiedAt: PAID + DAY });
+    expect(entitlementFrom([ios(PAID)], end - 1)?.plan).toBe('year');
+    expect(entitlementFrom([ios(PAID)], end)).toBeNull();
+    expect(entitlementFrom([ios(PAID)], end + 30 * DAY)).toBeNull();
+    // 결제 시각을 모르면 인정하지 않는다
+    expect(entitlementFrom([{ productId: PRODUCT_IDS.year, purchaseState: 'purchased', store: 'apple' }], PAID)).toBeNull();
+    // 환불된 거래는 인정하지 않는다
+    expect(entitlementFrom([{ ...ios(PAID), revocationDateIOS: PAID + DAY }], PAID + 2 * DAY)).toBeNull();
+  });
+
+  it('iOS: 저장된 1년권은 끝나는 시각까지만 (자동 갱신이 없어 여유를 두지 않는다)', () => {
+    const premium = entitlementFrom([ios(PAID)], PAID)!;
+    const end = yearPassEnd(PAID);
+    expect(isPremiumActive(premium, end - 1)).toBe(true);
+    expect(isPremiumActive(premium, end)).toBe(false);
+    expect(quotaStatus(premium, EMPTY_USAGE, end - 1).kind).toBe('premium');
+    expect(quotaStatus(premium, EMPTY_USAGE, end + 1).kind).toBe('trial');
+  });
+
+  it('Android: 스토어 목록에 있으면 이용 중 — 끝나는 날은 어림값(「예정」)', () => {
+    // 연장 결제 등으로 어림한 날이 지나도 스토어가 돌려주면 이용 중
+    const result = entitlementFrom([android(PAID)], PAID + 400 * DAY);
+    expect(result).toEqual({ plan: 'year', productId: PRODUCT_IDS.year, expiresAt: yearPassEnd(PAID), expiresEstimated: true, verifiedAt: PAID + 400 * DAY });
+    expect(entitlementFrom([{ productId: PRODUCT_IDS.year, purchaseState: 'purchased', store: 'google' }], PAID)).toMatchObject({ plan: 'year', expiresAt: null, expiresEstimated: true });
+    expect(entitlementFrom([{ ...android(PAID), purchaseState: 'pending' }], PAID)).toBeNull();
+  });
+
+  it('Android: 최근에 스토어가 확인했거나 어림한 1년 안이면 이용 중, 둘 다 아니면 끝', () => {
+    const end = yearPassEnd(PAID);
+    const premium = { plan: 'year' as const, productId: PRODUCT_IDS.year, expiresAt: end, expiresEstimated: true, verifiedAt: PAID };
+    // 오프라인이어도 어림한 1년 안이면
+    expect(isPremiumActive(premium, end - DAY)).toBe(true);
+    // 어림한 날이 지나도 스토어가 방금 확인했으면 (연장 결제)
+    expect(isPremiumActive({ ...premium, verifiedAt: end + DAY }, end + 2 * DAY)).toBe(true);
+    // 어림한 날도 지났고 오래 확인하지 못했으면
+    expect(isPremiumActive(premium, end + DAY)).toBe(false);
+  });
+
+  it('우선순위: 평생권 > 1년권 > 주간 구독, 같은 종류면 늦게 끝나는 쪽', () => {
+    const weekly = { productId: PRODUCT_IDS.weekly, purchaseState: 'purchased' as const, expirationDateIOS: PAID + 30 * DAY };
+    // 이미 산 평생권은 그대로 평생권
+    expect(entitlementFrom([ios(PAID), weekly, { productId: PRODUCT_IDS.lifetime, purchaseState: 'purchased' }], PAID + DAY)).toEqual({
+      plan: 'lifetime',
+      productId: PRODUCT_IDS.lifetime,
+      expiresAt: null,
+      verifiedAt: PAID + DAY,
+    });
+    expect(entitlementFrom([weekly, ios(PAID)], PAID + DAY)?.plan).toBe('year');
+    const later = PAID + 100 * DAY;
+    expect(entitlementFrom([ios(PAID), ios(later)], later + DAY)?.expiresAt).toBe(yearPassEnd(later));
+    // 1년권이 끝났으면 주간 구독으로
+    expect(entitlementFrom([ios(PAID), { ...weekly, expirationDateIOS: yearPassEnd(PAID) + 7 * DAY }], yearPassEnd(PAID) + DAY)?.plan).toBe('weekly');
+  });
+
+  it('언제까지 — iOS 는 확정 날짜, Android 는 「끝날 예정」', () => {
+    const at = new Date(2027, 10, 7, 10, 30).getTime();
+    const base = { plan: 'year' as const, productId: PRODUCT_IDS.year, expiresAt: at, verifiedAt: NOW };
+    expect(premiumUntilLabel(base)).toBe('2027년 11월 7일까지');
+    expect(premiumUntilLabel({ ...base, expiresEstimated: true })).toBe('2027년 11월 7일 끝날 예정');
+    expect(premiumUntilSentence(base)).toBe('2027년 11월 7일까지 쓸 수 있어요.');
+    expect(premiumUntilSentence({ ...base, expiresEstimated: true })).toBe('2027년 11월 7일에 끝날 예정이에요.');
+    expect(premiumUntilLabel({ plan: 'lifetime', productId: PRODUCT_IDS.lifetime, expiresAt: null, verifiedAt: NOW })).toBeNull();
+    expect(premiumUntilLabel({ ...base, expiresAt: null, expiresEstimated: true })).toBeNull();
   });
 });

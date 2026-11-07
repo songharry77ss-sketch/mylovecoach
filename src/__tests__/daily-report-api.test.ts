@@ -145,6 +145,28 @@ describe('/api/daily-report', () => {
     expect(calls).toHaveLength(0);
   });
 
+  it('1년권 매출은 스토어별 「1년권」 줄로 따로 센다', () => {
+    const text = reportMessage({
+      day: '11/07',
+      newMembers: 0,
+      members: [],
+      totalMembers: 0,
+      sales: [
+        { store: 'google', kind: 'purchase', plan: 'year', product_id: 'mylovecoach.pass.year', amount: 29800, currency: 'KRW' },
+        { store: 'apple', kind: 'purchase', plan: 'year', product_id: 'mylovecoach.pass.year', amount: 29800, currency: 'KRW' },
+        { store: 'google', kind: 'purchase', plan: 'weekly', product_id: 'mylovecoach.premium.weekly', amount: 9900, currency: 'KRW' },
+      ],
+      launches: 0,
+      coaching: 0,
+      paywall: 0,
+      checkout: 0,
+    });
+    expect(text).toContain('💰 매출 ₩69,500 (3건)');
+    expect(text).toContain(' · Android 1년권 ₩29,800 (1건)');
+    expect(text).toContain(' · iOS 1년권 ₩29,800 (1건)');
+    expect(text).toContain(' · Android 주간 구독 ₩9,900 (1건)');
+  });
+
   it('읽지 못한 항목은 「확인 못 함」으로 적는다', () => {
     const text = reportMessage({ day: '10/20', newMembers: null, members: null, totalMembers: null, sales: null, launches: null, coaching: 0, paywall: null, checkout: null });
     expect(text).toContain('👥 신규 회원 확인 못 함 · 누적 확인 못 함');

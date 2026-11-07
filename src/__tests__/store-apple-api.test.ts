@@ -314,6 +314,33 @@ describe('/api/store-apple', () => {
     expect(telegramTexts()).toEqual(['⚠️ 구독 해지 예약 · 주간 구독 · iOS', '↩️ 환불 · 평생권 ₩29,800 · iOS']);
   });
 
+  it('1년권(자동 갱신 없는 구독) 결제(ONE_TIME_CHARGE) → plan year 로 기록하고 「결제 · 1년권」을 알린다', async () => {
+    const res = fakeRes();
+    const tx = transaction({ productId: 'mylovecoach.pass.year', transactionId: '2000000555', originalTransactionId: '2000000555', price: 29800000, transactionReason: 'PURCHASE', type: 'Non-Renewing Subscription' });
+    await testHandler(post(chain.jws(notification('ONE_TIME_CHARGE', undefined, tx))), res as never);
+    expect(res.statusCode).toBe(200);
+    expect(insertedRow()).toMatchObject({ store: 'apple', kind: 'purchase', notification: 'ONE_TIME_CHARGE', product_id: 'mylovecoach.pass.year', plan: 'year', amount: 29800, currency: 'KRW' });
+    expect(telegramTexts()[0]).toMatch(/^💳 결제 · 1년권 ₩29,800 · iOS\n오늘 매출 /);
+  });
+
+  it('1년권 환불(REFUND) → 「환불 · 1년권」, 금액이 없는 거래면 정가 29,800원으로 적는다', async () => {
+    const res = fakeRes();
+    const tx = transaction({ productId: 'mylovecoach.pass.year', price: undefined, type: 'Non-Renewing Subscription', revocationDate: NOW });
+    await testHandler(post(chain.jws(notification('REFUND', undefined, tx))), res as never);
+    expect(res.statusCode).toBe(200);
+    expect(insertedRow()).toMatchObject({ kind: 'refund', plan: 'year', amount: 29800, currency: 'KRW' });
+    expect(telegramTexts()).toEqual(['↩️ 환불 · 1년권 ₩29,800 · iOS']);
+  });
+
+  it('1년권에는 자동 갱신이 없어 갱신·해지 예약 같은 알림이 와도 매출·「해지 예약」으로 세지 않는다', async () => {
+    const tx = transaction({ productId: 'mylovecoach.pass.year', type: 'Non-Renewing Subscription' });
+    await testHandler(post(chain.jws(notification('DID_RENEW', undefined, tx))), fakeRes() as never);
+    await testHandler(post(chain.jws(notification('DID_CHANGE_RENEWAL_STATUS', 'AUTO_RENEW_DISABLED', tx))), fakeRes() as never);
+    const rows = calls.filter((c) => c.method === 'POST' && c.url.includes('/rest/v1/store_event')).map((c) => JSON.parse(c.body ?? '[]')[0]);
+    expect(rows.map((r) => r.kind)).toEqual(['other', 'other']);
+    expect(telegramTexts()).toHaveLength(0);
+  });
+
   it('같은 알림을 다시 받으면(이미 기록됨) 알리지 않고 200', async () => {
     duplicate = true;
     const res = fakeRes();

@@ -4,16 +4,20 @@
  *
  * 요금 사다리 (2026-10 회의): 하루 2,700원 · 일주일 9,900원 · 평생 29,800원 · 횟수제
  * 2026-11-07 사장님 결정: 하루 이용권 정가 3,900원(11-07부터) · 타임 세일 특가 2,900원(11-28부터 — 할인 전 가격은 최근 20일 판매가여야 해서)
- * - weekly / lifetime : 프리미엄. 스토어 구매 내역으로 상태를 판정한다 (복원 가능)
+ * 2026-11-07 사장님 결정: 평생권 판매를 멈추고 1년권(29,800원, 결제한 날부터 1년, 자동 결제 없음)으로 바꾼다. 이미 산 평생권은 평생 그대로 인정한다
+ * - weekly / year / lifetime : 프리미엄. 스토어 구매 내역으로 상태를 판정한다 (복원 가능). lifetime 은 새로 팔지 않는다
  * - day / credits     : 소모성 상품. 살 때마다 이 기기에 충전한다 (하루 이용권 24시간, 횟수권 10회)
  * - 하루 이용권 특가(DAY_SALE_PRODUCT_ID) : 타임 세일 동안만 파는 별도 소모성 상품. 효과는 하루 이용권과 같다
  */
-export type PlanKey = 'weekly' | 'lifetime' | 'day' | 'credits';
-export type PremiumPlanKey = 'weekly' | 'lifetime';
+export type PlanKey = 'weekly' | 'year' | 'lifetime' | 'day' | 'credits';
+export type PremiumPlanKey = 'weekly' | 'year' | 'lifetime';
 export type ConsumablePlanKey = 'day' | 'credits';
 
 export const PRODUCT_IDS: Record<PlanKey, string> = {
   weekly: 'mylovecoach.premium.weekly',
+  /** 1년권 — iOS 「자동 갱신 없는 구독」(Non-Renewing Subscription), Android 구독 상품의 「선불 요금제」(아래 ANDROID_YEAR_BASE_PLAN) */
+  year: 'mylovecoach.pass.year',
+  /** 2026-11-07 판매 중지. 이미 산 사람은 계속 인정한다 (entitlement.ts) */
   lifetime: 'mylovecoach.premium.lifetime',
   day: 'mylovecoach.pass.day',
   credits: 'mylovecoach.credits.10',
@@ -21,11 +25,14 @@ export const PRODUCT_IDS: Record<PlanKey, string> = {
 
 /** Play 구독의 기본 요금제(base plan) ID */
 export const ANDROID_WEEKLY_BASE_PLAN = 'weekly';
+/** Play 1년권 구독(mylovecoach.pass.year)의 선불 기본 요금제 ID — 기간 1년(P1Y), 자동 갱신 없음 */
+export const ANDROID_YEAR_BASE_PLAN = 'year';
 export const ANDROID_PACKAGE = 'app.mylovecoach.android';
 
 export const FALLBACK_PRICES: Record<PlanKey, string> = {
   day: '₩3,900',
   weekly: '₩9,900',
+  year: '₩29,800',
   lifetime: '₩29,800',
   credits: '₩4,900',
 };
@@ -73,6 +80,29 @@ export const freeRules = (authAvailable: boolean, member: boolean): FreeRules =>
 export const isConsumablePlan = (plan: PlanKey): plan is ConsumablePlanKey => plan === 'day' || plan === 'credits';
 
 /**
+ * 스토어에 「구독」 종류로 묻고 사는 요금제 — 주간 구독과 1년권.
+ * 1년권은 자동 결제가 없지만 iOS 「자동 갱신 없는 구독」, Android 「선불 요금제」라 두 스토어 모두 구독(subs)으로 다룬다.
+ * (expo-iap 5.6.2 가 쓰는 OpenIAP Apple 3.4.0 은 iOS 자동 갱신 없는 구독을 in-app 조회 결과에서 빼고 subs 조회 결과에 넣는다)
+ */
+export const isSubscriptionPlan = (plan: PlanKey): boolean => plan === 'weekly' || plan === 'year';
+
+/** 지금 파는 요금제 — 결제 화면·상품 조회 순서. 평생권은 2026-11-07 부터 팔지 않는다 */
+export const SELLING_PLANS: readonly PlanKey[] = ['day', 'weekly', 'year', 'credits'];
+
+/**
+ * 1년권이 끝나는 시각 — 결제한 시각에서 달력으로 1년 뒤 같은 날짜·시각 (UTC 기준).
+ * 다음 해에 같은 날이 없으면(2월 29일) 그달 마지막 날(2월 28일)로 맞춘다.
+ * iOS 자동 갱신 없는 구독은 스토어가 만료를 알려 주지 않아 앱이 이 값으로 판정한다
+ */
+export function yearPassEnd(purchasedAt: number): number {
+  const d = new Date(purchasedAt);
+  const month = d.getUTCMonth();
+  d.setUTCFullYear(d.getUTCFullYear() + 1);
+  if (d.getUTCMonth() !== month) d.setUTCDate(0);
+  return d.getTime();
+}
+
+/**
  * 구독을 따로 취소할 스토어 이름. 아이폰 앱에는 Google Play 를 적지 않는다 — App Store 심사 2.3.10(다른 플랫폼 언급)으로 1.0.3 이 거절됐다.
  * 웹은 어느 스토어에서 샀는지 모르므로 둘 다 적는다
  */
@@ -98,8 +128,8 @@ export const isSaleProduct = (productId: string | null | undefined): boolean => 
 export const planOfProduct = (productId: string): PlanKey | null =>
   isSaleProduct(productId) ? 'day' : ((Object.keys(PRODUCT_IDS) as PlanKey[]).find((k) => PRODUCT_IDS[k] === productId) ?? null);
 
-/** 프리미엄(구독·평생권) 상품만 */
+/** 프리미엄(주간 구독·1년권·평생권) 상품만 */
 export const premiumPlanOfProduct = (productId: string): PremiumPlanKey | null => {
   const plan = planOfProduct(productId);
-  return plan === 'weekly' || plan === 'lifetime' ? plan : null;
+  return plan === 'weekly' || plan === 'year' || plan === 'lifetime' ? plan : null;
 };

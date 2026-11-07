@@ -20,8 +20,8 @@ import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { STORE_LABEL, STORE_URL, downloadDevice, type DownloadStore } from '@/lib/app-download';
 import { billingSupported, lastStoreProblem, purchasePlan, restorePremium, type PlanProduct } from '@/lib/billing/iap';
-import { CREDITS_PER_PACK, FALLBACK_PRICES, PRODUCT_IDS, SIGNUP_BONUS, freeRules, isConsumablePlan, type PlanKey } from '@/lib/billing/plans';
-import { formatPassEnd, isPremiumActive, passEndIfBoughtNow, quotaLabel, quotaStatus } from '@/lib/billing/quota';
+import { CREDITS_PER_PACK, FALLBACK_PRICES, PRODUCT_IDS, SELLING_PLANS, SIGNUP_BONUS, freeRules, isConsumablePlan, yearPassEnd, type PlanKey } from '@/lib/billing/plans';
+import { PREMIUM_PLAN_NAMES, formatDateKo, formatPassEnd, isPremiumActive, passEndIfBoughtNow, premiumUntilSentence, quotaLabel, quotaStatus } from '@/lib/billing/quota';
 import { isSaleActive, saleAudience, saleOffer, saleWindow, shouldStartSale } from '@/lib/billing/sale';
 import { APP_CONFIG } from '@/lib/config';
 import { haptic } from '@/lib/haptics';
@@ -53,7 +53,9 @@ const BENEFITS: { icon: keyof typeof Ionicons.glyphMap; title: string; body: str
 const PLAN_TEXT: Record<PlanKey, { title: string; caption: string; badge?: string }> = {
   day: { title: '하루 이용권', caption: '지금부터 24시간 무제한 · 자동 결제 없음', badge: '부담 없이' },
   weekly: { title: '주간 구독', caption: '매주 자동 갱신 · 언제든 해지', badge: '인기' },
-  lifetime: { title: '평생권', caption: '한 번 결제로 서비스가 운영되는 동안 계속 · 자동 결제 없음', badge: '주간 구독 3주 가격' },
+  year: { title: '1년권', caption: '결제한 날부터 1년 · 자동 결제 없음', badge: '주간 구독 3주 가격' },
+  // 평생권은 2026-11-07 부터 팔지 않아 목록에 나오지 않는다 (SELLING_PLANS). 이미 산 사람은 「이용 중」 화면만 본다
+  lifetime: { title: '평생권', caption: '판매 종료' },
   credits: { title: `횟수권 ${CREDITS_PER_PACK}회`, caption: '필요할 때만 한 번씩 · 기간 제한 없음' },
 };
 
@@ -63,7 +65,7 @@ const showPlans = billingSupported || Boolean(previewStore);
 /** 실제 스토어와 연결된 앱에서만 타임 세일을 연다 (웹·미리보기에는 특가 상품이 없다) */
 const saleSupported = billingSupported && !previewStore;
 
-const DEFAULT_PRODUCTS: PlanProduct[] = (['day', 'weekly', 'lifetime', 'credits'] as PlanKey[]).map((plan) => ({
+const DEFAULT_PRODUCTS: PlanProduct[] = SELLING_PLANS.map((plan) => ({
   plan,
   productId: PRODUCT_IDS[plan],
   displayPrice: FALLBACK_PRICES[plan],
@@ -146,12 +148,12 @@ export default function Paywall() {
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
   const priceOf = (plan: PlanKey) => products?.find((p) => p.plan === plan && !p.sale)?.displayPrice ?? FALLBACK_PRICES[plan];
-  // 스토어에서 확인된 상품만 보여 준다. 스토어에 닿지 못했으면 이미 등록된 프리미엄(주간·평생)만 (미리보기·웹은 전부)
+  // 스토어에서 확인된 상품만 보여 준다. 스토어에 닿지 못했으면 이미 등록된 프리미엄(주간 구독·1년권)만 (미리보기·웹은 전부)
   // 하루 이용권 특가는 고르는 목록에 넣지 않는다 — 타임 세일 동안 하루 이용권 카드의 가격으로만 쓴다
   const confirmed = products?.some((p) => p.available === true) ?? false;
   const visible = (products ?? []).filter((p) => !p.sale && (previewStore || !billingSupported || (confirmed ? p.available === true : !isConsumablePlan(p.plan))));
   // 고른 상품이 목록에 없으면(스토어 확인 실패 등) 자동 결제가 아닌 상품을 먼저 고른다 — 주간 구독이 저절로 골라져 있지 않게
-  const chosen = visible.some((p) => p.plan === selected) ? selected : (visible.find((p) => p.plan !== 'weekly')?.plan ?? visible[0]?.plan ?? 'lifetime');
+  const chosen = visible.some((p) => p.plan === selected) ? selected : (visible.find((p) => p.plan !== 'weekly')?.plan ?? visible[0]?.plan ?? 'year');
   // 앱에서 스토어 상품을 하나도 확인하지 못했으면 다시 불러오기를 권한다
   const storeUnreachable = billingSupported && !previewStore && products != null && !confirmed;
   // 스토어 상품을 하나도 확인하지 못했으면 그 이유(스토어 오류 코드·Google Play 응답 코드)를 남긴다 — 결제가 막힌 원인을 찾게
@@ -276,8 +278,10 @@ export default function Paywall() {
 
   if (done) return <PurchaseDone plan={done.plan} onClose={close} />;
 
+  // 1년권이면 언제까지인지 붙인다 (Android 는 어림한 날짜라 「끝날 예정」)
+  const until = premiumUntilSentence(premium);
   const headline = active
-    ? { title: '프리미엄 *이용 중*이에요', subtitle: premium?.plan === 'lifetime' ? '평생권으로 모든 기능을 무제한으로 쓰고 있어요.' : '주간 구독으로 모든 기능을 무제한으로 쓰고 있어요.' }
+    ? { title: '프리미엄 *이용 중*이에요', subtitle: `${PREMIUM_PLAN_NAMES[premium?.plan ?? 'weekly']}으로 모든 기능을 무제한으로 쓰고 있어요.${until ? ` ${until}` : ''}` }
     : offerSignup && status.kind === 'exhausted'
       ? { title: '무료 맛보기를\n*다 썼어요*', subtitle: `가입하면 무료 코칭 ${SIGNUP_BONUS}회를 더 드려요. 이용권으로 바로 이어서 할 수도 있어요.` }
       : { title: HEADLINES[reason].title, subtitle };
@@ -357,7 +361,7 @@ export default function Paywall() {
                   onPress={() => pick(p.plan)}
                   title={PLAN_TEXT[p.plan].title}
                   price={priceOf(p.plan)}
-                  per={p.plan === 'weekly' ? '/ 주' : undefined}
+                  per={p.plan === 'weekly' ? '/ 주' : p.plan === 'year' ? '/ 1년' : undefined}
                   caption={PLAN_TEXT[p.plan].caption}
                   badge={PLAN_TEXT[p.plan].badge}
                 />
@@ -377,7 +381,7 @@ export default function Paywall() {
           </Pressable>
         ) : null}
 
-        {ready && chosen === 'lifetime' ? <LifetimePromise storeName={storeName} /> : null}
+        {ready && chosen === 'year' ? <YearPassNote price={priceOf('year')} until={formatDateKo(yearPassEnd(minuteNow))} storeName={storeName} /> : null}
 
         <View style={[styles.benefits, { backgroundColor: theme.surface }]}>
           <AppText variant="smallStrong" color="textSecondary">
@@ -466,7 +470,9 @@ function buyTitle(plan: PlanKey, sale: boolean): string {
       return sale ? '특가로 하루 무제한 시작하기' : '하루 무제한 시작하기';
     case 'weekly':
       return '주간 구독 시작하기';
-    case 'lifetime':
+    case 'year':
+      return '1년권 시작하기';
+    case 'lifetime': // 판매 중지 — 고를 수 없다
       return '평생권 시작하기';
     case 'credits':
       return `횟수권 ${CREDITS_PER_PACK}회 충전하기`;
@@ -481,7 +487,9 @@ function footCaption(plan: PlanKey, price: string, sale: boolean): string {
       return `${sale ? '특가 ' : ''}${won} · 24시간 무제한 · 자동 결제 없음`;
     case 'weekly':
       return `매주 ${won} 자동 결제 · 언제든 해지할 수 있어요`;
-    case 'lifetime':
+    case 'year':
+      return `${won} 한 번 결제 · 1년 무제한 · 자동 결제 없음`;
+    case 'lifetime': // 판매 중지 — 고를 수 없다
       return `${won} 한 번 결제 · 자동 결제 없음`;
     case 'credits':
       return `${won} · 코칭 ${CREDITS_PER_PACK}회 · 기간 제한 없음`;
@@ -492,8 +500,8 @@ function fineText(plan: PlanKey, display: string, storeName: string, sale = fals
   const price = priceText(display);
   if (plan === 'weekly')
     return `주간 구독은 해지하지 않으면 매주 ${price}이 ${storeName} 계정으로 자동 결제돼요. 현재 기간이 끝나기 24시간 전까지 ${storeName} 계정 설정의 구독 메뉴에서 언제든 해지할 수 있어요.`;
-  if (plan === 'lifetime')
-    return `평생권은 ${price} 1회 결제이며 자동으로 다시 결제되지 않아요. 「평생」은 서비스가 운영되는 기간을 뜻하고, 같은 ${storeName} 계정이면 기기를 바꿔도 「구매 복원」으로 다시 쓸 수 있어요. 자세한 내용은 이용약관의 평생권 조항을 확인해 주세요.`;
+  if (plan === 'year')
+    return `1년권은 ${price} 1회 결제로 결제한 날부터 1년 동안 무제한이에요. 자동으로 갱신되거나 다시 결제되지 않아요. 1년이 지나면 무료 이용으로 돌아가고, 계속 쓰려면 그때 다시 결제하면 돼요. 같은 ${storeName} 계정이면 기기를 바꿔도 「구매 복원」으로 다시 쓸 수 있어요.`;
   const common = '자동으로 다시 결제되지 않고, 결제한 이 기기에서 쓸 수 있어요 (다른 기기로 옮기거나 복원되지 않아요).';
   if (plan === 'day' && sale)
     return `하루 이용권 특가는 ${price} 1회 결제로 결제한 때부터 24시간 동안 무제한이에요 (하루 이용권과 똑같아요). 특가는 7일에 한 번, 30분 동안 열려요. 표시된 마감 시각까지만 살 수 있고, 마감 뒤에는 정가로 돌아가요. 이미 이용 중이면 24시간이 이어서 늘어나요. ${common}`;
@@ -644,21 +652,23 @@ function PlanCard({ selected, onPress, title, price, per, caption, badge }: Plan
   );
 }
 
-/** 평생권을 고르면 결제 버튼 위에 약속을 또렷하게 보여 준다 (이용약관 평생권 조항의 요약) */
-function LifetimePromise({ storeName }: { storeName: string }) {
+/**
+ * 1년권을 고르면 결제 버튼 위에 무엇을 사는지 또렷하게 보여 준다 — 언제까지 쓰는지(지금 결제하면 1년 뒤 같은 날),
+ * 자동 결제가 없다는 것, 끝나면 어떻게 되는지, 기기를 바꿨을 때. 앱이 실제로 하는 일만 적는다 (끝나기 전 알림 같은 약속은 하지 않는다)
+ */
+function YearPassNote({ price, until, storeName }: { price: string; until: string; storeName: string }) {
   const theme = useTheme();
   const items = [
-    '한 번 결제 · 자동 결제 없음 · 나중에 가격이 올라도 추가 요금 없음',
-    '서비스가 운영되는 동안 코칭·속마음·보고서 무제한 (앞으로 프리미엄에 더해지는 기능 포함 · 따로 파는 상품 제외)',
-    `같은 ${storeName} 계정이면 기기를 바꿔도 「구매 복원」으로 다시 쓸 수 있어요 (다른 스토어 앱으로는 옮겨지지 않아요)`,
-    '개인이 보통 쓰는 만큼 무제한 — 자동 프로그램 대량 요청·계정 공유는 제한될 수 있어요',
-    '서비스를 끝내게 되면 30일 전에 앱에서 먼저 알려 드려요',
+    `지금 결제하면 ${until}까지 코칭·속마음·보고서 무제한`,
+    `${priceText(price)} 한 번 결제 · 자동 갱신·자동 결제 없음 · 따로 해지하지 않아도 돼요`,
+    '1년이 지나면 무료 이용으로 돌아가요 · 계속 쓰려면 그때 다시 결제하면 돼요',
+    `같은 ${storeName} 계정이면 기기를 바꿔도 「구매 복원」으로 다시 쓸 수 있어요`,
   ];
   return (
-    <View style={[styles.promise, { backgroundColor: theme.primarySoft }]} accessibilityLabel="평생권 약속">
+    <View style={[styles.promise, { backgroundColor: theme.primarySoft }]} accessibilityLabel="1년권 안내">
       <View style={styles.promiseHead}>
-        <Ionicons name="infinite" size={18} color={theme.primary} />
-        <AppText variant="smallStrong">평생권 약속</AppText>
+        <Ionicons name="calendar-outline" size={18} color={theme.primary} />
+        <AppText variant="smallStrong">1년권 안내</AppText>
       </View>
       {items.map((t) => (
         <View key={t} style={styles.promiseRow}>
@@ -668,8 +678,8 @@ function LifetimePromise({ storeName }: { storeName: string }) {
           </AppText>
         </View>
       ))}
-      <AppText variant="caption" color="primary" weight="700" accessibilityRole="link" onPress={() => Linking.openURL(`${APP_CONFIG.termsUrl}#lifetime`)}>
-        평생권 약관 전문 보기 ›
+      <AppText variant="caption" color="primary" weight="700" accessibilityRole="link" onPress={() => Linking.openURL(`${APP_CONFIG.termsUrl}#year`)}>
+        1년권 약관 전문 보기 ›
       </AppText>
     </View>
   );
@@ -685,7 +695,8 @@ function PurchaseDone({ plan, onClose }: { plan: PlanKey; onClose: () => void })
   const text: Record<PlanKey, { title: string; body: string }> = {
     day: { title: '하루 무제한 시작!', body: passUntil > now ? `${formatPassEnd(passUntil, now)}까지 마음껏 물어봐요.` : '지금부터 24시간 동안 마음껏 물어봐요.' },
     weekly: { title: '주간 구독 시작!', body: '이제 횟수 걱정 없이 마음껏 물어봐요.' },
-    lifetime: { title: '평생권 시작!', body: '이제 횟수 걱정 없이 마음껏 물어봐요.' },
+    year: { title: '1년권 시작!', body: '이제 1년 동안 횟수 걱정 없이 마음껏 물어봐요.' },
+    lifetime: { title: '평생권 시작!', body: '이제 횟수 걱정 없이 마음껏 물어봐요.' }, // 판매 중지 — 결제로는 오지 않는다
     credits: { title: `횟수권 ${CREDITS_PER_PACK}회 충전!`, body: '필요할 때 한 번씩 꺼내 써요.' },
   };
   return (

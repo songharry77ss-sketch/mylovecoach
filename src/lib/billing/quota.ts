@@ -4,8 +4,17 @@ import { CREDITS_PER_PACK, DAY_PASS_MS, DEFAULT_RULES, SIGNUP_BONUS, type Consum
 export interface PremiumState {
   plan: PremiumPlanKey;
   productId: string;
-  /** 구독 만료 시각(ms). iOS 만 제공. 평생권/Android 는 null */
+  /**
+   * 끝나는 시각(ms). 평생권은 null.
+   * 주간 구독: iOS 만 스토어가 알려 준다(Android 는 null).
+   * 1년권: 결제 시각 + 1년(yearPassEnd). iOS 는 앱이 이 값으로 판정하는 확정값, Android 는 어림값(expiresEstimated)
+   */
   expiresAt: number | null;
+  /**
+   * expiresAt 이 스토어가 정한 값이 아니라 앱이 어림한 값인지 (Android 1년권).
+   * Android 는 스토어가 활성 구독만 돌려주므로 「목록에 있으면 이용 중」이고, 이 날짜는 화면에 「예정」으로만 보여 준다
+   */
+  expiresEstimated?: boolean;
   /** 스토어에서 마지막으로 확인한 시각 */
   verifiedAt: number;
 }
@@ -57,9 +66,43 @@ export function dayKey(now: number): string {
 export function isPremiumActive(premium: PremiumState | null | undefined, now: number): boolean {
   if (!premium) return false;
   if (premium.plan === 'lifetime') return true;
+  if (premium.plan === 'year') {
+    // iOS: 앱이 계산한 끝나는 시각이 곧 판정 기준 (자동 갱신이 없으니 여유를 두지 않는다)
+    if (premium.expiresAt != null && !premium.expiresEstimated) return premium.expiresAt > now;
+    // Android: 스토어가 최근에 「활성」이라고 확인했거나, 오프라인이어도 어림한 1년 안이면 이용 중
+    // (선불 요금제는 해지·갱신이 없고, 환불되면 다음 스토어 확인 때 목록에서 빠져 바로 꺼진다)
+    return now - premium.verifiedAt < WEEKLY_TRUST_MS || (premium.expiresAt != null && premium.expiresAt > now);
+  }
   if (premium.expiresAt != null) return premium.expiresAt + EXPIRY_GRACE_MS > now;
   return now - premium.verifiedAt < WEEKLY_TRUST_MS;
 }
+
+/** 「2027년 11월 7일」 (기기 현지 날짜) */
+export function formatDateKo(at: number): string {
+  const d = new Date(at);
+  return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
+}
+
+/**
+ * 1년권이 언제까지인지 짧게 — iOS 「2027년 11월 7일까지」(앱이 판정하는 확정 날짜),
+ * Android 「2027년 11월 7일 끝날 예정」(스토어가 끝나는 날을 알려 주지 않아 결제 시각 + 1년으로 어림한 날짜).
+ * 1년권이 아니거나 날짜를 모르면 null
+ */
+export function premiumUntilLabel(premium: PremiumState | null | undefined): string | null {
+  if (premium?.plan !== 'year' || premium.expiresAt == null) return null;
+  const date = formatDateKo(premium.expiresAt);
+  return premium.expiresEstimated ? `${date} 끝날 예정` : `${date}까지`;
+}
+
+/** 같은 내용을 문장으로 — 「2027년 11월 7일까지 쓸 수 있어요.」 · 「2027년 11월 7일에 끝날 예정이에요.」 */
+export function premiumUntilSentence(premium: PremiumState | null | undefined): string | null {
+  if (premium?.plan !== 'year' || premium.expiresAt == null) return null;
+  const date = formatDateKo(premium.expiresAt);
+  return premium.expiresEstimated ? `${date}에 끝날 예정이에요.` : `${date}까지 쓸 수 있어요.`;
+}
+
+/** 프리미엄 요금제의 화면 이름 */
+export const PREMIUM_PLAN_NAMES: Record<PremiumPlanKey, string> = { weekly: '주간 구독', year: '1년권', lifetime: '평생권' };
 
 export function isTeamActive(team: TeamState | null | undefined, now: number): boolean {
   return team != null && now - team.verifiedAt < TEAM_TRUST_MS;

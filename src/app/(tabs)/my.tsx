@@ -23,7 +23,7 @@ import { AI_PROVIDER_LABEL, ensureAiConsent, withdrawAiConsent } from '@/lib/ai-
 import { openStore } from '@/lib/app-update';
 import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { billingSupported, openSubscriptionManagement, restorePremium } from '@/lib/billing/iap';
-import { quotaLabel } from '@/lib/billing/quota';
+import { PREMIUM_PLAN_NAMES, premiumUntilLabel, quotaLabel } from '@/lib/billing/quota';
 import { refreshTeam } from '@/lib/billing/team';
 import { providerLabel, signOut } from '@/lib/auth';
 import { SIGNUP_BONUS, subscriptionStoreName } from '@/lib/billing/plans';
@@ -223,8 +223,12 @@ export default function MyScreen() {
     ]);
   };
 
-  const planValue =
-    premium?.plan === 'lifetime' ? '평생권' : premium?.plan === 'weekly' ? '주간 구독' : quota.kind === 'team' ? '팀원 무제한' : quota.kind === 'pass' ? '하루 이용권' : '';
+  // 프리미엄이 실제로 이용 중일 때만 그 이름을 쓴다 (끝난 1년권·주간 구독이 저장돼 있어도 팀원·하루 이용권 이름이 가려지지 않게)
+  const premiumOn = quota.kind === 'premium' && premium != null;
+  const planValue = premiumOn ? PREMIUM_PLAN_NAMES[premium.plan] : quota.kind === 'team' ? '팀원 무제한' : quota.kind === 'pass' ? '하루 이용권' : '';
+  // 1년권: 「2027년 11월 7일까지」 (Android 는 어림한 날짜라 「… 끝날 예정」)
+  const yearUntil = premiumOn ? premiumUntilLabel(premium) : null;
+  const yearPass = premiumOn && premium.plan === 'year';
   const copyDeviceId = async () => {
     await Clipboard.setStringAsync(deviceId);
     haptic.tap();
@@ -295,7 +299,7 @@ export default function MyScreen() {
           <PressableScale
             feedback="thud"
             pressedScale={0.97}
-            accessibilityLabel={unlimited ? `${planValue || '프리미엄'} 이용 중` : `이용권 보기, ${quotaLabel(quota)}`}
+            accessibilityLabel={unlimited ? `${planValue || '프리미엄'} 이용 중${yearUntil ? `, ${yearUntil}` : ''}` : `이용권 보기, ${quotaLabel(quota)}`}
             onPress={() => router.push({ pathname: '/paywall', params: { reason: 'my' } })}
             style={[styles.pass, BrandShadow]}>
             <BrandGradient style={styles.passFill}>
@@ -304,7 +308,7 @@ export default function MyScreen() {
               <View style={styles.flex}>
                 <Text style={styles.passTitle}>{unlimited ? `${planValue || '프리미엄'} 이용 중` : '이용권 보기'}</Text>
                 <Text style={styles.passBody} numberOfLines={2}>
-                  {quota.kind === 'team' ? `관리자가 허용한 팀원 기기 · ${team?.label ?? '팀원'}` : quotaLabel(quota)}
+                  {quota.kind === 'team' ? `관리자가 허용한 팀원 기기 · ${team?.label ?? '팀원'}` : yearUntil ? `${yearUntil} · 무제한` : quotaLabel(quota)}
                   {unlimited && walletNote ? ` · ${walletNote}` : ''}
                 </Text>
                 {!unlimited && fromPrice ? (
@@ -322,8 +326,13 @@ export default function MyScreen() {
       <Animated.View entering={enter(3)}>
         {quota.enforced && billingSupported ? (
           <Group title="이용권">
-            <ListRow icon="card-outline" title="구독 관리 · 해지" onPress={() => openSubscriptionManagement().catch(() => toast.show('스토어 구독 관리 화면을 열지 못했어요.', 'error'))} />
-            {!isPremium ? <ListRow icon="refresh-outline" title="구매 복원" subtitle="주간 구독·평생권" onPress={restore} /> : null}
+            {/* 1년권은 자동 결제가 없어 해지할 것이 없다 — 「해지」 버튼 대신 자동 결제가 없다는 안내만 */}
+            {yearPass ? (
+              <ListRow icon="calendar-outline" title="1년권 · 자동 결제 없음" subtitle={`${yearUntil ? `${yearUntil} · ` : ''}따로 해지하지 않아도 돼요`} />
+            ) : (
+              <ListRow icon="card-outline" title="구독 관리 · 해지" onPress={() => openSubscriptionManagement().catch(() => toast.show('스토어 구독 관리 화면을 열지 못했어요.', 'error'))} />
+            )}
+            {!isPremium ? <ListRow icon="refresh-outline" title="구매 복원" subtitle="주간 구독·1년권 (예전에 산 평생권 포함)" onPress={restore} /> : null}
           </Group>
         ) : null}
 
