@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, type Tabs } from 'expo-router';
 import { useEffect, useRef, useState, type ComponentProps } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type ViewStyle } from 'react-native';
 import Animated, {
   Easing,
   interpolateColor,
@@ -31,6 +31,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
 
+import { glassColors, glassShadow, liquidGlass } from './glass-surface';
 import { TAB_BAR_HEIGHT, tabBarBottom } from './tab-bar-space';
 
 export { TAB_BAR_HEIGHT, tabBarBottom, useTabBarSpace } from './tab-bar-space';
@@ -41,23 +42,6 @@ const PAD = 5;
 const GAP = 12;
 /** 화면 양옆 */
 const SIDE = 16;
-
-// iOS 26 시스템 유리 — 모듈이 없거나 예전 iOS 면 흉내 낸 유리를 쓴다
-type GlassModule = typeof import('expo-glass-effect');
-let glassModule: GlassModule | null | undefined;
-function liquidGlass(): GlassModule | null {
-  if (glassModule !== undefined) return glassModule;
-  glassModule = null;
-  if (Platform.OS !== 'ios') return null;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mod = require('expo-glass-effect') as GlassModule;
-    if (mod.isLiquidGlassAvailable()) glassModule = mod;
-  } catch {
-    glassModule = null;
-  }
-  return glassModule;
-}
 
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
@@ -100,9 +84,10 @@ export function GlassTabBar({ state, descriptors, navigation }: TabBarProps) {
     lift.value = withSequence(withTiming(1, { duration: 150, easing: Easing.out(Easing.quad) }), withDelay(130, withSpring(0, { damping: 13, stiffness: 170 })));
   }, [focused, tabW, reduced, x, lift]);
 
+  const g = glassColors(dark);
   const c = dark
-    ? { pill: 'rgba(30,34,48,0.97)', edge: 'rgba(255,255,255,0.10)', tint: 'rgba(122,150,255,0.20)', lens: 'rgba(64,72,100,0.96)', rim: 'rgba(255,255,255,0.28)', inactive: theme.textSecondary }
-    : { pill: 'rgba(255,255,255,0.96)', edge: 'rgba(25,31,40,0.07)', tint: 'rgba(61,99,245,0.11)', lens: 'rgba(255,255,255,0.97)', rim: 'rgba(255,255,255,1)', inactive: theme.textSecondary };
+    ? { pill: g.fill, edge: g.edge, tint: 'rgba(122,150,255,0.20)', lens: 'rgba(64,72,100,0.96)', rim: 'rgba(255,255,255,0.28)', inactive: theme.textSecondary }
+    : { pill: g.fill, edge: g.edge, tint: 'rgba(61,99,245,0.11)', lens: 'rgba(255,255,255,0.97)', rim: 'rgba(255,255,255,1)', inactive: theme.textSecondary };
 
   const lensStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: x.value }, { scaleX: 1 + 0.16 * lift.value }, { scaleY: 1 + 0.36 * lift.value }],
@@ -124,12 +109,13 @@ export function GlassTabBar({ state, descriptors, navigation }: TabBarProps) {
 
   return (
     <View pointerEvents="box-none" style={[styles.root, { paddingBottom: bottom }]}>
-      {/* 시스템 유리가 없을 때만 — 탭 바 뒤로 지나가는 글자가 어지럽지 않게 바닥을 살짝 흐린다 */}
+      {/* 시스템 유리가 없을 때만 — 탭 바 뒤로 지나가는 글자가 비치지 않게 바닥을 화면 바탕색으로 흐린다 (탭 화면 바탕은 canvas) */}
       {!glass ? (
         <LinearGradient
           pointerEvents="none"
-          colors={[`${theme.background}00`, `${theme.background}D9`]}
-          style={[styles.fade, { height: bottom + TAB_BAR_HEIGHT + 18 }]}
+          colors={[`${theme.canvas}00`, `${theme.canvas}E6`, theme.canvas]}
+          locations={[0, 0.45, 1]}
+          style={[styles.fade, { height: bottom + TAB_BAR_HEIGHT + 28 }]}
         />
       ) : null}
       <View pointerEvents="box-none" style={styles.row}>
@@ -137,7 +123,7 @@ export function GlassTabBar({ state, descriptors, navigation }: TabBarProps) {
           accessibilityRole="tablist"
           onLayout={onLayout}
           // 안드로이드는 배경색이 있어야 그림자(elevation)를 그린다
-          style={[styles.pill, { height: TAB_BAR_HEIGHT, borderRadius: radius }, Platform.OS === 'android' && !glass ? { backgroundColor: c.pill } : null, shadow(dark)]}>
+          style={[styles.pill, { height: TAB_BAR_HEIGHT, borderRadius: radius }, Platform.OS === 'android' && !glass ? { backgroundColor: c.pill } : null, glassShadow(dark)]}>
           {glass ? (
             <glass.GlassView glassEffectStyle="regular" isInteractive style={[StyleSheet.absoluteFill, { borderRadius: radius }]} />
           ) : (
@@ -222,7 +208,7 @@ function NewChatButton({ onPress, reduced }: { onPress: () => void; reduced: boo
         onPress();
       }}>
       <Animated.View style={[styles.ballWrap, ball]}>
-        <LinearGradient colors={['#6B9BFF', Brand.blue, '#5845EE']} start={{ x: 0.2, y: 0 }} end={{ x: 0.85, y: 1 }} style={styles.ball}>
+        <LinearGradient colors={Brand.orb} start={{ x: 0.2, y: 0 }} end={{ x: 0.85, y: 1 }} style={styles.ball}>
           {/* 위쪽이 은은하게 밝은 구슬 광택 (둥글게 잘린 안쪽에 위→아래로) */}
           <LinearGradient pointerEvents="none" colors={['rgba(255,255,255,0.42)', 'rgba(255,255,255,0.08)', 'rgba(255,255,255,0)']} locations={[0, 0.45, 1]} style={styles.gloss} />
           <Animated.View style={icon}>
@@ -233,13 +219,6 @@ function NewChatButton({ onPress, reduced }: { onPress: () => void; reduced: boo
     </Pressable>
   );
 }
-
-const shadow = (dark: boolean): StyleProp<ViewStyle> =>
-  Platform.select({
-    ios: { shadowColor: '#1B2559', shadowOpacity: dark ? 0.4 : 0.13, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } },
-    android: { elevation: 10, shadowColor: '#1B2559' },
-    default: { boxShadow: dark ? '0 8px 28px rgba(0,0,0,0.45)' : '0 8px 28px rgba(27,37,89,0.14)' } as ViewStyle,
-  });
 
 const styles = StyleSheet.create({
   root: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: SIDE },

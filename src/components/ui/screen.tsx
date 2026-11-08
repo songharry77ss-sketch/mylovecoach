@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type PropsWithChildren } from
 import { Dimensions, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollViewProps, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { GlassHeader } from '@/components/ui/glass-header';
 import { useTabBarSpace } from '@/components/ui/tab-bar-space';
 import { FocusStatusBar, StatusBarScrim, useScrolledPast } from '@/components/ui/system-bars';
 import { Brand, MaxContentWidth, Spacing } from '@/constants/theme';
@@ -25,6 +26,8 @@ interface ScreenProps extends PropsWithChildren {
   contentStyle?: ViewStyle;
   scrollProps?: ScrollViewProps;
   background?: string;
+  /** 큰 제목이 있는 화면 — 제목이 위로 사라질 만큼 내리면 이 이름이 든 유리 머리말이 내려온다 (safeTop 화면만) */
+  title?: string;
 }
 
 /** 이 화면의 위 시스템 영역 — 아이폰 모달(카드)은 상태 표시줄 아래에서 시작하므로 0 */
@@ -47,6 +50,7 @@ export function Screen({
   contentStyle,
   scrollProps,
   background,
+  title,
 }: ScreenProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -54,6 +58,8 @@ export function Screen({
   const tabSpace = useTabBarSpace();
   const top = useScreenTopInset(sheet);
   const { scrolled, onScroll } = useScrolledPast();
+  // 큰 제목(30pt 두 줄 정도)이 거의 다 가려졌을 때 작은 제목 머리말을 띄운다
+  const { scrolled: pastTitle, onScroll: onScrollTitle } = useScrolledPast(64);
   const paddingStyle: ViewStyle = {
     paddingTop: safeTop ? top + Spacing.sm : 0,
     paddingBottom: tab ? tabSpace : safeBottom ? insets.bottom + Spacing.lg : 0,
@@ -80,6 +86,7 @@ export function Screen({
 
   const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     onScroll(e);
+    if (title) onScrollTitle(e);
     scrollProps?.onScroll?.(e);
   };
 
@@ -105,13 +112,15 @@ export function Screen({
     body
   );
 
-  const bg = background ?? theme.background;
+  // 탭 화면은 카드가 놓이는 옅은 회색 바탕(canvas) — 떠 있는 탭 바 아래 흐림도 이 색이다
+  const bg = background ?? (tab ? theme.canvas : theme.background);
   return (
     <View ref={rootRef} onLayout={keyboard ? measure : undefined} style={[styles.flex, { backgroundColor: bg }, style]}>
       {wrapped}
       {/* 스크롤한 내용이 시계·배터리 글자 뒤로 비치지 않게 — 그라데이션 머리 화면은 내려갈 때만 파란 띠, 그 밖에는 바탕색 띠 */}
       {scroll && stage ? <StatusBarScrim height={top} color={Brand.blue} visible={scrolled} /> : null}
       {scroll && safeTop && !stage ? <StatusBarScrim height={top} color={bg} /> : null}
+      {scroll && safeTop && !stage && title ? <GlassHeader title={title} top={top} visible={pastTitle} /> : null}
       {stage || (sheet && Platform.OS === 'ios') ? <FocusStatusBar style="light" /> : null}
     </View>
   );

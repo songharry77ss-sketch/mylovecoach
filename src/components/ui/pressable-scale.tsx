@@ -1,10 +1,13 @@
 import { type PropsWithChildren } from 'react';
 import { Pressable, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, * as Reanimated from 'react-native-reanimated';
+import { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 
 import { haptic, type HapticName } from '@/lib/haptics';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+// 움직임 줄이기 설정 — 화면 테스트의 가짜 reanimated 에 없을 수 있어 없으면 「아님」으로 본다
+const useReducedMotion: () => boolean = typeof Reanimated.useReducedMotion === 'function' ? Reanimated.useReducedMotion : () => false;
 
 interface PressableScaleProps extends Omit<PressableProps, 'style'> {
   style?: StyleProp<ViewStyle>;
@@ -20,17 +23,19 @@ interface PressableScaleProps extends Omit<PressableProps, 'style'> {
  */
 export function PressableScale({ children, style, pressedScale = 0.96, feedback = 'soft', onPressIn, onPressOut, onPress, ...rest }: PropsWithChildren<PressableScaleProps>) {
   const scale = useSharedValue(1);
+  // 움직임 줄이기 설정이면 튕기지 않고 살짝만 줄었다 돌아온다
+  const reduced = useReducedMotion();
   const animated = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
     <AnimatedPressable
       accessibilityRole="button"
       {...rest}
       onPressIn={(e) => {
-        scale.value = withSpring(pressedScale, { damping: 18, stiffness: 380 });
+        scale.value = reduced ? withTiming(1 - (1 - pressedScale) / 2, { duration: 80 }) : withSpring(pressedScale, { damping: 18, stiffness: 380 });
         onPressIn?.(e);
       }}
       onPressOut={(e) => {
-        scale.value = withSpring(1, { damping: 12, stiffness: 260 });
+        scale.value = reduced ? withTiming(1, { duration: 120 }) : withSpring(1, { damping: 12, stiffness: 260 });
         onPressOut?.(e);
       }}
       onPress={(e) => {

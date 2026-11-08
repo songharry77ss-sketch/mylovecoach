@@ -34,7 +34,8 @@ jest.mock('@/lib/config', () => ({
 }));
 // 애니메이션은 여기서 볼 것이 아니다 (Reanimated 4 의 시험용 모듈은 worklets 네이티브 모듈도 시험용으로 바꿔야 불러진다)
 jest.mock('react-native-worklets', () => jest.requireActual('react-native-worklets/src/mock'));
-jest.mock('react-native-reanimated', () => jest.requireActual('react-native-reanimated/mock'));
+// 보내기 구슬(입력창)이 움직임 줄이기 설정을 읽는다 — 테스트 흉내에는 없어 「줄이지 않음」으로
+jest.mock('react-native-reanimated', () => ({ ...jest.requireActual('react-native-reanimated/mock'), useReducedMotion: () => false }));
 // 화면 머리(Stack.Screen)의 오른쪽 버튼은 본문 맨 위에 그려 눌러 본다
 jest.mock('expo-router', () => {
   const { createElement, Fragment } = jest.requireActual('react');

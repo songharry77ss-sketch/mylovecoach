@@ -11,7 +11,7 @@ import { rememberAuthReturn, takeAuthReturn } from '@/lib/auth-return';
 import type { CoachAnalysis } from '@/lib/types';
 
 jest.mock('react-native-worklets', () => jest.requireActual('react-native-worklets/src/mock'));
-jest.mock('react-native-reanimated', () => jest.requireActual('react-native-reanimated/mock'));
+jest.mock('react-native-reanimated', () => ({ ...jest.requireActual('react-native-reanimated/mock'), useReducedMotion: () => false }));
 jest.mock('@/components/ui/toast', () => ({ useToast: () => ({ show: jest.fn() }) }));
 jest.mock('@/components/fx/celebration', () => ({ useCelebrate: () => jest.fn() }));
 jest.mock('expo-clipboard', () => ({ setStringAsync: jest.fn(async () => true) }));

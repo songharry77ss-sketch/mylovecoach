@@ -24,7 +24,7 @@ export default function TabsLayout() {
         tabBarActiveTintColor: theme.primary,
         tabBarInactiveTintColor: theme.textTertiary,
         // 화면 뒤 배경이 탭 바 자리까지 이어지게 (탭 바는 떠 있다)
-        sceneStyle: { backgroundColor: theme.background },
+        sceneStyle: { backgroundColor: theme.canvas },
         // 글자 크기를 키운 폰에서도 이름·아이콘이 칸 밖으로 밀려 겹치지 않게 (아이폰 기본 탭 바도 키우지 않는다) — 아이콘도 글꼴이라 각자 끈다
         tabBarAllowFontScaling: false,
       }}>

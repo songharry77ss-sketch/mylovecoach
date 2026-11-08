@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useContext } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
+import { InListGroup, useInsetFill } from '@/components/ui/list-group';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { haptic } from '@/lib/haptics';
@@ -19,6 +21,11 @@ interface ListRowProps {
 
 export function ListRow({ icon, iconColor, title, subtitle, value, onPress, destructive, right }: ListRowProps) {
   const theme = useTheme();
+  // 묶음 카드(ListGroup) 안에서는 카드 안쪽 여백을 쓰고, 아이콘을 앱 색 옅은 바탕에 앱 색으로 둔다
+  const grouped = useContext(InListGroup);
+  // 다크 모드의 흰 카드는 surface 와 같은 색이라 눌림 색을 한 단계 밝게
+  const insetFill = useInsetFill();
+  const iconTint = iconColor ?? (destructive ? theme.danger : grouped ? theme.primary : theme.textSecondary);
   return (
     <Pressable
       // 누를 수 없는 줄에 스위치 같은 컨트롤이 있으면 줄을 하나로 묶지 않는다 (묶으면 VoiceOver 가 안의 스위치에 닿지 못한다)
@@ -33,14 +40,14 @@ export function ListRow({ icon, iconColor, title, subtitle, value, onPress, dest
           : undefined
       }
       disabled={!onPress}
-      style={({ pressed }) => [styles.row, { backgroundColor: pressed ? theme.surface : 'transparent' }]}>
+      style={({ pressed }) => [styles.row, grouped ? styles.rowGrouped : null, { backgroundColor: pressed ? (grouped ? insetFill : theme.surface) : 'transparent' }]}>
       {icon ? (
-        <View style={[styles.iconWrap, { backgroundColor: theme.surface }]}>
-          <Ionicons name={icon} size={18} color={iconColor ?? (destructive ? theme.danger : theme.textSecondary)} />
+        <View style={[styles.iconWrap, { backgroundColor: grouped && !destructive ? theme.primarySoft : theme.surface }]}>
+          <Ionicons name={icon} size={18} color={iconTint} />
         </View>
       ) : null}
       <View style={styles.texts}>
-        <AppText variant="body" color={destructive ? 'danger' : 'text'}>
+        <AppText variant="body" weight={grouped ? '600' : undefined} color={destructive ? 'danger' : 'text'}>
           {title}
         </AppText>
         {subtitle ? (
@@ -62,6 +69,7 @@ export function ListRow({ icon, iconColor, title, subtitle, value, onPress, dest
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.md, paddingHorizontal: Spacing.sm, borderRadius: Radius.md },
+  rowGrouped: { paddingHorizontal: Spacing.lg, paddingVertical: 14, borderRadius: 0, minHeight: 60 },
   iconWrap: { width: 36, height: 36, borderRadius: Radius.sm, alignItems: 'center', justifyContent: 'center' },
   texts: { flex: 1, gap: 2 },
 });

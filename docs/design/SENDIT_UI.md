@@ -60,3 +60,36 @@
 - 자리: `tab-bar-space.ts` — 아이폰은 홈 막대에 조금 걸치게(아래 영역 − 12), 안드로이드는 버튼·제스처 위(+ 8). 탭 화면은 `Screen tab`(= `useTabBarSpace()`)만큼 아래를 비운다. 홈처럼 직접 ScrollView 를 쓰는 탭은 같은 훅으로 비운다.
 - 아이콘: + (새 채팅). ↑ 는 로고·보내기 뜻이라 탭 바에서는 「맨 위로」로 읽힐 수 있어 쓰지 않는다.
 
+
+## 1.2 개편 「떠 있는 유리」 (2026-11-08)
+
+사장님 지시: 새 탭 바 결을 이어서 **앱 전체 UI/UX 를 손본다.** 탭 바의 떠 있는 유리·스프링 움직임을 앱의 공통 언어로 넓힌다.
+
+### 바탕과 카드 (토스 결)
+- **탭 화면(홈·탐색·마이·연애 연습)과 설정·목록 화면**은 옅은 회색 바탕 `theme.canvas`(#F3F5F9) 위에 **흰 카드 `theme.card`**. `Screen tab` 은 기본 바탕이 canvas 다.
+  - canvas 위에 `theme.surface`(연회색)를 바로 놓으면 바탕과 구분이 안 된다 → canvas 위 카드는 `theme.card` + `CardShadow`(다크는 그림자 대신 `theme.separator` 가는 테두리).
+  - 흰 카드 **안쪽**의 칩·입력칸·작은 면은 `theme.surface`.
+- **읽는 화면(채팅방·결과·결제·안내)** 은 흰 바탕(`theme.background`) 그대로.
+- 카드 모서리 22(`Radius.lg + 2`), 큰 카드 28(`Radius.xl`). 카드 안 여백 16~20.
+- 설정·목록은 **`ListGroup`**(`components/ui/list-group.tsx`)으로 묶는다 — 흰 카드 하나에 `ListRow` 여러 줄, 줄 사이 가는 선, 아이콘은 앱 색 옅은 바탕에 앱 색(자동).
+
+### 떠 있는 유리
+- 공통 부품 **`GlassSurface`**(`components/ui/glass-surface.tsx`): iOS 26+ 는 시스템 유리, 그 밖은 **불투명한** 흰 면(다크 #1C202E) + 가는 테두리 + 위 광택 + 떠 있는 그림자(흐림 없이 반투명으로 두면 0.985 로도 뒤 글자가 뚜렷이 비쳤다). 탭 바·채팅 입력창·스크롤 머리말이 같은 유리를 쓴다.
+  - 웹 함정: GlassSurface 안에 TextInput 을 넣으면 웹은 위치 지정 없는 입력칸을 유리 바탕(절대 위치)보다 먼저 그려 글자가 깔린다 → 입력칸에 웹만 `position: 'relative'`(composer 의 PillInput 참고).
+- 둥근 구슬(탭 바 새 채팅·채팅 보내기) 색은 `Brand.orb` 하나로.
+- **스크롤 유리 머리말**: 큰 제목이 있는 `Screen safeTop` 화면은 `title="마이"` 처럼 넘기면 제목이 사라질 만큼 내렸을 때 작은 제목이 든 유리 띠가 내려온다(`components/ui/glass-header.tsx`). 직접 ScrollView 를 쓰는 화면은 `useScrolledPast(64)` + `<GlassHeader title top visible />`.
+- **채팅 입력창**도 떠 있는 유리 알약: [캡처 버튼 | 글 입력 | 보내기 구슬]. 보내기 구슬은 새 채팅 구슬과 같은 그라데이션·광택(보낼 수 있을 때만 색이 찬다). 입력창 위 말투 칩은 한 줄로 가볍게.
+
+### 다크 모드
+- 다크는 `theme.card` 와 `theme.surface` 가 같은 색이다 → 흰 카드 **안** 칩·입력칸·눌림 색은 `useInsetFill()`(list-group.tsx, 다크만 surfaceElevated). 공통 Chip 은 다크에서 알아서 한 단계 밝다.
+- canvas 위 흰 카드는 `useCardStyle()` / `Card tone="card"` / `ListGroup` / `CardSection` — 라이트는 옅은 그림자, 다크는 가는 테두리.
+
+### 움직임
+- 탭 화면은 위에서부터 차례로 살짝 올라오며 등장(`FadeInDown.delay(i*50).springify()` 류, 이미 쓰는 `enter(i)` 패턴).
+- 누르는 카드·타일은 `PressableScale`(줄었다 튕김 + 진동). 목록 줄은 눌림 색만.
+- 움직임 줄이기 설정(`useReducedMotion`)이면 튕김 없이.
+
+### 하지 말 것
+- 기존 기능·문구의 뜻을 바꾸지 않는다(문구는 더 짧고 친근하게 다듬는 정도). 없는 기능을 그리지 않는다.
+- 테스트가 찾는 접근성 라벨·testID·문구는 되도록 유지하고, 바꾸면 테스트도 같이 고친다.
+- 이모지는 칩 앞 작은 표정 정도. 🚧 같은 뜻이 어긋난 이모지·장식 금지.

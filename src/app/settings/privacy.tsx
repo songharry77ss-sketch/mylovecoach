@@ -1,13 +1,14 @@
-import { Alert, Linking, Platform, StyleSheet } from 'react-native';
+import { Stack } from 'expo-router';
+import { Alert, Linking, Platform, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
-import { Card } from '@/components/ui/card';
+import { CardSection, ListGroup } from '@/components/ui/list-group';
 import { ListRow } from '@/components/ui/list-row';
 import { Screen } from '@/components/ui/screen';
-import { SectionHeader } from '@/components/ui/section-header';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/toast';
 import { Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { APP_CONFIG } from '@/lib/config';
 import { haptic } from '@/lib/haptics';
@@ -22,8 +23,10 @@ const LEGACY_DELETE_MESSAGE = '예전 버전에서 보낸 이 기기의 기록(�
  *   (기기 ID 를 적은 메일을 연다 — 운영자는 관리자 페이지 「기록 삭제」와 Vercel ANALYTICS_OPTOUT_DEVICES 로 처리한다)
  * - 「코칭 내용 저장」(선택): 언제든 켜고 끌 수 있다. 끄면 서버에 저장된 이 기기의 코칭 내용 삭제를 요청한다 (store.setContentConsent → lib/server-deletion)
  * - 예전 버전 첫 화면의 미리 체크된 동의로 보낸 기록이 남아 있을 수 있는 기기는 여기서 지운다
+ * 1.2 개편: 마이 탭과 같은 옅은 회색 바탕 위 흰 카드 묶음.
  */
 export default function PrivacySettings() {
+  const theme = useTheme();
   const toast = useToast();
   const deviceId = useAppStore((s) => s.deviceId);
   const underAge = useAppStore((s) => s.user?.age != null && s.user.age < 14);
@@ -58,44 +61,41 @@ export default function PrivacySettings() {
   };
 
   return (
-    <Screen contentStyle={styles.content}>
-      <SectionHeader title="서비스 이용 기록" subtitle="자동 수집 · 만 14세 이상" />
-      <Card style={styles.card}>
-        <AppText variant="small">{BASIC_LOG_NOTICE}</AppText>
-        <AppText variant="caption" color="textSecondary">
-          {BASIC_LOG_DETAIL}
-        </AppText>
-      </Card>
-      <ListRow icon="mail-outline" title="처리 정지·삭제 요청" subtitle="메일 앱이 열려요 · 이 기기의 ID가 함께 적혀요" onPress={requestOptOut} />
-      <ListRow icon="document-text-outline" title="개인정보 처리방침 보기" onPress={() => Linking.openURL(privacyUrl('analytics')).catch(() => toast.show('처리방침을 열지 못했어요. 잠시 후 다시 시도해 주세요.', 'error'))} />
+    <Screen background={theme.canvas} contentStyle={styles.content}>
+      {/* 머리말도 바탕과 같은 회색으로 */}
+      <Stack.Screen options={{ headerStyle: { backgroundColor: theme.canvas } }} />
 
-      <SectionHeader title="선택 동의" />
-      <ListRow
-        icon="chatbubbles-outline"
-        title={`${CONTENT_CONSENT_TITLE} (선택)`}
-        subtitle={`${CONTENT_CONSENT_SUMMARY}. ${CONTENT_CONSENT_DETAIL}`}
-        right={
-<Switch accessibilityLabel={`${CONTENT_CONSENT_TITLE} (선택)`} value={contentConsent === true} onValueChange={toggleContent} />
-        }
-      />
-      {underAge ? (
-        <AppText variant="caption" color="textTertiary" style={styles.note}>
-          프로필 나이가 만 14세 미만이라 켜 두어도 저장하지 않아요.
-        </AppText>
-      ) : null}
-      {legacyServerRecords ? (
+      <ListGroup title="서비스 이용 기록" subtitle="자동 수집 · 만 14세 이상">
+        <View style={styles.notice}>
+          <AppText variant="small">{BASIC_LOG_NOTICE}</AppText>
+          <AppText variant="caption" color="textSecondary" style={styles.detail}>
+            {BASIC_LOG_DETAIL}
+          </AppText>
+        </View>
+        <ListRow icon="mail-outline" title="처리 정지·삭제 요청" subtitle="메일 앱이 열려요 · 이 기기의 ID가 함께 적혀요" onPress={requestOptOut} />
+        <ListRow icon="document-text-outline" title="개인정보 처리방침 보기" onPress={() => Linking.openURL(privacyUrl('analytics')).catch(() => toast.show('처리방침을 열지 못했어요. 잠시 후 다시 시도해 주세요.', 'error'))} />
+      </ListGroup>
+
+      <ListGroup title="선택 동의" footer={underAge ? '프로필 나이가 만 14세 미만이라 켜 두어도 저장하지 않아요.' : undefined}>
         <ListRow
-          icon="cloud-offline-outline"
-          title="예전에 보낸 이용 기록 지우기"
-          subtitle="예전 버전 첫 화면에 미리 체크돼 있던 동의로 보낸 기록(코칭 내용 포함)이 서버에 남아 있을 수 있어요. 누르면 서버에 남은 이 기기의 기록을 모두 지워요."
-          onPress={confirmLegacyDelete}
+          icon="chatbubbles-outline"
+          title={`${CONTENT_CONSENT_TITLE} (선택)`}
+          subtitle={`${CONTENT_CONSENT_SUMMARY}. ${CONTENT_CONSENT_DETAIL}`}
+          right={<Switch accessibilityLabel={`${CONTENT_CONSENT_TITLE} (선택)`} value={contentConsent === true} onValueChange={toggleContent} />}
         />
-      ) : null}
+        {legacyServerRecords ? (
+          <ListRow
+            icon="cloud-offline-outline"
+            title="예전에 보낸 이용 기록 지우기"
+            subtitle="예전 버전 첫 화면에 미리 체크돼 있던 동의로 보낸 기록(코칭 내용 포함)이 서버에 남아 있을 수 있어요. 누르면 서버에 남은 이 기기의 기록을 모두 지워요."
+            onPress={confirmLegacyDelete}
+          />
+        ) : null}
+      </ListGroup>
 
-      <SectionHeader title="센딧이 기억하는 이야기" subtitle="채팅방마다 · 기기에만 저장" />
-      <Card style={styles.card}>
+      <CardSection title="센딧이 기억하는 이야기" subtitle="채팅방마다 · 기기에만 저장">
         <AppText variant="small">{MEMORY_NOTICE}</AppText>
-      </Card>
+      </CardSection>
 
       <AppText variant="caption" color="textTertiary" style={styles.note}>
         AI 분석 동의는 마이 → 프라이버시에서, 회원 탈퇴와 모든 데이터 삭제는 마이 화면 맨 아래에서 할 수 있어요.
@@ -105,7 +105,8 @@ export default function PrivacySettings() {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingTop: Spacing.sm },
-  card: { gap: Spacing.sm, marginBottom: Spacing.sm },
-  note: { paddingHorizontal: Spacing.sm, marginTop: Spacing.sm },
+  content: { paddingTop: Spacing.md, gap: Spacing.xl },
+  notice: { paddingHorizontal: Spacing.lg + 2, paddingVertical: Spacing.lg + 2 },
+  detail: { marginTop: Spacing.sm, lineHeight: 18 },
+  note: { paddingHorizontal: Spacing.xs, lineHeight: 18 },
 });

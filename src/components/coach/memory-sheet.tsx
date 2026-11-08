@@ -8,23 +8,28 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon3D } from '@/components/brand/brand';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
+import { GlassSurface } from '@/components/ui/glass-surface';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { useToast } from '@/components/ui/toast';
 import { APP_NAME } from '@/constants/brand';
-import { Brand, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { Brand, CardShadow, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { haptic } from '@/lib/haptics';
 import { MEMORY_NOTICE } from '@/lib/privacy-copy';
 import { useAppStore } from '@/store/app-store';
 
 const EMPTY: string[] = [];
+/** 기억 띠 높이 (알약 — 모서리는 절반) */
+const CARD_H = 48;
 
 /**
- * 채팅방 위의 작은 카드 「센딧이 기억하는 이야기 N개」 — 누르면 기억 시트를 연다.
- * 기억이 늘면 카드가 통 튀고 「+1」이 떠오른다
+ * 채팅방 위의 작은 띠 「센딧이 기억하는 이야기 N개」 — 누르면 기억 시트를 연다.
+ * 탭 바·입력창과 같은 유리 알약(가는 테두리 + 아주 옅은 그림자). 기억이 늘면 띠가 통 튀고 「+1」이 떠오른다
  */
 export function MemoryCard({ count, onPress, inline = false }: { count: number; onPress: () => void; /** 이미 여백이 있는 화면 안에 둘 때 (상대 정보 수정) */ inline?: boolean }) {
   const theme = useTheme();
+  const dark = useColorScheme() === 'dark';
   const scale = useSharedValue(1);
   const plus = useSharedValue(0);
   const prev = useRef(count);
@@ -48,8 +53,11 @@ export function MemoryCard({ count, onPress, inline = false }: { count: number; 
         accessibilityLabel={`${APP_NAME}이 기억하는 이야기 ${count}개 보기`}
         feedback="tap"
         onPress={onPress}
-        style={[styles.card, { backgroundColor: theme.surface }]}>
-        <Icon3D name="memory" size={30} />
+        style={[styles.card, dark ? null : CardShadow]}>
+        <GlassSurface radius={CARD_H / 2} floating={false} style={StyleSheet.absoluteFill} />
+        <View style={[styles.cardIcon, { backgroundColor: theme.primarySoft }]}>
+          <Icon3D name="memory" size={26} />
+        </View>
         <AppText variant="smallStrong" style={styles.cardText} numberOfLines={1}>
           {APP_NAME}이 기억하는 이야기{' '}
           <AppText variant="smallStrong" color="primary">
@@ -216,9 +224,10 @@ export function MemorySheet({ crushId, partnerName, visible, onClose }: { crushI
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  cardWrap: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm, paddingBottom: Spacing.xs, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
+  cardWrap: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.xs, paddingBottom: Spacing.sm, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   cardInline: { marginTop: Spacing.xl },
-  card: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, minHeight: 48, paddingLeft: Spacing.sm + 2, paddingRight: Spacing.md, borderRadius: Radius.lg },
+  card: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm + 2, minHeight: CARD_H, paddingLeft: 6, paddingRight: Spacing.md, borderRadius: CARD_H / 2 },
+  cardIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   cardText: { flex: 1 },
   plus: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: Radius.pill },
   plusText: { color: Brand.onBrand, fontSize: 12, lineHeight: 16, fontWeight: '800' },
