@@ -8,7 +8,7 @@
 - 1.1.0 이상 앱은 **스토어에 특가 상품이 생기는 순간** 세일을 보여 준다 → 상품을 여는 시점이 곧 세일 시작이다.
   - **Android**: 11-28 이후 `node tools/day-sale-products.mjs --android --apply --price 2900` (만들면 바로 활성).
   - **iOS**: 소모성 상품은 이미 승인된 종류(하루 이용권)가 있어 **앱 버전 없이 상품만 따로 심사**에 낼 수 있다(Apple 도움말 「Submit an In-App Purchase」 — 처음 내는 종류만 새 버전과 함께). 승인되면 바로 팔리므로 **11-27 20:45(KST, 정가 인상 20일) 이후** `node tools/day-sale-products.mjs --ios --apply --price 2900` 로 만들고 상품 심사를 낸다(보통 1~2일 → 11-28~29 에 열림). 1.1.1(1년권)과 함께 내지 않는다 — 1.1.1 이 나가는 순간 열려 버린다.
-  - 심사용 스크린샷: `docs/store-assets/iap-review-paywall-sale.png` (웹 미리보기로 찍은 「3,900원 → 2,900원」 결제 화면, 786×1704).
+  - 심사용 스크린샷: `docs/store-assets/iap-review-paywall-sale.png` (웹 미리보기로 찍은 「3,900원 → 2,900원」 결제 화면을 App Store 규격 1290×2796 으로 맞춤 — 786×1704 는 IMAGE_INCORRECT_DIMENSIONS 로 거절됨).
 
 회의 메모 「000님을 위한 하루 무제한 이용권 / 타이머 들어가고 타임 세일」을 **정직하게** 구현했다.
 표시광고법·전자상거래법(다크 패턴) 때문에 가짜 할인·가짜 카운트다운은 쓰지 않는다.
