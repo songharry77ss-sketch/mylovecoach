@@ -100,6 +100,12 @@ export interface ThemeColors {
   bubbleUser: string;
   bubbleCoach: string;
   tabBar: string;
+  /** 카드가 놓이는 화면 바탕 (탭 화면·설정) — 토스처럼 옅은 회색 위에 흰 카드 (1.2 개편) */
+  canvas: string;
+  /** canvas 위에 놓는 카드 */
+  card: string;
+  /** 카드 안 줄 사이 가는 선 */
+  separator: string;
 }
 
 export const Colors: Record<'light' | 'dark', ThemeColors> = {
@@ -123,6 +129,9 @@ export const Colors: Record<'light' | 'dark', ThemeColors> = {
     bubbleUser: '#E6EDFF',
     bubbleCoach: palette.white,
     tabBar: palette.white,
+    canvas: '#F3F5F9',
+    card: palette.white,
+    separator: '#EEF0F4',
   },
   dark: {
     background: '#0D1018',
@@ -144,6 +153,9 @@ export const Colors: Record<'light' | 'dark', ThemeColors> = {
     bubbleUser: '#1E2A57',
     bubbleCoach: '#1C2130',
     tabBar: '#0D1018',
+    canvas: '#0B0E15',
+    card: '#161A24',
+    separator: '#232938',
   },
 };
 
@@ -199,6 +211,8 @@ export const Brand = {
   gradient: ['#3F7CF8', palette.sendBlue500, palette.sendViolet500] as [string, string, string],
   /** 글자가 없는 장식 면 — 아이콘과 같은 하늘색 시작 */
   gradientBright: ['#6FC8FF', palette.sendBlue500, palette.sendViolet500] as [string, string, string],
+  /** 떠 있는 둥근 구슬(탭 바 「새 채팅」·채팅 「보내기」) — 위가 밝은 유리 구슬 */
+  orb: ['#6B9BFF', palette.sendBlue500, '#5845EE'] as [string, string, string],
   /** 버튼처럼 좁은 면 — 흰 글자가 또렷하게 */
   button: ['#4A78FB', palette.sendBlue500, '#6A55F2'] as [string, string, string],
   /** 화면 바탕의 옅은 빛 (스플래시와 같은 흰색 → 옅은 라벤더) */
@@ -234,6 +248,13 @@ export const Shadow = Platform.select({
   },
   android: { elevation: 2 },
   default: { boxShadow: '0 6px 16px rgba(27,42,58,0.06)' },
+}) as object;
+
+/** 흰 카드(canvas 위)의 아주 옅은 그림자 — 다크 모드에서는 쓰지 않고 가는 테두리로 */
+export const CardShadow = Platform.select({
+  ios: { shadowColor: '#1B2559', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 14 },
+  android: { elevation: 1 },
+  default: { boxShadow: '0 4px 14px rgba(27,37,89,0.05)' },
 }) as object;
 
 export const MaxContentWidth = 640;

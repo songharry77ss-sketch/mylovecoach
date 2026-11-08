@@ -1,21 +1,22 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeInUp, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandGradient, HeroCard, Icon3D } from '@/components/brand/brand';
+import { HeroCard, Icon3D } from '@/components/brand/brand';
 import { useAiReport } from '@/components/coach/ai-report-sheet';
+import { COMPOSER_FADE, ComposerBackdrop, PILL_HEIGHT, PillInput, SendOrb } from '@/components/coach/composer';
 import { HeatGauge } from '@/components/coach/heat-gauge';
 import { useCelebrate } from '@/components/fx/celebration';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { GlassSurface } from '@/components/ui/glass-surface';
 import { IconButton } from '@/components/ui/icon-button';
-import { PressableScale } from '@/components/ui/pressable-scale';
-import { Brand, MaxContentWidth, Radius, Spacing, Typography } from '@/constants/theme';
+import { Brand, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { kktiLabel } from '@/hooks/use-coach';
 import { useAiAction } from '@/hooks/use-ai-action';
 import { useKeyboardVisible } from '@/hooks/use-keyboard';
@@ -406,36 +407,19 @@ export default function PracticeSessionScreen() {
           </View>
         ) : null}
 
+        {/* 채팅방과 같은 떠 있는 유리 입력창 — [글 입력 | 보내기 구슬] */}
         {!finished ? (
-          <View style={[styles.composer, { borderTopColor: theme.border, paddingBottom: (keyboardVisible ? 0 : insets.bottom) + Spacing.sm, backgroundColor: theme.background }]}>
+          <View style={[styles.composer, { paddingBottom: (keyboardVisible ? 0 : insets.bottom) + Spacing.sm }]}>
+            <ComposerBackdrop />
             {!session.charged && quota.enforced && !isUnlimited(quota) ? (
               <AppText variant="caption" color="textTertiary" align="center">
                 첫 답장을 받으면 코칭 1회가 차감돼요 · 한 번의 연습에서 {PRACTICE_MAX_TURNS}마디까지
               </AppText>
             ) : null}
-            <View style={styles.inputRow}>
-              <View style={[styles.inputBox, { backgroundColor: theme.surface }]}>
-                <TextInput
-                  value={text}
-                  onChangeText={setText}
-                  placeholder={`${p.name}에게 답장하기`}
-                  placeholderTextColor={theme.textTertiary}
-                  multiline
-                  maxLength={300}
-                  editable={!busy}
-                  style={[styles.input, Typography.body, styles.noOutline, { color: theme.text }]}
-                />
-              </View>
-              <PressableScale
-                accessibilityLabel="보내기"
-                feedback={false}
-                onPress={send}
-                disabled={!canSend}
-                style={[styles.sendBtn, { backgroundColor: theme.surfaceSelected }]}>
-                {canSend ? <BrandGradient style={StyleSheet.absoluteFill} /> : null}
-                <Ionicons name="arrow-up" size={22} color={canSend ? Brand.onBrand : theme.textTertiary} />
-              </PressableScale>
-            </View>
+            <GlassSurface radius={PILL_HEIGHT / 2} style={styles.pill}>
+              <PillInput value={text} onChangeText={setText} placeholder={`${p.name}에게 답장하기`} maxLength={300} editable={!busy} style={styles.input} />
+              <SendOrb active={canSend} onPress={send} accessibilityLabel="보내기" />
+            </GlassSurface>
           </View>
         ) : null}
       </KeyboardAvoidingView>
@@ -451,7 +435,8 @@ const styles = StyleSheet.create({
   headerActions: { flexDirection: 'row', alignItems: 'center' },
   endBtn: { height: 40, paddingHorizontal: Spacing.sm, justifyContent: 'center' },
   gauge: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
-  list: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.lg, gap: Spacing.md, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
+  // 아래 여백은 입력창 위 흐림보다 넉넉히 — 마지막 말풍선이 흐림에 덮인 채로 멈추지 않게
+  list: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, paddingBottom: COMPOSER_FADE + Spacing.sm, gap: Spacing.md, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   scenario: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.sm, marginBottom: Spacing.sm },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   hint: { flexDirection: 'row', gap: Spacing.sm, borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2 },
@@ -470,11 +455,7 @@ const styles = StyleSheet.create({
   best: { borderRadius: Radius.md, padding: Spacing.md, gap: 4, marginTop: Spacing.md, backgroundColor: Brand.glass, borderWidth: 1, borderColor: Brand.glassBorder },
   resultActions: { gap: Spacing.xs, marginTop: Spacing.lg },
   error: { marginHorizontal: Spacing.lg, borderRadius: Radius.md, padding: Spacing.sm },
-  composer: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: Spacing.sm, paddingHorizontal: Spacing.md, gap: Spacing.xs },
-  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: Spacing.sm },
-  inputBox: { flex: 1, borderRadius: Radius.lg, paddingHorizontal: Spacing.lg, minHeight: 44, maxHeight: 120, justifyContent: 'center' },
-  input: { paddingVertical: Spacing.sm + 2 },
-  // 웹 브라우저의 검은 포커스 테두리 대신 입력칸 모양 그대로 (앱에는 영향 없음)
-  noOutline: Platform.select({ web: { outlineStyle: 'none' }, default: {} }) as object,
-  sendBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  composer: { paddingTop: Spacing.xs, paddingHorizontal: Spacing.md, gap: Spacing.sm },
+  pill: { flexDirection: 'row', alignItems: 'flex-end', minHeight: PILL_HEIGHT, padding: 6, paddingLeft: Spacing.md, gap: Spacing.xs },
+  input: { maxHeight: 120 },
 });

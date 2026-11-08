@@ -251,27 +251,29 @@ export default function RootLayout() {
                 headerBackButtonDisplayMode: 'minimal',
                 headerTintColor: colors.text,
                 contentStyle: { backgroundColor: colors.background },
+                // 1.2: 안드로이드도 아이폰처럼 오른쪽에서 밀려 들어오고, 아래에서 올라오는 화면(모달)은 아래에서 올라오게
+                ...(Platform.OS === 'android' ? { animation: 'ios_from_right' as const } : null),
               }}>
               <Stack.Screen name="index" options={{ headerShown: false }} />
               <Stack.Screen name="welcome" options={{ headerShown: false, gestureEnabled: false }} />
               <Stack.Screen name="about-me" options={{ headerShown: false, gestureEnabled: false }} />
               <Stack.Screen name="start" options={{ headerShown: false, gestureEnabled: false }} />
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="crush/new" options={{ title: '새 채팅방', presentation: 'modal' }} />
+              <Stack.Screen name="crush/new" options={{ title: '새 채팅방', presentation: 'modal', ...ANDROID_MODAL }} />
               <Stack.Screen name="crush/[id]/index" options={{ title: '' }} />
-              <Stack.Screen name="crush/[id]/edit" options={{ title: '상대 정보 수정', presentation: 'modal' }} />
+              <Stack.Screen name="crush/[id]/edit" options={{ title: '상대 정보 수정', presentation: 'modal', ...ANDROID_MODAL }} />
               <Stack.Screen name="crush/[id]/report" options={{ title: '상대 분석 보고서' }} />
               <Stack.Screen name="practice/[id]" options={{ title: '' }} />
-              <Stack.Screen name="practice/custom" options={{ title: '연습 상대 만들기', presentation: 'modal' }} />
+              <Stack.Screen name="practice/custom" options={{ title: '연습 상대 만들기', presentation: 'modal', ...ANDROID_MODAL }} />
               <Stack.Screen name="mind" options={{ title: '속마음 풀이' }} />
-              <Stack.Screen name="quick" options={{ title: '빠른 코칭', presentation: 'modal' }} />
+              <Stack.Screen name="quick" options={{ title: '빠른 코칭', presentation: 'modal', ...ANDROID_MODAL }} />
               <Stack.Screen name="kkti/index" options={{ headerShown: false }} />
               <Stack.Screen name="kkti/result" options={{ headerShown: false }} />
               <Stack.Screen name="settings/profile" options={{ title: '내 프로필' }} />
               <Stack.Screen name="settings/api-key" options={{ title: 'AI 코치 연결' }} />
               <Stack.Screen name="settings/privacy" options={{ title: '개인정보 설정' }} />
-              <Stack.Screen name="paywall" options={{ headerShown: false, presentation: 'modal' }} />
-              <Stack.Screen name="signup" options={{ headerShown: false, presentation: 'modal' }} />
+              <Stack.Screen name="paywall" options={{ headerShown: false, presentation: 'modal', ...ANDROID_MODAL }} />
+              <Stack.Screen name="signup" options={{ headerShown: false, presentation: 'modal', ...ANDROID_MODAL }} />
               <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
               <Stack.Screen name="+not-found" options={{ title: '페이지를 찾을 수 없어요' }} />
             </Stack>
@@ -289,6 +291,9 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+/** 안드로이드 모달 — 아래에서 올라온다 (아이폰은 시스템 카드 모달) */
+const ANDROID_MODAL = Platform.OS === 'android' ? ({ animation: 'slide_from_bottom' } as const) : null;
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },

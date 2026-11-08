@@ -5,14 +5,17 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useTabBarSpace } from '@/components/ui/tab-bar-space';
 import { BrandPill, HeroCard, Icon3D, ResearchBadge, SenditLogo } from '@/components/brand/brand';
 import { WhoSheet, type WhoTarget } from '@/components/coach/who-sheet';
 import { CrushListItem } from '@/components/crush/crush-list-item';
 import { DemoReel } from '@/components/fx/demo-reel';
 import { AppText } from '@/components/ui/app-text';
+import { GlassHeader } from '@/components/ui/glass-header';
+import { useCardStyle } from '@/components/ui/list-group';
 import { PressableScale } from '@/components/ui/pressable-scale';
-import { StatusBarScrim } from '@/components/ui/system-bars';
+import { SectionHeader } from '@/components/ui/section-header';
+import { StatusBarScrim, useScrolledPast } from '@/components/ui/system-bars';
+import { useTabBarSpace } from '@/components/ui/tab-bar-space';
 import { useToast } from '@/components/ui/toast';
 import { APP_NAME } from '@/constants/brand';
 import { Brand, MaxContentWidth, Radius, Spacing, Typography } from '@/constants/theme';
@@ -26,11 +29,13 @@ import { haptic } from '@/lib/haptics';
 import { deleteImageQuietly, pickImage, type PickedImage } from '@/lib/images';
 import { PRIVACY_NOTICE_VERSION, sortCrushes, useAppStore } from '@/store/app-store';
 
-/** 등장 순서 — 위에서부터 50ms 간격으로 살짝 올라온다 */
-const enter = (step: number) => FadeInDown.delay(step * 50).duration(420);
+/** 등장 순서 — 위에서부터 50ms 간격으로 살짝 올라온다 (스프링으로 부드럽게 멈춘다, 움직임 줄이기 설정이면 바로 보인다) */
+const enter = (step: number) => FadeInDown.delay(step * 50).springify().damping(18);
 
 /**
  * 홈 — 「럽코」 시안 배치: 로고 → 인사·큰 제목(+3D 아이콘) → 그라데이션 카드 하나(캡처 올리기) → 캡처 없이 적기 → 최근 상담.
+ * 1.2 개편: 옅은 회색 바탕(canvas) 위 흰 카드 결 — 적기 칸은 흰 알약, 최근 상담은 흰 카드 하나에 줄들. 로고가 사라질 만큼 내리면 유리 머리말.
+ * 새 채팅방은 탭 바 옆 「새 채팅」 구슬이 맡는다(같은 곳으로 간다) — 목록 머리의 글자 버튼은 겹쳐서 뺐다.
  * 캡처나 상황 적기를 고르면 채팅방이 있을 때 「누구와의 대화예요?」 시트로 보낼 곳만 고르고(최근 대화가 맨 위), 없으면 바로 첫 채팅방을 연다.
  * 속마음 카드·KKTI·비밀 상담·(켰으면) 연애 연습 같은 부가 기능은 「탐색」 탭에 따로 둔다.
  */
@@ -40,6 +45,9 @@ export default function HomeScreen() {
   const toast = useToast();
   const insets = useSafeAreaInsets();
   const tabSpace = useTabBarSpace();
+  const card = useCardStyle();
+  // 맨 위 로고가 가려질 만큼 내리면 「센딧」 유리 머리말이 내려온다
+  const { scrolled: pastTop, onScroll } = useScrolledPast(64);
   const quota = useQuota();
   const user = useAppStore((s) => s.user);
   const crushMap = useAppStore((s) => s.crushes);
@@ -129,9 +137,13 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={[styles.root, { backgroundColor: theme.background }]}>
+    <View style={[styles.root, { backgroundColor: theme.canvas }]}>
       {/* 떠 있는 유리 탭 바에 마지막 내용이 가리지 않게 그만큼 아래를 비운다 */}
-      <ScrollView showsVerticalScrollIndicator={false} scrollEventThrottle={32} contentContainerStyle={[styles.content, { paddingTop: insets.top + Spacing.sm, paddingBottom: tabSpace }]}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={32}
+        onScroll={onScroll}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + Spacing.sm, paddingBottom: tabSpace }]}>
         {/* 새 채팅방 + 는 탭 바 옆 「새 채팅」 구슬로 옮겼다 (2026-11-07 팀 제안 — 엄지가 닿는 자리) */}
         <Animated.View entering={enter(0)} style={styles.topRow}>
           <SenditLogo size="sm" />
@@ -164,15 +176,10 @@ export default function HomeScreen() {
 
         {/* 캡처 없이 상황만 적기 */}
         <Animated.View entering={enter(3)} style={styles.section}>
-          <AppText variant="title3" weight="800">
-            캡처 없이도 괜찮아요
-          </AppText>
-          <PressableScale
-            onPress={write}
-            feedback={false}
-            pressedScale={0.98}
-            accessibilityLabel="캡처 없이 상황만 적기"
-            style={[styles.writeRow, { borderColor: theme.border, backgroundColor: theme.surfaceElevated }]}>
+          <SectionHeader title="캡처 없이도 괜찮아요" style={styles.sectionHeader} />
+          {/* 흰 알약 입력칸 — 누르면 보낼 채팅방을 고른 뒤 그 방 입력창에서 바로 적는다 */}
+          <PressableScale onPress={write} feedback={false} pressedScale={0.98} accessibilityLabel="캡처 없이 상황만 적기" style={[styles.writeRow, card]}>
+            <Ionicons name="create-outline" size={20} color={theme.textTertiary} />
             <AppText variant="body" color="textTertiary" style={styles.flex} numberOfLines={1}>
               지금 어떤 상황인지 적어 주세요
             </AppText>
@@ -183,7 +190,7 @@ export default function HomeScreen() {
         </Animated.View>
 
         {privacyNoticeDue ? (
-          <Animated.View entering={enter(4)} style={[styles.notice, { backgroundColor: theme.surface }]}>
+          <Animated.View entering={enter(4)} style={[styles.notice, card]}>
             <View style={[styles.noticeIcon, { backgroundColor: theme.primarySoft }]}>
               <Ionicons name="shield-checkmark" size={18} color={theme.primary} />
             </View>
@@ -205,14 +212,7 @@ export default function HomeScreen() {
         {crushes.length === 0 ? (
           // 아직 채팅방이 없으면 「이렇게 나와요」 시연으로 첫 캡처를 부른다
           <Animated.View entering={enter(5)} style={styles.section}>
-            <View style={styles.sectionHead}>
-              <AppText variant="title3" weight="800">
-                이렇게 나와요
-              </AppText>
-              <AppText variant="small" color="textSecondary">
-                캡처 한 장 올리면 {APP_NAME}이 대화를 읽고 답장을 골라 줘요
-              </AppText>
-            </View>
+            <SectionHeader title="이렇게 나와요" subtitle={`캡처 한 장 올리면 ${APP_NAME}이 대화를 읽고 답장을 골라 줘요`} style={styles.sectionHeader} />
             <DemoReel />
             <Pressable accessibilityRole="button" onPress={newRoom} hitSlop={8} style={styles.registerLink}>
               <AppText variant="smallStrong" color="textSecondary">
@@ -222,34 +222,23 @@ export default function HomeScreen() {
           </Animated.View>
         ) : (
           <Animated.View entering={enter(5)} style={styles.section}>
-            <View style={styles.listHead}>
-              <View style={styles.flex}>
-                <AppText variant="title3" weight="800">
-                  최근 상담
-                </AppText>
-                <AppText variant="caption" color="textTertiary">
-                  {crushes.length}명과 대화 중 · 호감 온도는 0°에서 시작해요
-                </AppText>
+            {/* 새 채팅방은 바로 아래 탭 바 옆 「새 채팅」 구슬(+)이 맡는다 — 같은 곳으로 가는 글자 버튼을 겹쳐 두지 않는다 */}
+            <SectionHeader title="최근 상담" subtitle={`${crushes.length}명과 대화 중 · 호감 온도는 0°에서 시작해요`} style={styles.sectionHeader} />
+            {/* 그림자는 바깥 칸, 눌림 색이 둥근 모서리 밖으로 안 나가게 자르는 건 안쪽 칸 (아이폰은 자르면 그림자도 잘린다) */}
+            <View style={[styles.listCard, card]}>
+              <View style={styles.listClip}>
+                {crushes.map((c, i) => (
+                  <Animated.View key={c.id} entering={FadeInDown.delay(300 + 50 * Math.min(i, 8)).duration(360)}>
+                    <CrushListItem
+                      crush={c}
+                      hidePreview={hidePreviews}
+                      lastPreview={previewFor(c.id)}
+                      divider={i < crushes.length - 1}
+                      onPress={() => router.push({ pathname: '/crush/[id]', params: { id: c.id } })}
+                    />
+                  </Animated.View>
+                ))}
               </View>
-              <Pressable accessibilityRole="button" accessibilityLabel="새 채팅방 만들기" onPress={newRoom} hitSlop={10} style={styles.listAdd}>
-                <Ionicons name="add" size={16} color={theme.primary} />
-                <AppText variant="smallStrong" color="primary">
-                  새 채팅방
-                </AppText>
-              </Pressable>
-            </View>
-            <View>
-              {crushes.map((c, i) => (
-                <Animated.View key={c.id} entering={FadeInDown.delay(300 + 50 * Math.min(i, 8)).duration(360)}>
-                  <CrushListItem
-                    crush={c}
-                    hidePreview={hidePreviews}
-                    lastPreview={previewFor(c.id)}
-                    divider={i < crushes.length - 1}
-                    onPress={() => router.push({ pathname: '/crush/[id]', params: { id: c.id } })}
-                  />
-                </Animated.View>
-              ))}
             </View>
           </Animated.View>
         )}
@@ -261,8 +250,8 @@ export default function HomeScreen() {
               onPress={() => router.push({ pathname: '/about-me', params: { from: 'home' } })}
               pressedScale={0.98}
               accessibilityLabel="나에 대해 알려주세요"
-              style={[styles.profileCard, { backgroundColor: theme.surface }]}>
-              <View style={[styles.profileIcon, { backgroundColor: theme.surfaceElevated }]}>
+              style={[styles.profileCard, card]}>
+              <View style={[styles.profileIcon, { backgroundColor: theme.primarySoft }]}>
                 <Ionicons name="person" size={22} color={theme.primary} />
               </View>
               <View style={styles.flex}>
@@ -288,8 +277,9 @@ export default function HomeScreen() {
           </Pressable>
         ) : null}
       </ScrollView>
-      {/* 흰 화면이라 시계·배터리는 기본(검은 글자) 그대로 — 스크롤한 내용이 그 뒤로 비치지 않게 바탕색 띠만 깐다 */}
-      <StatusBarScrim height={insets.top} color={theme.background} />
+      {/* 밝은 바탕이라 시계·배터리는 기본(검은 글자) 그대로 — 스크롤한 내용이 그 뒤로 비치지 않게 바탕색 띠를 깔고, 로고가 사라지면 유리 머리말 */}
+      <StatusBarScrim height={insets.top} color={theme.canvas} />
+      <GlassHeader title={APP_NAME} top={insets.top} visible={pastTop} />
       <WhoSheet
         visible={who != null}
         crushes={crushes}
@@ -376,32 +366,33 @@ const styles = StyleSheet.create({
   heroTexts: { gap: 6, marginTop: Spacing.md, marginBottom: Spacing.lg },
   heroTitle: { color: Brand.onBrand, fontSize: 23, lineHeight: 30, fontWeight: '900', letterSpacing: -0.6 },
   heroBody: { color: Brand.onBrand, fontSize: 15, lineHeight: 22, fontWeight: '700', letterSpacing: -0.2, opacity: 0.94 },
+  // 흰 알약 — 탭 바·적기 칸과 같은 알약 결
   capture: {
     height: 58,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.pill,
     backgroundColor: Brand.onBrand,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
   },
-  captureClip: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: Radius.lg, overflow: 'hidden' },
+  captureClip: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: Radius.pill, overflow: 'hidden' },
   captureShine: { position: 'absolute', top: -20, bottom: -20, width: 60, left: '45%', backgroundColor: Brand.sky, opacity: 0.28 },
   captureText: { color: Brand.blue, fontSize: 18, lineHeight: 24, fontWeight: '900', letterSpacing: -0.4 },
   remaining: { color: Brand.onBrand, fontSize: 14, lineHeight: 22, fontWeight: '600', textAlign: 'center', marginTop: Spacing.md },
   remainingNum: { color: Brand.onBrand, fontSize: 18, lineHeight: 22, fontWeight: '900' },
   section: { gap: Spacing.md },
-  sectionHead: { gap: 2 },
-  writeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderWidth: 1, borderRadius: Radius.lg, paddingLeft: Spacing.lg, paddingRight: Spacing.sm, minHeight: 64 },
-  writeArrow: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  listHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginBottom: -Spacing.xs },
-  listAdd: { flexDirection: 'row', alignItems: 'center', gap: 2, minHeight: 44, paddingLeft: Spacing.sm },
+  sectionHeader: { marginTop: 0, marginBottom: 0, paddingHorizontal: 2 },
+  writeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm + 2, borderRadius: Radius.pill, paddingLeft: Spacing.lg + 2, paddingRight: Spacing.sm, minHeight: 62 },
+  writeArrow: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
+  listCard: { borderRadius: Radius.lg + 2 },
+  listClip: { borderRadius: Radius.lg + 2, overflow: 'hidden', paddingVertical: Spacing.xs },
   registerLink: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.sm },
-  notice: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md, padding: Spacing.lg, borderRadius: Radius.lg },
+  notice: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md, padding: Spacing.lg + 2, borderRadius: Radius.lg + 2 },
   noticeIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   noticeBody: { marginTop: 2 },
   noticeMore: { marginTop: Spacing.sm },
-  profileCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: Radius.lg, padding: Spacing.lg },
+  profileCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: Radius.lg + 2, padding: Spacing.lg + 2 },
   profileIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   profileHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: 2 },
   keyNotice: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.lg, borderRadius: Radius.md },

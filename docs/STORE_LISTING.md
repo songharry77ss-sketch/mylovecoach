@@ -130,6 +130,12 @@ Some features are accessible without an account, but account management requires
 
 이 안내만으로 모든 제한 영역에 접근 가능한 것은 아닙니다. 제출 전에 반복 가능한 실제 심사 접근 정보와 결제 테스트 방법을 보안 입력란에 완성해야 합니다. 준비되지 않은 계정·OTP 우회·무제한 데모가 있다고 적지 않습니다.
 
+## 이번 버전의 새로운 기능 (1.2.0)
+
+- 앱 전체를 새로 꾸몄어요. 채팅 입력창이 탭 바처럼 떠 있고, 보내기 버튼도 새 채팅 버튼처럼 동글동글해졌어요.
+- 마이·설정은 카드로 묶어 한눈에 보이고, 홈·탐색도 더 깔끔해졌어요. 스크롤하면 위에 제목이 따라와요.
+- 하루 이용권 특가 시간을 10분으로 바꿨고, 안드로이드는 화면이 더 부드럽게 넘어가요.
+
 ## 이번 버전의 새로운 기능 (1.1.1)
 
 - 아래 탭 바를 새로 꾸몄어요. 어느 화면에서든 오른쪽 + 버튼으로 새 채팅을 바로 시작해요.
@@ -231,7 +237,7 @@ Some features are accessible without an account, but account management requires
 | 상품 ID | 종류 | 가격 | 표시 이름 | 설명 |
 |---|---|---|---|---|
 | `mylovecoach.premium.weekly` | 자동 갱신 구독 (1주) · Play 기본 요금제 ID `weekly` | ₩9,900 / 주 | 주간 프리미엄 | 횟수 제한 없는 AI 연애 코칭 (매주 자동 갱신) |
-| `mylovecoach.premium.lifetime` | 비소모성 (iOS) / 일회성 상품 (Play) | App Store ₩29,900 / Play ₩29,800 | 평생 프리미엄 | 한 번 결제로 횟수 제한 없는 AI 연애 코칭 — **2026-11-07 결정으로 1.1.1 부터 판매 중단**(이미 산 사람은 계속 이용·복원) |
+| `mylovecoach.premium.lifetime` | 비소모성 (iOS) / 일회성 상품 (Play) | App Store ₩29,900 / Play ₩29,800 | 평생 프리미엄 | 한 번 결제로 횟수 제한 없는 AI 연애 코칭 — **2026-11-07 결정으로 1.1.1 부터 판매 중단** — 1.1.1 이 두 스토어에 공개된 뒤 2026-11-08 `node tools/lifetime-stop.mjs --apply` 로 App Store 판매 지역 비움·Play 구매 옵션 비활성(이미 산 사람은 계속 이용·복원) |
 | `mylovecoach.pass.year` | 자동 갱신 없는 구독 (iOS) / 구독 상품의 선불 요금제 `year`·P1Y (Play) | App Store ₩29,900 / Play ₩29,800 | 1년권 | 결제한 날부터 1년 동안 AI 연애 코칭 무제한 (자동 결제 없음) — `node tools/year-pass-products.mjs` |
 | `mylovecoach.pass.day` | 소모성 (iOS) / 일회성 상품 (Play, 앱이 소비) | ₩3,900 (2026-11-07부터, 이전 ₩2,700) | 하루 이용권 | 결제 후 24시간 동안 AI 연애 코칭 무제한 |
 | `mylovecoach.credits.10` | 소모성 (iOS) / 일회성 상품 (Play, 앱이 소비) | ₩4,900 (가안) | 코칭 10회권 | AI 연애 코칭 10회 (기간 제한 없음) |

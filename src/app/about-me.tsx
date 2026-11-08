@@ -7,6 +7,7 @@ import Animated, { Easing, FadeInUp, useAnimatedStyle, useSharedValue, withRepea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandGradient, GradientButton, WashBackground } from '@/components/brand/brand';
+import { useCardStyle, useInsetFill } from '@/components/ui/list-group';
 import { APP_NAME, APP_SUBTITLE } from '@/constants/brand';
 import { Brand, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useKeyboardVisible } from '@/hooks/use-keyboard';
@@ -106,6 +107,8 @@ function endingOf(a: Answers, fromHome: boolean, knownName: string | undefined):
 export default function AboutMe() {
   const router = useRouter();
   const theme = useTheme();
+  // 코치 말풍선·아래 답하는 시트는 옅은 빛 바탕 위에 뜬 흰 카드 (1.2 개편)
+  const card = useCardStyle();
   const from = useLocalSearchParams<{ from?: string }>().from;
   const fromHome = from === 'home' || from === 'my';
   const insets = useSafeAreaInsets();
@@ -279,7 +282,7 @@ export default function AboutMe() {
               <Animated.View key={line.id} entering={FadeInUp.duration(260)} style={styles.coachRow}>
                 {/* 이어지는 코치 말풍선은 얼굴을 한 번만 */}
                 {lines[i - 1]?.from === 'coach' ? <View style={styles.avatarGap} /> : <CoachAvatar />}
-                <View style={[styles.bubble, styles.coachBubble, { backgroundColor: theme.surface }]}>
+                <View style={[styles.bubble, styles.coachBubble, card]}>
                   <Text style={[styles.coachText, { color: theme.text }]}>{line.text}</Text>
                 </View>
               </Animated.View>
@@ -300,7 +303,7 @@ export default function AboutMe() {
           {typing ? (
             <View style={styles.coachRow}>
               {lines[lines.length - 1]?.from === 'coach' ? <View style={styles.avatarGap} /> : <CoachAvatar />}
-              <View style={[styles.bubble, styles.coachBubble, styles.typingBubble, { backgroundColor: theme.surface }]} accessibilityLabel="코치가 입력 중">
+              <View style={[styles.bubble, styles.coachBubble, styles.typingBubble, card]} accessibilityLabel="코치가 입력 중">
                 {[0, 1, 2].map((d) => (
                   <TypingDot key={d} index={d} color={theme.textTertiary} />
                 ))}
@@ -309,7 +312,7 @@ export default function AboutMe() {
           ) : null}
         </ScrollView>
 
-        <View style={[styles.dock, { paddingBottom: (keyboardVisible ? 0 : insets.bottom) + Spacing.md, backgroundColor: theme.background, borderTopColor: theme.border }]}>
+        <View style={[styles.dock, card, { paddingBottom: (keyboardVisible ? 0 : insets.bottom) + Spacing.md }]}>
           {ready && current === 'name' ? (
             <Animated.View entering={FadeInUp.duration(220)} style={styles.dockInner}>
               <InputRow value={draft} onChange={setDraft} onSend={sendText} placeholder="이름이나 별명 (예: 지은)" label="부를 이름" maxLength={20} />
@@ -401,6 +404,7 @@ function TypingDot({ index, color }: { index: number; color: string }) {
 
 function InputRow({ value, onChange, onSend, placeholder, label, maxLength, numeric }: { value: string; onChange: (v: string) => void; onSend: () => void; placeholder: string; label: string; maxLength: number; numeric?: boolean }) {
   const theme = useTheme();
+  const fill = useInsetFill();
   const can = value.trim().length > 0;
   return (
     <View style={styles.inputRow}>
@@ -415,10 +419,10 @@ function InputRow({ value, onChange, onSend, placeholder, label, maxLength, nume
         maxLength={maxLength}
         autoFocus
         accessibilityLabel={label}
-        style={[styles.input, { backgroundColor: theme.surface, color: theme.text }]}
+        style={[styles.input, { backgroundColor: fill, color: theme.text }]}
       />
       <Pressable accessibilityRole="button" accessibilityLabel="보내기" accessibilityState={{ disabled: !can }} onPress={onSend} disabled={!can} style={({ pressed }) => [styles.send, pressed && styles.pressed]}>
-        {can ? <BrandGradient style={StyleSheet.absoluteFill} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.surface }]} />}
+        {can ? <BrandGradient style={StyleSheet.absoluteFill} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: fill }]} />}
         <Ionicons name="arrow-up" size={20} color={can ? Brand.onBrand : theme.textTertiary} />
       </Pressable>
     </View>
@@ -437,12 +441,13 @@ function SkipChip({ onPress }: { onPress: () => void }) {
 /** 답 칩 — 누르면 바로 답이 된다 (추구미만 그라데이션으로 켜지고 끔) */
 function Choice({ label, selected, onPress, big, grid, wide }: { label: string; selected?: boolean; onPress: () => void; big?: boolean; grid?: boolean; wide?: boolean }) {
   const theme = useTheme();
+  const fill = useInsetFill();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={selected != null ? { selected } : undefined}
       onPress={onPress}
-      style={({ pressed }) => [styles.choice, { backgroundColor: theme.surface }, big && styles.choiceBig, grid && styles.choiceGrid, wide && styles.choiceWide, pressed && styles.choicePressed]}>
+      style={({ pressed }) => [styles.choice, { backgroundColor: fill }, big && styles.choiceBig, grid && styles.choiceGrid, wide && styles.choiceWide, pressed && styles.choicePressed]}>
       {selected ? <BrandGradient style={StyleSheet.absoluteFill} /> : null}
       <Text style={[styles.choiceText, { color: selected ? Brand.onBrand : theme.text }, big && styles.choiceTextBig]}>{label}</Text>
     </Pressable>
@@ -466,7 +471,8 @@ const styles = StyleSheet.create({
   meRow: { flexDirection: 'row', justifyContent: 'flex-end', marginVertical: Spacing.xs },
   avatarGap: { width: 30 },
   bubble: { maxWidth: '82%', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10, overflow: 'hidden' },
-  coachBubble: { borderTopLeftRadius: 6 },
+  // 그림자가 잘리지 않게 코치 말풍선은 자르지 않는다 (그라데이션을 깔지 않음)
+  coachBubble: { borderTopLeftRadius: 6, overflow: 'visible' },
   coachText: { fontSize: 15, lineHeight: 22, fontWeight: '600', letterSpacing: -0.2 },
   meBubble: { borderBottomRightRadius: 6 },
   meText: { fontSize: 15, lineHeight: 22, fontWeight: '700', color: Brand.onBrand, letterSpacing: -0.2 },
@@ -474,7 +480,8 @@ const styles = StyleSheet.create({
   skippedText: { fontSize: 14, lineHeight: 20, fontWeight: '600' },
   typingBubble: { flexDirection: 'row', gap: 5, paddingVertical: 15 },
   dot: { width: 7, height: 7, borderRadius: 4 },
-  dock: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.md, borderTopWidth: StyleSheet.hairlineWidth },
+  // 아래에서 올라온 흰 시트처럼 — 위 모서리만 둥글게
+  dock: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg + 2, borderTopLeftRadius: Radius.xl, borderTopRightRadius: Radius.xl, borderBottomWidth: 0 },
   dockInner: { gap: Spacing.md, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   dockWaiting: { height: 52 },
   dockActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },

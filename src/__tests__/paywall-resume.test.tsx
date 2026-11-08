@@ -32,7 +32,8 @@ jest.mock('@/lib/config', () => ({
   APP_CONFIG: { apiUrl: 'https://coach.test', apiSameOrigin: false, apiToken: 'app-token', supportEmail: '', privacyUrl: 'https://coach.test/privacy.html', termsUrl: '' },
 }));
 jest.mock('react-native-worklets', () => jest.requireActual('react-native-worklets/src/mock'));
-jest.mock('react-native-reanimated', () => jest.requireActual('react-native-reanimated/mock'));
+// 보내기 구슬(입력창)이 움직임 줄이기 설정을 읽는다 — 테스트 흉내에는 없어 「줄이지 않음」으로
+jest.mock('react-native-reanimated', () => ({ ...jest.requireActual('react-native-reanimated/mock'), useReducedMotion: () => false }));
 const mockPush = jest.fn();
 jest.mock('expo-router', () => {
   const { createElement, Fragment } = jest.requireActual('react');

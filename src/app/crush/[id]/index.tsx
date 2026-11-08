@@ -2,15 +2,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeInUp, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { GradientButton, Icon3D } from '@/components/brand/brand';
 import { useAiReport } from '@/components/coach/ai-report-sheet';
 import { AnalysisCard } from '@/components/coach/analysis-card';
 import { CoachLabel } from '@/components/coach/coach-avatar';
-import { Composer } from '@/components/coach/composer';
+import { COMPOSER_FADE, Composer } from '@/components/coach/composer';
 import { MemoryCard, MemorySheet } from '@/components/coach/memory-sheet';
 import { COACH_PHRASES, PendingBubble } from '@/components/coach/pending-bubble';
 import { UserBubble } from '@/components/coach/user-bubble';
@@ -18,11 +18,14 @@ import { AppText } from '@/components/ui/app-text';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { GlassSurface, liquidGlass } from '@/components/ui/glass-surface';
 import { IconButton } from '@/components/ui/icon-button';
 import { PressableScale } from '@/components/ui/pressable-scale';
+import { useScrolledPast } from '@/components/ui/system-bars';
 import { useToast } from '@/components/ui/toast';
 import { APP_NAME } from '@/constants/brand';
 import { Brand, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useCoach, type SendInput } from '@/hooks/use-coach';
 import { useKeyboardVisible } from '@/hooks/use-keyboard';
 import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
@@ -76,6 +79,8 @@ export default function CrushChat() {
   const rootRef = useRef<View>(null);
   const autoSent = useRef(false);
   const keyboardVisible = useKeyboardVisible();
+  // 목록을 올리면 머리말(과 기억 띠) 아래에 가는 선이 생긴다 — 메시지가 그 밑으로 들어가는 느낌
+  const { scrolled, onScroll } = useScrolledPast(4);
   const secret = Boolean(crush?.secret);
   // 센딧이 기억하는 이야기 — 처음 생기면 작게 알려 주고, 카드를 누르면 시트로 본다
   const memoryCount = secret ? 0 : (crush?.memory?.facts.length ?? 0);
@@ -480,14 +485,17 @@ export default function CrushChat() {
                 </View>
               </Pressable>
             ),
+          // 오른쪽 버튼은 탭 바처럼 작은 유리 캡슐 하나에 묶는다
           headerRight: () =>
             secret ? (
-              <IconButton name="trash-outline" accessibilityLabel="흔적 지우고 나가기" onPress={wipeNow} />
+              <HeaderCapsule>
+                <IconButton name="trash-outline" size={20} accessibilityLabel="흔적 지우고 나가기" onPress={wipeNow} />
+              </HeaderCapsule>
             ) : (
-              <View style={styles.headerActions}>
-                <IconButton name="analytics-outline" accessibilityLabel="상대 분석 보고서" onPress={() => router.push({ pathname: '/crush/[id]/report', params: { id: crush.id } })} />
-                <IconButton name="ellipsis-horizontal" accessibilityLabel="상대 정보" onPress={() => router.push({ pathname: '/crush/[id]/edit', params: { id: crush.id } })} />
-              </View>
+              <HeaderCapsule>
+                <IconButton name="analytics-outline" size={20} accessibilityLabel="상대 분석 보고서" onPress={() => router.push({ pathname: '/crush/[id]/report', params: { id: crush.id } })} />
+                <IconButton name="ellipsis-horizontal" size={20} accessibilityLabel="상대 정보" onPress={() => router.push({ pathname: '/crush/[id]/edit', params: { id: crush.id } })} />
+              </HeaderCapsule>
             ),
         }}
       />
@@ -512,6 +520,8 @@ export default function CrushChat() {
           contentContainerStyle={styles.list}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
+          onScroll={onScroll}
+          scrollEventThrottle={32}
           ListEmptyComponent={
             <View style={styles.empty}>
               <Animated.View entering={FadeInDown.duration(380)} style={styles.emptyHead}>
@@ -520,7 +530,7 @@ export default function CrushChat() {
                     <Ionicons name="eye-off" size={34} color={theme.background} />
                   </View>
                 ) : (
-                  <Icon3D name="send" size={96} float />
+                  <Icon3D name="send" size={84} float />
                 )}
                 <AppText variant="title1" align="center">
                   {secret ? '아무도 모르게 물어보세요' : `${who}과의 대화를\n캡처해서 올려보세요`}
@@ -546,11 +556,13 @@ export default function CrushChat() {
                 </AppText>
                 <View style={styles.starterRow}>
                   {STARTERS.map((s) => (
+                    // 입력창 위 질문 칩과 같은 결 — 흰 알약에 가는 테두리
                     <PressableScale
                       key={s}
                       feedback="tap"
                       onPress={() => guardedSend({ crushId: crush.id, image: null, text: s, tone, emoji })}
                       style={[styles.starter, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                      <Ionicons name="chatbubble-ellipses-outline" size={14} color={theme.primary} />
                       <AppText variant="small" weight="600">
                         {s}
                       </AppText>
@@ -613,6 +625,7 @@ export default function CrushChat() {
             ) : null
           }
         />
+        <ScrollEdge visible={scrolled} />
 
         <Composer
           tone={tone}
@@ -655,6 +668,36 @@ export default function CrushChat() {
   );
 }
 
+/**
+ * 머리말 오른쪽 버튼 묶음 — 탭 바와 같은 유리 캡슐 (그림자 없이 가는 테두리만).
+ * iOS 26 은 시스템이 머리말 버튼에 유리 캡슐을 직접 씌우므로 겹치지 않게 버튼만 둔다.
+ */
+function HeaderCapsule({ children }: { children: ReactNode }) {
+  if (liquidGlass()) return <View style={styles.capsule}>{children}</View>;
+  return (
+    <GlassSurface radius={20} floating={false} style={styles.capsule}>
+      {children}
+    </GlassSurface>
+  );
+}
+
+/** 목록을 올렸을 때 머리말(과 기억 띠) 아래에 생기는 가는 선 + 아주 옅은 그림자 */
+function ScrollEdge({ visible }: { visible: boolean }) {
+  const theme = useTheme();
+  const dark = useColorScheme() === 'dark';
+  const shown = useSharedValue(visible ? 1 : 0);
+  useEffect(() => {
+    shown.value = withTiming(visible ? 1 : 0, { duration: 180 });
+  }, [visible, shown]);
+  const style = useAnimatedStyle(() => ({ opacity: shown.value }));
+  return (
+    <Animated.View pointerEvents="none" style={[styles.edge, style]}>
+      <View style={[styles.edgeLine, { backgroundColor: theme.border }]} />
+      {!dark ? <LinearGradient colors={[`${theme.text}0F`, `${theme.text}00`]} style={styles.edgeShade} /> : null}
+    </Animated.View>
+  );
+}
+
 /** 빈 채팅방의 작은 안내 한 줄 */
 function Perk({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
   const theme = useTheme();
@@ -694,7 +737,8 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   flex2: { flex: 2 },
   flexShrink: { flexShrink: 1 },
-  list: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, paddingBottom: Spacing.xl, gap: Spacing.xl, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', flexGrow: 1 },
+  // 아래 여백은 입력창 위 흐림(COMPOSER_FADE)보다 넉넉히 — 마지막 메시지가 흐림에 덮인 채로 멈추지 않게
+  list: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, paddingBottom: COMPOSER_FADE + Spacing.sm, gap: Spacing.xl, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', flexGrow: 1 },
   item: { gap: Spacing.md },
   datePill: { alignSelf: 'center', paddingHorizontal: Spacing.md, paddingVertical: 4, borderRadius: Radius.pill },
   coachCol: { gap: Spacing.sm },
@@ -702,7 +746,7 @@ const styles = StyleSheet.create({
   errorHead: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'flex-start' },
   errorIcon: { marginTop: 1 },
   errorActions: { flexDirection: 'row', gap: Spacing.sm, flexWrap: 'wrap' },
-  empty: { flex: 1, justifyContent: 'center', gap: Spacing.lg + 4, paddingVertical: Spacing.md },
+  empty: { flex: 1, justifyContent: 'center', gap: Spacing.lg, paddingVertical: Spacing.sm },
   emptyHead: { alignItems: 'center', gap: Spacing.md, paddingHorizontal: Spacing.sm },
   emptyCta: { paddingHorizontal: Spacing.sm },
   secretHero: { width: 84, height: 84, borderRadius: 30, alignItems: 'center', justifyContent: 'center' },
@@ -711,14 +755,17 @@ const styles = StyleSheet.create({
   perkIcon: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   starters: { gap: Spacing.sm },
   starterRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: Spacing.sm },
-  starter: { paddingHorizontal: Spacing.md + 2, minHeight: 44, justifyContent: 'center', borderRadius: Radius.pill, borderWidth: 1 },
+  starter: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: Spacing.md + 2, minHeight: 44, borderRadius: Radius.pill, borderWidth: StyleSheet.hairlineWidth * 2 },
   promo: { borderRadius: Radius.xl, padding: Spacing.lg, gap: Spacing.md },
   promoRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   promoIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   promoTexts: { gap: 2, flex: 1 },
   promoActions: { flexDirection: 'row', gap: Spacing.sm },
   headerTitle: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, maxWidth: 230 },
-  headerActions: { flexDirection: 'row', alignItems: 'center' },
+  capsule: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 2, marginRight: Platform.OS === 'web' ? Spacing.sm : 0 },
+  edge: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 2 },
+  edgeLine: { height: StyleSheet.hairlineWidth },
+  edgeShade: { height: 8 },
   secretIcon: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   secretBanner: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm },
   viewer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center' },
