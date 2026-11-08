@@ -22,7 +22,7 @@ import { STORE_LABEL, STORE_URL, downloadDevice, type DownloadStore } from '@/li
 import { billingSupported, lastStoreProblem, purchasePlan, restorePremium, type PlanProduct } from '@/lib/billing/iap';
 import { CREDITS_PER_PACK, FALLBACK_PRICES, PRODUCT_IDS, SELLING_PLANS, SIGNUP_BONUS, freeRules, isConsumablePlan, yearPassEnd, type PlanKey } from '@/lib/billing/plans';
 import { PREMIUM_PLAN_NAMES, formatDateKo, formatPassEnd, isPremiumActive, passEndIfBoughtNow, premiumUntilSentence, quotaLabel, quotaStatus } from '@/lib/billing/quota';
-import { isSaleActive, saleAudience, saleOffer, saleWindow, shouldStartSale } from '@/lib/billing/sale';
+import { isSaleActive, SALE_WINDOW_MS, saleAudience, saleOffer, saleWindow, shouldStartSale } from '@/lib/billing/sale';
 import { APP_CONFIG } from '@/lib/config';
 import { haptic } from '@/lib/haptics';
 import { authAvailable } from '@/lib/supabase';
@@ -504,7 +504,7 @@ function fineText(plan: PlanKey, display: string, storeName: string, sale = fals
     return `1년권은 ${price} 1회 결제로 결제한 날부터 1년 동안 무제한이에요. 자동으로 갱신되거나 다시 결제되지 않아요. 1년이 지나면 무료 이용으로 돌아가고, 계속 쓰려면 그때 다시 결제하면 돼요. 같은 ${storeName} 계정이면 기기를 바꿔도 「구매 복원」으로 다시 쓸 수 있어요.`;
   const common = '자동으로 다시 결제되지 않고, 결제한 이 기기에서 쓸 수 있어요 (다른 기기로 옮기거나 복원되지 않아요).';
   if (plan === 'day' && sale)
-    return `하루 이용권 특가는 ${price} 1회 결제로 결제한 때부터 24시간 동안 무제한이에요 (하루 이용권과 똑같아요). 특가는 7일에 한 번, 30분 동안 열려요. 표시된 마감 시각까지만 살 수 있고, 마감 뒤에는 정가로 돌아가요. 이미 이용 중이면 24시간이 이어서 늘어나요. ${common}`;
+    return `하루 이용권 특가는 ${price} 1회 결제로 결제한 때부터 24시간 동안 무제한이에요 (하루 이용권과 똑같아요). 특가는 7일에 한 번, ${SALE_WINDOW_MS / 60_000}분 동안 열려요. 표시된 마감 시각까지만 살 수 있고, 마감 뒤에는 정가로 돌아가요. 이미 이용 중이면 24시간이 이어서 늘어나요. ${common}`;
   if (plan === 'day') return `하루 이용권은 ${price} 1회 결제로 결제한 때부터 24시간 동안 무제한이에요. 이미 이용 중이면 24시간이 이어서 늘어나요. ${common}`;
   return `횟수권은 ${price} 1회 결제로 코칭 ${CREDITS_PER_PACK}회가 충전되고 기간 제한이 없어요. 무료 횟수를 먼저 쓰고 그다음 횟수권이 차감돼요. ${common}`;
 }

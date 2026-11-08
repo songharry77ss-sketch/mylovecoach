@@ -1,8 +1,8 @@
 /**
  * 결제 화면의 하루 이용권 주인공 카드와 타임 세일 — 가짜 상품 목록으로 확인한다 (웹에는 스토어가 없어 세일이 안 보인다).
  * - 「{이름}님을 위한 하루 무제한 이용권」, 「지금 시작하면 내일 오후 3:42까지 무제한」(이용권이 실제로 끝나는 시각)
- * - 특가 상품과 정가 하루 이용권이 둘 다 스토어에서 확인될 때만 세일을 연다. 처음 볼 때 시작해 30분, 다시 열어도 처음부터 돌지 않음
- * - 30분이 지나면 정가로 돌아가고 7일 동안 다시 열리지 않는다. 세일 중에 사면 특가 상품을 산다
+ * - 특가 상품과 정가 하루 이용권이 둘 다 스토어에서 확인될 때만 세일을 연다. 처음 볼 때 시작해 10분, 다시 열어도 처음부터 돌지 않음
+ * - 10분이 지나면 정가로 돌아가고 7일 동안 다시 열리지 않는다. 세일 중에 사면 특가 상품을 산다
  */
 import { act } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -147,18 +147,18 @@ it('이름이 없으면 「오늘 하루 무제한 이용권」', () => {
   expect(screen()).not.toContain('님을 위한');
 });
 
-it('특가·정가 하루 이용권이 둘 다 있으면 처음 볼 때 30분 세일을 시작한다 — 취소선 정가·특가·할인율', () => {
+it('특가·정가 하루 이용권이 둘 다 있으면 처음 볼 때 10분 세일을 시작한다 — 취소선 정가·특가·할인율', () => {
   mount();
   expect(useAppStore.getState().saleOfferStartedAt).toBe(T);
   const text = screen();
   expect(text).toContain('특가 마감까지');
-  expect(text).toContain('30:00');
+  expect(text).toContain('10:00');
   expect(text).toContain('2,700원');
   expect(text).toContain('1,900원');
   expect(text).toContain('29%');
   expect(textOf(buyButton())).toBe('특가로 하루 무제한 시작하기');
   expect(tracked).toHaveBeenCalledWith('sale_offer_start', { reason: 'quota' });
-  expect(tracked).toHaveBeenCalledWith('sale_offer_view', { reason: 'quota', left: 1800 });
+  expect(tracked).toHaveBeenCalledWith('sale_offer_view', { reason: 'quota', left: 600 });
 });
 
 it('세일 중에 사면 특가 상품을 산다 — 하루 이용권처럼 충전되고 축하 화면', async () => {
@@ -179,14 +179,14 @@ it('세일 중에 사면 특가 상품을 산다 — 하루 이용권처럼 충�
 it('결제 화면을 다시 열어도 타이머가 처음부터 돌지 않는다', () => {
   mount();
   unmount();
-  now = T + 12 * MIN;
+  now = T + 4 * MIN;
   mount();
   expect(useAppStore.getState().saleOfferStartedAt).toBe(T);
-  expect(screen()).toContain('18:00');
+  expect(screen()).toContain('06:00');
   expect(tracked.mock.calls.filter((c) => c[0] === 'sale_offer_start')).toHaveLength(1);
 });
 
-it('30분이 지나면 정가로 돌아가고 정가 상품을 산다 — 7일 동안 다시 열리지 않는다', async () => {
+it('10분이 지나면 정가로 돌아가고 정가 상품을 산다 — 7일 동안 다시 열리지 않는다', async () => {
   useAppStore.setState({ saleOfferStartedAt: T - 31 * MIN });
   (purchasePlan as jest.Mock).mockResolvedValue({ status: 'cancelled' });
   mount();
@@ -204,15 +204,15 @@ it('30분이 지나면 정가로 돌아가고 정가 상품을 산다 — 7일 �
   expect(screen()).not.toContain('특가 마감까지');
 });
 
-it('7일이 지나면 다음에 볼 때 다시 30분', () => {
+it('7일이 지나면 다음에 볼 때 다시 10분', () => {
   useAppStore.setState({ saleOfferStartedAt: T - 8 * DAY });
   mount();
   expect(useAppStore.getState().saleOfferStartedAt).toBe(T);
-  expect(screen()).toContain('30:00');
+  expect(screen()).toContain('10:00');
 });
 
 it('보고 있는 동안 마감되면 정가로 바뀐다', async () => {
-  useAppStore.setState({ saleOfferStartedAt: T - 30 * MIN + 1500 });
+  useAppStore.setState({ saleOfferStartedAt: T - 10 * MIN + 1500 });
   mount();
   expect(screen()).toContain('00:01');
   now = T + 2000;
@@ -225,7 +225,7 @@ it('보고 있는 동안 마감되면 정가로 바뀐다', async () => {
 });
 
 it('화면은 특가인데 누르는 순간 마감이 지났으면 정가 결제창을 열지 않고 알린 뒤 정가로 바꾼다', async () => {
-  useAppStore.setState({ saleOfferStartedAt: T - 30 * MIN + 1500 });
+  useAppStore.setState({ saleOfferStartedAt: T - 10 * MIN + 1500 });
   mount();
   expect(textOf(buyButton())).toBe('특가로 하루 무제한 시작하기');
   now = T + 2000;
@@ -239,9 +239,9 @@ it('화면은 특가인데 누르는 순간 마감이 지났으면 정가 결제
   expect(textOf(buyButton())).toBe('하루 무제한 시작하기');
 });
 
-it('특가 안내: 7일에 한 번, 30분', () => {
+it('특가 안내: 7일에 한 번, 10분', () => {
   mount();
-  expect(screen()).toContain('특가는 7일에 한 번, 30분 동안 열려요');
+  expect(screen()).toContain('특가는 7일에 한 번, 10분 동안 열려요');
 });
 
 it('특가 상품이 스토어에 없으면 세일을 보여 주지도 시작하지도 않는다', () => {
