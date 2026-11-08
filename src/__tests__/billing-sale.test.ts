@@ -1,6 +1,6 @@
 /**
  * 하루 이용권 타임 세일 — 정직한 규칙 (lib/billing/sale.ts) 과 특가 상품을 하루 이용권과 똑같이 인정하는지.
- * - 처음 조건에 맞는 결제 화면에서 30분, 끝나면 7일 쉬고 다시 30분. 다시 열어도 처음부터 돌지 않는다
+ * - 처음 조건에 맞는 결제 화면에서 10분, 끝나면 7일 쉬고 다시 10분. 다시 열어도 처음부터 돌지 않는다
  * - 특가·정가 하루 이용권이 둘 다 스토어에서 확인되고, 숫자로 특가가 더 쌀 때만
  * - 앱(planOfProduct)·서버 알림(_store)·결제 흐름 알림(_funnel-alert)이 특가를 하루 이용권으로 센다
  */
@@ -16,8 +16,8 @@ const DAY = 24 * 60 * MIN;
 const T = new Date(2026, 10, 6, 15, 42, 10).getTime(); // 11월 6일 오후 3:42 (기기 현지 시간)
 
 describe('세일 시간 규칙', () => {
-  it('30분 동안만, 7일 쉬고 다시 열린다', () => {
-    expect(SALE_WINDOW_MS).toBe(30 * MIN);
+  it('10분 동안만, 7일 쉬고 다시 열린다', () => {
+    expect(SALE_WINDOW_MS).toBe(10 * MIN);
     expect(SALE_COOLDOWN_MS).toBe(7 * DAY);
   });
 
@@ -27,26 +27,26 @@ describe('세일 시간 규칙', () => {
     expect(isSaleActive(null, T)).toBe(false);
   });
 
-  it('시작하면 30분 동안 진행되고 남은 시간이 줄어든다 — 다시 계산해도 처음부터 돌지 않는다', () => {
-    expect(saleWindow(T, T)).toEqual({ phase: 'active', endsAt: T + 30 * MIN, remainingMs: 30 * MIN, nextOpenAt: T + 30 * MIN + 7 * DAY });
-    expect(saleWindow(T, T + 12 * MIN).remainingMs).toBe(18 * MIN);
-    expect(shouldStartSale(T, T + 12 * MIN)).toBe(false);
-    expect(isSaleActive(T, T + 30 * MIN - 1)).toBe(true);
+  it('시작하면 10분 동안 진행되고 남은 시간이 줄어든다 — 다시 계산해도 처음부터 돌지 않는다', () => {
+    expect(saleWindow(T, T)).toEqual({ phase: 'active', endsAt: T + 10 * MIN, remainingMs: 10 * MIN, nextOpenAt: T + 10 * MIN + 7 * DAY });
+    expect(saleWindow(T, T + 4 * MIN).remainingMs).toBe(6 * MIN);
+    expect(shouldStartSale(T, T + 4 * MIN)).toBe(false);
+    expect(isSaleActive(T, T + 10 * MIN - 1)).toBe(true);
   });
 
-  it('30분이 지나면 끝나고 7일 동안 다시 열리지 않는다', () => {
-    expect(saleWindow(T, T + 30 * MIN)).toMatchObject({ phase: 'cooldown', remainingMs: 0, nextOpenAt: T + 30 * MIN + 7 * DAY });
-    expect(shouldStartSale(T, T + 30 * MIN + 7 * DAY - 1)).toBe(false);
+  it('10분이 지나면 끝나고 7일 동안 다시 열리지 않는다', () => {
+    expect(saleWindow(T, T + 10 * MIN)).toMatchObject({ phase: 'cooldown', remainingMs: 0, nextOpenAt: T + 10 * MIN + 7 * DAY });
+    expect(shouldStartSale(T, T + 10 * MIN + 7 * DAY - 1)).toBe(false);
     expect(isSaleActive(T, T + 3 * DAY)).toBe(false);
   });
 
   it('7일이 지나면 다시 시작할 수 있다', () => {
-    expect(shouldStartSale(T, T + 30 * MIN + 7 * DAY)).toBe(true);
+    expect(shouldStartSale(T, T + 10 * MIN + 7 * DAY)).toBe(true);
   });
 
-  it('기기 시계를 되돌려도 30분보다 긴 타이머를 보여 주지 않는다', () => {
+  it('기기 시계를 되돌려도 10분보다 긴 타이머를 보여 주지 않는다', () => {
     expect(saleWindow(T, T - 10 * MIN)).toMatchObject({ phase: 'cooldown', remainingMs: 0 });
-    for (const now of [T, T + 1, T + 29 * MIN]) expect(saleWindow(T, now).remainingMs).toBeLessThanOrEqual(30 * MIN);
+    for (const now of [T, T + 1, T + 9 * MIN]) expect(saleWindow(T, now).remainingMs).toBeLessThanOrEqual(10 * MIN);
   });
 
   it('이미 무제한인 사람(프리미엄·팀원·하루 이용권 이용 중)에게는 세일을 열지 않는다', () => {
