@@ -117,7 +117,8 @@ for (const entry of targets) {
     }
     // 이미 같은 글이 올라가 있으면 다시 올리지 않는다 (기록이 빠졌을 때의 안전장치)
     const recent = entry.channel === 'instagram' ? await igRecent(acc.id, acc.token) : await thRecent(acc.id, acc.token);
-    const same = recent.find((r) => normalizeText(r.text) === normalizeText(entry.caption));
+    // 스토리는 글이 없고 게시물 목록(/media)에도 안 나오므로 이 검사를 건너뛴다 (posted.json 의 id 로만 거른다)
+    const same = entry.kind === 'story' || !normalizeText(entry.caption) ? null : recent.find((r) => normalizeText(r.text) === normalizeText(entry.caption));
     if (same) {
       note(`- ${entry.id}: 이미 올라가 있어요 → ${same.url}`);
       posted.posts.push({ id: entry.id, channel: entry.channel, url: same.url, at: same.at, found: true });

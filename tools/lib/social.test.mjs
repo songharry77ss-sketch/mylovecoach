@@ -27,6 +27,11 @@ test('항목 검사 — 채널별 제한', () => {
   assert.match(problems({ ...base, caption: Array.from({ length: 31 }, (_, i) => `#t${i}`).join(' ') }).join(), /해시태그/);
   assert.match(problems({ ...base, kind: 'reel', media: ['a.jpg'] }).join(), /mp4/);
   assert.deepEqual(problems({ ...base, kind: 'reel', media: ['marketing/social/d4/reel.mp4'] }), []);
+  assert.deepEqual(problems({ ...base, kind: 'story', media: ['marketing/social/d4/story-1.jpg'], caption: '' }), []);
+  assert.deepEqual(problems({ ...base, kind: 'story', media: ['marketing/social/d4/story-2.mp4'], caption: '' }), []);
+  assert.match(problems({ ...base, kind: 'story', media: ['a.png'] }).join(), /스토리/);
+  assert.match(problems({ ...base, kind: 'story', media: ['a.jpg', 'b.jpg'] }).join(), /스토리/);
+  assert.match(problems({ ...base, channel: 'threads', kind: 'story', media: ['a.jpg'] }).join(), /kind/);
   assert.deepEqual(problems({ ...base, channel: 'threads', kind: 'text', media: [], caption: '질문 글' }), []);
   assert.match(problems({ ...base, channel: 'threads', kind: 'text', media: [], caption: 'a '.repeat(260) }).join(), /500자/);
   assert.match(problems({ ...base, channel: 'threads', kind: 'reel' }).join(), /kind/);

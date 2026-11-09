@@ -93,7 +93,7 @@ async function igPublish(userId, containerId, token) {
 }
 
 /**
- * 사진 1장 · 캐러셀(2~10장) · 릴스. media 는 공개 주소 목록.
+ * 사진 1장 · 캐러셀(2~10장) · 릴스 · 스토리(그림 또는 영상 1개, 글·스티커 없음). media 는 공개 주소 목록.
  * audio: 릴스 음원 { id, audioVolume?, videoVolume? } — 페이스북 로그인 토큰일 때만 (Audio API)
  */
 export async function igPost({ userId, token, kind, media, caption, audio }) {
@@ -111,6 +111,13 @@ export async function igPost({ userId, token, kind, media, caption, audio }) {
     const c = await call('POST', base, `/${userId}/media`, params, token);
     await sleep(15_000);
     await waitReady(base, c.id, token, 'status_code', 80);
+    return igPublish(userId, c.id, token);
+  }
+  if (kind === 'story') {
+    const video = /\.mp4($|\?)/i.test(media[0]);
+    const c = await call('POST', base, `/${userId}/media`, { media_type: 'STORIES', ...(video ? { video_url: media[0] } : { image_url: media[0] }) }, token);
+    if (video) await sleep(10_000);
+    await waitReady(base, c.id, token, 'status_code', video ? 80 : 20);
     return igPublish(userId, c.id, token);
   }
   if (kind === 'image') {
