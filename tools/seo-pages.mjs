@@ -84,7 +84,8 @@ const BANNER = `<script>if(!/^\\/(k|kkti)(\\/|$)/.test(location.pathname))docume
 // 로봇용 본문 스타일 — JS 가 뜨기 전 잠깐 보이므로 인트로 배경색에 맞춘다
 const SHELL_CSS = `<style>.seo{flex:1;overflow:auto;padding:40px 20px 64px;background:#F4F6FF;color:#191F28;font:16px/1.65 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif}.seo>*{max-width:560px;margin-left:auto;margin-right:auto}.seo h1{font-size:24px;line-height:1.35;margin-top:0}.seo h2{font-size:18px;margin-top:28px}.seo a{color:#2F4FE0;font-weight:600}.seo .cta a{display:inline-block;margin:4px 12px 4px 0}.seo-center{display:flex;flex-direction:column;justify-content:center;text-align:center;background:#F4F6FF}@media (prefers-color-scheme:dark){.seo,.seo-center{background:#0D1018;color:#F2F4F8}.seo a{color:#9DB4FF}}</style>`;
 
-const ORG = { '@type': 'Organization', '@id': `${SITE}/#org`, name: '크레이빙(CRAVING)', url: `${SITE}/`, email: 'contact@craving.win', logo: `${SITE}/icon.png` };
+// sameAs: 검색엔진이 공식 인스타·스토어 페이지를 같은 회사 것으로 묶게 한다
+const ORG = { '@type': 'Organization', '@id': `${SITE}/#org`, name: '크레이빙(CRAVING)', url: `${SITE}/`, email: 'contact@craving.win', logo: `${SITE}/icon.png`, sameAs: ['https://www.instagram.com/my.lovecoach/', APP_STORE_URL, PLAY_URL] };
 const APP_DESC = '대화 캡처를 올리면 상대에게 딱 맞는 답장 3개와 호감 온도를 알려주는 AI 연애 코치';
 const app = (os, url) => ({
   '@type': 'MobileApplication',
@@ -104,8 +105,8 @@ const app = (os, url) => ({
 const HOME = {
   head: () =>
     headTags({
-      title: '센딧 - 나만의 연애 코치 · 카톡 답장 추천·호감도 분석 AI 연애 상담',
-      description: '고려대학교 심리학 연구진이 개발한 연애 특화 AI 코치. 카톡·인스타 DM 캡처 한 장이면 상대 속마음과 호감 온도를 읽고 보낼 답장 3개를 추천해요. 썸·소개팅·읽씹 고민부터 연애 연습, 카톡 연애 MBTI 테스트까지.',
+      title: '센딧(Sendit) - 나만의 연애 코치 · 카톡 답장 추천·호감도 분석 AI 연애 상담',
+      description: '센딧(옛 이름 나만의 연애코치)은 고려대학교 심리학 연구진이 개발한 연애 특화 AI 코치. 카톡·인스타 DM 캡처 한 장이면 상대 속마음과 호감 온도를 읽고 보낼 답장 3개를 추천해요. 썸·소개팅·읽씹 고민부터 연애 연습, 카톡 연애 MBTI 테스트까지.',
       ogTitle: '센딧 - 나만의 연애 코치 · 캡처 한 장이면 답장이 나와요',
       ogDescription: APP_DESC,
       path: '/',
@@ -127,6 +128,7 @@ const HOME = {
   body: () => `<main class="seo">
 <h1>센딧 - 나만의 연애 코치 · 카톡 캡처 한 장으로 받는 AI 연애 상담</h1>
 <p>고려대학교 심리학 연구진이 개발한 연애 특화 AI 코치예요. 카톡·인스타 DM 캡처를 올리거나 지금 상황을 글로 적으면, 센딧이 상대의 속마음과 호감 온도를 읽고 지금 보내기 좋은 답장 3개를 추천해요. 회원가입 없이 먼저 체험할 수 있어요.</p>
+<p>센딧(Sendit)은 「나만의 연애코치」의 새 이름이에요. App Store·Google Play에서 「센딧」이나 「연애코치」로 찾을 수 있어요.</p>
 <h2>이런 고민에 써요</h2>
 <ul>
 <li><b>카톡 답장 추천</b> — 썸남·썸녀가 「뭐해?」라고 보냈을 때, 톤별 답장 3개를 바로 복사</li>
