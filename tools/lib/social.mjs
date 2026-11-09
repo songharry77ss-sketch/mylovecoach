@@ -15,7 +15,7 @@ const DAY = 24 * HOUR;
 
 export const CHANNELS = ['instagram', 'threads'];
 export const KINDS = {
-  instagram: ['carousel', 'image', 'reel'],
+  instagram: ['carousel', 'image', 'reel', 'story'],
   threads: ['text', 'image', 'carousel'],
 };
 
@@ -69,11 +69,13 @@ export function problems(entry) {
   }
   if (entry.kind === 'image' && media.length !== 1) say('사진 글은 그림 1장');
   if (entry.kind === 'reel' && (media.length !== 1 || !/\.mp4$/i.test(media[0] ?? ''))) say('릴스는 mp4 1개');
+  // 스토리: 그림(jpg) 또는 영상(mp4) 1개. 글(caption)은 API 가 쓰지 않는다. 링크·투표 스티커는 API 로 못 붙인다
+  if (entry.kind === 'story' && (media.length !== 1 || !/\.(jpe?g|mp4)$/i.test(media[0] ?? ''))) say('스토리는 jpg 또는 mp4 1개');
   if (entry.kind === 'text' && media.length) say('글만 올리는 항목에는 그림을 넣지 않아요');
   if (entry.kind === 'text' && !text) say('글이 비었어요');
   // 인스타 API 는 그림을 JPEG 로만 받는다
   if (entry.channel === 'instagram' && ['carousel', 'image'].includes(entry.kind) && media.some((m) => !/\.jpe?g$/i.test(m))) say('인스타 그림은 .jpg 만');
-  if (entry.kind !== 'reel' && media.some((m) => /\.mp4$/i.test(m)) && entry.channel === 'instagram') say('영상은 reel 로');
+  if (!['reel', 'story'].includes(entry.kind) && media.some((m) => /\.mp4$/i.test(m)) && entry.channel === 'instagram') say('영상은 reel 이나 story 로');
   if (entry.audio !== undefined) audioProblems(entry, say);
   return out;
 }
