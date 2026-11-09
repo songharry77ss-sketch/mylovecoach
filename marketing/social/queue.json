@@ -93,6 +93,30 @@
       "approved": true,
       "note": "7일차 캐러셀 7장 궁합 등급 4:5 (원래 릴스와 같은 날 — 하루 뒤로)",
       "approvedBy": "songharry77ss-sketch 2026-11-09T05:59:18.468Z"
+    },
+    {
+      "id": "d4-ig-story-1",
+      "at": "2026-11-09 15:00",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/d4/story-1.jpg"
+      ],
+      "caption": "",
+      "approved": true,
+      "note": "4일차 스토리 — 사장님 「스티커 없이 지금 올리기」(11-09). 링크·투표 스티커는 API 로 못 붙임 · 그림 「진심 장문러」"
+    },
+    {
+      "id": "d4-ig-story-2",
+      "at": "2026-11-09 15:01",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/d4/reel.mp4"
+      ],
+      "caption": "",
+      "approved": true,
+      "note": "4일차 스토리 — 사장님 「스티커 없이 지금 올리기」(11-09). 링크·투표 스티커는 API 로 못 붙임 · 4일차 릴스 영상(효과음판)"
     }
   ]
 }
