@@ -43,6 +43,8 @@ const LISTING = {
   name: field('앱 이름') ?? '센딧 - 나만의 연애 코치',
   subtitle: field('부제') ?? '',
   keywords: field('키워드') ?? '',
+  // 홍보 문구는 심사 없이 공개 버전에도 바로 바꿀 수 있다 — 지금 공개된 버전만 고칠 때는 tools/asc-promo.mjs
+  promotionalText: field('홍보 문구') ?? '',
   // 문서에는 기본 주소로 적혀 있으므로 실제 배포 주소로 바꿔 넣는다
   description: stripEmoji(section('전체 설명').replaceAll('https://mylovecoach.vercel.app', SITE)),
   reviewNotes: section('심사 메모').replace(/^- /gm, '• '),
@@ -129,7 +131,7 @@ async function main() {
   let vloc;
   await step('설명·키워드·지원 URL', async () => {
     const locs = await api('GET', `/v1/appStoreVersions/${version.id}/appStoreVersionLocalizations`);
-    const attrs = { description: LISTING.description, keywords: LISTING.keywords, supportUrl: `${SITE}/support.html`, marketingUrl: SITE, promotionalText: '이제 캡처 없이 상황만 적어도 바로 답장을 추천해요. 호칭·존댓말까지 살린 답장 3가지와 버전별 성공 확률(AI 추정), 상대 예상 반응을 확인해 보세요. 가입하면 코칭 3회 무료, 이후 매일 1회 충전!' };
+    const attrs = { description: LISTING.description, keywords: LISTING.keywords, supportUrl: `${SITE}/support.html`, marketingUrl: SITE, promotionalText: LISTING.promotionalText };
     if (VERSION !== '1.0.0') attrs.whatsNew = WHATS_NEW;
     vloc = locs.data.find((l) => l.attributes.locale === LOCALE);
     if (vloc) await api('PATCH', `/v1/appStoreVersionLocalizations/${vloc.id}`, { data: { type: 'appStoreVersionLocalizations', id: vloc.id, attributes: attrs } });
