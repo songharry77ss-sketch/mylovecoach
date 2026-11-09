@@ -26,6 +26,9 @@ jobs:
       EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
       # 팀 범위 토큰이면 필수: 저장소 변수 VERCEL_SCOPE 에 팀 슬러그 (없으면 "User not found" 오류)
       VERCEL_SCOPE: ${{ vars.VERCEL_SCOPE }}
+      # 검색 등록 확인 태그 값 (공개값 — 저장소 변수). tools/seo-pages.mjs 가 빌드 때 <meta> 로 넣는다
+      GOOGLE_SITE_VERIFICATION: ${{ vars.GOOGLE_SITE_VERIFICATION }}
+      NAVER_SITE_VERIFICATION: ${{ vars.NAVER_SITE_VERIFICATION }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -66,6 +69,8 @@ jobs:
           add_env EXPO_PUBLIC_API_TOKEN "$COACH_APP_TOKEN" config
           add_env EXPO_PUBLIC_SUPABASE_URL "$EXPO_PUBLIC_SUPABASE_URL" config
           add_env EXPO_PUBLIC_SUPABASE_ANON_KEY "$EXPO_PUBLIC_SUPABASE_ANON_KEY" config
+          add_env GOOGLE_SITE_VERIFICATION "$GOOGLE_SITE_VERIFICATION" config
+          add_env NAVER_SITE_VERIFICATION "$NAVER_SITE_VERIFICATION" config
       - name: 프로덕션 배포
         id: deploy
         run: |
