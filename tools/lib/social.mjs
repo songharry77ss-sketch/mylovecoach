@@ -3,13 +3,19 @@
 // 자세한 흐름: docs/SOCIAL_AUTOPOST.md
 
 export const REPO = 'songharry77ss-sketch/mylovecoach';
-/** 올린 지 이만큼 지난 항목은 올리지 않는다 (예약 실행이 며칠 멈췄다가 한꺼번에 몰아 올리는 일을 막음) */
-export const STALE_HOURS = 36;
-/**
- * 하루 중 예정 시각부터 이만큼 안에서만 올린다. GitHub 예약 실행이 몇 시간씩 밀려도(2026-11 에 7시간 넘게 밀림)
- * 새벽에 올라가지 않고, 놓치면 다음 날 같은 시간대에 올라간다. 예약 실행은 매시간 돈다.
+/*
+ * 언제 올리나 — GitHub 예약 실행은 이 저장소에서 「매시간」으로 걸어도 하루 3~4번만, 아무 때나 돈다
+ * (2026-11-10: 11:10 · 18:55 · 02:54 · 08:26 KST). 그래서 정확한 시각 대신
+ *   · 낮 12시~자정(POST_HOURS)에 도는 실행에서만 올리고 — 새벽에 올라가지 않게,
+ *   · 예정 시각 9시간 전(EARLY_HOURS)부터 올릴 수 있게 해 — 21:00 항목이면 그날 12시 이후 첫 실행에,
+ *   · 하루(한국 날짜)에 피드 글은 채널마다 FEED_PER_DAY 개까지만 — 밀린 항목은 다음 날로 하나씩 넘어가고,
+ *   · 예정일에서 STALE_DAYS 넘게 지난 항목은 버린다.
+ * 스토리는 하루 개수에 세지 않는다.
  */
-export const POST_WINDOW_HOURS = 3;
+export const POST_HOURS = [12, 24];
+export const EARLY_HOURS = 9;
+export const FEED_PER_DAY = 1;
+export const STALE_DAYS = 7;
 const HOUR = 3600_000;
 const DAY = 24 * HOUR;
 
@@ -146,20 +152,46 @@ export function queueProblems(queue) {
   return out;
 }
 
+/** 한국 날짜 「2026-11-10」 */
+export const kstDay = (date) => new Date(date.getTime() + 9 * HOUR).toISOString().slice(0, 10);
+const kstHour = (date) => new Date(date.getTime() + 9 * HOUR).getUTCHours();
+
 /**
- * 지금 올릴 항목 — 허락(approved: true)받았고, 시간이 됐고, 아직 안 올렸고, 너무 오래 지나지 않았고,
- * 지금이 하루 중 예정 시각부터 POST_WINDOW_HOURS 안인 것.
- * posted: 이미 올린 id 의 집합 (posted.json)
+ * 지금 올릴 항목 — 맨 위 「언제 올리나」 규칙대로. 허락(approved: true)받고 아직 안 올린 것만, 예정 시각 순서로.
+ * posted: posted.json 내용({ posts: [{ id, channel, at }] }). 오늘 몇 개 올렸는지도 여기서 센다.
+ *         id 집합(Set)만 주면 하루 개수는 세지 않는다.
  */
-export function dueEntries(queue, now, posted = new Set()) {
+export function dueEntries(queue, now, posted = { posts: [] }) {
+  const records = posted instanceof Set ? [...posted].map((id) => ({ id })) : (posted?.posts ?? []);
+  const done = new Set(records.map((p) => p.id));
+  const hour = kstHour(now);
+  if (hour < POST_HOURS[0] || hour >= POST_HOURS[1]) return [];
+
+  const entries = queue.entries ?? [];
+  const byId = new Map(entries.map((e) => [e.id, e]));
+  const today = kstDay(now);
+  const used = {};
+  for (const p of records) {
+    if (!p.at || kstDay(new Date(p.at)) !== today) continue;
+    const e = byId.get(p.id);
+    if ((e?.kind ?? p.kind) === 'story') continue;
+    const ch = p.channel ?? e?.channel;
+    used[ch] = (used[ch] ?? 0) + 1;
+  }
+
   const t = now.getTime();
-  return (queue.entries ?? [])
-    .filter((e) => e.approved === true && !posted.has(e.id))
-    .filter((e) => {
-      const late = t - kst(e.at).getTime();
-      return late >= 0 && late <= STALE_HOURS * HOUR && late % DAY < POST_WINDOW_HOURS * HOUR;
-    })
-    .sort((a, b) => kst(a.at) - kst(b.at));
+  const out = [];
+  for (const e of entries
+    .filter((x) => x.approved === true && !done.has(x.id))
+    .filter((x) => t >= kst(x.at).getTime() - EARLY_HOURS * HOUR && t - kst(x.at).getTime() <= STALE_DAYS * DAY)
+    .sort((a, b) => kst(a.at) - kst(b.at))) {
+    if (e.kind !== 'story') {
+      if ((used[e.channel] ?? 0) >= FEED_PER_DAY) continue;
+      used[e.channel] = (used[e.channel] ?? 0) + 1;
+    }
+    out.push(e);
+  }
+  return out;
 }
 
 /** 계정 확인 — 다른 계정 토큰으로 잘못 올리는 일을 막는다 */

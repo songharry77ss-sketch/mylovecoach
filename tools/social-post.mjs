@@ -38,7 +38,6 @@ if (has('--check')) {
 if (!ref) throw new Error('--ref <커밋 해시> 가 필요해요 (그림 주소를 그 커밋에 고정)');
 
 const posted = existsSync(postedPath) ? JSON.parse(readFileSync(postedPath, 'utf8')) : { posts: [] };
-const postedIds = new Set((posted.posts ?? []).map((p) => p.id));
 
 let targets;
 if (only) {
@@ -46,7 +45,7 @@ if (only) {
   targets = queue.entries.filter((e) => e.id === only);
   if (!targets.length) throw new Error(`큐에 ${only} 가 없어요`);
 } else if (has('--due')) {
-  targets = dueEntries(queue, new Date(), postedIds);
+  targets = dueEntries(queue, new Date(), posted);
 } else {
   throw new Error('--due 또는 --id <항목> 중 하나를 주세요');
 }
