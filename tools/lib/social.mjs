@@ -45,7 +45,8 @@ export function mediaUrl(path, ref) {
 export const normalizeText = (text) => String(text ?? '').replace(/\r/g, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
 
 const LIMITS = {
-  instagram: { caption: 2200, hashtags: 30, carousel: [2, 10] },
+  // 해시태그: 2025-12 부터 게시물당 5개까지 (인스타 발표)
+  instagram: { caption: 2200, hashtags: 5, carousel: [2, 10] },
   threads: { caption: 500, links: 5, carousel: [2, 20] },
 };
 
@@ -82,6 +83,7 @@ export function problems(entry) {
   // 인스타 API 는 그림을 JPEG 로만 받는다
   if (entry.channel === 'instagram' && ['carousel', 'image'].includes(entry.kind) && media.some((m) => !/\.jpe?g$/i.test(m))) say('인스타 그림은 .jpg 만');
   if (!['reel', 'story'].includes(entry.kind) && media.some((m) => /\.mp4$/i.test(m)) && entry.channel === 'instagram') say('영상은 reel 이나 story 로');
+  if (entry.cover !== undefined && (entry.kind !== 'reel' || !/\.jpe?g$/i.test(String(entry.cover)))) say('cover(표지)는 릴스에만, .jpg 로');
   if (entry.audio !== undefined) audioProblems(entry, say);
   return out;
 }
