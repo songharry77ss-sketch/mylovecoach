@@ -40,6 +40,15 @@ export function pickByPattern(items, used, n, pattern = WEEK, lastFormat) {
   return out;
 }
 
+/** from 부터 to 까지 며칠(둘 다 포함) — to 가 앞이면 0 */
+export const daysFromTo = (from, to) => Math.max(0, Math.round((kst(`${to} 12:00`) - kst(`${from} 12:00`)) / DAY) + 1);
+
+/** 큐를 오늘부터 ahead 일 뒤까지 채우려면 몇 개 더 넣어야 하나 (최대 max) — 몇 번을 돌려도 겹치지 않게 */
+export function howMany(firstFree, now, ahead, max) {
+  const target = kstDay(new Date(now.getTime() + ahead * DAY));
+  return Math.min(max, daysFromTo(firstFree, target));
+}
+
 /** 새 항목을 넣기 시작할 날 — 큐의 마지막 피드 예정일 다음 날과 내일 중 늦은 쪽 */
 export function firstFreeDay(entries, now) {
   const feed = (entries ?? []).filter((e) => e.kind !== 'story');

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { kst } from '../lib/social.mjs';
-import { WEEK, firstFreeDay, nextDay, pickByPattern, pickNext } from './plan.mjs';
+import { WEEK, daysFromTo, firstFreeDay, howMany, nextDay, pickByPattern, pickNext } from './plan.mjs';
 
 const it = (id, format) => ({ id, format });
 
@@ -27,6 +27,19 @@ test('한 주 구성대로 — 포맷이 바닥나면 다른 포맷으로 채움
   // 세 번째 릴스 칸은 릴스가 없어서 바로 앞(kkti)과 다른 첫 항목, 마지막 pick 칸도 바닥 → 남은 kkti
   assert.deepEqual(pickByPattern(bank, new Set(), 7, pattern).map((x) => x.id), ['r1', 'p1', 'r2', 'k1', 'l1', 'k2']);
   assert.deepEqual(pickByPattern(bank, new Set(['r1', 'r2']), 2, pattern).map((x) => x.id), ['p1', 'k1']);
+});
+
+test('몇 개 더 넣을지 — 오늘부터 ahead 일 뒤까지만, 몇 번 돌려도 겹치지 않게', () => {
+  assert.equal(daysFromTo('2026-11-14', '2026-11-14'), 1);
+  assert.equal(daysFromTo('2026-11-14', '2026-11-21'), 8);
+  assert.equal(daysFromTo('2026-11-22', '2026-11-21'), 0);
+  const fri = kst('2026-11-13 21:30');
+  assert.equal(howMany('2026-11-14', fri, 8, 14), 8); // 금요일 밤 처음: 11-14 ~ 11-21
+  const sat = kst('2026-11-14 13:00');
+  assert.equal(howMany('2026-11-22', sat, 8, 14), 1); // 다음 날 토요일 정기 실행: 11-22 하나만
+  assert.equal(howMany('2026-11-22', kst('2026-11-21 13:00'), 8, 14), 8); // 일주일 뒤 토요일
+  assert.equal(howMany('2026-11-30', sat, 8, 14), 0); // 이미 충분
+  assert.equal(howMany('2026-11-14', kst('2026-12-20 13:00'), 8, 14), 14); // 오래 멈췄으면 최대치까지만
 });
 
 test('넣기 시작할 날 — 큐 마지막 피드 다음 날, 지났으면 내일 (스토리는 안 셈)', () => {
