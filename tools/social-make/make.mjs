@@ -14,7 +14,7 @@ import path from 'node:path';
 import { problems as entryProblems } from '../lib/social.mjs';
 import { missingEmoji } from './kit.mjs';
 import { FORMATS } from './formats/index.mjs';
-import { WEEK, firstFreeDay, nextDay, pickByPattern } from './plan.mjs';
+import { WEEK, firstFreeDay, howMany, nextDay, pickByPattern } from './plan.mjs';
 
 const args = process.argv.slice(2);
 const has = (f) => args.includes(f);
@@ -100,9 +100,15 @@ if (has('--fill')) {
   if (!queuePath) throw new Error('--queue <queue.json> 이 필요해요');
   const queue = readJson(queuePath);
   const entries = queue.entries ?? [];
-  const days = Number(argOf('--days') ?? 7);
   const time = argOf('--time') ?? '21:00';
   let day = argOf('--from') ?? firstFreeDay(entries, new Date());
+  // --ahead N: 오늘부터 N 일 뒤까지 차도록만 (몇 번을 돌려도 겹치지 않음). 없으면 --days 개
+  const max = Number(argOf('--days') ?? 7);
+  const days = argOf('--ahead') ? howMany(day, new Date(), Number(argOf('--ahead')), max) : max;
+  if (days <= 0) {
+    console.log(`큐에 이미 ${argOf('--ahead')}일치가 있어요 — 넣을 게 없어요 (다음 빈 날 ${day}).`);
+    process.exit(0);
+  }
   const feed = entries.filter((e) => e.kind !== 'story');
   const used = new Set(entries.map((e) => e.id));
   const lastFormat = items.find((it) => it.id === feed.at(-1)?.id)?.format;
