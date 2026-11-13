@@ -24,7 +24,8 @@ test('항목 검사 — 채널별 제한', () => {
   assert.match(problems({ ...base, media: carousel(11) }).join(), /2~10장/);
   assert.match(problems({ ...base, media: carousel(3, 'png') }).join(), /\.jpg 만/);
   assert.match(problems({ ...base, caption: '가'.repeat(2201) }).join(), /너무 길어요/);
-  assert.match(problems({ ...base, caption: Array.from({ length: 31 }, (_, i) => `#t${i}`).join(' ') }).join(), /해시태그/);
+  assert.match(problems({ ...base, caption: Array.from({ length: 6 }, (_, i) => `#t${i}`).join(' ') }).join(), /해시태그는 5개까지/);
+  assert.deepEqual(problems({ ...base, caption: Array.from({ length: 5 }, (_, i) => `#t${i}`).join(' ') }), []);
   assert.match(problems({ ...base, kind: 'reel', media: ['a.jpg'] }).join(), /mp4/);
   assert.deepEqual(problems({ ...base, kind: 'reel', media: ['marketing/social/d4/reel.mp4'] }), []);
   assert.deepEqual(problems({ ...base, kind: 'story', media: ['marketing/social/d4/story-1.jpg'], caption: '' }), []);

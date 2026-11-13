@@ -95,11 +95,12 @@ async function igPublish(userId, containerId, token) {
 /**
  * 사진 1장 · 캐러셀(2~10장) · 릴스 · 스토리(그림 또는 영상 1개, 글·스티커 없음). media 는 공개 주소 목록.
  * audio: 릴스 음원 { id, audioVolume?, videoVolume? } — 페이스북 로그인 토큰일 때만 (Audio API)
+ * cover: 릴스 표지 그림(JPG) 공개 주소 — 프로필 격자에 보이는 그림. 없으면 인스타가 첫 장면을 쓴다
  */
-export async function igPost({ userId, token, kind, media, caption, audio }) {
+export async function igPost({ userId, token, kind, media, caption, audio, cover }) {
   const base = ig(token);
   if (kind === 'reel') {
-    const params = { media_type: 'REELS', video_url: media[0], caption, share_to_feed: 'true' };
+    const params = { media_type: 'REELS', video_url: media[0], caption, share_to_feed: 'true', ...(cover ? { cover_url: cover } : {}) };
     if (audio) {
       if (igApi(token) !== 'facebook') throw new Error('릴스 음원은 페이스북 로그인 토큰에서만 붙일 수 있어요');
       params.audio_configuration = JSON.stringify({

@@ -129,7 +129,8 @@ for (const entry of targets) {
       note(`- ${entry.id}: (연습) ${entry.channel} ${entry.kind} ${urls.length}개 · @${acc.username} 에 올릴 준비 완료${withAudio}`);
       continue;
     }
-    const post = entry.channel === 'instagram' ? await igPost({ userId: acc.id, token: acc.token, kind: entry.kind, media: urls, caption: entry.caption, audio }) : await thPost({ userId: acc.id, token: acc.token, kind: entry.kind, media: urls, caption: entry.caption });
+    const cover = entry.kind === 'reel' && entry.cover ? mediaUrl(entry.cover, ref) : undefined;
+    const post = entry.channel === 'instagram' ? await igPost({ userId: acc.id, token: acc.token, kind: entry.kind, media: urls, caption: entry.caption, audio, cover }) : await thPost({ userId: acc.id, token: acc.token, kind: entry.kind, media: urls, caption: entry.caption });
     posted.posts.push({ id: entry.id, channel: entry.channel, url: post.url, mediaId: post.id, at: new Date().toISOString(), ...(audio ? { audio: { id: audio.id, title: audio.title, artist: audio.artist } } : {}) });
     note(`- ${entry.id}: 올림 → ${post.url}${withAudio}`);
   } catch (e) {
