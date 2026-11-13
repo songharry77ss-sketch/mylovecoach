@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { POST_WINDOW_HOURS, STALE_HOURS, assertAccount, dueEntries, igApiFor, kst, mediaUrl, normalizeText, pickAudio, problems, queueProblems, recentAudioIds } from './social.mjs';
+import { FEED_PER_DAY, STALE_DAYS, assertAccount, dueEntries, igApiFor, kst, mediaUrl, normalizeText, pickAudio, problems, queueProblems, recentAudioIds } from './social.mjs';
 
 const carousel = (n, ext = 'jpg') => Array.from({ length: n }, (_, i) => `marketing/social/d3/${String(i + 1).padStart(2, '0')}.${ext}`);
 const base = { id: 'd3-ig', at: '2026-11-04 21:00', channel: 'instagram', kind: 'carousel', media: carousel(10), caption: '캡션 #KKTI', approved: true };
@@ -44,32 +44,50 @@ test('큐 검사 — id 중복도 잡는다', () => {
   assert.match(queueProblems({}).join(), /entries/);
 });
 
-test('올릴 항목 — 허락 · 시간 · 이미 올림 · 너무 오래됨', () => {
-  const at = kst(base.at).getTime();
+const ids = (list) => list.map((e) => e.id);
+const posts = (...list) => ({ posts: list.map(([id, at]) => ({ id, channel: 'instagram', at: kst(at).toISOString() })) });
+
+test('올릴 항목 — 허락 · 이미 올림 · 하루 하나 · 예정 시각 순서', () => {
   const q = {
     entries: [
-      base,
+      base, // 11-04 21:00
       { ...base, id: 'not-approved', approved: false },
       { ...base, id: 'later', at: '2026-11-05 21:00' },
       { ...base, id: 'earlier', at: '2026-11-04 20:00' },
     ],
   };
-  const h = 3600_000;
-  assert.deepEqual(dueEntries(q, new Date(at - 1)).map((e) => e.id), ['earlier']);
-  assert.deepEqual(dueEntries(q, new Date(at + 60_000)).map((e) => e.id), ['earlier', 'd3-ig']);
-  assert.deepEqual(dueEntries(q, new Date(at + 60_000), new Set(['d3-ig'])).map((e) => e.id), ['earlier']);
-  // 예약 실행이 오래 멈췄다가 돌아오면 지난 글을 몰아 올리지 않는다 (11-06 22:00 — 이틀 전 것은 버리고 어제 것만)
-  assert.ok(STALE_HOURS < 48);
-  assert.deepEqual(dueEntries(q, new Date(at + 49 * h)).map((e) => e.id), ['later']);
+  assert.equal(FEED_PER_DAY, 1);
+  // 21:00 항목은 그날 12시부터 — 먼저 예정된 것 하나만
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 12:00'))), ['earlier']);
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 21:30'))), ['earlier']);
+  // 오늘 이미 하나 올렸으면 더 안 올린다 → 다음 날 하나씩
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 22:00'), posts(['earlier', '2026-11-04 18:40']))), []);
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-05 13:00'), posts(['earlier', '2026-11-04 18:40']))), ['d3-ig']);
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-06 13:00'), posts(['earlier', '2026-11-04 18:40'], ['d3-ig', '2026-11-05 13:00']))), ['later']);
+  // id 집합만 주면 하루 개수는 세지 않는다 (예전 호출 방식)
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 21:30'), new Set(['earlier']))), ['d3-ig']);
+  // 예정일에서 STALE_DAYS 넘게 지난 것은 버린다
+  assert.deepEqual(ids(dueEntries({ entries: [base] }, new Date(kst(base.at).getTime() + STALE_DAYS * 86_400_000 + 60_000))), []);
 });
 
-test('예약 실행이 밀려도 새벽에 올리지 않고 다음 날 같은 시간대로', () => {
-  const at = kst(base.at).getTime();
+test('예약 실행이 아무 때나 돌아도 — 새벽엔 안 올리고, 그날 낮 12시~자정 실행이면 올린다', () => {
   const q = { entries: [base] };
-  assert.deepEqual(dueEntries(q, new Date(at + (POST_WINDOW_HOURS * 3600_000) - 1)).map((e) => e.id), ['d3-ig']); // 23:59
-  assert.deepEqual(dueEntries(q, new Date(at + POST_WINDOW_HOURS * 3600_000)), []); // 00:00
-  assert.deepEqual(dueEntries(q, new Date(at + 7.5 * 3600_000)), []); // 04:30 (2026-11 에 실제로 밀린 시각)
-  assert.deepEqual(dueEntries(q, new Date(at + 24.5 * 3600_000)).map((e) => e.id), ['d3-ig']); // 다음 날 21:30
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 11:59'))), []); // 12시 전
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 11:10'))), []);
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 18:55'))), ['d3-ig']); // 2026-11-10 실제 실행 시각 — 예전 규칙(21~24시)이면 놓침
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 23:59'))), ['d3-ig']);
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-05 00:17'))), []); // 자정 넘음 (2026-11-11 실제로 17분 늦어 놓친 시각)
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-05 04:30'))), []);
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-05 15:33'))), ['d3-ig']); // 다음 날 낮에 이어서
+});
+
+test('스토리는 하루 개수에 세지 않는다', () => {
+  const story = { ...base, id: 'd3-story', kind: 'story', media: ['marketing/social/d3/story.jpg'] };
+  const q = { entries: [base, story] };
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 21:00'))), ['d3-ig', 'd3-story']);
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 22:00'), posts(['d3-ig', '2026-11-04 21:00']))), ['d3-story']);
+  const q2 = { entries: [{ ...base, id: 'other' }, story] };
+  assert.deepEqual(ids(dueEntries(q2, kst('2026-11-04 22:00'), posts(['d3-story', '2026-11-04 21:00']))), ['other']);
 });
 
 test('같은 글 판단은 공백 차이를 무시', () => {

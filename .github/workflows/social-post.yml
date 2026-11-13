@@ -2,8 +2,8 @@ name: 인스타·쓰레드 자동 게시
 
 # 매시간 social-queue 가지의 marketing/social/queue.json 을 읽어,
 # 허락(approved: true)받고 시간이 된 항목을 올린다. 올린 기록은 같은 가지의 posted.json 에 남긴다.
-# 매시간인 까닭: GitHub 예약 실행이 몇 시간씩 밀린다(2026-11, 21:00 예약이 04:30 에 돎).
-# 올리는 건 예정 시각부터 3시간 안일 때뿐이라(tools/lib/social.mjs POST_WINDOW_HOURS) 새벽에 올라가지 않는다.
+# 매시간인 까닭: GitHub 예약 실행은 이 저장소에서 매시간으로 걸어도 하루 3~4번만, 아무 때나 돈다(2026-11).
+# 그래서 정확한 시각 대신 「낮 12시~자정에 도는 실행에서, 하루 피드 글 하나씩」 올린다 — 규칙은 tools/lib/social.mjs 맨 위.
 # 손으로 돌릴 때: 「Run workflow」 → 항목 id(비우면 시간이 된 것 전부) · 연습(기본 켜짐 — 올리지 않고 검사만).
 # 필요한 시크릿: IG_ACCESS_TOKEN, THREADS_ACCESS_TOKEN (없는 채널은 건너뜀). 릴스 음원은 IG_ACCESS_TOKEN 이 페이스북 로그인 토큰일 때만. 흐름: docs/SOCIAL_AUTOPOST.md
 
