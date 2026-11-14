@@ -258,6 +258,24 @@
       },
       "approved": false,
       "note": "자동 생산 · chat-reel"
+    },
+    {
+      "id": "r-christmas-ask",
+      "at": "2026-11-22 21:00",
+      "channel": "instagram",
+      "kind": "reel",
+      "media": [
+        "marketing/social/r-christmas-ask/reel.mp4"
+      ],
+      "cover": "marketing/social/r-christmas-ask/cover.jpg",
+      "caption": "\"크리스마스에 단둘이 놀래?\" 했는데 바로 오케이가 왔다면 🎄\n\n크리스마스를 같이 보내자는 데 바로 장소까지 꺼냈다면 꽤 확실한 그린라이트야.\n\n너는 크리스마스 약속 먼저 잡는 편이야?\n\n#크리스마스 #썸 #크리스마스데이트 #카톡답장 #연애",
+      "audio": {
+        "trending": true,
+        "videoVolume": 25,
+        "minSeconds": 15
+      },
+      "approved": false,
+      "note": "자동 생산 · chat-reel"
     }
   ]
 }
