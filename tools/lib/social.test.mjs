@@ -14,7 +14,7 @@ test('한국 시간 → UTC', () => {
 
 test('그림 주소는 커밋에 고정된 jsDelivr 주소 (한글·공백은 인코딩)', () => {
   assert.equal(mediaUrl('marketing/social/d3/01.jpg', 'abc1234'), 'https://cdn.jsdelivr.net/gh/songharry77ss-sketch/mylovecoach@abc1234/marketing/social/d3/01.jpg');
-  assert.equal(mediaUrl('/a/릴스 1.mp4', 'abc1234'), 'https://cdn.jsdelivr.net/gh/songharry77ss-sketch/mylovecoach@abc1234/a/%EB%A6%B4%EC%8A%A4%201.mp4');
+  assert.equal(mediaUrl('/a/릴스 1.mp4', 'abc1234'), 'https://raw.githubusercontent.com/songharry77ss-sketch/mylovecoach/abc1234/a/%EB%A6%B4%EC%8A%A4%201.mp4');
   assert.throws(() => mediaUrl('a.jpg', 'main'), /커밋 해시/);
   assert.throws(() => mediaUrl('../x.jpg', 'abc1234'), /잘못된 경로/);
 });
@@ -89,6 +89,18 @@ test('스토리는 하루 개수에 세지 않는다', () => {
   assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 22:00'), posts(['d3-ig', '2026-11-04 21:00']))), ['d3-story']);
   const q2 = { entries: [{ ...base, id: 'other' }, story] };
   assert.deepEqual(ids(dueEntries(q2, kst('2026-11-04 22:00'), posts(['d3-story', '2026-11-04 21:00']))), ['other']);
+});
+
+test('after 가 있으면 그 항목이 올라간 뒤에만', () => {
+  const story = { ...base, id: 'd3-story', kind: 'story', at: '2026-11-04 21:01', media: ['marketing/social/d3/story.jpg'], after: 'd3-ig' };
+  const q = { entries: [base, story] };
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 21:30'))), ['d3-ig', 'd3-story']); // 같은 실행에서 릴스 다음
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 21:30'), posts(['other-feed', '2026-11-04 13:00']))), []); // 오늘 피드가 차서 릴스가 밀리면 스토리도
+  assert.deepEqual(ids(dueEntries({ entries: [story] }, kst('2026-11-04 21:30'))), []); // 릴스가 큐에 없거나 허락 전
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-05 13:00'), posts(['d3-ig', '2026-11-04 23:00']))), ['d3-story']);
+  assert.deepEqual(queueProblems({ entries: [story] }), ['d3-story: after 의 d3-ig 가 큐에 없어요']);
+  assert.deepEqual(problems({ ...story, after: 'd3-story' }), ['d3-story: after 는 먼저 올라가야 할 다른 항목의 id']);
+  assert.deepEqual(queueProblems(q), []);
 });
 
 test('같은 글 판단은 공백 차이를 무시', () => {

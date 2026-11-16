@@ -69,7 +69,9 @@ async function checkMedia(urls) {
   for (const url of urls) {
     const res = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(30_000) });
     const type = res.headers.get('content-type') ?? '';
-    if (!res.ok || !/^(image\/jpeg|image\/png|video\/mp4)/.test(type)) throw new Error(`그림 주소가 안 열려요: ${url} (${res.status} ${type})`);
+    // GitHub 원본은 영상을 octet-stream 으로 준다 — mp4 주소면 그것도 받는다
+    const okType = /^(image\/jpeg|image\/png|video\/mp4)/.test(type) || (/\.mp4$/i.test(new URL(url).pathname) && /^application\/octet-stream/.test(type));
+    if (!res.ok || !okType) throw new Error(`그림 주소가 안 열려요: ${url} (${res.status} ${type})`);
   }
 }
 
@@ -105,8 +107,13 @@ async function resolveAudio(entry, acc) {
 }
 
 let failed = 0;
+const ready = new Set(posted.posts.map((p) => p.id)); // 올라간 항목 (연습이면 올라갔다고 치는 것까지)
 for (const entry of targets) {
   const urls = (entry.media ?? []).map((m) => mediaUrl(m, ref));
+  if (entry.after && !ready.has(entry.after)) {
+    note(`- ${entry.id}: ${entry.after} 가 아직 안 올라가서 건너뜀 (그 뒤에 올라감)`);
+    continue;
+  }
   try {
     await checkMedia(urls);
     const acc = await account(entry.channel);
@@ -121,17 +128,20 @@ for (const entry of targets) {
     if (same) {
       note(`- ${entry.id}: 이미 올라가 있어요 → ${same.url}`);
       posted.posts.push({ id: entry.id, channel: entry.channel, url: same.url, at: same.at, found: true });
+      ready.add(entry.id);
       continue;
     }
     const audio = entry.channel === 'instagram' && entry.kind === 'reel' && entry.audio ? await resolveAudio(entry, acc) : null;
     const withAudio = audio ? ` · 음원 「${audio.label}」` : '';
     if (dry) {
       note(`- ${entry.id}: (연습) ${entry.channel} ${entry.kind} ${urls.length}개 · @${acc.username} 에 올릴 준비 완료${withAudio}`);
+      ready.add(entry.id);
       continue;
     }
     const cover = entry.kind === 'reel' && entry.cover ? mediaUrl(entry.cover, ref) : undefined;
     const post = entry.channel === 'instagram' ? await igPost({ userId: acc.id, token: acc.token, kind: entry.kind, media: urls, caption: entry.caption, audio, cover }) : await thPost({ userId: acc.id, token: acc.token, kind: entry.kind, media: urls, caption: entry.caption });
     posted.posts.push({ id: entry.id, channel: entry.channel, url: post.url, mediaId: post.id, at: new Date().toISOString(), ...(audio ? { audio: { id: audio.id, title: audio.title, artist: audio.artist } } : {}) });
+    ready.add(entry.id);
     note(`- ${entry.id}: 올림 → ${post.url}${withAudio}`);
   } catch (e) {
     failed++;

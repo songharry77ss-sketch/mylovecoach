@@ -10,6 +10,7 @@ export const REPO = 'songharry77ss-sketch/mylovecoach';
  *   · 예정 시각 9시간 전(EARLY_HOURS)부터 올릴 수 있게 해 — 21:00 항목이면 그날 12시 이후 첫 실행에,
  *   · 하루(한국 날짜)에 피드 글은 채널마다 FEED_PER_DAY 개까지만 — 밀린 항목은 다음 날로 하나씩 넘어가고,
  *   · 예정일에서 STALE_DAYS 넘게 지난 항목은 버린다.
+ *   · after(다른 항목 id)가 있으면 그 항목이 먼저 올라간 뒤에만 — 릴스 스토리가 릴스보다 먼저 나가지 않게.
  * 스토리는 하루 개수에 세지 않는다.
  */
 export const POST_HOURS = [12, 24];
@@ -38,7 +39,10 @@ export function mediaUrl(path, ref) {
   if (!/^[0-9a-f]{7,40}$/.test(String(ref))) throw new Error(`커밋 해시가 필요해요: "${ref}"`);
   const clean = String(path).replace(/^\/+/, '');
   if (clean.includes('..')) throw new Error(`잘못된 경로: ${path}`);
-  return `https://cdn.jsdelivr.net/gh/${REPO}@${ref}/${clean.split('/').map(encodeURIComponent).join('/')}`;
+  const enc = clean.split('/').map(encodeURIComponent).join('/');
+  // 영상은 GitHub 원본에서 바로 — 2026-11-14 부터 jsDelivr 가 이 저장소 새 커밋의 mp4 를 「Failed to fetch … from GitHub」 404 로 돌려줌 (그림은 정상)
+  if (/\.mp4$/i.test(clean)) return `https://raw.githubusercontent.com/${REPO}/${ref}/${enc}`;
+  return `https://cdn.jsdelivr.net/gh/${REPO}@${ref}/${enc}`;
 }
 
 /** 같은 글인지 볼 때 — 줄 끝 공백·연속 빈 줄 차이는 무시 */
@@ -63,6 +67,7 @@ export function problems(entry) {
   } catch (e) {
     say(e.message);
   }
+  if (entry.after !== undefined && (!/^[a-z0-9][a-z0-9-]{1,60}$/.test(String(entry.after)) || entry.after === entry.id)) say('after 는 먼저 올라가야 할 다른 항목의 id');
   const media = Array.isArray(entry.media) ? entry.media : [];
   const text = normalizeText(entry.caption);
   const limit = LIMITS[entry.channel];
@@ -151,6 +156,7 @@ export function queueProblems(queue) {
     if (seen.has(e.id)) out.push(`${e.id}: id 가 겹쳐요`);
     seen.add(e.id);
   }
+  for (const e of entries) if (e.after !== undefined && !seen.has(e.after)) out.push(`${e.id}: after 의 ${e.after} 가 큐에 없어요`);
   return out;
 }
 
@@ -187,6 +193,8 @@ export function dueEntries(queue, now, posted = { posts: [] }) {
     .filter((x) => x.approved === true && !done.has(x.id))
     .filter((x) => t >= kst(x.at).getTime() - EARLY_HOURS * HOUR && t - kst(x.at).getTime() <= STALE_DAYS * DAY)
     .sort((a, b) => kst(a.at) - kst(b.at))) {
+    // 먼저 올라가야 할 항목이 이미 올라갔거나, 이번 실행에서 앞서 올라갈 때만 (게시 단계에서 실패하면 다시 거른다)
+    if (e.after && !done.has(e.after) && !out.some((x) => x.id === e.after)) continue;
     if (e.kind !== 'story') {
       if ((used[e.channel] ?? 0) >= FEED_PER_DAY) continue;
       used[e.channel] = (used[e.channel] ?? 0) + 1;
