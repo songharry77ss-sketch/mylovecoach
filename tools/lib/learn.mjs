@@ -106,7 +106,10 @@ export function scorePosts(stats) {
   const rows = [];
   for (const [id, post] of Object.entries(stats?.posts ?? {})) {
     const snap = scoreSnap(post.snaps);
-    if (snap && Number.isFinite(snap.views)) rows.push({ id, meta: post.meta ?? {}, snap, views: snap.views, spread: spreadOf(snap) });
+    // 캐러셀은 조회가 0 으로 오는 때가 있어 도달보다 작으면 도달로 본다 (조회 ≥ 도달)
+    const seen = [snap?.views, snap?.reach].filter(Number.isFinite);
+    const views = seen.length ? Math.max(...seen) : NaN;
+    if (snap && Number.isFinite(views)) rows.push({ id, meta: post.meta ?? {}, snap, views, spread: spreadOf(snap) });
   }
   const base = { views: median(rows.map((r) => r.views)), spread: median(rows.map((r) => r.spread)) };
   for (const r of rows) {
