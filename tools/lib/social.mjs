@@ -196,6 +196,34 @@ export function dueEntries(queue, now, posted = { posts: [] }) {
   return out;
 }
 
+/** 다음 한국 날짜 */
+export const nextKstDay = (day) => kstDay(new Date(kst(`${day} 12:00`).getTime() + DAY));
+
+/**
+ * 밀린 일정 다시 잡기 — 아직 안 올린 피드(스토리 빼고)를 예정 순서대로, 오늘(20시 전이면)·내일부터 채널마다 하루 하나씩.
+ * 날짜가 이미 충분히 뒤인 항목은 그대로 둔다. 바뀐 항목 [{ id, from, to }] 를 돌려준다 (entries 를 직접 고친다)
+ */
+export function reschedule(queue, now, posted = { posts: [] }) {
+  const done = new Set((posted?.posts ?? []).map((p) => p.id));
+  const today = kstDay(now);
+  const start = kstHour(now) < 20 ? today : nextKstDay(today);
+  const changed = [];
+  for (const channel of CHANNELS) {
+    const feed = (queue.entries ?? []).filter((e) => e.channel === channel && e.kind !== 'story' && !done.has(e.id)).sort((a, b) => kst(a.at) - kst(b.at));
+    let min = start;
+    for (const e of feed) {
+      const [day, time = '21:00'] = String(e.at).split(' ');
+      const to = day < min ? min : day;
+      if (to !== day) {
+        changed.push({ id: e.id, from: e.at, to: `${to} ${time}` });
+        e.at = `${to} ${time}`;
+      }
+      min = nextKstDay(to);
+    }
+  }
+  return changed;
+}
+
 /** 계정 확인 — 다른 계정 토큰으로 잘못 올리는 일을 막는다 */
 export function assertAccount(channel, username, expected) {
   if (!expected) return;

@@ -1,4 +1,5 @@
 // 자동 생산의 계산 부분 (그림 없음 — plan.test.mjs 가 검사한다)
+import { inWindow } from '../lib/learn.mjs';
 import { kst, kstDay } from '../lib/social.mjs';
 
 const DAY = 86_400_000;
@@ -26,16 +27,32 @@ export function pickNext(items, used, n, lastFormat) {
 export const WEEK = ['chat-reel', 'pick-carousel', 'pick-reel', 'kkti-pair', 'chat-reel', 'list-carousel', 'chat-reel'];
 
 export function pickByPattern(items, used, n, pattern = WEEK, lastFormat) {
+  return pickForDays(items, used, Array(n).fill(null), pattern, { lastFormat }).map((p) => p.item);
+}
+
+/**
+ * 날마다 하나씩 — 그날 칸의 포맷 후보를 rank 순서로(기본: 창고 순서), 창고 항목의 from·until 날짜 안에서만.
+ * 그 포맷이 바닥나면 바로 앞과 다른 포맷, 그것도 없으면 아무거나. 그날 올릴 게 하나도 없으면 거기서 멈춘다.
+ * rank(후보들, 최근 주제들) → 정렬된 후보들 · topicsOf(항목) → 주제들 (최근 두 개와 겹치지 않게 쓰임)
+ */
+export function pickForDays(items, used, days, pattern = WEEK, { lastFormat, rank = (c) => c, topicsOf = () => [], recentTopics = [] } = {}) {
   const left = items.filter((it) => !used.has(it.id));
   const out = [];
   let prev = lastFormat;
-  for (let k = 0; out.length < n && left.length; k++) {
-    const want = pattern[k % pattern.length];
-    let i = left.findIndex((it) => it.format === want);
-    if (i < 0) i = Math.max(0, left.findIndex((it) => it.format !== prev));
-    const [it] = left.splice(i, 1);
-    out.push(it);
+  let recent = [...recentTopics];
+  for (let k = 0; k < days.length && left.length; k++) {
+    const day = days[k];
+    const want = pattern.length ? pattern[k % pattern.length] : undefined;
+    const open = left.filter((it) => day === null || inWindow(it, day));
+    if (!open.length) break;
+    let pool = open.filter((it) => it.format === want);
+    if (!pool.length) pool = open.filter((it) => it.format !== prev);
+    if (!pool.length) pool = open;
+    const it = rank(pool, recent)[0];
+    left.splice(left.indexOf(it), 1);
+    out.push({ day, item: it });
     prev = it.format;
+    recent = [...topicsOf(it), ...recent].slice(0, 6);
   }
   return out;
 }

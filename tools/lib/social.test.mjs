@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { FEED_PER_DAY, STALE_DAYS, assertAccount, dueEntries, igApiFor, kst, mediaUrl, normalizeText, pickAudio, problems, queueProblems, recentAudioIds } from './social.mjs';
+import { FEED_PER_DAY, STALE_DAYS, assertAccount, dueEntries, igApiFor, kst, mediaUrl, nextKstDay, normalizeText, pickAudio, problems, queueProblems, recentAudioIds, reschedule } from './social.mjs';
 
 const carousel = (n, ext = 'jpg') => Array.from({ length: n }, (_, i) => `marketing/social/d3/${String(i + 1).padStart(2, '0')}.${ext}`);
 const base = { id: 'd3-ig', at: '2026-11-04 21:00', channel: 'instagram', kind: 'carousel', media: carousel(10), caption: '캡션 #KKTI', approved: true };
@@ -144,4 +144,22 @@ test('최근에 쓴 음원 id', () => {
   const posted = { posts: [{ id: 'a', audio: { id: '1' } }, { id: 'b' }, { id: 'c', audio: { id: '2' } }, { id: 'd', audio: { id: '3' } }] };
   assert.deepEqual([...recentAudioIds(posted, 2)], ['2', '3']);
   assert.deepEqual([...recentAudioIds({}, 5)], []);
+});
+
+test('밀린 일정 다시 잡기 — 허락이 늦으면 오늘(20시 전)·내일부터 하루 하나씩, 이미 뒤인 날짜는 그대로', () => {
+  assert.equal(nextKstDay('2026-11-30'), '2026-12-01');
+  const e = (id, at, kind = 'reel', channel = 'instagram') => ({ id, at, kind, channel });
+  const queue = { entries: [e('old', '2026-11-10 21:00'), e('a', '2026-11-14 21:00'), e('s', '2026-11-14 15:00', 'story'), e('b', '2026-11-15 21:00', 'carousel'), e('c', '2026-11-16 21:00'), e('far', '2026-11-25 21:00')] };
+  const posted = { posts: [{ id: 'old' }] };
+  // 11-17 14시(KST): 오늘부터
+  const moved = reschedule(queue, kst('2026-11-17 14:00'), posted);
+  const at = Object.fromEntries(queue.entries.map((x) => [x.id, x.at]));
+  assert.equal(at.old, '2026-11-10 21:00'); // 이미 올림
+  assert.equal(at.s, '2026-11-14 15:00'); // 스토리는 그대로
+  assert.deepEqual([at.a, at.b, at.c, at.far], ['2026-11-17 21:00', '2026-11-18 21:00', '2026-11-19 21:00', '2026-11-25 21:00']);
+  assert.equal(moved.length, 3);
+  // 저녁 9시면 내일부터
+  const late = { entries: [e('x', '2026-11-14 21:00')] };
+  reschedule(late, kst('2026-11-17 21:00'));
+  assert.equal(late.entries[0].at, '2026-11-18 21:00');
 });

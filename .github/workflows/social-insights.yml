@@ -1,6 +1,8 @@
 name: 인스타·쓰레드 성과
 
-# 매일 10:00 KST 에 최근 게시물의 조회·도달·저장·공유·좋아요·댓글을 요약에 표로 남긴다. 읽기만 한다.
+# 매일 10:00 KST 에 최근 게시물의 조회·도달·저장·공유·좋아요·댓글을 요약에 표로 남긴다 (인스타에는 읽기만).
+# 같은 숫자를 social-queue 가지 marketing/learn/ 에 쌓고, 포맷·주제별 점수를 다시 배운다(tools/social-learn.mjs).
+# 토요일 자동 생산(social-make.yml)이 이 배운 것으로 다음 주 구성을 정한다 — 흐름: docs/SOCIAL_AUTOPOST.md 「스스로 배우기」
 # 매주 월요일에는 장기 토큰(60일)도 연장한다. 새 토큰이 나오면 SOCIAL_SECRETS_PAT(저장소 시크릿 쓰기 권한)가 있을 때만 시크릿을 바꾸고,
 # 없으면 요약에 「시크릿을 새로 넣어 주세요」를 남긴다. 흐름: docs/SOCIAL_AUTOPOST.md
 
@@ -10,7 +12,11 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write # social-queue 가지에 성과 기록(marketing/learn/)만 쓴다
+
+concurrency:
+  group: social-queue-write
+  cancel-in-progress: false
 
 jobs:
   insights:
@@ -26,12 +32,31 @@ jobs:
       META_APP_SECRET: ${{ secrets.META_APP_SECRET }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: social-queue
+          path: queue
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
 
       - name: 성과 표
         run: node tools/social-insights.mjs --limit 12
+
+      - name: 성과 쌓기 · 배우기
+        run: node tools/social-learn.mjs --root queue --limit 40
+
+      - name: 성과 기록 저장
+        run: |
+          cd queue
+          if [ -z "$(git status --porcelain marketing/learn)" ]; then echo '바뀐 것 없음'; exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add marketing/learn
+          git commit -qm "성과 기록 $(TZ=Asia/Seoul date +%F)"
+          # 그사이 게시 기록·허락이 들어왔을 수 있다 (자동 게시는 다른 줄을 써서 겹치지 않음)
+          for i in 1 2 3; do git pull -q --rebase origin social-queue && git push -q origin HEAD:social-queue && exit 0; sleep 5; done
+          exit 1
 
       - name: 토큰 연장 (월요일 · 손으로 돌릴 때)
         env:

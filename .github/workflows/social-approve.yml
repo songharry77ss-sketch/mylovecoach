@@ -1,7 +1,10 @@
 name: 인스타·쓰레드 게시 허락
 
-# 사람이 게시물을 보고 허락할 때 누르는 실행. social-queue 가지의 queue.json 에서 고른 항목을 approved: true 로 바꾼다.
-# 「Run workflow」 → ids 에 all(허락 전 항목 전부) 또는 항목 id 를 쉼표로. 허락된 항목은 그날 21:00 KST 자동 게시가 올린다.
+# 사람이 게시물을 보고 허락할 때 쓰는 실행. social-queue 가지의 queue.json 에서 고른 항목을 approved: true 로 바꾼다.
+# 두 가지로 누를 수 있다:
+#   1) 미리 보기 이슈(「이번 주 인스타 게시물 미리 보기」)에 댓글 — `허락` · `허락 id1,id2` · `빼기 id1,id2` (저장소 주인 댓글만)
+#   2) 「Run workflow」 → ids 에 all(허락 전 항목 전부) 또는 항목 id 를 쉼표로
+# 허락할 때 날짜가 지난 피드는 오늘·내일부터 하루 하나씩으로 다시 잡는다. 허락된 항목은 그날 12시~자정 자동 게시가 올린다.
 # 내용 미리보기: social-queue 가지의 marketing/social/ (그림) 과 queue.json (캡션·날짜)
 
 on:
@@ -11,9 +14,12 @@ on:
         description: '허락할 항목 (all 또는 id1,id2)'
         required: true
         default: 'all'
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: write
+  issues: write
 
 concurrency:
   group: social-post
@@ -21,27 +27,68 @@ concurrency:
 
 jobs:
   approve:
+    # 댓글은 미리 보기 이슈에 저장소 주인이 단 것만 (PR 댓글·다른 사람 댓글은 무시)
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.issue.pull_request == null &&
+       startsWith(github.event.issue.title, '이번 주 인스타 게시물 미리 보기') &&
+       github.event.comment.user.login == github.repository_owner)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: 댓글 읽기
+        id: cmd
+        env:
+          BODY: ${{ github.event.comment.body }}
+          IDS: ${{ inputs.ids }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then echo "args=--ids $IDS" >> "$GITHUB_OUTPUT"; exit 0; fi
+          # 첫 줄만 본다: 허락 · 허락 a,b · 빼기 a,b (띄어쓰기·대소문자 상관없이)
+          line=$(printf '%s' "$BODY" | head -n1 | tr -d '\r' | sed -E 's/^[[:space:]]+|[[:space:]]+$//g')
+          verb=$(printf '%s' "$line" | awk '{print $1}')
+          list=$(printf '%s' "$line" | cut -s -d' ' -f2- | tr -d ' ' | tr 'A-Z' 'a-z')
+          case "$verb" in
+            허락|승인|ok|OK|Ok) echo "args=--ids ${list:-all}" >> "$GITHUB_OUTPUT" ;;
+            빼기|제외) [ -n "$list" ] && echo "args=--drop $list" >> "$GITHUB_OUTPUT" ;;
+          esac
       - uses: actions/checkout@v4
+        if: steps.cmd.outputs.args != ''
       - uses: actions/checkout@v4
+        if: steps.cmd.outputs.args != ''
         with:
           ref: social-queue
           path: queue
       - uses: actions/setup-node@v4
+        if: steps.cmd.outputs.args != ''
         with:
           node-version: '22'
       - name: 허락
+        if: steps.cmd.outputs.args != ''
         env:
-          IDS: ${{ inputs.ids }}
+          ARGS: ${{ steps.cmd.outputs.args }}
           ACTOR: ${{ github.actor }}
-        run: node tools/social-approve.mjs --queue queue/marketing/social/queue.json --ids "$IDS" --by "$ACTOR"
+          APPROVE_RESULT: ${{ runner.temp }}/result.md
+        run: |
+          # ARGS 는 위에서 「--ids 목록」·「--drop 목록」 모양으로만 만든다 (목록 글자는 스크립트가 다시 검사)
+          set -f
+          node tools/social-approve.mjs --queue queue/marketing/social/queue.json $ARGS --by "$ACTOR" --reschedule
       - name: 저장
+        if: steps.cmd.outputs.args != ''
         run: |
           cd queue
           if [ -z "$(git status --porcelain marketing/social/queue.json)" ]; then exit 0; fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -am "게시 허락 (${{ github.actor }})"
-          git push origin HEAD:social-queue
+          git commit -qam "게시 허락 (${{ github.actor }})"
+          for i in 1 2 3; do git pull -q --rebase origin social-queue && git push -q origin HEAD:social-queue && exit 0; sleep 5; done
+          exit 1
+      - name: 이슈에 결과 남기기
+        if: always() && github.event_name == 'issue_comment' && steps.cmd.outputs.args != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUM: ${{ github.event.issue.number }}
+          RESULT: ${{ runner.temp }}/result.md
+          OK: ${{ job.status }}
+        run: |
+          if [ "$OK" = "success" ] && [ -s "$RESULT" ]; then gh issue comment "$NUM" --repo "$GITHUB_REPOSITORY" --body-file "$RESULT";
+          else gh issue comment "$NUM" --repo "$GITHUB_REPOSITORY" --body "⚠️ 처리하지 못했어요 — 실행 기록: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"; fi
