@@ -1,0 +1,154 @@
+{
+  "at": "2026-11-16T15:23:23.743Z",
+  "scored": 9,
+  "measuring": 1,
+  "base": {
+    "views": 15,
+    "spread": 0
+  },
+  "kinds": {
+    "carousel": -0.15,
+    "reel": 1.45,
+    "image": -0.06
+  },
+  "formats": {
+    "chat-reel": {
+      "n": 0,
+      "mean": null,
+      "score": 1.45,
+      "views": null,
+      "spread": null
+    },
+    "pick-carousel": {
+      "n": 0,
+      "mean": null,
+      "score": -0.15,
+      "views": null,
+      "spread": null
+    },
+    "pick-reel": {
+      "n": 0,
+      "mean": null,
+      "score": 1.45,
+      "views": null,
+      "spread": null
+    },
+    "list-carousel": {
+      "n": 0,
+      "mean": null,
+      "score": -0.15,
+      "views": null,
+      "spread": null
+    },
+    "kkti-pair": {
+      "n": 0,
+      "mean": null,
+      "score": -0.15,
+      "views": null,
+      "spread": null
+    },
+    "old-carousel": {
+      "n": 3,
+      "mean": -0.3,
+      "score": -0.23,
+      "views": 9,
+      "spread": 0
+    },
+    "old-reel": {
+      "n": 3,
+      "mean": 2.91,
+      "score": 2.18,
+      "views": 164,
+      "spread": 1.4
+    },
+    "old-image": {
+      "n": 3,
+      "mean": -0.12,
+      "score": -0.06,
+      "views": 12,
+      "spread": 0
+    }
+  },
+  "topics": {
+    "성향·궁합": {
+      "n": 7,
+      "score": 0.76,
+      "views": 76,
+      "spread": 0.6
+    },
+    "썸": {
+      "n": 4,
+      "score": 0.44,
+      "views": 46,
+      "spread": 1
+    }
+  },
+  "best": [
+    {
+      "id": "ig-18126614482676279",
+      "format": "old-reel",
+      "hook": "썸남이 보낸 링크 해 봤더니 궁합 89% 나옴 (연출)",
+      "url": "https://www.instagram.com/reel/De3kJiyTAwH/",
+      "views": 156,
+      "shares": 0,
+      "saved": 3,
+      "spread": 4.1,
+      "score": 3.95
+    },
+    {
+      "id": "d7-ig-reel",
+      "format": "old-reel",
+      "hook": "우리 궁합, 몇 %부터 찐일까? 💞",
+      "url": "https://www.instagram.com/reel/DfpF9KZHBar/",
+      "views": 210,
+      "shares": 0,
+      "saved": 0,
+      "spread": 0,
+      "score": 2.72
+    },
+    {
+      "id": "d4-ig-reel",
+      "format": "old-reel",
+      "hook": "카톡 습관으로 보는 내 연애 유형은? 🎰",
+      "url": "https://www.instagram.com/reel/Dfel4eum9P3/",
+      "views": 126,
+      "shares": 0,
+      "saved": 0,
+      "spread": 0,
+      "score": 2.06
+    }
+  ],
+  "worst": [
+    {
+      "id": "d7-ig-carousel",
+      "format": "old-carousel",
+      "hook": "KKTI 궁합 등급 다섯 가지 🔥→💍",
+      "url": "https://www.instagram.com/p/DfpGFHrF_lG/",
+      "views": 0,
+      "shares": 0,
+      "saved": 0,
+      "spread": 0,
+      "score": -0.81
+    },
+    {
+      "id": "ig-18115733822517290",
+      "format": "old-image",
+      "hook": "KKTI — 카톡으로 보는 진짜 연애 MBTI 🧐",
+      "url": "https://www.instagram.com/p/DezULFqH0jR/",
+      "views": 10,
+      "shares": 0,
+      "saved": 0,
+      "spread": 0,
+      "score": -0.22
+    }
+  ],
+  "week": [
+    "chat-reel",
+    "pick-carousel",
+    "pick-reel",
+    "list-carousel",
+    "chat-reel",
+    "kkti-pair",
+    "pick-reel"
+  ]
+}
