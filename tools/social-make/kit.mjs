@@ -179,13 +179,15 @@ export function chat({ name = '썸', avatar = '🙂', messages = [], width = 960
 export async function svgOf(tree, width, height) {
   return satori(tree, { width, height, fonts: FONTS, loadAdditionalAsset: async (code, segment) => (code === 'emoji' ? emojiUri(segment) : '') });
 }
+// satori 가 글자를 모두 도형으로 바꿔 주므로 resvg 는 시스템 글꼴을 읽지 않는다 (읽으면 한 장에 0.5초씩 더 걸림 — 영상 프레임이 많은 app-reel 에서 큼)
+const RESVG_FONT = { loadSystemFonts: false };
 /** 장면 → RGBA 픽셀 */
 export async function pixels(tree, width, height) {
-  const img = new Resvg(await svgOf(tree, width, height), { fitTo: { mode: 'width', value: width }, background: '#FFFFFF' }).render();
+  const img = new Resvg(await svgOf(tree, width, height), { fitTo: { mode: 'width', value: width }, background: '#FFFFFF', font: RESVG_FONT }).render();
   return Buffer.from(img.pixels);
 }
 export async function png(tree, width, height) {
-  return Buffer.from(new Resvg(await svgOf(tree, width, height), { fitTo: { mode: 'width', value: width } }).render().asPng());
+  return Buffer.from(new Resvg(await svgOf(tree, width, height), { fitTo: { mode: 'width', value: width }, font: RESVG_FONT }).render().asPng());
 }
 
 export function ffmpegPath() {
