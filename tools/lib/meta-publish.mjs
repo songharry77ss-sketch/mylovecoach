@@ -171,15 +171,16 @@ export async function igRecent(userId, token, limit = 15) {
 
 /** 게시물 성과 — 지표 이름은 게시물 종류마다 달라서, 안 되는 지표는 빼고 다시 묻는다 */
 export async function igInsights(mediaId, token, type) {
-  const wanted = type === 'VIDEO' || type === 'REELS' ? ['views', 'reach', 'saved', 'shares', 'total_interactions'] : ['views', 'reach', 'saved', 'shares', 'total_interactions'];
+  // 릴스는 평균 시청 시간, 피드는 팔로우·프로필 방문까지 (안 되는 지표는 아래에서 빼고 다시 묻는다)
+  const wanted = type === 'VIDEO' || type === 'REELS' ? ['views', 'reach', 'saved', 'shares', 'total_interactions', 'ig_reels_avg_watch_time'] : ['views', 'reach', 'saved', 'shares', 'total_interactions', 'follows', 'profile_visits'];
   let metrics = wanted;
-  for (let i = 0; i < 3 && metrics.length; i++) {
+  for (let i = 0; i < 5 && metrics.length; i++) {
     try {
       const json = await call('GET', ig(token), `/${mediaId}/insights`, { metric: metrics.join(',') }, token);
       return Object.fromEntries((json.data ?? []).map((d) => [d.name, d.values?.[0]?.value ?? d.total_value?.value ?? null]));
     } catch (e) {
-      const bad = wanted.find((m) => e.message.includes(m));
-      metrics = bad ? metrics.filter((m) => m !== bad) : metrics.slice(1);
+      const bad = metrics.find((m) => e.message.includes(m));
+      metrics = bad ? metrics.filter((m) => m !== bad) : metrics.slice(0, -1);
     }
   }
   return {};
