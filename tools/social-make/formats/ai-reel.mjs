@@ -120,7 +120,7 @@ export function composeAiReel({ person, cuts, head, tail, ovA, ovB1, ovB2, out }
     `[6:a]${A}[at]`,
     '[va][aa][vh][ah][vb][ab][vt][at]concat=n=4:v=1:a=1[v][a]',
   ].join(';');
-  ff([...inputs, '-filter_complex', filter, '-map', '[v]', '-map', '[a]', '-c:v', 'libx264', '-preset', 'slow', '-crf', '25', '-maxrate', '1600k', '-bufsize', '3200k', '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-c:a', 'aac', '-b:a', '96k', '-ar', '44100', '-movflags', '+faststart', out]);
+  ff([...inputs, '-filter_complex', filter, '-map', '[v]', '-map', '[a]', '-c:v', 'libx264', '-preset', 'slow', '-crf', '23', '-maxrate', '2200k', '-bufsize', '4400k', '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-c:a', 'aac', '-b:a', '128k', '-ar', '44100', '-movflags', '+faststart', out]);
   return probe(out).seconds;
 }
 
