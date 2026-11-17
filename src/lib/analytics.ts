@@ -77,6 +77,8 @@ interface Identity {
   premiumPlan?: string | null;
   crushCount?: number;
   acquisition?: Acquisition | null;
+  /** A/B 실험 칸 (예: 'free5:on') — 모든 이벤트의 props.xp 로 붙는다 */
+  experiment?: string | null;
   /** 「코칭 내용 저장」(선택)에 동의했는지 — 코칭 요청에 기록용 헤더를 붙일지만 정한다 (이용 기록 전송과는 상관없음) */
   contentConsent?: boolean;
   /** 서버 기록 전체 삭제 요청이 아직 끝나지 않았으면 true — 그동안은 새 기록을 보내지 않는다 (삭제가 새 기록까지 지우지 않게) */
@@ -190,7 +192,8 @@ export function updateIdentity(patch: Partial<Identity>): void {
 
 export function track(name: string, props?: Record<string, unknown>): void {
   if (!enabled()) return;
-  push({ type: 'event', name, props, at: Date.now() });
+  // 실험 칸은 맨 앞에 — 서버가 속성을 8개까지만 남겨서(api/track cleanProps) 뒤에 붙이면 잘릴 수 있다
+  push({ type: 'event', name, props: identity.experiment ? { xp: identity.experiment, ...props } : props, at: Date.now() });
 }
 
 /** 화면 전환 — 이전 화면의 체류 시간을 기록하고 새 화면을 시작한다 */

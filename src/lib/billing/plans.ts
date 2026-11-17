@@ -64,6 +64,16 @@ export const FREE_DAILY = 1;
 export const GUEST_TRIAL_TOTAL = 1;
 export const SIGNUP_BONUS = 3;
 
+/**
+ * 2026-11-17 A/B 실험 「처음 5분 무제한」(11/12 회의 11번 「무료가 너무 빨리 닳음」, 사장님: 5분·50% 로 실험).
+ * 실험군(on)은 첫 코칭이 끝난 순간부터 이 시간 동안 횟수를 깎지 않는다(첫 코칭은 평소처럼 1회 깎임).
+ * 대조군(off)은 지금 규칙 그대로. 이미 코칭을 써 본 기기는 실험에 넣지 않는다(na). 모든 이용 기록에 xp: 'free5:on|off' 가 붙는다.
+ */
+export const INTRO_FREE_MS = 5 * 60 * 1000;
+/** 새 기기 중 실험군 비율 */
+export const INTRO_FREE_SHARE = 0.5;
+export type IntroArm = 'on' | 'off' | 'na';
+
 /** 무료 횟수 규칙 — 체험 횟수와 매일 충전 횟수 */
 export interface FreeRules {
   trial: number;

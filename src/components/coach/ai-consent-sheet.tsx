@@ -112,7 +112,7 @@ function consentCopy(route: AiRoute) {
     {
       icon: 'hand-left-outline',
       label: '동의하지 않으면',
-      text: '답장 추천 같은 AI 기능을 쓸 수 없어요. 동의한 뒤에도 마이 → AI 분석 동의에서 언제든 철회할 수 있어요.',
+      text: '답장 추천 같은 AI 기능을 쓸 수 없어요. 동의한 뒤에도 마이 → 개인정보에서 언제든 철회할 수 있어요.',
     },
   ];
   return {

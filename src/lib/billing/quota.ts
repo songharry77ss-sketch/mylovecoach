@@ -108,7 +108,8 @@ export function isTeamActive(team: TeamState | null | undefined, now: number): b
   return team != null && now - team.verifiedAt < TEAM_TRUST_MS;
 }
 
-export type QuotaKind = 'premium' | 'team' | 'pass' | 'trial' | 'daily' | 'bonus' | 'credits' | 'exhausted';
+/** intro: A/B 「처음 5분 무제한」 체험 중 (lib/billing/plans INTRO_FREE_MS) */
+export type QuotaKind = 'premium' | 'team' | 'pass' | 'intro' | 'trial' | 'daily' | 'bonus' | 'credits' | 'exhausted';
 
 export interface QuotaStatus {
   kind: QuotaKind;
@@ -142,10 +143,13 @@ export function quotaStatus(
   wallet: WalletState = EMPTY_WALLET,
   team: TeamState | null = null,
   rules: FreeRules = DEFAULT_RULES,
+  /** 「처음 5분 무제한」 체험이 끝나는 시각 (실험군이 아니거나 아직 시작 전이면 0) */
+  introUntil = 0,
 ): QuotaStatus {
   if (isPremiumActive(premium, now)) return { kind: 'premium', remaining: Infinity };
   if (isTeamActive(team, now)) return { kind: 'team', remaining: Infinity };
   if (wallet.passUntil > now) return { kind: 'pass', remaining: Infinity, until: wallet.passUntil };
+  if (introUntil > now) return { kind: 'intro', remaining: Infinity, until: introUntil };
   const free = freeLeft(usage, now, rules);
   const bonus = bonusOf(wallet);
   const credits = Math.max(0, wallet.credits);
@@ -233,6 +237,8 @@ export function quotaLabel(status: QuotaStatus): string {
       return '팀원 · 무제한';
     case 'pass':
       return `하루 이용권 · ${status.until ? `${clock(status.until)}까지 ` : ''}무제한`;
+    case 'intro':
+      return `무제한 체험 중 · ${status.until ? `${clock(status.until)}까지` : '잠깐 동안'}`;
     case 'trial':
       return `무료 코칭 ${status.free ?? status.remaining}회 남았어요${creditNote}`;
     case 'daily':

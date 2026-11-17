@@ -2,8 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 import type { AiProvider } from '@/lib/ai-consent';
-import { freeRules, type ConsumablePlanKey } from '@/lib/billing/plans';
-import type { Acquisition } from '@/lib/analytics';
+import { freeRules, INTRO_FREE_MS, INTRO_FREE_SHARE, type ConsumablePlanKey, type IntroArm } from '@/lib/billing/plans';
+import { track, type Acquisition } from '@/lib/analytics';
 import type { AppUpdate } from '@/lib/app-update';
 import { consumeOne, EMPTY_USAGE, EMPTY_WALLET, grantConsumable, grantSignupBonus, type PremiumState, type TeamState, type UsageState, type WalletState } from '@/lib/billing/quota';
 import { MEMORY_FORGOTTEN_MAX, cleanMemory, memoryKey, type CoachRequest } from '@/lib/coach-schema';
@@ -130,6 +130,12 @@ export interface AppState {
   saleOfferStartedAt: number | null;
   /** 연애 연습을 켰는지 — 기본은 숨김, 마이 → 추가 기능에서 켠다 (예전에 연습한 기록이 있으면 켠 채로 읽는다) */
   practiceEnabled: boolean;
+  /** 「이런 기능도 있어요」 연애 연습 빨간 점을 봤는지(연습을 켜거나 열면 true) — 11/12 회의 3번 */
+  practiceDotSeen: boolean;
+  /** A/B 「처음 5분 무제한」 실험 칸 — on 실험군 · off 대조군 · na 실험 전부터 쓰던 기기 (lib/billing/plans INTRO_FREE_MS) */
+  introArm: IntroArm;
+  /** 실험군의 5분 무제한이 시작된 시각 (첫 코칭이 끝난 순간). 아직이면 null */
+  introStartedAt: number | null;
   /** 별점 요청용 — 답장 복사 같은 좋은 순간의 횟수와 별점을 부탁한 시각들 (lib/store-review) */
   reviewWins: number;
   reviewAsks: number[];
@@ -212,6 +218,8 @@ export interface AppState {
   /** 「다시 기억하지 않을 이야기」 목록을 비운다 */
   clearForgottenMemory: (crushId: string) => void;
   setPracticeEnabled: (on: boolean) => void;
+  /** 연애 연습 빨간 점을 그만 띄운다 */
+  seePracticeDot: () => void;
   noteReviewWin: () => void;
   markReviewAsked: (at: number) => void;
   setKkti: (kkti: KktiSaved | null) => void;
@@ -321,6 +329,10 @@ function settlePending(messages: Record<string, ChatMessage[]>): Record<string, 
   );
 }
 
+/** 「처음 5분 무제한」 체험이 끝나는 시각 — 실험군이 아니거나 아직 시작 전이면 0 */
+export const introUntil = (s: { introArm: IntroArm; introStartedAt: number | null }): number =>
+  s.introArm === 'on' && s.introStartedAt != null ? s.introStartedAt + INTRO_FREE_MS : 0;
+
 /** 센딧 전 판(「나만의 연애 코치」)을 쓰던 기기의 guideSeen — 업데이트 뒤 「센딧으로 새로워졌어요」 안내를 한 번 본다 (아래 merge 가 쓰므로 저장소보다 먼저 둔다) */
 export const GUIDE_BEFORE_SENDIT = 'before-sendit';
 
@@ -362,6 +374,10 @@ export const useAppStore = create<AppState>()(
       guideSeen: null,
       saleOfferStartedAt: null,
       practiceEnabled: false,
+      practiceDotSeen: false,
+      // 새로 설치한 기기만 절반씩 나눈다 (저장값이 있으면 아래 merge 가 정한다)
+      introArm: Math.random() < INTRO_FREE_SHARE ? 'on' : 'off',
+      introStartedAt: null,
       reviewWins: 0,
       reviewAsks: [],
       kkti: null,
@@ -535,11 +551,19 @@ export const useAppStore = create<AppState>()(
         set({ wallet: next });
         return true;
       },
-      consumeQuota: () =>
+      consumeQuota: () => {
+        const before = get().introStartedAt;
         set((s) => {
-          const next = consumeOne(s.premium, s.usage, s.wallet, Date.now(), s.team, freeRules(authAvailable, s.member != null));
-          return { usage: next.usage, wallet: next.wallet };
-        }),
+          const now = Date.now();
+          // 「처음 5분 무제한」 체험 중이면 깎지 않는다
+          if (introUntil(s) > now) return {};
+          const next = consumeOne(s.premium, s.usage, s.wallet, now, s.team, freeRules(authAvailable, s.member != null));
+          // 실험군은 첫 코칭이 끝난 이 순간부터 5분 무제한 (첫 코칭은 대조군과 똑같이 1회 깎인다)
+          const startIntro = s.introArm === 'on' && s.introStartedAt == null;
+          return { usage: next.usage, wallet: next.wallet, ...(startIntro ? { introStartedAt: now } : {}) };
+        });
+        if (before == null && get().introStartedAt != null) track('intro_start', { min: INTRO_FREE_MS / 60_000 });
+      },
       consumeFreeCredit: () => get().consumeQuota(),
       dismissUpsell: () => set({ upsellDismissed: true }),
       setAppUpdate: (appUpdate) => set({ appUpdate }),
@@ -583,7 +607,8 @@ export const useAppStore = create<AppState>()(
           delete next.memoryForgotten;
           return { crushes: { ...s.crushes, [crushId]: next } };
         }),
-      setPracticeEnabled: (practiceEnabled) => set({ practiceEnabled }),
+      setPracticeEnabled: (practiceEnabled) => set(practiceEnabled ? { practiceEnabled, practiceDotSeen: true } : { practiceEnabled }),
+      seePracticeDot: () => set({ practiceDotSeen: true }),
       noteReviewWin: () => set((s) => ({ reviewWins: s.reviewWins + 1 })),
       markReviewAsked: (at) => set((s) => ({ reviewAsks: [...s.reviewAsks, at].slice(-6) })),
       setKkti: (kkti) => set({ kkti }),
@@ -725,6 +750,9 @@ export const useAppStore = create<AppState>()(
           guideSeen: s.guideSeen,
           saleOfferStartedAt: s.saleOfferStartedAt,
           practiceEnabled: s.practiceEnabled,
+          practiceDotSeen: s.practiceDotSeen,
+          introArm: s.introArm,
+          introStartedAt: s.introStartedAt,
           reviewWins: s.reviewWins,
           reviewAsks: s.reviewAsks,
           kkti: s.kkti,
@@ -799,6 +827,16 @@ export const useAppStore = create<AppState>()(
                 ? GUIDE_BEFORE_SENDIT
                 : current.guideSeen,
           saleOfferStartedAt: typeof saved.saleOfferStartedAt === 'number' ? saved.saleOfferStartedAt : current.saleOfferStartedAt,
+          // 연습을 이미 켰거나 해 본 사람에게는 빨간 점을 띄우지 않는다
+          practiceDotSeen: saved.practiceDotSeen === true || saved.practiceEnabled === true || Object.keys(saved.practice ?? {}).length > 0,
+          // 실험 칸: 이미 정해졌으면 그대로, 실험 전부터 코칭을 써 본 기기는 넣지 않고(na), 아직 안 써 본 기기는 새로 나눈다
+          introArm:
+            saved.introArm === 'on' || saved.introArm === 'off' || saved.introArm === 'na'
+              ? saved.introArm
+              : (saved.usage?.total ?? 0) > 0
+                ? 'na'
+                : current.introArm,
+          introStartedAt: typeof saved.introStartedAt === 'number' ? saved.introStartedAt : null,
           legacyDeletionChecked: true,
         };
       },

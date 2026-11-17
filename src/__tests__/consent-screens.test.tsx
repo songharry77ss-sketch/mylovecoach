@@ -1,6 +1,6 @@
 /**
  * 동의·개인정보 화면 — 첫 화면 동의 창(「모두 동의하고 시작」·필수/선택 항목·미리 체크 없음),
- * 마이(이용 기록 스위치 없음 · 개인정보 설정으로 가는 줄 · 맨 아래 「모든 데이터 삭제」·「회원 탈퇴」),
+ * 마이(이용 기록 스위치 없음 · 마이 → 개인정보 → 개인정보 설정 · 개인정보·이용권·계정 맨 아래 「모든 데이터 삭제」·「회원 탈퇴」),
  * 마이 → 개인정보 설정(코칭 내용 저장 켜고 끄기 · 끄면 코칭 내용 삭제 요청 · 처리 정지 메일), 홈의 바뀐 개인정보 안내 카드,
  * 홈에서 대화 시작하기(캡처·상황 적기 → 「누구와의 대화예요?」).
  */
@@ -11,6 +11,8 @@ import { create, type ReactTestInstance, type ReactTestRenderer } from 'react-te
 
 import HomeScreen from '@/app/(tabs)/index';
 import MyScreen from '@/app/(tabs)/my';
+import AccountSettings from '@/app/settings/account';
+import DataSettings from '@/app/settings/data';
 import PrivacySettings from '@/app/settings/privacy';
 import Start from '@/app/start';
 import { ListRow } from '@/components/ui/list-row';
@@ -287,45 +289,62 @@ describe('첫 화면 동의 창', () => {
 describe('마이', () => {
   const member = { userId: 'u_1', provider: 'kakao', nickname: '지훈', joinedAt: 1 };
 
-  it('이용 기록 스위치는 없고, 개인정보 설정으로 가는 줄이 있다', () => {
+  // 11/12 회의 4번: 마이 첫 화면은 큰 주제 줄만 — 설정은 하위 화면(개인정보 settings/data · 이용권·계정 settings/account)으로 옮겼다
+  it('이용 기록 스위치는 없고, 마이 → 개인정보 → 개인정보 설정으로 간다', () => {
     const t = mount(<MyScreen />);
-    const shown = texts(t).join('\n');
-    expect(shown).not.toContain('이용 기록 수집 (선택)');
-    expect(t.root.findAllByType(Switch).map((s) => s.props.accessibilityLabel)).not.toContain('이용 기록 수집 (선택)');
-    const row = t.root.findAllByType(ListRow).find((r) => r.props.title === '개인정보 설정');
+    expect(texts(t).join('\n')).not.toContain('이용 기록 수집 (선택)');
+    expect(t.root.findAllByType(Switch)).toHaveLength(0);
+    const topic = t.root.findAllByType(ListRow).find((r) => r.props.title === '개인정보');
+    expect(topic).toBeDefined();
+    act(() => topic!.props.onPress());
+    expect(mockRouter.push).toHaveBeenCalledWith('/settings/data');
+    act(() => tree?.unmount());
+
+    const d = mount(<DataSettings />);
+    expect(d.root.findAllByType(Switch).map((s) => s.props.accessibilityLabel)).not.toContain('이용 기록 수집 (선택)');
+    const row = d.root.findAllByType(ListRow).find((r) => r.props.title === '개인정보 설정');
     expect(row).toBeDefined();
     act(() => row!.props.onPress());
     expect(mockRouter.push).toHaveBeenCalledWith('/settings/privacy');
   });
 
-  it('「모든 데이터 삭제」와 「회원 탈퇴」는 맨 아래 작은 글자 버튼으로 남아 있고, 누르면 확인을 묻는다', () => {
+  it('「모든 데이터 삭제」(개인정보)와 「회원 탈퇴」(계정)는 각 화면 맨 아래 작은 글자 버튼으로 남아 있고, 누르면 확인을 묻는다', () => {
     act(() => {
       useAppStore.setState({ member });
     });
     const t = mount(<MyScreen />);
-    const shown = texts(t);
-    const reset = shown.lastIndexOf('모든 데이터 삭제');
-    const withdraw = shown.lastIndexOf('회원 탈퇴');
-    expect(reset).toBeGreaterThan(-1);
-    expect(withdraw).toBeGreaterThan(-1);
-    // 목록의 빨간 줄이 아니라 화면 맨 아래 (「내 기기 ID」 뒤)
-    expect(reset).toBeGreaterThan(shown.indexOf('내 기기 ID'));
-    expect(withdraw).toBeGreaterThan(shown.indexOf('내 기기 ID'));
-    expect(t.root.findAllByType(ListRow).map((r) => r.props.title)).not.toContain('모든 데이터 삭제');
+    // 마이 첫 화면에서 두 화면으로 가는 줄 (이 시험은 스토어 결제가 없는 빌드라 「계정」)
+    const topics = t.root.findAllByType(ListRow);
+    act(() => topics.find((r) => r.props.title === '계정')!.props.onPress());
+    expect(mockRouter.push).toHaveBeenCalledWith('/settings/account');
+    act(() => tree?.unmount());
 
     const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-    act(() => pressable(t, '모든 데이터 삭제').props.onPress());
+    const d = mount(<DataSettings />);
+    const shown = texts(d);
+    // 목록의 빨간 줄이 아니라 화면 맨 아래 (처리방침 뒤)
+    expect(shown.lastIndexOf('모든 데이터 삭제')).toBeGreaterThan(shown.indexOf('개인정보 처리방침'));
+    expect(d.root.findAllByType(ListRow).map((r) => r.props.title)).not.toContain('모든 데이터 삭제');
+    act(() => pressable(d, '모든 데이터 삭제').props.onPress());
     expect(alert).toHaveBeenCalledWith('모든 데이터 삭제', expect.stringContaining('코칭 내용'), expect.any(Array));
-    act(() => pressable(t, '회원 탈퇴').props.onPress());
+    act(() => tree?.unmount());
+
+    const a = mount(<AccountSettings />);
+    const shownA = texts(a);
+    expect(shownA.lastIndexOf('회원 탈퇴')).toBeGreaterThan(shownA.indexOf('로그아웃'));
+    expect(a.root.findAllByType(ListRow).map((r) => r.props.title)).not.toContain('회원 탈퇴');
+    act(() => pressable(a, '회원 탈퇴').props.onPress());
     expect(alert).toHaveBeenCalledWith('회원 탈퇴', expect.any(String), expect.any(Array));
     alert.mockRestore();
   });
 
   it('비회원에게도 「모든 데이터 삭제」는 보이고, 회원 탈퇴는 회원에게만 보인다', () => {
-    const t = mount(<MyScreen />);
-    const shown = texts(t);
-    expect(shown).toContain('모든 데이터 삭제');
-    expect(shown).not.toContain('회원 탈퇴');
+    const d = mount(<DataSettings />);
+    expect(texts(d)).toContain('모든 데이터 삭제');
+    act(() => tree?.unmount());
+    const a = mount(<AccountSettings />);
+    expect(texts(a)).not.toContain('회원 탈퇴');
+    expect(texts(a).some((s) => /가입하고 무료 코칭 \d+회 받기/.test(s))).toBe(true);
   });
 });
 

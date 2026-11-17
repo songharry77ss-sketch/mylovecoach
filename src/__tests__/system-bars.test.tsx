@@ -42,7 +42,11 @@ jest.mock('expo-linear-gradient', () => {
   return { LinearGradient: View };
 });
 jest.mock('expo-status-bar', () => ({ StatusBar: function MockStatusBar() { return null; } }));
-jest.mock('@/store/app-store', () => ({ useAppStore: (pick: (s: { practiceEnabled: boolean }) => unknown) => pick({ practiceEnabled: false }) }));
+// 연애 연습 빨간 점(11/12 회의 3번)은 따로 보는 테스트에서만 켠다
+let mockPracticeDotSeen = true;
+jest.mock('@/store/app-store', () => ({
+  useAppStore: (pick: (s: { practiceEnabled: boolean; practiceDotSeen: boolean }) => unknown) => pick({ practiceEnabled: false, practiceDotSeen: mockPracticeDotSeen }),
+}));
 jest.mock('@/lib/haptics', () => ({ haptic: new Proxy({}, { get: () => () => {} }) }));
 
 const metrics = (top: number, bottom: number) => ({ frame: { x: 0, y: 0, width: 384, height: 832 }, insets: { top, left: 0, right: 0, bottom } });
@@ -118,6 +122,32 @@ describe('떠 있는 유리 탭 바', () => {
     nav.navigate.mockClear();
     act(() => tabs(t)[0].props.onPress());
     expect(nav.navigate).not.toHaveBeenCalled();
+  });
+
+  it('연애 연습을 아직 못 봤으면 「탐색」에만 작은 빨간 점이 붙고 「탐색, 새 기능 있음」으로 읽힌다', () => {
+    mockPracticeDotSeen = false;
+    try {
+      const { t } = mountBar(0, 34);
+      expect(tabs(t).map((n) => n.props.accessibilityLabel)).toEqual(['홈', '탐색, 새 기능 있음', '마이']);
+      expect(t.root.findAll((n) => n.props.testID === 'tab-new-dot' && typeof n.type === 'string')).toHaveLength(1);
+    } finally {
+      mockPracticeDotSeen = true;
+    }
+    const { t } = mountBar(0, 34);
+    expect(t.root.findAll((n) => n.props.testID === 'tab-new-dot')).toHaveLength(0);
+  });
+
+  it('렌즈 움직임은 은은하게 — 크게 떠오르는 배율·출렁이는 스프링을 다시 넣지 않는다 (11/12 회의 2번)', () => {
+    const src = readFileSync(join(__dirname, '..', 'components', 'ui', 'glass-tab-bar.tsx'), 'utf8');
+    const lift = /const LIFT = \{ x: ([\d.]+), y: ([\d.]+), content: ([\d.]+) \}/.exec(src);
+    expect(lift).not.toBeNull();
+    const [x, y, content] = lift!.slice(1).map(Number);
+    expect(x).toBeLessThanOrEqual(0.05);
+    expect(y).toBeLessThanOrEqual(0.1);
+    expect(content).toBeLessThanOrEqual(0.04);
+    // 모양은 0~1 밖으로 넘치지 않게 잘라서 쓰고(첫 프레임 음수 진행값에 찌그러지지 않게), 스프링에는 mass 를 꼭 적는다(Reanimated 4 기본 mass 4)
+    expect(src).toMatch(/Extrapolation\.CLAMP/);
+    for (const spring of src.match(/withSpring\([^)]*\)/g) ?? []) expect(spring).toMatch(/SPRING|mass/);
   });
 
   it('오른쪽 「새 채팅」 구슬 버튼은 어느 탭에서든 새 채팅방을 연다', () => {

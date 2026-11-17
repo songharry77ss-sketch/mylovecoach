@@ -1,4 +1,5 @@
 import {
+  COACH_SYSTEM_PROMPT,
   CoachAnalysisReadSchema,
   CoachAnalysisSchema,
   CoachRequestSchema,
@@ -88,7 +89,8 @@ describe('output schema', () => {
     });
     const n = normalizeAnalysis(raw);
     expect(n.interestScore).toBe(100);
-    expect(n.insights).toHaveLength(5);
+    // 11/12 회의 13번: 포인트는 최대 2개만 보여 준다
+    expect(n.insights).toHaveLength(2);
     expect(n.replies).toHaveLength(3);
     expect(n.replies.map((r) => r.text)).toEqual(['안녕', 'ㅋㅋ', '굿']);
   });
@@ -153,5 +155,28 @@ describe('호칭 · 말투 · 이모지 · 누적 온도', () => {
     expect(n.callName).toBe('언니');
     expect(n.heatDelta).toBe(20);
     expect(n.replies[0].successRate).toBe(99);
+  });
+});
+
+describe('짧은 답 (11/12 회의 13번 「사용자는 한 번 말하는데 답장이 너무 김」)', () => {
+  it('프롬프트가 길이를 가장 먼저 못 박는다 — 요약 1~2문장, 포인트 최대 2개, 답장 보통 한 문장', () => {
+    expect(COACH_SYSTEM_PROMPT).toContain('길이 (반드시 지킬 것');
+    expect(COACH_SYSTEM_PROMPT).toContain('summary는 결론부터 1~2문장(80자 안쪽)');
+    expect(COACH_SYSTEM_PROMPT).toContain('insights는 최대 2개');
+    expect(COACH_SYSTEM_PROMPT).toContain('보통 한 문장, 길어도 두 문장');
+  });
+
+  it('모델이 길게 써도 포인트는 2개, 주의할 점은 1개만 보여 준다', () => {
+    const n = normalizeAnalysis({
+      summary: '요약',
+      temperature: 'warm',
+      interestScore: 70,
+      insights: ['하나', '둘', '셋', '넷'],
+      replies: [],
+      nextStep: '',
+      warnings: ['주의1', '주의2', '주의3'],
+    });
+    expect(n.insights).toEqual(['하나', '둘']);
+    expect(n.warnings).toEqual(['주의1']);
   });
 });

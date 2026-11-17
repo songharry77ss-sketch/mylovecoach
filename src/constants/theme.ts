@@ -129,7 +129,8 @@ export const Colors: Record<'light' | 'dark', ThemeColors> = {
     bubbleUser: '#E6EDFF',
     bubbleCoach: palette.white,
     tabBar: palette.white,
-    canvas: '#F3F5F9',
+    // 11/12 회의 9번: 바탕에 옅은 보랏빛 (예전 #F3F5F9 — 회색만이라 차가웠다)
+    canvas: '#F5F4FB',
     card: palette.white,
     separator: '#EEF0F4',
   },
@@ -153,7 +154,7 @@ export const Colors: Record<'light' | 'dark', ThemeColors> = {
     bubbleUser: '#1E2A57',
     bubbleCoach: '#1C2130',
     tabBar: '#0D1018',
-    canvas: '#0B0E15',
+    canvas: '#0C0D17',
     card: '#161A24',
     separator: '#232938',
   },

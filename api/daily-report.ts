@@ -60,6 +60,33 @@ async function distinctDevices(table: string, filter: string): Promise<number | 
 
 const num = (n: number | null, unit: string) => (n == null ? '확인 못 함' : `${n}${unit}`);
 
+/** A/B 「처음 5분 무제한」(src/lib/billing/plans INTRO_FREE_MS) 시작 — 이때부터 누적해서 비교한다 */
+export const AB_FREE5_START = Date.parse('2026-11-17T00:00:00+09:00');
+
+/** 실험 한 칸의 누적 — 앱을 연 기기 · 결제한 기기 · 코칭 결과 수 (이용 기록의 props.xp 로 나눈다) */
+export interface AbArm {
+  devices: number | null;
+  buyers: number | null;
+  coaching: number | null;
+}
+
+async function abArm(arm: 'on' | 'off', untilIso: string): Promise<AbArm> {
+  const xp = `props->>xp=eq.free5:${arm}`;
+  const since = `created_at=gte.${encodeURIComponent(new Date(AB_FREE5_START).toISOString())}&created_at=lt.${encodeURIComponent(untilIso)}`;
+  const [devices, buyers, coaching] = await Promise.all([
+    distinctDevices('app_event', `name=eq.app_open&${xp}&${since}`),
+    distinctDevices('app_event', `name=in.(purchase_purchased,purchase_granted)&${xp}&${since}`),
+    countRows('app_event', `name=eq.coach_success&${xp}&${since}`),
+  ]);
+  return { devices, buyers, coaching };
+}
+
+function abLine(label: string, a: AbArm): string {
+  const rate = a.devices && a.buyers != null ? ` (${((a.buyers / a.devices) * 100).toFixed(1)}%)` : '';
+  const per = a.devices && a.coaching != null ? ` (기기당 ${(a.coaching / a.devices).toFixed(1)}건)` : '';
+  return ` · ${label}: 기기 ${num(a.devices, '대')} → 결제 ${num(a.buyers, '대')}${rate} · 코칭 ${num(a.coaching, '건')}${per}`;
+}
+
 export interface ReportData {
   day: string;
   newMembers: number | null;
@@ -70,6 +97,8 @@ export interface ReportData {
   coaching: number | null;
   paywall: number | null;
   checkout: number | null;
+  /** A/B 「처음 5분 무제한」 누적 (실험 시작 전 날짜면 없음) */
+  ab?: { on: AbArm; off: AbArm } | null;
 }
 
 /** 리포트 문구 (이용자가 보낸 값은 escape) */
@@ -109,6 +138,12 @@ export function reportMessage(d: ReportData): string {
   lines.push(` · 앱 실행 기기 ${num(d.launches, '대')}`);
   lines.push(` · 코칭 결과 ${num(d.coaching, '건')}`);
   lines.push(` · 결제 화면 열람 ${num(d.paywall, '대')} → 결제창 진입 ${num(d.checkout, '대')}`);
+  if (d.ab) {
+    lines.push('');
+    lines.push('🧪 A/B 처음 5분 무제한 (11/17부터 누적 · 새 기기 절반씩)');
+    lines.push(abLine('5분 체험', d.ab.on));
+    lines.push(abLine('지금 규칙', d.ab.off));
+  }
   return lines.join('\n');
 }
 
@@ -129,7 +164,8 @@ export async function collectReport(now = Date.now()): Promise<ReportData> {
     distinctDevices('app_event', `name=eq.paywall_open&${between('created_at')}`),
     distinctDevices('app_event', `name=eq.purchase_start&${between('created_at')}`),
   ]);
-  return { day: kstDate(start), newMembers, members, totalMembers, sales, launches, coaching, paywall, checkout };
+  const ab = end.getTime() > AB_FREE5_START ? { on: await abArm('on', end.toISOString()), off: await abArm('off', end.toISOString()) } : null;
+  return { day: kstDate(start), newMembers, members, totalMembers, sales, launches, coaching, paywall, checkout, ab };
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

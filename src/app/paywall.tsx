@@ -22,13 +22,13 @@ import { STORE_LABEL, STORE_URL, downloadDevice, type DownloadStore } from '@/li
 import { billingSupported, lastStoreProblem, purchasePlan, restorePremium, type PlanProduct } from '@/lib/billing/iap';
 import { CREDITS_PER_PACK, FALLBACK_PRICES, PRODUCT_IDS, SELLING_PLANS, SIGNUP_BONUS, freeRules, isConsumablePlan, yearPassEnd, type PlanKey } from '@/lib/billing/plans';
 import { PREMIUM_PLAN_NAMES, formatDateKo, formatPassEnd, isPremiumActive, passEndIfBoughtNow, premiumUntilSentence, quotaLabel, quotaStatus } from '@/lib/billing/quota';
-import { isSaleActive, SALE_WINDOW_MS, saleAudience, saleOffer, saleWindow, shouldStartSale } from '@/lib/billing/sale';
+import { isSaleActive, priceNumber, SALE_WINDOW_MS, saleAudience, saleOffer, saleWindow, shouldStartSale } from '@/lib/billing/sale';
 import { APP_CONFIG } from '@/lib/config';
 import { haptic } from '@/lib/haptics';
 import { authAvailable } from '@/lib/supabase';
-import { useAppStore } from '@/store/app-store';
+import { introUntil, useAppStore } from '@/store/app-store';
 
-type Reason = 'quota' | 'regenerate' | 'my' | 'banner' | 'upsell' | 'report' | 'practice' | 'mind';
+type Reason = 'quota' | 'regenerate' | 'my' | 'banner' | 'upsell' | 'report' | 'practice' | 'mind' | 'renew';
 
 /** 들어온 곳마다 맨 위 큰 제목 — *…* 는 파란 강조 */
 const HEADLINES: Record<Reason, { title: string; subtitle: string }> = {
@@ -42,6 +42,8 @@ const HEADLINES: Record<Reason, { title: string; subtitle: string }> = {
   report: { title: '그 사람 *분석 보고서*,\n지금 열어볼까요?', subtitle: '성향·호감 신호·공략법·궁합까지 한 번에 정리해 드려요.' },
   practice: { title: '연애 연습,\n*실전처럼* 계속해요', subtitle: '이용권이면 AI 상대와 마음껏 리허설할 수 있어요.' },
   mind: { title: '그 사람 *속마음*,\n더 들여다볼까요?', subtitle: '이용권이면 궁금한 상황을 횟수 걱정 없이 물어볼 수 있어요.' },
+  // 하루 이용권이 곧 끝날 때 채팅방 안내 줄에서 — 1년권을 먼저 고른다 (결제 루프, lib/billing/paywall-route)
+  renew: { title: '하루 무제한이\n*곧 끝나요*', subtitle: '자주 쓴다면 1년권이 훨씬 싸요. 자동 결제도 없어요.' },
 };
 
 const BENEFITS: { icon: keyof typeof Ionicons.glyphMap; title: string; body: string }[] = [
@@ -119,6 +121,7 @@ export default function Paywall() {
   const wallet = useAppStore((s) => s.wallet);
   const team = useAppStore((s) => s.team);
   const isMember = useAppStore((s) => s.member != null);
+  const intro = useAppStore(introUntil);
   const name = useAppStore((s) => s.user?.name?.trim() || s.member?.nickname?.trim() || '');
   const saleStartedAt = useAppStore((s) => s.saleOfferStartedAt);
   const startSaleOffer = useAppStore((s) => s.startSaleOffer);
@@ -130,7 +133,8 @@ export default function Paywall() {
   const storeProducts = usePlanProducts(loadAttempt);
   const products = billingSupported && !previewStore ? storeProducts : DEFAULT_PRODUCTS;
   // 맨 위 큰 카드(「{이름}님을 위한 하루 무제한 이용권」)를 늘 먼저 고른다 — 마이 탭에서 와도 큰 카드와 아래 버튼이 어긋나지 않게 (2026-11-07)
-  const [selected, setSelected] = useState<PlanKey>('day');
+  // 하루 이용권이 곧 끝나서 온 사람(renew)에게는 1년권을 먼저 고른다
+  const [selected, setSelected] = useState<PlanKey>(reason === 'renew' ? 'year' : 'day');
   const [busy, setBusy] = useState<'purchase' | 'restore' | null>(null);
   const [done, setDone] = useState<Done | null>(null);
   // 이 화면은 iOS 네이티브 모달이라 앱 전체 토스트가 모달 뒤에 가려진다.
@@ -164,7 +168,7 @@ export default function Paywall() {
   }, [storeUnreachable, reason]);
   const dayPrice = onSalePrice(products, 'day');
   const active = isPremiumActive(premium, Date.now());
-  const status = quotaStatus(premium, usage, Date.now(), wallet, team, freeRules(authAvailable, isMember));
+  const status = quotaStatus(premium, usage, Date.now(), wallet, team, freeRules(authAvailable, isMember), intro);
   // 비회원이면 결제보다 가입(무료 보너스)을 먼저 권한다
   const offerSignup = authAvailable && !isMember && !active && status.kind !== 'team';
   const storeName = Platform.OS === 'ios' || previewStore === 'ios' ? 'App Store' : 'Google Play';
@@ -188,8 +192,20 @@ export default function Paywall() {
   const saleOn = offer != null && sale.phase === 'active' && sale.remainingMs > 0;
   const salePrice = saleOn ? offer.sale.displayPrice : null;
   // 막혀서 온 사람에게는 가격을 넣어 바로 이어갈 수 있다고 알린다 (특가 중이면 특가로)
+  // 1년권이 하루 이용권 몇 번 값보다 싼지 — 스토어가 준 두 가격으로만 계산한다 (모르면 문구를 쓰지 않음)
+  const yearAnchor = (() => {
+    const day = products?.find((p) => p.plan === 'day' && !p.sale && p.available === true);
+    const year = products?.find((p) => p.plan === 'year' && p.available === true);
+    const d = day ? priceNumber(day) : null;
+    const y = year ? priceNumber(year) : null;
+    if (!d || !y || y <= d) return null;
+    const times = Math.ceil(y / d);
+    return times * d > y ? `1년권은 하루 이용권 ${times}번 값보다 싸게 1년 내내 무제한이에요. 자동 결제도 없어요.` : null;
+  })();
   const subtitle =
-    reason === 'quota' && saleOn
+    reason === 'renew' && yearAnchor
+      ? yearAnchor
+      : reason === 'quota' && saleOn
       ? '지금은 특가로 바로 이어서 코칭받을 수 있어요.'
       : reason === 'quota' && dayPrice
         ? `하루 이용권 ${priceText(dayPrice)}이면 바로 이어서 코칭받아요.`

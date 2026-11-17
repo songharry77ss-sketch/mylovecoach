@@ -173,6 +173,29 @@ describe('/api/daily-report', () => {
     expect(text).toContain('💰 매출 확인 못 함');
     expect(text).toContain(' · 코칭 결과 0건');
   });
+
+  it('A/B 「처음 5분 무제한」 — 실험군·대조군의 기기·결제(비율)·코칭(기기당)을 나란히 (11/17 부터)', () => {
+    const base = { day: '11/18', newMembers: 0, members: [], totalMembers: 0, sales: [], launches: 0, coaching: 0, paywall: 0, checkout: 0 };
+    const text = reportMessage({ ...base, ab: { on: { devices: 120, buyers: 6, coaching: 336 }, off: { devices: 118, buyers: 4, coaching: null } } });
+    expect(text).toContain('🧪 A/B 처음 5분 무제한 (11/17부터 누적 · 새 기기 절반씩)');
+    expect(text).toContain(' · 5분 체험: 기기 120대 → 결제 6대 (5.0%) · 코칭 336건 (기기당 2.8건)');
+    expect(text).toContain(' · 지금 규칙: 기기 118대 → 결제 4대 (3.4%) · 코칭 확인 못 함');
+    // 실험 전 날짜(ab 없음)에는 줄을 넣지 않는다
+    expect(reportMessage(base)).not.toContain('A/B');
+  });
+
+  it('11/17 이후 리포트는 이용 기록을 실험 칸(props.xp)으로 나눠 읽는다', async () => {
+    jest.useFakeTimers({ now: new Date('2026-11-18T00:05:00Z'), doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] });
+    try {
+      await handler(cronReq(`Bearer ${SECRET}`), fakeRes() as never);
+    } finally {
+      jest.useRealTimers();
+    }
+    const urls = calls.map((c) => c.url);
+    expect(urls.some((u) => u.includes('name=eq.app_open') && u.includes('props->>xp=eq.free5:on'))).toBe(true);
+    expect(urls.some((u) => u.includes('purchase_purchased,purchase_granted') && u.includes('props->>xp=eq.free5:off'))).toBe(true);
+    expect(telegramTexts().pop()).toContain('🧪 A/B 처음 5분 무제한');
+  });
 });
 
 describe('countRows (PostgREST 행 수)', () => {

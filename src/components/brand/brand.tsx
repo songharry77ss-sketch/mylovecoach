@@ -37,7 +37,8 @@ export function WashBackground({ children, style }: { children?: ReactNode; styl
 }
 
 /**
- * 그라데이션 주요 버튼. shine 을 켜면 몇 초마다 빛이 한 번 스쳐 지나간다(가장 중요한 버튼 하나에만).
+ * 그라데이션 주요 버튼. shine 을 켜면 나타난 뒤 빛이 한 번 스쳐 지나간다(가장 중요한 버튼 하나에만).
+ * 예전엔 2.7초마다 끝없이 되풀이했는데 11/12 회의 7번 「AI 티」로 한 번만 — 눈길만 한 번 끌고 조용히 둔다.
  */
 export function GradientButton({
   title,
@@ -67,7 +68,7 @@ export function GradientButton({
   const [width, setWidth] = useState(0);
   useEffect(() => {
     if (!shine) return;
-    sweep.value = withRepeat(withSequence(withDelay(1800, withTiming(1, { duration: 900, easing: Easing.inOut(Easing.quad) })), withTiming(-1, { duration: 0 })), -1);
+    sweep.value = withDelay(1000, withTiming(1, { duration: 900, easing: Easing.inOut(Easing.quad) }));
   }, [shine, sweep]);
   const pressed = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const shineStyle = useAnimatedStyle(() => ({ transform: [{ translateX: sweep.value * (width || 300) }, { rotate: '18deg' }] }));
@@ -111,12 +112,26 @@ export function GradientButton({
 }
 
 /**
- * 그라데이션 큰 카드 — 흰 글자. 뒤에 옅은 동그라미 두 개로 깊이를 준다.
+ * 그라데이션 큰 카드 — 흰 글자. decor 를 켜면 뒤에 옅은 동그라미 두 개.
+ * 동그라미 장식은 「AI 가 만든 화면」 티가 나서(11/12 회의 7번) 기본은 끈다 — 그라데이션 면만으로 충분하다.
  */
-export function HeroCard({ children, style, decor = true, colors = Brand.gradient }: { children: ReactNode; style?: StyleProp<ViewStyle>; decor?: boolean; colors?: readonly [string, string, ...string[]] }) {
+export function HeroCard({
+  children,
+  style,
+  contentStyle,
+  decor = false,
+  colors = Brand.gradient,
+}: {
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+  /** 그라데이션 안쪽(여백·간격) — 작은 카드는 padding 을 줄인다 */
+  contentStyle?: StyleProp<ViewStyle>;
+  decor?: boolean;
+  colors?: readonly [string, string, ...string[]];
+}) {
   return (
     <View style={[styles.heroOuter, BrandShadow, style]}>
-      <BrandGradient colors={colors} style={styles.heroFill}>
+      <BrandGradient colors={colors} style={[styles.heroFill, contentStyle]}>
         {decor ? (
           <>
             <View pointerEvents="none" style={[styles.orb, styles.orbA]} />
@@ -240,7 +255,7 @@ const styles = StyleSheet.create({
   gbRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   gbText: { color: Brand.onBrand, fontSize: 17, fontWeight: '800', letterSpacing: -0.3 },
   gbTextMd: { fontSize: 15 },
-  shine: { position: 'absolute', top: -20, bottom: -20, width: 56, left: '45%', backgroundColor: 'rgba(255,255,255,0.28)' },
+  shine: { position: 'absolute', top: -20, bottom: -20, width: 56, left: '45%', backgroundColor: 'rgba(255,255,255,0.22)' },
   heroOuter: { borderRadius: Radius.xl },
   heroFill: { borderRadius: Radius.xl, overflow: 'hidden', padding: Spacing.xl },
   orb: { position: 'absolute', borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.12)' },

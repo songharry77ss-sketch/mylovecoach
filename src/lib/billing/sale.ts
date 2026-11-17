@@ -53,7 +53,7 @@ export const shouldStartSale = (startedAt: number | null | undefined, now: numbe
  * 세일을 시작해도 되는 사람인지 — 이미 무제한(프리미엄·팀원·하루 이용권 이용 중)이면 열지 않는다.
  * 쓸 일 없는 사람에게 10분을 흘려보내고 7일을 잠그지 않게.
  */
-export const saleAudience = (kind: QuotaKind): boolean => kind !== 'premium' && kind !== 'team' && kind !== 'pass';
+export const saleAudience = (kind: QuotaKind): boolean => kind !== 'premium' && kind !== 'team' && kind !== 'pass' && kind !== 'intro';
 
 /** 결제 화면의 상품 목록 한 칸 (lib/billing/iap 의 PlanProduct 와 호환) */
 export interface SaleProductLike {

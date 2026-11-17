@@ -98,7 +98,7 @@ export default function PrivacySettings() {
       </CardSection>
 
       <AppText variant="caption" color="textTertiary" style={styles.note}>
-        AI 분석 동의는 마이 → 프라이버시에서, 회원 탈퇴와 모든 데이터 삭제는 마이 화면 맨 아래에서 할 수 있어요.
+        AI 분석 동의와 모든 데이터 삭제는 마이 → 개인정보에서, 회원 탈퇴는 마이 → 이용권·계정에서 할 수 있어요.
       </AppText>
     </Screen>
   );
