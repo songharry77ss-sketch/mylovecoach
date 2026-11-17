@@ -46,14 +46,18 @@ jobs:
       - name: 성과 쌓기 · 배우기
         run: node tools/social-learn.mjs --root queue --limit 40
 
+      - name: 다 올린 그림·영상 정리
+        # 가지가 커지면 jsDelivr 가 그림을 못 가져온다 — 다 올리고 하루 지난 항목 폴더만 뺀다 (git 기록엔 남음)
+        run: node tools/social-make/prune.mjs --root queue --days 1
+
       - name: 성과 기록 저장
         run: |
           cd queue
-          if [ -z "$(git status --porcelain marketing/learn)" ]; then echo '바뀐 것 없음'; exit 0; fi
+          if [ -z "$(git status --porcelain marketing/learn marketing/social)" ]; then echo '바뀐 것 없음'; exit 0; fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add marketing/learn
-          git commit -qm "성과 기록 $(TZ=Asia/Seoul date +%F)"
+          git add -A marketing/learn marketing/social
+          git commit -qm "성과 기록 · 다 올린 그림 정리 $(TZ=Asia/Seoul date +%F)"
           # 그사이 게시 기록·허락이 들어왔을 수 있다 (자동 게시는 다른 줄을 써서 겹치지 않음)
           for i in 1 2 3; do git pull -q --rebase origin social-queue && git push -q origin HEAD:social-queue && exit 0; sleep 5; done
           exit 1

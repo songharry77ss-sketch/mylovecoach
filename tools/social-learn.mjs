@@ -40,7 +40,9 @@ function describe(m) {
   const entry = queue.entries.find((e) => e.id === id);
   const kind = KIND[m.type] ?? 'other';
   const noted = String(entry?.note ?? '').match(/자동 생산 · ([a-z-]+)/)?.[1];
-  const format = item?.format ?? noted ?? `old-${kind}`;
+  // 큐 항목에 format 이 있으면 그것, 사장님이 찍은 영상(u-…)은 실사 릴스로 따로 센다
+  const real = /^u-/.test(id) && kind === 'reel' ? 'real-reel' : undefined;
+  const format = entry?.format ?? item?.format ?? noted ?? real ?? `old-${kind}`;
   const hook = item?.hook ?? String(m.text ?? '').split('\n')[0].slice(0, 40);
   const hourKst = (new Date(m.at).getUTCHours() + 9) % 24;
   return { id, meta: { mediaId: m.id, url: m.url, postedAt: m.at, kind, format, hook, topics: topicsOf(item ?? { hook }, m.text), hourKst } };

@@ -17,6 +17,7 @@ import path from 'node:path';
 import { learnModel, rankItems, reportMarkdown, topicsOf } from '../lib/learn.mjs';
 import { bankProblems } from './bank.mjs';
 import { FORMATS } from './formats/index.mjs';
+import { makeFeedStory } from './formats/story.mjs';
 import { WEEK, firstFreeDay, howMany, nextDay, pickForDays } from './plan.mjs';
 
 const args = process.argv.slice(2);
@@ -49,6 +50,9 @@ async function build(it, dir, relTo) {
   const made = await fmt.make(it, dir);
   console.log(`  ${it.id} (${it.format}) ${made.media.length}개 · ${((Date.now() - started) / 1000).toFixed(0)}초`);
   const rel = (f) => path.relative(relTo, f).split(path.sep).join('/');
+  // 스토리: 릴스는 영상 그대로, 캐러셀은 첫 장 + 질문 그림
+  let story = made.media[0];
+  if (fmt.kind === 'carousel') story = await makeFeedStory(made.media[0], path.join(dir, 'story.jpg'), { ask: it.storyAsk ?? STORY_ASK[it.format] ?? it.ask });
   return {
     id: it.id,
     channel: 'instagram',
@@ -59,8 +63,19 @@ async function build(it, dir, relTo) {
     ...(fmt.kind === 'reel' ? { audio: it.audio ?? { trending: true, videoVolume: 25, minSeconds: Math.ceil(made.seconds ?? 10) } } : {}),
     approved: false,
     note: `자동 생산 · ${it.format}${it.ref ? ` · 참고 ${it.ref}` : ''}`,
+    ...(story ? { story: rel(story) } : {}),
   };
 }
+
+/** 스토리에는 첫 장만 보이니, 첫 장만 보고도 답할 수 있는 질문으로 (창고 항목 storyAsk 가 있으면 그것) */
+const STORY_ASK = { 'pick-carousel': '너라면 뭐라고 보낼래?', 'list-carousel': '이 중 몇 개 해당될 것 같아?', 'kkti-pair': '너랑 그 사람은 무슨 조합이야?' };
+
+/** 「21:00」 → 「21:01」 */
+const plusMinute = (hm) => {
+  const [h, m] = hm.split(':').map(Number);
+  const t = (h * 60 + m + 1) % (24 * 60);
+  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+};
 
 const only = argOf('--id');
 if (only) {
@@ -114,10 +129,23 @@ if (has('--fill')) {
   }
   const approve = has('--approve');
   const added = [];
-  for (const { day: d, item: it } of picks) {
-    const entry = await build(it, path.join(root, 'marketing', 'social', it.id), root);
-    if (approve) Object.assign(entry, { approved: true, approvedBy: `자동 허락 (SOCIAL_AUTO_APPROVE) ${new Date().toISOString()}` });
-    added.push({ ...entry, at: `${d} ${time}` });
+  const failed = [];
+  for (const { item: it } of picks) {
+    // 하나가 실패해도(예: 코치 서버 응답 없음) 나머지는 만든다 — 실패한 날은 다음 항목이 당겨 채운다
+    let entry;
+    try {
+      entry = await build(it, path.join(root, 'marketing', 'social', it.id), root);
+    } catch (e) {
+      console.error(`  ✗ ${it.id} (${it.format}) 만들기 실패: ${e.message}`);
+      failed.push({ id: it.id, format: it.format, error: String(e.message).slice(0, 300) });
+      continue;
+    }
+    const d = dayList[added.filter((x) => x.kind !== 'story').length];
+    const ok = approve ? { approved: true, approvedBy: `자동 허락 (SOCIAL_AUTO_APPROVE) ${new Date().toISOString()}` } : {};
+    const { story, ...feed } = entry;
+    added.push({ ...feed, ...ok, at: `${d} ${time}` });
+    // 사장님 규칙: 피드마다 스토리도 — 피드가 올라간 뒤(after)에만 나간다
+    if (story) added.push({ id: `${it.id}-story`, at: `${d} ${plusMinute(time)}`, channel: 'instagram', kind: 'story', media: [story], approved: false, ...ok, after: it.id, note: `자동 생산 · ${it.format} 스토리` });
   }
   // id·at 을 앞으로 (사람이 읽기 좋게)
   queue.entries = [...entries, ...added.map(({ id, at, ...rest }) => ({ id, at, ...rest }))];
@@ -125,7 +153,8 @@ if (has('--fill')) {
   const left = items.filter((it) => !used.has(it.id) && !picks.some((p) => p.item === it)).length;
   const summary = argOf('--summary');
   if (summary) {
-    const made = { added: added.map((e) => ({ id: e.id, at: e.at, kind: e.kind, format: itemOf(e.id)?.format, media: e.media, cover: e.cover, caption: e.caption, note: e.note, approved: e.approved })), left, learned: model.scored >= 3, report: reportMarkdown(model) };
+    const feedOnly = added.filter((e) => e.kind !== 'story');
+    const made = { added: feedOnly.map((e) => ({ id: e.id, at: e.at, kind: e.kind, format: itemOf(e.id)?.format, media: e.media, cover: e.cover, story: added.find((x) => x.after === e.id)?.media?.[0], caption: e.caption, note: e.note, approved: e.approved })), failed, left, learned: model.scored >= 3, report: reportMarkdown(model) };
     writeFileSync(summary, JSON.stringify(made, null, 2));
   }
   console.log(`창고에 남은 새 항목: ${left}개`);
