@@ -12,6 +12,17 @@
      "likes": 0,
      "comments": 0,
      "watchMs": 6291
+    },
+    {
+     "at": "2026-11-17T08:42:42.419Z",
+     "ageH": 74,
+     "views": 230,
+     "reach": 209,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "watchMs": 6204
     }
    ],
    "meta": {
@@ -36,6 +47,18 @@
      "ageH": 99,
      "views": 0,
      "reach": 0,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 0
+    },
+    {
+     "at": "2026-11-17T08:42:42.419Z",
+     "ageH": 116,
+     "views": 3,
+     "reach": 1,
      "saved": 0,
      "shares": 0,
      "likes": 0,
@@ -70,6 +93,17 @@
      "likes": 0,
      "comments": 0,
      "watchMs": 1877
+    },
+    {
+     "at": "2026-11-17T08:42:42.419Z",
+     "ageH": 116,
+     "views": 213,
+     "reach": 197,
+     "saved": 0,
+     "shares": 0,
+     "likes": 1,
+     "comments": 0,
+     "watchMs": 1892
     }
    ],
    "meta": {
@@ -91,6 +125,18 @@
      "at": "2026-11-16T15:23:23.743Z",
      "ageH": 169,
      "views": 17,
+     "reach": 4,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 0
+    },
+    {
+     "at": "2026-11-17T08:42:42.419Z",
+     "ageH": 186,
+     "views": 18,
      "reach": 4,
      "saved": 0,
      "shares": 0,
@@ -126,6 +172,17 @@
      "likes": 2,
      "comments": 0,
      "watchMs": 2056
+    },
+    {
+     "at": "2026-11-17T08:42:42.419Z",
+     "ageH": 214,
+     "views": 126,
+     "reach": 105,
+     "saved": 1,
+     "shares": 0,
+     "likes": 3,
+     "comments": 0,
+     "watchMs": 2100
     }
    ],
    "meta": {
@@ -148,6 +205,17 @@
      "ageH": 560,
      "views": 156,
      "reach": 145,
+     "saved": 3,
+     "shares": 0,
+     "likes": 5,
+     "comments": 0,
+     "watchMs": 4501
+    },
+    {
+     "at": "2026-11-17T08:42:42.419Z",
+     "ageH": 577,
+     "views": 156,
+     "reach": 146,
      "saved": 3,
      "shares": 0,
      "likes": 5,
@@ -176,6 +244,18 @@
      "ageH": 578,
      "views": 11,
      "reach": 6,
+     "saved": 0,
+     "shares": 0,
+     "likes": 2,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 1
+    },
+    {
+     "at": "2026-11-17T08:42:42.419Z",
+     "ageH": 595,
+     "views": 12,
+     "reach": 7,
      "saved": 0,
      "shares": 0,
      "likes": 2,
@@ -211,6 +291,18 @@
      "comments": 0,
      "follows": 0,
      "profileVisits": 1
+    },
+    {
+     "at": "2026-11-17T08:42:42.419Z",
+     "ageH": 617,
+     "views": 16,
+     "reach": 5,
+     "saved": 0,
+     "shares": 0,
+     "likes": 1,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 1
     }
    ],
    "meta": {
@@ -232,6 +324,18 @@
      "at": "2026-11-16T15:23:23.743Z",
      "ageH": 600,
      "views": 12,
+     "reach": 4,
+     "saved": 0,
+     "shares": 0,
+     "likes": 1,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 0
+    },
+    {
+     "at": "2026-11-17T08:42:42.419Z",
+     "ageH": 617,
+     "views": 13,
      "reach": 4,
      "saved": 0,
      "shares": 0,
@@ -265,6 +369,18 @@
      "comments": 0,
      "follows": 0,
      "profileVisits": 1
+    },
+    {
+     "at": "2026-11-17T08:42:42.419Z",
+     "ageH": 617,
+     "views": 16,
+     "reach": 4,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 1
     }
    ],
    "meta": {
@@ -277,7 +393,34 @@
     "topics": [],
     "hourKst": 0
    }
+  },
+  "u-kudae-number-1": {
+   "snaps": [
+    {
+     "at": "2026-11-17T08:42:42.419Z",
+     "ageH": 17,
+     "views": 593,
+     "reach": 507,
+     "saved": 0,
+     "shares": 7,
+     "likes": 3,
+     "comments": 0,
+     "watchMs": 7523
+    }
+   ],
+   "meta": {
+    "mediaId": "18126692044901848",
+    "url": "https://www.instagram.com/reel/Dfzso1sjgxt/",
+    "postedAt": "2026-11-16T15:39:41+0000",
+    "kind": "reel",
+    "format": "old-reel",
+    "hook": "고대에서 번호 따기 1일차 🎓",
+    "topics": [
+     "썸"
+    ],
+    "hourKst": 0
+   }
   }
  },
- "updatedAt": "2026-11-16T15:23:23.743Z"
+ "updatedAt": "2026-11-17T08:42:42.419Z"
 }

@@ -1,86 +1,98 @@
 {
-  "at": "2026-11-16T15:23:23.743Z",
-  "scored": 9,
+  "at": "2026-11-17T08:42:42.419Z",
+  "scored": 10,
   "measuring": 1,
   "base": {
-    "views": 15,
+    "views": 16,
     "spread": 0
   },
   "kinds": {
-    "carousel": -0.15,
-    "reel": 1.45,
-    "image": -0.06
+    "reel": 1.63,
+    "carousel": -0.17,
+    "image": -0.08
   },
   "formats": {
     "chat-reel": {
       "n": 0,
       "mean": null,
-      "score": 1.45,
+      "score": 1.63,
       "views": null,
       "spread": null
     },
     "pick-carousel": {
       "n": 0,
       "mean": null,
-      "score": -0.15,
+      "score": -0.17,
       "views": null,
       "spread": null
     },
     "pick-reel": {
       "n": 0,
       "mean": null,
-      "score": 1.45,
+      "score": 1.63,
       "views": null,
       "spread": null
     },
     "list-carousel": {
       "n": 0,
       "mean": null,
-      "score": -0.15,
+      "score": -0.17,
       "views": null,
       "spread": null
     },
     "kkti-pair": {
       "n": 0,
       "mean": null,
-      "score": -0.15,
+      "score": -0.17,
       "views": null,
       "spread": null
     },
+    "old-reel": {
+      "n": 4,
+      "mean": 2.85,
+      "score": 2.33,
+      "views": 181,
+      "spread": 1
+    },
     "old-carousel": {
       "n": 3,
-      "mean": -0.3,
-      "score": -0.23,
+      "mean": -0.34,
+      "score": -0.26,
       "views": 9,
       "spread": 0
     },
-    "old-reel": {
-      "n": 3,
-      "mean": 2.91,
-      "score": 2.18,
-      "views": 164,
-      "spread": 1.4
-    },
     "old-image": {
       "n": 3,
-      "mean": -0.12,
-      "score": -0.06,
+      "mean": -0.16,
+      "score": -0.08,
       "views": 12,
       "spread": 0
     }
   },
   "topics": {
+    "썸": {
+      "n": 5,
+      "score": 0.71,
+      "views": 83,
+      "spread": 0.8
+    },
+    "연락 텀·읽씹": {
+      "n": 1,
+      "score": 0.7,
+      "views": 230,
+      "spread": 0
+    },
+    "꼴: 받은 카톡": {
+      "n": 1,
+      "score": 0.7,
+      "views": 230,
+      "spread": 0
+    },
     "성향·궁합": {
       "n": 7,
-      "score": 0.76,
+      "score": 0.73,
       "views": 76,
       "spread": 0.6
-    },
-    "썸": {
-      "n": 4,
-      "score": 0.44,
-      "views": 46,
-      "spread": 1
     }
   },
   "best": [
@@ -93,7 +105,18 @@
       "shares": 0,
       "saved": 3,
       "spread": 4.1,
-      "score": 3.95
+      "score": 3.91
+    },
+    {
+      "id": "d6-ig-reel",
+      "format": "old-reel",
+      "hook": "\"뭐해?\" 하고 2시간 읽씹한 썸남한테 이렇게 보냈더니 (연출)",
+      "url": "https://www.instagram.com/reel/DftkkSqAAfO/",
+      "views": 230,
+      "shares": 0,
+      "saved": 0,
+      "spread": 0,
+      "score": 2.8
     },
     {
       "id": "d7-ig-reel",
@@ -104,18 +127,7 @@
       "shares": 0,
       "saved": 0,
       "spread": 0,
-      "score": 2.72
-    },
-    {
-      "id": "d4-ig-reel",
-      "format": "old-reel",
-      "hook": "카톡 습관으로 보는 내 연애 유형은? 🎰",
-      "url": "https://www.instagram.com/reel/Dfel4eum9P3/",
-      "views": 126,
-      "shares": 0,
-      "saved": 0,
-      "spread": 0,
-      "score": 2.06
+      "score": 2.68
     }
   ],
   "worst": [
@@ -128,7 +140,7 @@
       "shares": 0,
       "saved": 0,
       "spread": 0,
-      "score": -0.81
+      "score": -0.85
     },
     {
       "id": "ig-18115733822517290",
@@ -139,7 +151,7 @@
       "shares": 0,
       "saved": 0,
       "spread": 0,
-      "score": -0.22
+      "score": -0.26
     }
   ],
   "week": [
