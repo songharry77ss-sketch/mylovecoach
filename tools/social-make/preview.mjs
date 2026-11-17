@@ -31,7 +31,9 @@ for (const e of made.added) {
   if (look) lines.push(`<img src="${mediaUrl(look, ref)}" width="280">`);
   if (e.kind === 'reel') lines.push(`[영상 보기](${mediaUrl(e.media[0], ref)})`);
   else if (e.media.length > 1) lines.push(e.media.slice(1).map((m, i) => `[${i + 2}장](${mediaUrl(m, ref)})`).join(' · '));
+  if (e.story) lines.push(`스토리: [${e.story.endsWith('.mp4') ? '릴스 영상 그대로' : '그림'}](${mediaUrl(e.story, ref)}) — 피드가 올라간 뒤에 나가요`);
   lines.push('', '<details><summary>글</summary>', '', '```', e.caption, '```', '</details>', '');
 }
+if (made.failed?.length) lines.push(`> ⚠️ 만들지 못한 항목 ${made.failed.length}개 (다음 주에 다시 시도): ${made.failed.map((f) => `\`${f.id}\` — ${f.error}`).join(' · ')}`);
 if (made.left < 7) lines.push(`> ⚠️ 콘텐츠 창고에 새 항목이 ${made.left}개 남았어요. 다음 주 전에 채워 주세요 (\`marketing/content/bank.json\`).`);
 console.log(lines.join('\n'));

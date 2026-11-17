@@ -19,6 +19,14 @@ on:
         description: '연습 — 만들기만 하고 큐에 넣지 않음 (결과는 실행 기록의 Artifacts 에)'
         type: boolean
         default: false
+      id:
+        description: '하나만 만들어 보기 — 창고 항목 id (큐는 그대로, 결과는 Artifacts 에)'
+        required: false
+        default: ''
+      bank:
+        description: '하나만 만들 때 쓸 창고 파일 (비우면 social-queue 의 창고)'
+        required: false
+        default: ''
 
 permissions:
   contents: write # social-queue 가지에 그림·큐를 넣는다
@@ -50,7 +58,23 @@ jobs:
       - name: 창고 검사
         run: node tools/social-make/make.mjs --bank queue/marketing/content/bank.json --check
 
+      - name: 하나만 만들어 보기
+        if: inputs.id != ''
+        env:
+          ID: ${{ inputs.id }}
+          BANK: ${{ inputs.bank || 'queue/marketing/content/bank.json' }}
+        run: node tools/social-make/make.mjs --bank "$BANK" --id "$ID" --out one
+
+      - name: 하나 만든 결과
+        if: inputs.id != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: one
+          path: one/
+          retention-days: 7
+
       - name: 만들어 큐에 넣기
+        if: inputs.id == ''
         env:
           AHEAD: ${{ inputs.ahead || '8' }}
           AUTO_APPROVE: ${{ vars.SOCIAL_AUTO_APPROVE }}
@@ -63,7 +87,7 @@ jobs:
           node tools/social-post.mjs --queue queue/marketing/social/queue.json --check
 
       - name: 연습이면 결과만 남김
-        if: inputs.dry_run
+        if: inputs.dry_run && inputs.id == ''
         uses: actions/upload-artifact@v4
         with:
           name: made
@@ -74,7 +98,7 @@ jobs:
 
       - name: social-queue 에 넣기
         id: push
-        if: ${{ !inputs.dry_run }}
+        if: ${{ !inputs.dry_run && inputs.id == '' }}
         run: |
           cd queue
           if [ -z "$(git status --porcelain)" ]; then echo '새로 넣을 게 없음'; exit 0; fi

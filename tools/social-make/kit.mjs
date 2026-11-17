@@ -161,7 +161,8 @@ export function chat({ name = '썸', avatar = '🙂', messages = [], width = 960
     if (m.note) out.push(row({ justifyContent: mine ? 'flex-end' : 'flex-start', marginTop: px(8), paddingLeft: mine ? 0 : px(92) }, text(m.note, { fontSize: px(26), fontWeight: 800, color: m.hl ?? C.blue, backgroundColor: '#FFFFFF', padding: `${px(8)}px ${px(18)}px`, borderRadius: 999 })));
   }
   return col(
-    { width: px(width), backgroundColor: C.chatBg, borderRadius: px(44), overflow: 'hidden', ...style },
+    // 바깥 너비는 키우지 않는다 (scale 은 글자·말풍선만) — 캐러셀에서 1.06·1.1 배로 오른쪽 여백 밖까지 나가던 문제
+    { width, backgroundColor: C.chatBg, borderRadius: px(44), overflow: 'hidden', ...style },
     title
       ? row(
           { justifyContent: 'space-between', padding: `${px(26)}px ${px(32)}px`, backgroundColor: 'rgba(255,255,255,0.35)' },

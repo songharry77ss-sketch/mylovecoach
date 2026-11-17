@@ -32,7 +32,8 @@ if (missing.length) throw new Error(`큐에 없는 id: ${missing.join(', ')}`);
 const now = new Date();
 const lines = [];
 if (drop) {
-  const gone = queue.entries.filter((e) => want.has(e.id) && !done.has(e.id));
+  // 뺀 항목 뒤에 붙은 스토리(after)도 같이 뺀다
+  const gone = queue.entries.filter((e) => (want.has(e.id) || want.has(e.after)) && !done.has(e.id));
   const already = [...want].filter((id) => done.has(id));
   queue.entries = queue.entries.filter((e) => !gone.includes(e));
   queue.dropped = [...new Set([...(queue.dropped ?? []), ...gone.map((e) => e.id)])];
