@@ -61,6 +61,14 @@
       "destination": "/api/kkti-card?route=stat"
     },
     {
+      "source": "/go/:code",
+      "destination": "/api/kkti-card?route=go&c=:code"
+    },
+    {
+      "source": "/api/go-stats",
+      "destination": "/api/kkti-card?route=go-stats"
+    },
+    {
       "source": "/kkti",
       "destination": "/kkti.html"
     },

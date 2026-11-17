@@ -9,10 +9,13 @@
  * vercel.json rewrites 가 바깥 주소를 그대로 두고 route 를 붙여 넘긴다 (이미 나간 앱·링크가 쓰는 주소라 바꾸지 않는다):
  *  - /k, /k/코드, 미리보기 수집기가 연 /kkti·/kkti/result → route=share (api/_kkti-share.ts)
  *  - /api/kkti-stat (POST)                               → route=stat  (api/_kkti-stat.ts)
+ *  - /go/코드 (홍보 추적 링크)                             → route=go       (api/_go.ts)
+ *  - /api/go-stats (홍보 링크 클릭·앱 연 수)               → route=go-stats (api/_go.ts)
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 import { kktiFromCode, type KktiCardShape } from '../src/lib/kkti';
+import { goHandler, goStatsHandler } from './_go';
 import { renderCard } from './_kkti-card';
 import shareHandler from './_kkti-share';
 import statHandler from './_kkti-stat';
@@ -27,6 +30,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const route = first(req.query.route);
   if (route === 'share') return shareHandler(req, res);
   if (route === 'stat') return statHandler(req, res);
+  if (route === 'go') return goHandler(req, res);
+  if (route === 'go-stats') return goStatsHandler(req, res);
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.setHeader('cache-control', 'no-store');
     res.status(405).json({ error: 'GET만 지원합니다.' });
