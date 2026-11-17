@@ -1,6 +1,6 @@
 import type { CrushReport, MindReading, PracticeReply } from '@/lib/ai-schemas';
 import type { MindRequest, PracticeRequest, ReportRequest } from '@/lib/ai-tasks';
-import type { CoachRequest } from '@/lib/coach-schema';
+import { CoachAnalysisReadSchema, normalizeAnalysis, type CoachRequest } from '@/lib/coach-schema';
 import type { CoachAnalysis } from '@/lib/types';
 
 /**
@@ -11,7 +11,32 @@ export const isDemoMode = process.env.EXPO_PUBLIC_DEMO_MODE === '1';
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * 앱 사용 영상 녹화(tools/social-make/record-app.mjs)가 페이지에 미리 넣어 두는 값.
+ * analysis 는 운영 코치 서버(/api/coach)가 실제로 돌려준 결과다 — 데모 빌드에서만 읽고, 운영 앱은 이 함수를 부르지 않는다
+ */
+export interface DemoInjection {
+  analysis?: unknown;
+  /** 「분석 중」을 보여 줄 시간 (기본 2초) */
+  waitMs?: number;
+  /** 앱이 실제로 만든 요청 — 녹화가 결과를 받을 때 보낸 요청과 같은지 맞춰 본다 */
+  request?: CoachRequest;
+}
+
+const injection = (): DemoInjection | undefined => (globalThis as { __SENDIT_DEMO__?: DemoInjection }).__SENDIT_DEMO__;
+
+/** 넣어 둔 실제 결과를 서버 응답과 같은 검사·정리를 거쳐 돌려준다. 형식이 틀리면 샘플로 넘어가지 않고 실패한다 (녹화에 샘플이 섞이지 않게) */
+async function injectedAnalysis(inj: DemoInjection, req: CoachRequest): Promise<CoachAnalysis> {
+  inj.request = req;
+  await wait(Math.min(8000, Math.max(300, inj.waitMs ?? 2000)));
+  const parsed = CoachAnalysisReadSchema.safeParse(inj.analysis);
+  if (!parsed.success) throw new Error('넣어 둔 분석 결과의 형식이 맞지 않아요.');
+  return normalizeAnalysis(parsed.data);
+}
+
 export async function demoAnalysis(req: CoachRequest): Promise<CoachAnalysis> {
+  const inj = injection();
+  if (inj?.analysis) return injectedAnalysis(inj, req);
   await wait(2200);
   const name = req.crush.name;
   const hasImage = Boolean(req.image);

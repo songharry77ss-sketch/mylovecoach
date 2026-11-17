@@ -16,7 +16,7 @@ import path from 'node:path';
 
 import { learnModel, rankItems, reportMarkdown, topicsOf } from '../lib/learn.mjs';
 import { bankProblems } from './bank.mjs';
-import { FORMATS } from './formats/index.mjs';
+import { FORMATS, closeFormats } from './formats/index.mjs';
 import { makeFeedStory } from './formats/story.mjs';
 import { WEEK, firstFreeDay, howMany, nextDay, pickForDays } from './plan.mjs';
 
@@ -82,7 +82,7 @@ if (only) {
   const it = items.find((x) => x.id === only);
   if (!it) throw new Error(`창고에 ${only} 가 없어요`);
   const out = path.resolve(argOf('--out') ?? '.');
-  const entry = await build(it, path.join(out, it.id), out);
+  const entry = await build(it, path.join(out, it.id), out).finally(closeFormats);
   console.log(JSON.stringify(entry, null, 2));
   process.exit(0);
 }
@@ -130,22 +130,26 @@ if (has('--fill')) {
   const approve = has('--approve');
   const added = [];
   const failed = [];
-  for (const { item: it } of picks) {
-    // 하나가 실패해도(예: 코치 서버 응답 없음) 나머지는 만든다 — 실패한 날은 다음 항목이 당겨 채운다
-    let entry;
-    try {
-      entry = await build(it, path.join(root, 'marketing', 'social', it.id), root);
-    } catch (e) {
-      console.error(`  ✗ ${it.id} (${it.format}) 만들기 실패: ${e.message}`);
-      failed.push({ id: it.id, format: it.format, error: String(e.message).slice(0, 300) });
-      continue;
+  try {
+    for (const { item: it } of picks) {
+      // 하나가 실패해도(예: 코치 서버 응답 없음) 나머지는 만든다 — 실패한 날은 다음 항목이 당겨 채운다
+      let entry;
+      try {
+        entry = await build(it, path.join(root, 'marketing', 'social', it.id), root);
+      } catch (e) {
+        console.error(`  ✗ ${it.id} (${it.format}) 만들기 실패: ${e.message}`);
+        failed.push({ id: it.id, format: it.format, error: String(e.message).slice(0, 300) });
+        continue;
+      }
+      const d = dayList[added.filter((x) => x.kind !== 'story').length];
+      const ok = approve ? { approved: true, approvedBy: `자동 허락 (SOCIAL_AUTO_APPROVE) ${new Date().toISOString()}` } : {};
+      const { story, ...feed } = entry;
+      added.push({ ...feed, ...ok, at: `${d} ${time}` });
+      // 사장님 규칙: 피드마다 스토리도 — 피드가 올라간 뒤(after)에만 나간다
+      if (story) added.push({ id: `${it.id}-story`, at: `${d} ${plusMinute(time)}`, channel: 'instagram', kind: 'story', media: [story], approved: false, ...ok, after: it.id, note: `자동 생산 · ${it.format} 스토리` });
     }
-    const d = dayList[added.filter((x) => x.kind !== 'story').length];
-    const ok = approve ? { approved: true, approvedBy: `자동 허락 (SOCIAL_AUTO_APPROVE) ${new Date().toISOString()}` } : {};
-    const { story, ...feed } = entry;
-    added.push({ ...feed, ...ok, at: `${d} ${time}` });
-    // 사장님 규칙: 피드마다 스토리도 — 피드가 올라간 뒤(after)에만 나간다
-    if (story) added.push({ id: `${it.id}-story`, at: `${d} ${plusMinute(time)}`, channel: 'instagram', kind: 'story', media: [story], approved: false, ...ok, after: it.id, note: `자동 생산 · ${it.format} 스토리` });
+  } finally {
+    await closeFormats(); // 웹 빌드·서버·브라우저(app-reel)는 한 번만 띄우고 여기서 닫는다
   }
   // id·at 을 앞으로 (사람이 읽기 좋게)
   queue.entries = [...entries, ...added.map(({ id, at, ...rest }) => ({ id, at, ...rest }))];

@@ -1,13 +1,13 @@
 name: 콘텐츠 창고 받기
 
-# 매주 글감을 쓰는 Claude 루틴(금요일 밤)이 claude/bank-<날짜> 가지에 marketing/bank-inbox/*.json({items:[…]})을 올리면,
+# 매주 글감을 쓰는 Claude 루틴(금요일 밤)이 claude/… 가지(보통 claude/bank-<날짜>)에 marketing/bank-inbox/*.json({items:[…]})을 올리면,
 # 검사(make.mjs 와 같은 규칙)를 통과한 새 항목만 social-queue 가지의 콘텐츠 창고(marketing/content/bank.json)에 더하고 받은 가지를 지운다.
 # 창고에 들어간다고 바로 올라가지 않는다 — 토요일 자동 생산이 골라 미리 보기 이슈를 열고, 사람이 「허락」해야 올라간다.
 # 흐름: docs/SOCIAL_AUTOPOST.md 「스스로 배우기」
 
 on:
   push:
-    branches: ['claude/bank-**']
+    branches: ['claude/**'] # 클라우드 세션은 claude/ 가지에만 올릴 수 있다 — 이름은 세션마다 다를 수 있음
     paths: ['marketing/bank-inbox/**']
 
 permissions:
@@ -19,6 +19,8 @@ concurrency:
 
 jobs:
   inbox:
+    # 기본 가지(이 저장소는 이름이 claude/… 다)는 받지도 지우지도 않는다
+    if: github.ref_name != github.event.repository.default_branch
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

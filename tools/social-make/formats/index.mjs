@@ -1,6 +1,8 @@
 // 포맷 목록 — 포맷마다 kind(게시 종류) · check(항목 검사) · make(항목, 폴더) → { media: [파일], seconds? }
 import path from 'node:path';
 
+import { closeApp } from '../record-app.mjs';
+import { checkAppReel, makeAppReelItem } from './app-reel.mjs';
 import { makeListCarousel, makePickCarousel } from './carousels.mjs';
 import { makeChatReel, makeChatReelCover } from './chat-reel.mjs';
 import { makeKktiPair } from './kkti-pair.mjs';
@@ -41,6 +43,15 @@ export const FORMATS = {
       await makeChatReelCover(it, cover);
       return { media: [file], cover, seconds };
     },
+  },
+
+  // 실제 앱 사용 영상 — 운영 코치 서버의 진짜 결과를 데모 웹 앱에 넣어 녹화한다 (app-reel.mjs · record-app.mjs · coach-call.mjs).
+  // 만들 때 EXPO_PUBLIC_API_URL·EXPO_PUBLIC_API_TOKEN(결과가 저장돼 있지 않을 때)과 playwright-core·Chrome(Edge)이 필요하다
+  'app-reel': {
+    kind: 'reel',
+    check: (it) => checkAppReel(it, msgProblems),
+    make: makeAppReelItem,
+    close: closeApp,
   },
 
   'pick-reel': {
@@ -119,3 +130,8 @@ export const FORMATS = {
     make: makeKktiPair,
   },
 };
+
+/** 포맷이 띄워 둔 것(브라우저·서버 등)을 닫는다 — 만들기가 끝나면 부른다 */
+export async function closeFormats() {
+  await Promise.all(Object.values(FORMATS).map((f) => f.close?.()));
+}
