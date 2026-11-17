@@ -74,7 +74,7 @@ describe('AI 분석 동의 시트', () => {
     expect(shown).toContain('Google LLC의 Gemini API예요');
     expect(shown).toContain('국외 이전');
     expect(shown).toContain('대화 캡처 이미지');
-    expect(shown).toContain('마이 → AI 분석 동의');
+    expect(shown).toContain('마이 → 개인정보에서 언제든 철회');
     expect(shown).toContain('개인정보 처리방침');
     expect(shown).toContain('동의 안 함');
     await act(async () => press(tree, '동의하고 계속'));

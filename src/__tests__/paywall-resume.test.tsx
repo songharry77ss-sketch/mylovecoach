@@ -256,7 +256,7 @@ describe('연애 연습 화면 — 결제 뒤 이어 보내기', () => {
       await flush();
     });
     // 횟수가 없어 보내지 않고 결제 화면으로
-    expect(mockPush).toHaveBeenCalledWith({ pathname: '/paywall', params: { reason: 'practice' } });
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/sale', params: { reason: 'practice' } }); // 결제 루프: 무료를 다 써서 막히면 특가 팝업 (lib/billing/paywall-route)
     expect(fetchMock).not.toHaveBeenCalled();
 
     // 결제 화면에서 횟수권을 샀다 — 다시 누르지 않아도 보낸다

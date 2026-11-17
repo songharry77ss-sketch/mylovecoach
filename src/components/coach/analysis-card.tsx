@@ -77,7 +77,8 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
   const score = analysis.temperature === 'unknown' ? null : analysis.interestScore;
   const named = partnerName && partnerName !== '상대' ? partnerName : null;
   const why = replies.map((r, i) => (r.why?.trim() && !isLocked(i) ? { i, text: r.why.trim() } : null)).filter((x): x is { i: number; text: string } => Boolean(x));
-  const hasDetails = analysis.insights.length > 0 || why.length > 0;
+  // 11/12 회의 13번 「답이 너무 김」 — 기본 화면은 요약·관심도·답장·다음 단계만, 주의할 점·포인트·이유는 접어 둔다
+  const hasDetails = analysis.insights.length > 0 || why.length > 0 || analysis.warnings.length > 0;
 
   // 숫자가 다 세어지면 관심도 숫자 자리에서 반짝 (좋은 신호일 때만 — 식은 결과에 축하는 어색하다)
   const sparkle = () => {
@@ -223,7 +224,7 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
       ) : null}
 
       {/* 다음 단계 · 주의할 점 */}
-      {analysis.nextStep || analysis.warnings.length ? (
+      {analysis.nextStep ? (
         <Animated.View entering={enter()} style={[styles.next, { backgroundColor: theme.surface }]}>
           {analysis.nextStep ? (
             <View style={styles.nextRow}>
@@ -236,14 +237,6 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
               </View>
             </View>
           ) : null}
-          {analysis.warnings.map((w, i) => (
-            <View key={i} style={styles.nextRow}>
-              <Ionicons name="alert-circle-outline" size={18} color={theme.textSecondary} style={styles.nextIcon} />
-              <AppText variant="small" color="textSecondary" style={styles.flexShrink}>
-                {w}
-              </AppText>
-            </View>
-          ))}
         </Animated.View>
       ) : null}
 
@@ -260,12 +253,13 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
             hitSlop={8}
             style={styles.moreRow}>
             <AppText variant="smallStrong" color="textSecondary">
-              {open ? '설명 접기' : '왜 이렇게 답할까? · 읽어낸 포인트'}
+              {open ? '설명 접기' : analysis.warnings.length ? '왜 이렇게 답할까? · 주의할 점' : '왜 이렇게 답할까? · 읽어낸 포인트'}
             </AppText>
             <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={15} color={theme.textTertiary} />
           </Pressable>
           {open ? (
             <Animated.View entering={FadeInDown.duration(220)} style={styles.details}>
+              {analysis.warnings.length ? <Detail title="주의할 점" lines={analysis.warnings} /> : null}
               {analysis.insights.length ? <Detail title="읽어낸 포인트" lines={analysis.insights} /> : null}
               {why.length ? <Detail title="답장을 고른 이유" lines={why.map((w) => `${w.i + 1}번 · ${w.text}`)} /> : null}
             </Animated.View>

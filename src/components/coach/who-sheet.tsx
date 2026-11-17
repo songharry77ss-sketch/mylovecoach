@@ -25,13 +25,15 @@ interface WhoSheetProps {
   imageUri?: string;
   onPick: (target: WhoTarget) => void;
   onClose: () => void;
+  /** 제목 아래 안내를 바꿀 때 (예: 연애팁 백서 — 「고르면 이 고민으로 바로 물어봐요」) */
+  subtitle?: string;
 }
 
 /**
  * 「누구와의 대화예요?」 — 홈에서 캡처를 고르거나 상황을 적으려 할 때 어느 채팅방으로 보낼지 한 번에 고른다.
  * 맨 위가 가장 최근 대화라 대부분은 첫 줄을 누르면 끝. 처음 보는 사람이면 「새로운 사람」, 흔적 없이 물으려면 「비밀 상담」.
  */
-export function WhoSheet({ visible, crushes, imageUri, onPick, onClose }: WhoSheetProps) {
+export function WhoSheet({ visible, crushes, imageUri, onPick, onClose, subtitle }: WhoSheetProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   return (
@@ -46,7 +48,7 @@ export function WhoSheet({ visible, crushes, imageUri, onPick, onClose }: WhoShe
               누구와의 대화예요?
             </AppText>
             <AppText variant="small" color="textSecondary">
-              {imageUri ? '고르면 바로 분석을 시작해요' : '고르면 그 채팅방에서 바로 적을 수 있어요'}
+              {subtitle ?? (imageUri ? '고르면 바로 분석을 시작해요' : '고르면 그 채팅방에서 바로 적을 수 있어요')}
             </AppText>
           </View>
         </View>

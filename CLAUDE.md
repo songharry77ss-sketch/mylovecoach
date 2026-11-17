@@ -59,10 +59,11 @@ npx tsc --noEmit && npx eslint src --max-warnings=0 && npx jest
 ## 구조
 
 - `src/app/` — 화면 (expo-router). 처음 실행: 사용법 안내 `welcome.tsx`(표지 + 실제 앱 화면 4장 — 그림은 `assets/images/guide/step-*.png`, 자르기·강조 좌표는 `components/guide/guide-steps.ts`. 업데이트한 기존 이용자는 `guideSeen !== GUIDE_VERSION` 이면 `?from=update` 로 한 번, 마이 → 「사용법 다시 보기」는 `?from=my`) → 약관 → 「나에 대해」 `about-me.tsx`(코치가 한 가지씩 묻는 대화, 홈·마이에서 `?from=home|my` 로 다시 열면 끝나고 돌아감) → 첫 캡처 `start.tsx`(캡처 버튼 하나에 집중, 글로 적기는 접어 둠, 「둘러보기」로 홈). 채팅은 `crush/[id]/index.tsx`
-  - 탭: 홈 `(tabs)/index`(캡처·상황 적기 → 채팅방이 있으면 `components/coach/who-sheet.tsx` 「누구와의 대화예요?」) · 탐색 `(tabs)/tips`(KKTI·비밀 상담·속마음 카드 등 부가 기능) · 마이 `(tabs)/my`. 연애 연습 `(tabs)/practice` 은 기본 숨김(마이 → 추가 기능)
+  - 탭: 홈 `(tabs)/index`(캡처·상황 적기 → 채팅방이 있으면 `components/coach/who-sheet.tsx` 「누구와의 대화예요?」) · 탐색 `(tabs)/tips`(연애팁 백서 — 고민 8개 → `tips/[topic]` 해답 화면, 묶음표 `lib/tips.ts` WORRIES · 더 해 볼 것(연애 연습·KKTI·비밀 상담) · 속마음 카드) · 마이 `(tabs)/my`(프로필·이용권·바로 쓰기 + 큰 주제 4줄 → `settings/account·app·data·help`). 연애 연습 `(tabs)/practice` 은 기본 숨김 — 마이·탐색에서 누르면 켜고 연다, 안 본 사람에게는 빨간 점(`practiceDotSeen`)
   - 상대 분석 보고서 `crush/[id]/report`, 연습 대화 `practice/[id]`·`practice/custom`, 속마음 풀이 `mind`, 빠른 코칭 `quick`(플로팅 버블·`mylovecoach://quick` 이 여는 곳), KKTI 테스트 `kkti/`
 - `src/components/coach/` — 결과 카드(`analysis-card.tsx`), 답장 3가지 세로 비교(`reply-cards.tsx`), 누적 온도계(`heat-gauge.tsx`), 입력창(`composer.tsx`), 「센딧이 기억하는 이야기」 시트(`memory-sheet.tsx`)
 - 기억: 대화방마다 `Crush.memory.facts`(최근 8줄). 코칭 응답의 `memory` 로 갱신해 다음 요청의 `crush.memory` 로 보낸다(비밀 상담·「다른 답장」 제외, 사용자가 지울 수 있음). 프롬프트 블록은 `coach-schema.ts`
+- 결제 루프(2026-11-17): A/B 「처음 5분 무제한」(새 기기 50%, `xp: free5:on|off` 로 기록·어제 리포트에 비교) → 무료 소진 시 회원은 타임어택 특가 팝업 `/sale` → 결제 뒤 이어 하기 → 하루 이용권 끝나기 1시간 전 1년권 안내. `docs/PAYMENT_LOOP.md`
 - 타임 세일: 하루 이용권 특가 상품 `mylovecoach.pass.day.sale` 이 두 스토어에 실제로 있을 때만 10분(7일에 한 번, 1.1.1 까지는 30분) 열린다 — 규칙 `src/lib/billing/sale.ts`, 절차 `docs/DAY_PASS_SALE.md`. 가짜 할인·되풀이 타이머 금지(표시광고법)
 - `src/components/fx/celebration.tsx` — 하트·꽃가루 효과 (`useCelebrate()`), `src/lib/haptics.ts` — 진동 패턴 모음 (마이 탭에서 끌 수 있음)
 - `src/lib/coach-schema.ts` — 코칭 요청·응답 스키마와 프롬프트(호칭·존댓말·이모지·누적 온도). 앱과 서버가 같이 쓴다

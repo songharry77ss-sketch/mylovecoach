@@ -34,6 +34,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { rememberAuthReturn } from '@/lib/auth-return';
 import { currentQuota, isUnlimited, useQuota } from '@/lib/billing/gate';
+import { paywallTarget, RENEW_NOTICE_MS } from '@/lib/billing/paywall-route';
 import { quotaLabel } from '@/lib/billing/quota';
 import { dateLabel, isSameDay } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
@@ -150,7 +151,19 @@ export default function CrushChat() {
   // 두 번 이상 분석했으면 상대 분석 보고서를 권한다
   const showReport = !secret && analyzed >= 2 && !sending;
 
-  const openPaywall = useCallback((reason: 'quota' | 'regenerate' | 'banner' | 'upsell') => router.push({ pathname: '/paywall', params: { reason } }), [router]);
+  // 무료를 다 써서 막혔으면 타임어택 특가 팝업, 아니면 결제 화면 (lib/billing/paywall-route — 결제 루프)
+  const openPaywall = useCallback((reason: 'quota' | 'regenerate' | 'banner' | 'upsell' | 'renew') => router.push(paywallTarget(reason)), [router]);
+  // 안내 줄이 바뀌는 순간(체험이 끝날 때·하루 이용권이 끝나기 1시간 전·끝날 때)에 한 번 다시 그린다 — 매초 다시 그리지 않게
+  const [, redraw] = useState(0);
+  const markIntro = quota.kind === 'intro' ? (quota.until ?? 0) : 0;
+  const markPass = quota.kind === 'pass' ? (quota.until ?? 0) : 0;
+  useEffect(() => {
+    const now = Date.now();
+    const marks = [markIntro, markPass - RENEW_NOTICE_MS, markPass].filter((t) => t > now);
+    if (!marks.length) return;
+    const t = setTimeout(() => redraw((n) => n + 1), Math.min(...marks) - now + 50);
+    return () => clearTimeout(t);
+  }, [markIntro, markPass]);
   const fillComposer = useCallback((text: string) => setComposerFill((f) => ({ text, key: (f?.key ?? 0) + 1 })), []);
 
   /**
@@ -351,8 +364,14 @@ export default function CrushChat() {
   };
 
   // 입력창 위 안내: 무료 이용자에게만 남은 횟수를 담백하게 보여 준다
+  // 결제 루프 안내 줄: 「처음 5분 무제한」 남은 시간 → 하루 이용권이 곧 끝나면 1년권 → 무료 이용자는 남은 횟수
+  const passEndsSoon = quota.kind === 'pass' && quota.until != null && quota.until - Date.now() <= RENEW_NOTICE_MS;
   const notice =
-    quota.enforced && !isUnlimited(quota)
+    quota.enforced && quota.kind === 'intro' && quota.until
+      ? { text: '⏱ 처음 5분은 무제한이에요', countdownUntil: quota.until }
+      : quota.enforced && passEndsSoon && quota.until
+        ? { text: `⏳ 하루 무제한이 ${passEndClock(quota.until)}에 끝나요`, actionLabel: '1년권 보기', onAction: () => openPaywall('renew') }
+        : quota.enforced && !isUnlimited(quota)
       ? {
           text: `${quota.kind === 'exhausted' ? '⏳' : '🎁'} ${quotaLabel(quota)}`,
           // 아직 결과를 한 번도 받지 않은 채팅방에서는 결제 링크를 걸지 않는다 (써 보기 전에 결제 화면부터 열고 닫는 일이 많았다)
@@ -772,3 +791,8 @@ const styles = StyleSheet.create({
   viewerImage: { width: '100%', height: '85%' },
   viewerClose: { position: 'absolute', top: 56, right: 20 },
 });
+
+/** 하루 이용권이 끝나는 시각 — 「오후 3:42」 */
+function passEndClock(at: number): string {
+  return new Date(at).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
+}

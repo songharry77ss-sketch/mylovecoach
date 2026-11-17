@@ -12,7 +12,8 @@ const PATTERN = /Google ?Play|구글 ?플레이|플레이 ?스토어|Play ?스�
 /** [파일, 그 줄에 들어 있어야 하는 글자] — 아이폰에서는 보이지 않는 줄 */
 const ALLOWED: [string, string][] = [
   ['app/paywall.tsx', "Platform.OS === 'ios'"], // 아이폰이면 App Store
-  ['app/(tabs)/my.tsx', 'Google Play 구독 관리'], // 웹에서만 보이는 줄 (Platform.OS === 'web' 안)
+  ['app/sale.tsx', "Platform.OS === 'ios'"], // 특가 팝업 맨 아래 「App Store/Google Play 결제」 — 실행 중인 기기의 스토어 하나만
+  ['app/settings/account.tsx', 'Google Play 구독 관리'], // 마이 → 이용권·계정, 웹에서만 보이는 줄 (Platform.OS === 'web' 안)
   ['lib/billing/plans.ts', "os === 'android'"], // subscriptionStoreName
   ['lib/app-download.ts', "android: 'Google Play'"], // 웹 결제 화면의 앱 받기 버튼 (앱에서는 그 기기의 스토어만 고른다)
 ];

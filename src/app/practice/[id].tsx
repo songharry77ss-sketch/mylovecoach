@@ -25,6 +25,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { practiceFeedbackReportContent, practiceReportContent } from '@/lib/ai-report';
 import { beginAiRequest } from '@/lib/ai-request-lifetime';
 import { currentQuota, isUnlimited, useQuota } from '@/lib/billing/gate';
+import { paywallTarget } from '@/lib/billing/paywall-route';
 import { PRACTICE_PROMPT_TURNS } from '@/lib/ai-tasks';
 import { aiRouteOf, requestAi } from '@/lib/coach-client';
 import { userToRequest } from '@/lib/coach-schema';
@@ -121,7 +122,7 @@ export default function PracticeSessionScreen() {
     if (chargeable && currentQuota().remaining <= 0) {
       haptic.warning();
       resume.remember(() => sendRef.current?.());
-      router.push({ pathname: '/paywall', params: { reason: 'practice' } });
+      router.push(paywallTarget('practice'));
       return;
     }
     resume.forget();

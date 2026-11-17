@@ -6,6 +6,7 @@ import { Platform, Pressable, ScrollView, StyleSheet, TextInput, View, type Styl
 import Animated, { FadeIn, FadeInDown, useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { formatClock, useRemaining } from '@/components/brand/brand';
 import { AppText } from '@/components/ui/app-text';
 import { Chip } from '@/components/ui/chip';
 import { GlassSurface } from '@/components/ui/glass-surface';
@@ -32,7 +33,8 @@ interface ComposerProps {
   onSend: (text: string) => boolean | void;
   sending?: boolean;
   /** 입력창 위에 보여 줄 안내 (무료 횟수 등) */
-  notice?: { text: string; actionLabel?: string; onAction?: () => void; emphasized?: boolean } | null;
+  /** countdownUntil 이 있으면 글 뒤에 「· 04:12 남았어요」를 1초마다 줄여 붙인다 (이 줄만 다시 그림 — 「처음 5분 무제한」) */
+  notice?: { text: string; actionLabel?: string; onAction?: () => void; emphasized?: boolean; countdownUntil?: number } | null;
   /** 입력창이 비었을 때 띄울 무작위 질문들 (누르면 바로 물어본다) */
   questions?: string[];
   onQuestion?: (question: string) => void;
@@ -122,6 +124,7 @@ export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPi
             style={({ pressed }) => [styles.notice, { backgroundColor: notice.emphasized ? theme.primarySoft : theme.surface, opacity: pressed ? 0.7 : 1 }]}>
             <AppText variant="caption" color={notice.emphasized ? 'text' : 'textSecondary'} weight={notice.emphasized ? '700' : '600'} style={styles.noticeText} numberOfLines={2}>
               {notice.text}
+              {notice.countdownUntil ? <NoticeCountdown until={notice.countdownUntil} /> : null}
             </AppText>
             {notice.actionLabel ? (
               <AppText variant="caption" color="primary" weight="800">
@@ -307,6 +310,12 @@ export function SendOrb({ active, onPress, accessibilityLabel, size = ORB, style
       </Animated.View>
     </PressableScale>
   );
+}
+
+/** 안내 줄 남은 시간 — 이 글자만 1초마다 다시 그린다 */
+function NoticeCountdown({ until }: { until: number }) {
+  const left = useRemaining(until);
+  return <>{` · ${formatClock(left)} 남았어요`}</>;
 }
 
 const styles = StyleSheet.create({

@@ -96,7 +96,8 @@ it('무료 횟수가 없으면 붙여 넣은 글을 입력창에 살려 두고 �
   });
 
   // 보내지 않고(메시지 없음) 결제 화면으로, 글은 입력창에 남아 있다
-  expect(mockPush).toHaveBeenCalledWith({ pathname: '/paywall', params: { reason: 'quota' } });
+  // 결제 루프: 무료를 다 써서 막히면 특가 팝업 (lib/billing/paywall-route)
+  expect(mockPush).toHaveBeenCalledWith({ pathname: '/sale', params: { reason: 'quota' } });
   expect(useAppStore.getState().messages.c_blocked).toHaveLength(0);
   expect(screen.root.findByType(TextInput).props.value).toBe('주말에 뭐 하냐고 물어봤어');
 
@@ -143,7 +144,8 @@ it('캡처로 막히면 캡처를 입력창에 살려 둔다', async () => {
     jest.advanceTimersByTime(500);
     await flush();
   });
-  expect(mockPush).toHaveBeenCalledWith({ pathname: '/paywall', params: { reason: 'quota' } });
+  // 결제 루프: 무료를 다 써서 막히면 특가 팝업 (lib/billing/paywall-route)
+  expect(mockPush).toHaveBeenCalledWith({ pathname: '/sale', params: { reason: 'quota' } });
   expect(useAppStore.getState().messages.c_img).toHaveLength(0);
   const composer = screen.root.findAll((n) => n.props.onPickImage && n.props.onClearImage)[0];
   expect(composer.props.image).toMatchObject({ uri: 'file:///shot.png', width: 1080 });

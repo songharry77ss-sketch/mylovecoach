@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -43,6 +43,13 @@ export default function PracticeTab() {
   const practice = useAppStore((s) => s.practice);
   const crushMap = useAppStore((s) => s.crushes);
   const startPractice = useAppStore((s) => s.startPractice);
+  const seePracticeDot = useAppStore((s) => s.seePracticeDot);
+  // 연애 연습을 열었으면 「이런 기능도 있어요」 빨간 점(탐색 탭·탭 바)은 그만 띄운다 (11/12 회의 3번)
+  useFocusEffect(
+    useCallback(() => {
+      if (!useAppStore.getState().practiceDotSeen) seePracticeDot();
+    }, [seePracticeDot]),
+  );
   const personas = useMemo(() => personasFor(user?.gender ?? 'other'), [user?.gender]);
   const sessions = useMemo(() => Object.values(practice).sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 6), [practice]);
   const crushes = useMemo(() => sortCrushes(crushMap).filter((c) => !c.secret && c.name !== '상대'), [crushMap]);

@@ -9,7 +9,8 @@ import { BrandGradient, BrandPill, GradientButton, Icon3D, SenditLogo, WashBackg
 import { StartConsentSheet, type StartConsentAnswer } from '@/components/consent/start-consent-sheet';
 import { GuidePhone } from '@/components/guide/guide-phone';
 import { GUIDE_STEPS, type GuideStep } from '@/components/guide/guide-steps';
-import { APP_NAME, RESEARCH_LINE } from '@/constants/brand';
+import { useCardStyle } from '@/components/ui/list-group';
+import { APP_NAME, APP_SUBTITLE, RESEARCH_LINE } from '@/constants/brand';
 import { Brand, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
@@ -218,12 +219,18 @@ function useArea() {
   return { area, onLayout };
 }
 
-/** 첫 장 — 로고·부제·연구진 문구 (업데이트한 이용자에게는 「새로워졌어요」) */
+/**
+ * 첫 장 — 이름·부제·연구진 문구 (업데이트한 이용자에게는 「새로워졌어요」).
+ * 11/12 회의 5번 「첫 화면 글씨·카드가 너무 크다」: 제목 24pt, 카드 안은 3D 아이콘 하나 + 이름 글자만 (앱 아이콘 모양 로고는 3D 아이콘과 겹쳐 뺐다),
+ * 동그라미 장식·연구진 배지 알약 없이. 아래에 「이런 기능도 있어요」(연애 연습)를 한 줄 카드로.
+ */
 function CoverPage({ width, mode }: { width: number; mode: 'fresh' | 'update' }) {
   const theme = useTheme();
   const copy = COVER[mode];
+  // 연애 연습을 아직 못 본 이용자에게만 (탭 바 「탐색」의 빨간 점과 같은 값)
+  const practiceNew = useAppStore((s) => !s.practiceDotSeen);
   const { area, onLayout } = useArea();
-  const icon = area ? Math.round(Math.max(88, Math.min(150, area.height * 0.34))) : 120;
+  const icon = area ? Math.round(Math.max(56, Math.min(96, area.height * 0.3))) : 80;
   return (
     <View style={[styles.page, { width }]}>
       <Animated.View entering={FadeInDown.duration(420)} style={styles.texts}>
@@ -233,18 +240,51 @@ function CoverPage({ width, mode }: { width: number; mode: 'fresh' | 'update' })
         </Text>
         <Text style={[styles.body, { color: theme.textSecondary }]}>{copy.body}</Text>
       </Animated.View>
-      <Animated.View entering={FadeInUp.delay(120).duration(520)} style={styles.cardWrap}>
-        <BrandGradient style={styles.card}>
-          <View pointerEvents="none" style={[styles.orb, styles.orbA]} />
-          <View pointerEvents="none" style={[styles.orb, styles.orbB]} />
-          <View style={styles.coverInner} onLayout={onLayout}>
-            <Icon3D name="send" size={icon} float />
-            <SenditLogo size="lg" subtitle tone="white" />
-            <BrandPill label={RESEARCH_LINE} icon="school" tone="glass" style={styles.center} />
-          </View>
-        </BrandGradient>
-      </Animated.View>
+      {/* 카드는 높이를 묶어 덜 압도적으로 — 남는 공간은 카드·소개 줄을 세로 가운데로 모으는 데 쓴다 */}
+      <View style={styles.coverBody}>
+        <Animated.View entering={FadeInUp.delay(120).duration(520)} style={styles.coverCardWrap}>
+          <BrandGradient style={styles.card}>
+            <View style={styles.coverInner} onLayout={onLayout}>
+              <Icon3D name="send" size={icon} />
+              <View style={styles.wordmark} accessible accessibilityRole="header" accessibilityLabel={`${APP_NAME}, ${APP_SUBTITLE}`}>
+                <Text style={styles.wordmarkName}>{APP_NAME}</Text>
+                <Text style={styles.wordmarkSub}>{APP_SUBTITLE}</Text>
+              </View>
+              <Text style={styles.research}>{RESEARCH_LINE}</Text>
+            </View>
+          </BrandGradient>
+        </Animated.View>
+        {practiceNew ? <PracticeTeaser /> : null}
+      </View>
     </View>
+  );
+}
+
+/**
+ * 「이런 기능도 있어요」 — 마이 → 추가 기능에 숨겨 둔 연애 연습을 첫 장에서 알린다 (11/12 회의 3번).
+ * 빨간 점이 붙은 나침반은 탭 바 「탐색」 아이콘과 같은 모양 — 시작한 뒤 그 점을 따라가면 된다. 누르는 곳은 아니다.
+ */
+function PracticeTeaser() {
+  const theme = useTheme();
+  const card = useCardStyle();
+  return (
+    <Animated.View
+      entering={FadeInUp.delay(220).duration(520)}
+      accessible
+      accessibilityLabel="이런 기능도 있어요. 연애 연습, AI 상대와 카톡으로 미리 연습해요. 탐색 탭에서 해 볼 수 있어요"
+      style={[styles.teaser, card]}>
+      <View style={[styles.teaserIcon, { backgroundColor: theme.primarySoft }]}>
+        <Ionicons name="compass-outline" size={20} color={theme.primary} />
+        <View style={[styles.teaserDot, { backgroundColor: theme.danger, borderColor: theme.primarySoft }]} />
+      </View>
+      <View style={styles.teaserTexts}>
+        <Text style={[styles.teaserEyebrow, { color: theme.textTertiary }]}>이런 기능도 있어요</Text>
+        <Text style={[styles.teaserTitle, { color: theme.text }]}>
+          연애 연습 <Text style={[styles.teaserBody, { color: theme.textSecondary }]}>— AI 상대와 카톡으로 미리 연습해요</Text>
+        </Text>
+        <Text style={[styles.teaserBody, { color: theme.textSecondary }]}>탐색 탭에서 해 볼 수 있어요</Text>
+      </View>
+    </Animated.View>
   );
 }
 
@@ -255,7 +295,8 @@ function StepPage({ width, step, active }: { width: number; step: GuideStep; act
   return (
     <View style={[styles.page, { width }]}>
       <View style={styles.texts}>
-        <BrandPill label={step.pill} />
+        {/* 몇 번째 장인지 — 칩 대신 작은 글자로 (칩·배지가 장마다 반복되면 만든 티가 난다) */}
+        <Text style={[styles.eyebrow, { color: theme.primary }]}>{step.pill}</Text>
         <Text style={[styles.title, { color: theme.text }]} accessibilityRole="header">
           {step.title}
         </Text>
@@ -263,8 +304,6 @@ function StepPage({ width, step, active }: { width: number; step: GuideStep; act
       </View>
       <View style={styles.cardWrap}>
         <BrandGradient style={styles.card}>
-          <View pointerEvents="none" style={[styles.orb, styles.orbA]} />
-          <View pointerEvents="none" style={[styles.orb, styles.orbB]} />
           {/* 휴대폰은 카드 위쪽에 붙고, 화면이 길면 카드 아래로 잘려 이어진다 */}
           <View style={styles.phoneArea} onLayout={onLayout} accessibilityLabel={`${step.title} — 실제 앱 화면`} accessible>
             {area ? <GuidePhone shot={step.shot} area={{ width: area.width, height: area.height - Spacing.xl }} active={active} /> : null}
@@ -285,15 +324,26 @@ const styles = StyleSheet.create({
   pager: { flex: 1 },
   page: { flex: 1, paddingTop: Spacing.md },
   texts: { paddingHorizontal: Spacing.xl, gap: Spacing.sm },
-  title: { fontSize: 27, lineHeight: 36, fontWeight: '800', letterSpacing: -0.8, marginTop: 2 },
+  // 11/12 회의 5번: 27~30pt → 24pt (모든 장 같은 크기)
+  title: { fontSize: 24, lineHeight: 32, fontWeight: '800', letterSpacing: -0.6, marginTop: 2 },
   body: { fontSize: 15, lineHeight: 22, fontWeight: '500', letterSpacing: -0.2 },
+  eyebrow: { fontSize: 13, lineHeight: 18, fontWeight: '700', letterSpacing: -0.1 },
   cardWrap: { flex: 1, marginTop: Spacing.lg, marginHorizontal: Spacing.lg },
   card: { flex: 1, borderRadius: Radius.xl, overflow: 'hidden' },
-  orb: { position: 'absolute', borderRadius: 999, backgroundColor: Brand.glass },
-  orbA: { width: 260, height: 260, top: -110, right: -90, opacity: 0.7 },
-  orbB: { width: 180, height: 180, bottom: -70, left: -60, opacity: 0.5 },
-  coverInner: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.lg, padding: Spacing.xl },
-  center: { alignSelf: 'center' },
+  coverBody: { flex: 1, justifyContent: 'center', paddingTop: Spacing.lg },
+  coverCardWrap: { flexGrow: 1, flexShrink: 1, minHeight: 180, maxHeight: 280, marginHorizontal: Spacing.lg },
+  coverInner: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md, padding: Spacing.xl },
+  wordmark: { alignItems: 'center', gap: 2 },
+  wordmarkName: { color: Brand.onBrand, fontSize: 26, lineHeight: 32, fontWeight: '900', letterSpacing: -0.8 },
+  wordmarkSub: { color: Brand.onBrandDim, fontSize: 14, lineHeight: 19, fontWeight: '700', letterSpacing: -0.2 },
+  research: { color: Brand.onBrandDim, fontSize: 12, lineHeight: 17, fontWeight: '600', textAlign: 'center', marginTop: Spacing.xs },
+  teaser: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginTop: Spacing.md, marginHorizontal: Spacing.lg, paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, borderRadius: Radius.lg },
+  teaserIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  teaserDot: { position: 'absolute', top: 3, right: 3, width: 9, height: 9, borderRadius: 4.5, borderWidth: 1.5 },
+  teaserTexts: { flex: 1, gap: 1 },
+  teaserEyebrow: { fontSize: 12, lineHeight: 16, fontWeight: '700' },
+  teaserTitle: { fontSize: 14, lineHeight: 20, fontWeight: '800', letterSpacing: -0.2 },
+  teaserBody: { fontSize: 13, lineHeight: 18, fontWeight: '500', letterSpacing: -0.1 },
   phoneArea: { flex: 1, alignItems: 'center', paddingTop: Spacing.xl },
   bottom: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg, gap: Spacing.lg },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 6 },

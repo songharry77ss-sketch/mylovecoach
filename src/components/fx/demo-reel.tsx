@@ -25,23 +25,76 @@ import { AppText } from '@/components/ui/app-text';
 import { APP_NAME } from '@/constants/brand';
 import { Brand, BrandShadow, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import type { Gender } from '@/lib/types';
+import { useAppStore } from '@/store/app-store';
 
 /**
  * 첫 화면·빈 홈의 「영상」 — 실제 앱 흐름을 짧은 루프 애니메이션으로 보여 준다.
  * 상대 카톡 → 센딧이 읽는 중 → 호감 온도 0°→32° → 답장 버전 넘기기 → 복사 → 처음부터.
+ * 상대는 이용자의 이성이다(demoPartner — 저장소 user.gender).
  * 영상 파일 대신 코드로 그려서 가볍고, 다크 모드에서도 자연스럽다. 색은 앱 아이콘 그라데이션(하늘색 → 파랑 → 보라).
  */
 const TIMELINE = [0, 900, 2100, 3700, 5200, 6600, 8400];
 const LOOP_MS = 9400;
 const DEMO_HEAT = 32;
 
-const REPLIES = [
-  { text: '저는 아직 계획 없어요! 언니는요? 😊', rate: 81 },
-  { text: '토요일에 그 카페 같이 갈래요? ☕️', rate: 88 },
-];
+export interface DemoPartner {
+  /** 대화방 위에 보이는 이름 (호칭이 있으면 같이) */
+  title: string;
+  /** 동그라미 안 첫 글자 */
+  initial: string;
+  /** 상대가 보낸 말 */
+  message: string;
+  /** 센딧이 읽는 중에 보여 주는 말 */
+  thinking: string;
+  replies: readonly { text: string; rate: number }[];
+}
+
+/**
+ * 예시 속 상대 — 이용자의 이성으로 (11/12 회의 1번: 동성 호칭 「민지 언니」가 어색하다).
+ * 남성·아직 모름 → 「민지 누나」, 여성 → 「준호 선배」, 기타 → 호칭 없이 이름만(「지우」, 서로 존댓말).
+ */
+export function demoPartner(gender: Gender | null | undefined): DemoPartner {
+  if (gender === 'female') {
+    return {
+      title: '준호 선배',
+      initial: '준',
+      message: '주말에 뭐 해? ㅎㅎ',
+      thinking: `${APP_NAME}이 호칭 「선배」·존댓말 확인 중`,
+      replies: [
+        { text: '저는 아직 계획 없어요! 선배는요? 😊', rate: 81 },
+        { text: '선배, 토요일에 그 카페 같이 가요 ☕️', rate: 88 },
+      ],
+    };
+  }
+  if (gender === 'other') {
+    return {
+      title: '지우',
+      initial: '지',
+      message: '주말에 뭐 해요? ㅎㅎ',
+      thinking: `${APP_NAME}이 말투·존댓말 확인 중`,
+      replies: [
+        { text: '저는 아직 계획 없어요! 지우 씨는요? 😊', rate: 81 },
+        { text: '토요일에 그 카페 같이 갈래요? ☕️', rate: 88 },
+      ],
+    };
+  }
+  return {
+    title: '민지 누나',
+    initial: '민',
+    message: '주말에 뭐 해? ㅎㅎ',
+    thinking: `${APP_NAME}이 호칭 「누나」·존댓말 확인 중`,
+    replies: [
+      { text: '저는 아직 계획 없어요! 누나는요? 😊', rate: 81 },
+      { text: '누나, 토요일에 그 카페 같이 갈래요? ☕️', rate: 88 },
+    ],
+  };
+}
 
 export function DemoReel() {
   const theme = useTheme();
+  const partner = demoPartner(useAppStore((s) => s.user?.gender));
+  const replies = partner.replies;
   const [phase, setPhase] = useState(0);
   const [loop, setLoop] = useState(0);
 
@@ -63,9 +116,9 @@ export function DemoReel() {
     <View style={[styles.phone, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]} accessibilityLabel="앱 사용 예시 영상">
       <View style={[styles.topBar, { borderBottomColor: theme.border }]}>
         <View style={[styles.avatar, { backgroundColor: theme.accentSoft }]}>
-          <Text style={[styles.avatarText, { color: theme.accent }]}>민</Text>
+          <Text style={[styles.avatarText, { color: theme.accent }]}>{partner.initial}</Text>
         </View>
-        <AppText variant="smallStrong">민지 언니</AppText>
+        <AppText variant="smallStrong">{partner.title}</AppText>
         <View style={[styles.sample, { backgroundColor: theme.primarySoft }]}>
           <AppText variant="caption" color="primary" weight="800">
             예시
@@ -76,7 +129,7 @@ export function DemoReel() {
       <View key={loop} style={styles.stage}>
         {/* 상대 메시지 */}
         <Animated.View entering={FadeInUp.duration(320)} style={[styles.theirs, { backgroundColor: theme.surface }]}>
-          <AppText variant="small">주말에 뭐해요? ㅎㅎ</AppText>
+          <AppText variant="small">{partner.message}</AppText>
         </Animated.View>
 
         {/* 센딧이 읽는 중 */}
@@ -84,7 +137,7 @@ export function DemoReel() {
           <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)} style={[styles.thinking, { backgroundColor: theme.primarySoft }]}>
             <Dots color={theme.primary} />
             <AppText variant="caption" color="primary" weight="700">
-              {APP_NAME}이 호칭 「언니」·존댓말 확인 중
+              {partner.thinking}
             </AppText>
           </Animated.View>
         ) : null}
@@ -96,13 +149,13 @@ export function DemoReel() {
             {phase >= 3 ? (
               <View style={styles.replyArea}>
                 <Animated.View key={replyIndex} entering={SlideInRight.duration(320)} exiting={SlideOutLeft.duration(260)} style={[styles.reply, { backgroundColor: theme.bubbleUser }]}>
-                  <AppText variant="small">{REPLIES[replyIndex].text}</AppText>
+                  <AppText variant="small">{replies[replyIndex].text}</AppText>
                   <AppText variant="caption" color="primary" weight="800">
-                    성공 확률 {REPLIES[replyIndex].rate}%
+                    성공 확률 {replies[replyIndex].rate}%
                   </AppText>
                 </Animated.View>
                 <View style={styles.dots}>
-                  {REPLIES.map((_, i) => (
+                  {replies.map((_, i) => (
                     <View key={i} style={[styles.dot, { width: i === replyIndex ? 16 : 6, backgroundColor: i === replyIndex ? theme.primary : theme.surfaceSelected }]} />
                   ))}
                   <AppText variant="caption" color="textTertiary">

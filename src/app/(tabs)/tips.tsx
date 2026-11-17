@@ -1,97 +1,120 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { Fragment, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { Fragment, useCallback, useRef, useState } from 'react';
+import { Dimensions, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import Animated, { FadeIn, FadeInDown, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 
-import { BrandGradient, Icon3D } from '@/components/brand/brand';
+import { BrandGradient } from '@/components/brand/brand';
+import { ExploreRow, TIP_CARD_RADIUS, WorryTile, useDefaultPerspective } from '@/components/tips/tip-book';
 import { AppText } from '@/components/ui/app-text';
 import { Chip } from '@/components/ui/chip';
-import { useCardStyle, useInsetFill } from '@/components/ui/list-group';
+import { ListGroup, useCardStyle, useInsetFill } from '@/components/ui/list-group';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section-header';
-import { Brand, BrandShadow, Radius, Spacing, Typography, palette } from '@/constants/theme';
+import { useTabBarSpace } from '@/components/ui/tab-bar-space';
+import { Brand, BrandShadow, Radius, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
-import { MIND_CARDS, MIND_CATEGORIES, drawMindCard, renderSituation, themLabel, type MindCategory } from '@/lib/mind-cards';
-import { TIPS, TIP_CATEGORIES } from '@/lib/tips';
+import { drawMindCard, renderSituation, themLabel } from '@/lib/mind-cards';
+import { WORRIES, type Worry } from '@/lib/tips';
 import type { Gender } from '@/lib/types';
 import { useAppStore } from '@/store/app-store';
 
 /** 등장 순서 — 위에서부터 50ms 간격으로 살짝 올라온다 (스프링으로 부드럽게 멈춘다, 움직임 줄이기 설정이면 바로 보인다) */
 const enter = (step: number) => FadeInDown.delay(step * 50).springify().damping(18);
-/** 비밀 상담 카드 — 같은 그라데이션을 한 톤 깊게 (밤 같은 느낌) */
-const SECRET_GRADIENT = [palette.sendBlue600, palette.sendViolet600, palette.sendBlue700] as const;
 const PERSPECTIVES: { key: Gender; label: string }[] = [
   { key: 'male', label: '남자 속마음' },
   { key: 'female', label: '여자 속마음' },
   { key: 'other', label: '성별 무관' },
 ];
-/**
- * 속마음 카드 주제마다 아이콘 하나 — 카드마다 붙어 있던 이모지(예: 썸 카드의 🚧)는 뜻이 어긋나는 게 있어 쓰지 않는다.
- * 주제가 늘면 여기에 더한다 (없으면 말풍선).
- */
-const CATEGORY_ICON: Record<MindCategory, keyof typeof Ionicons.glyphMap> = {
-  연락: 'chatbubble-ellipses',
-  썸: 'sparkles',
-  데이트: 'cafe',
-  연애중: 'heart',
-  '이별·재회': 'heart-half',
-};
-/** 팁 줄 사이 가는 선이 시작하는 곳 — 안쪽 여백 + 이모지 칸 + 간격 */
-const TIP_INSET = Spacing.lg + 44 + Spacing.md;
+/** 연애 연습 빨간 점 — 그 줄이 이만큼 화면에 보였으면 「봤다」로 친다 (탐색 탭을 떠날 때 지운다) */
+const PRACTICE_DOT_VIEW_MS = 2000;
+const PRACTICE_DOT_POLL_MS = 500;
 
 /**
- * 탐색 탭 — 채팅 말고 해 볼 것들. 큰 제목 아래 그라데이션 타일 두 장(KKTI·비밀 상담)과 (켰으면) 연애 연습,
- * 그 아래는 무작위 상황 카드로 「이럴 때 그 사람은 무슨 생각일까?」를 물어보는 속마음 카드와 연애 팁.
- * 1.2 개편: 옅은 회색 바탕(canvas) 위 흰 카드 — 최근 속마음·연애 팁은 흰 카드 하나에 줄들(눌림 색만), 큰 제목이 사라지면 「탐색」 유리 머리말.
+ * 탐색 탭 (11/12 회의 개편) — 맨 위가 「연애팁 백서」: 「어떤 고민이 있어요?」 고민 카드를 누르면 그 해답 화면(app/tips/[topic]).
+ * 그 아래 「더 해 볼 것」(연애 연습 · KKTI · 비밀 상담 한 묶음), 마지막에 무작위 상황으로 그 사람 속마음을 물어보는 속마음 카드.
+ * 연애 연습을 아직 안 봤으면(practiceDotSeen false) 그 줄에 빨간 점 + 「이런 기능도 있어요」.
+ * 1.2 개편: 옅은 바탕(canvas) 위 흰 카드, 큰 제목이 사라지면 「탐색」 유리 머리말.
  */
 export default function MindTab() {
   const theme = useTheme();
   const router = useRouter();
   const cardBg = useCardStyle();
   const inset = useInsetFill();
-  const practiceEnabled = useAppStore((s) => s.practiceEnabled);
+  const tabSpace = useTabBarSpace();
   const createSecretChat = useAppStore((s) => s.createSecretChat);
-  const openFeature = (key: 'kkti' | 'secret' | 'practice') => {
-    haptic.thud();
-    track('explore_open', { feature: key });
-    if (key === 'kkti') router.push('/kkti');
-    else if (key === 'practice') router.push('/(tabs)/practice');
-    else router.push({ pathname: '/crush/[id]', params: { id: createSecretChat() } });
-  };
-  const user = useAppStore((s) => s.user);
+  const practiceDotSeen = useAppStore((s) => s.practiceDotSeen);
+  const seePracticeDot = useAppStore((s) => s.seePracticeDot);
   const kkti = useAppStore((s) => s.kkti);
   const history = useAppStore((s) => s.mindHistory);
-  const firstCrushGender = useAppStore((s) => Object.values(s.crushes).find((c) => !c.secret && c.gender !== 'other')?.gender);
-  // 내가 여자면 남자 속마음, 남자면 여자 속마음부터
-  const defaultPerspective: Gender = user?.gender === 'female' ? 'male' : user?.gender === 'male' ? 'female' : (firstCrushGender ?? 'male');
+  const defaultPerspective = useDefaultPerspective();
   const [perspective, setPerspective] = useState<Gender>(defaultPerspective);
   const [card, setCard] = useState(() => drawMindCard());
   const [seen, setSeen] = useState<string[]>([]);
   const [own, setOwn] = useState('');
-  const [category, setCategory] = useState<(typeof TIP_CATEGORIES)[number]>('전체');
-  const [open, setOpen] = useState<string | null>(null);
+  const [ownOpen, setOwnOpen] = useState(false);
   const flip = useSharedValue(0);
   const flipStyle = useAnimatedStyle(() => ({ transform: [{ perspective: 800 }, { rotateY: `${flip.value}deg` }, { scale: 1 - Math.abs(flip.value) / 900 }] }));
 
   const situation = renderSituation(card, perspective);
-  const tips = category === '전체' ? TIPS : TIPS.filter((t) => t.category === category);
-  const counts = useMemo(() => Object.fromEntries(MIND_CATEGORIES.map((c) => [c, MIND_CARDS.filter((m) => m.category === c).length])), []);
   const them = themLabel(perspective);
-  const shown = history.slice(0, 4);
+  const shown = history.slice(0, 3);
 
-  const shuffle = (only?: MindCategory) => {
+  // 연애 연습 빨간 점: 누르면 바로, 아니면 그 줄이 화면에 2초 넘게 보인 뒤 탐색 탭을 떠날 때 지운다
+  // (탭을 열자마자 지우면 못 보고 지나가고, 보는 동안 지우면 점이 눈앞에서 사라져 어색하다)
+  const practiceRow = useRef<View>(null);
+  useFocusEffect(
+    useCallback(() => {
+      if (useAppStore.getState().practiceDotSeen) return;
+      let visibleMs = 0;
+      let viewed = false;
+      const timer = setInterval(() => {
+        practiceRow.current?.measureInWindow?.((_x, y, _w, h) => {
+          const mid = y + h / 2;
+          if (h > 0 && mid > 0 && mid < Dimensions.get('window').height - tabSpace) visibleMs += PRACTICE_DOT_POLL_MS;
+          if (visibleMs >= PRACTICE_DOT_VIEW_MS) {
+            viewed = true;
+            clearInterval(timer);
+          }
+        });
+      }, PRACTICE_DOT_POLL_MS);
+      return () => {
+        clearInterval(timer);
+        if (viewed) seePracticeDot();
+      };
+    }, [tabSpace, seePracticeDot]),
+  );
+
+  const openFeature = (key: 'kkti' | 'secret' | 'practice') => {
+    haptic.thud();
+    track('explore_open', { feature: key });
+    if (key === 'kkti') router.push('/kkti');
+    else if (key === 'practice') {
+      seePracticeDot();
+      // 아직 안 켠 사람은 마이 「바로 쓰기」처럼 켜고 연다 — 숨긴 탭이 탭 바 선택 표시 없이 열리지 않게
+      if (!useAppStore.getState().practiceEnabled) {
+        useAppStore.getState().setPracticeEnabled(true);
+        track('practice_toggle', { on: true, from: 'tips' });
+      }
+      router.push('/(tabs)/practice');
+    } else router.push({ pathname: '/crush/[id]', params: { id: createSecretChat() } });
+  };
+
+  const openWorry = (worry: Worry) => {
+    track('explore_open', { feature: 'worry', worry: worry.id });
+    router.push({ pathname: '/tips/[topic]', params: { topic: worry.id } });
+  };
+
+  const shuffle = () => {
     haptic.select();
     flip.value = withSequence(withTiming(90, { duration: 140 }), withTiming(-90, { duration: 0 }), withSpring(0, { damping: 12, stiffness: 160 }));
     setTimeout(() => {
       const exclude = [...seen, card.id];
-      const pool = only ? MIND_CARDS.filter((m) => m.category === only && !exclude.includes(m.id)) : null;
-      const next = pool?.length ? pool[Math.floor(Math.random() * pool.length)] : drawMindCard(exclude);
       setSeen(exclude.slice(-30));
-      setCard(next);
+      setCard(drawMindCard(exclude));
       haptic.snap();
     }, 140);
   };
@@ -104,64 +127,52 @@ export default function MindTab() {
 
   return (
     <Screen safeTop tab keyboard title="탐색" contentStyle={styles.content}>
-      {/* 큰 제목 + 3D 하트 하나 */}
+      {/* 연애팁 백서 — 이 탭의 주인공 */}
       <Animated.View entering={enter(0)} style={styles.head}>
-        <View style={styles.flex}>
-          <AppText variant="small" color="textSecondary" weight="600">
-            탐색
-          </AppText>
-          <Text style={[styles.title, { color: theme.text }]} accessibilityRole="header">
-            {'연애가 더\n재밌어지는 것들'}
-          </Text>
-        </View>
-        <Icon3D name="heart" size={84} float style={styles.icon3d} />
+        <AppText variant="smallStrong" color="primary" weight="800">
+          연애팁 백서
+        </AppText>
+        <Text style={[styles.title, { color: theme.text }]} accessibilityRole="header">
+          어떤 고민이 있어요?
+        </Text>
+      </Animated.View>
+      <Animated.View entering={enter(1)} style={styles.grid}>
+        {WORRIES.map((w) => (
+          <View key={w.id} style={styles.gridItem}>
+            <WorryTile worry={w} onPress={() => openWorry(w)} />
+          </View>
+        ))}
       </Animated.View>
 
-      {/* KKTI · 비밀 상담 — 그라데이션 타일 두 장 */}
-      <Animated.View entering={enter(1)} style={styles.features}>
-        {/* 이미 해 봤으면 내 결과를 보여 준다 */}
-        <FeatureCard
-          onPress={() => openFeature('kkti')}
-          accessibilityLabel={kkti ? `내 KKTI ${kkti.code} ${kkti.name}, 다시 해 보기` : 'KKTI 테스트, 카톡 습관 속 나의 연애 유형'}
-          colors={Brand.gradient}
-          badge={kkti ? '내 결과' : '1분 테스트'}
-          icon={kkti?.emoji ? <Text style={styles.featureEmoji}>{kkti.emoji}</Text> : <Ionicons name="flask" size={22} color={Brand.onBrand} />}
-          title={kkti ? `KKTI · ${kkti.code}` : 'KKTI 테스트'}
-          body={kkti ? `${kkti.name}\n다시 해 보기` : '카톡 습관 속\n나의 연애 유형'}
-        />
-        <FeatureCard
-          onPress={() => openFeature('secret')}
-          accessibilityLabel="비밀 상담, 기록이 남지 않아요"
-          colors={SECRET_GRADIENT}
-          badge="기기에 안 남아요"
-          icon={<Ionicons name="glasses" size={22} color={Brand.onBrand} />}
-          title="비밀 상담"
-          body={'나가면 대화·캡처가\n바로 지워져요'}
-        />
+      {/* 더 해 볼 것 — 흰 카드 하나에 줄 셋. 연애 연습은 기본으로 숨긴 탭이라 여기서 늘 보이게 둔다 */}
+      <Animated.View entering={enter(2)}>
+        <SectionHeader title="더 해 볼 것" style={styles.sectionHeader} />
+        <ListGroup>
+          <ExploreRow
+            rowRef={practiceRow}
+            icon="game-controller"
+            title="연애 연습"
+            dot={!practiceDotSeen}
+            note={practiceDotSeen ? undefined : '이런 기능도 있어요'}
+            subtitle={practiceDotSeen ? 'AI 상대와 카톡으로 미리 연습해요' : '카톡 리허설'}
+            accessibilityLabel={practiceDotSeen ? '연애 연습, AI 상대와 카톡 리허설' : '연애 연습, 새 기능, AI 상대와 카톡 리허설'}
+            onPress={() => openFeature('practice')}
+          />
+          <ExploreRow
+            icon="flask"
+            iconNode={kkti?.emoji ? <Text style={styles.rowEmoji}>{kkti.emoji}</Text> : undefined}
+            title={kkti ? `내 KKTI · ${kkti.code}` : 'KKTI 테스트'}
+            subtitle={kkti ? `${kkti.name} · 다시 해 보기` : '카톡 습관 속 나의 연애 유형'}
+            accessibilityLabel={kkti ? `내 KKTI ${kkti.code} ${kkti.name}, 다시 해 보기` : 'KKTI 테스트, 카톡 습관 속 나의 연애 유형'}
+            onPress={() => openFeature('kkti')}
+          />
+          <ExploreRow icon="glasses" title="비밀 상담" subtitle="나가면 대화·캡처가 바로 지워져요" accessibilityLabel="비밀 상담, 기록이 남지 않아요" onPress={() => openFeature('secret')} />
+        </ListGroup>
       </Animated.View>
 
-      {practiceEnabled ? (
-        <Animated.View entering={enter(2)}>
-          <PressableScale onPress={() => openFeature('practice')} pressedScale={0.98} accessibilityLabel="연애 연습, AI 상대와 카톡 리허설" style={[styles.practice, cardBg]}>
-            <View style={[styles.practiceIcon, { backgroundColor: theme.primarySoft }]}>
-              <Ionicons name="game-controller" size={22} color={theme.primary} />
-            </View>
-            <View style={styles.flex}>
-              <AppText variant="bodyStrong" weight="700">
-                연애 연습
-              </AppText>
-              <AppText variant="caption" color="textSecondary">
-                AI 상대와 카톡으로 미리 연습해요
-              </AppText>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={theme.textTertiary} />
-          </PressableScale>
-        </Animated.View>
-      ) : null}
-
-      {/* 속마음 카드 */}
+      {/* 속마음 카드 — 무작위 상황, 뒤집히며 바뀐다 */}
       <Animated.View entering={enter(3)} style={styles.sectionGap}>
-        <SectionHeader title="속마음 카드" subtitle={`이럴 때 ${them}는 무슨 생각을 할까?`} style={styles.sectionHeader} />
+        <SectionHeader title="속마음 카드" style={styles.sectionHeader} />
         <View style={styles.perspective}>
           {PERSPECTIVES.map((p) => (
             <Chip key={p.key} label={p.label} selected={perspective === p.key} onPress={() => setPerspective(p.key)} on="canvas" />
@@ -169,19 +180,10 @@ export default function MindTab() {
         </View>
       </Animated.View>
 
-      {/* 무작위 상황 카드 — 흰 큰 카드, 주제 아이콘 하나, 뒤집히며 바뀐다 */}
       <Animated.View entering={enter(4)} style={[styles.card, cardBg, flipStyle]}>
-        <View style={styles.cardTop}>
-          <View style={[styles.catChip, { backgroundColor: theme.primarySoft }]}>
-            <Ionicons name="shuffle" size={13} color={theme.primary} />
-            <AppText variant="caption" color="primary" weight="800">
-              오늘의 속마음 질문 · {card.category}
-            </AppText>
-          </View>
-          <View style={[styles.catIcon, { backgroundColor: theme.accentSoft }]} accessibilityElementsHidden importantForAccessibility="no">
-            <Ionicons name={CATEGORY_ICON[card.category] ?? 'chatbubble-ellipses'} size={22} color={theme.accent} />
-          </View>
-        </View>
+        <AppText variant="caption" color="primary" weight="800">
+          오늘의 속마음 질문 · {card.category}
+        </AppText>
         <AppText variant="title2" weight="800" style={styles.situation} lineBreakStrategyIOS="hangul-word">
           {situation}
         </AppText>
@@ -189,7 +191,7 @@ export default function MindTab() {
           이 상황에서 {them}는 진짜 무슨 생각일까요?
         </AppText>
         <View style={styles.cardActions}>
-          <PressableScale feedback={false} onPress={() => shuffle()} accessibilityLabel="다른 상황 뽑기" style={[styles.shuffle, { backgroundColor: inset }]}>
+          <PressableScale feedback={false} onPress={shuffle} accessibilityLabel="다른 상황 뽑기" style={[styles.shuffle, { backgroundColor: inset }]}>
             <Ionicons name="refresh" size={16} color={theme.text} />
             <AppText variant="smallStrong">다른 상황</AppText>
           </PressableScale>
@@ -202,49 +204,59 @@ export default function MindTab() {
         </View>
       </Animated.View>
 
-      {/* 주제를 골라 뽑기 */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cats} style={styles.catsWrap}>
-        {MIND_CATEGORIES.map((c) => (
-          <Chip key={c} label={`${c} ${counts[c]}`} onPress={() => shuffle(c)} size="sm" on="canvas" />
-        ))}
-      </ScrollView>
-
-      {/* 직접 물어보기 */}
+      {/* 직접 물어보기 — 평소엔 한 줄로 접어 두고, 누르면 펼친다 */}
       <View style={[styles.own, cardBg]}>
-        <AppText variant="bodyStrong" weight="800">
-          내 상황 직접 물어보기
-        </AppText>
-        <TextInput
-          value={own}
-          onChangeText={setOwn}
-          accessibilityLabel="내 상황 적기"
-          placeholder={`예: ${them}가 내 스토리는 다 보는데 카톡은 안 해요`}
-          placeholderTextColor={theme.textTertiary}
-          multiline
-          maxLength={400}
-          style={[styles.ownInput, Typography.body, { color: theme.text, backgroundColor: inset }]}
-        />
-        <PressableScale
-          feedback={false}
-          onPress={() => ask(own)}
-          disabled={!own.trim()}
-          accessibilityState={{ disabled: !own.trim() }}
-          style={[styles.ownBtn, { backgroundColor: own.trim() ? theme.primary : theme.surfaceSelected }]}>
-          <AppText variant="smallStrong" color={own.trim() ? theme.primaryText : theme.textTertiary}>
-            {them} 속마음 물어보기
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: ownOpen }}
+          onPress={() => {
+            haptic.select();
+            setOwnOpen((v) => !v);
+          }}
+          style={styles.ownHead}>
+          <AppText variant="bodyStrong" weight="700" style={styles.flex}>
+            내 상황 직접 물어보기
           </AppText>
-        </PressableScale>
+          <Ionicons name={ownOpen ? 'chevron-up' : 'chevron-down'} size={18} color={theme.textTertiary} />
+        </Pressable>
+        {ownOpen ? (
+          <Animated.View entering={FadeIn.duration(180)} style={styles.ownBody}>
+            <TextInput
+              value={own}
+              onChangeText={setOwn}
+              accessibilityLabel="내 상황 적기"
+              placeholder={`예: ${them}가 내 스토리는 다 보는데 카톡은 안 해요`}
+              placeholderTextColor={theme.textTertiary}
+              multiline
+              maxLength={400}
+              autoFocus
+              style={[styles.ownInput, Typography.body, { color: theme.text, backgroundColor: inset }]}
+            />
+            <PressableScale
+              feedback={false}
+              onPress={() => ask(own)}
+              disabled={!own.trim()}
+              accessibilityState={{ disabled: !own.trim() }}
+              style={[styles.ownBtn, { backgroundColor: own.trim() ? theme.primary : theme.surfaceSelected }]}>
+              <AppText variant="smallStrong" color={own.trim() ? theme.primaryText : theme.textTertiary}>
+                {them} 속마음 물어보기
+              </AppText>
+            </PressableScale>
+          </Animated.View>
+        ) : null}
       </View>
 
       {shown.length ? (
-        <>
-          <SectionHeader title="최근에 본 속마음" style={styles.sectionHeader} />
+        <View style={styles.historyWrap}>
+          <AppText variant="smallStrong" color="textSecondary" accessibilityRole="header" style={styles.historyTitle}>
+            최근에 본 속마음
+          </AppText>
           {/* 흰 카드 하나에 줄들 — 그림자는 바깥 칸, 눌림 색을 자르는 건 안쪽 칸 */}
           <View style={[styles.group, cardBg]}>
             <View style={styles.groupClip}>
               {shown.map((h, i) => (
                 <Fragment key={h.at}>
-                  {i > 0 ? <View style={[styles.separator, styles.historySeparator, { backgroundColor: theme.separator }]} /> : null}
+                  {i > 0 ? <View style={[styles.separator, { backgroundColor: theme.separator }]} /> : null}
                   <Pressable
                     accessibilityRole="button"
                     onPress={() => {
@@ -266,148 +278,39 @@ export default function MindTab() {
               ))}
             </View>
           </View>
-        </>
-      ) : null}
-
-      <SectionHeader title="연애 팁" subtitle="코치가 자주 하는 조언을 모았어요" style={styles.sectionHeader} />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cats} style={styles.catsWrap}>
-        {TIP_CATEGORIES.map((c) => (
-          <Chip key={c} label={c} selected={category === c} onPress={() => setCategory(c)} on="canvas" />
-        ))}
-      </ScrollView>
-      {/* 팁도 흰 카드 하나에 펼치는 줄들 */}
-      <View style={[styles.group, cardBg]}>
-        <View style={styles.groupClip}>
-          {tips.map((tip, i) => {
-            const expanded = open === tip.id;
-            return (
-              <Animated.View key={tip.id} entering={FadeInDown.delay(30 * Math.min(i, 10)).duration(220)}>
-                {i > 0 ? <View style={[styles.separator, { backgroundColor: theme.separator }]} /> : null}
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityState={{ expanded }}
-                  onPress={() => {
-                    haptic.select();
-                    setOpen(expanded ? null : tip.id);
-                  }}
-                  style={({ pressed }) => [styles.tip, { backgroundColor: pressed ? inset : 'transparent' }]}>
-                  <View style={styles.tipHead}>
-                    <View style={[styles.tipEmojiWrap, { backgroundColor: inset }]}>
-                      <AppText style={styles.tipEmoji}>{tip.emoji}</AppText>
-                    </View>
-                    <View style={styles.flex}>
-                      <AppText variant="caption" color="primary" weight="700">
-                        {tip.category}
-                      </AppText>
-                      <AppText variant="bodyStrong">{tip.title}</AppText>
-                    </View>
-                    <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={theme.textTertiary} />
-                  </View>
-                  {expanded ? (
-                    <AppText variant="small" color="textSecondary" style={styles.tipBody}>
-                      {tip.body}
-                    </AppText>
-                  ) : null}
-                </Pressable>
-              </Animated.View>
-            );
-          })}
         </View>
-      </View>
+      ) : null}
     </Screen>
   );
 }
 
-/** 그라데이션 기능 타일 — 흰 글자, 위에 작은 유리 칩, 누르면 말랑하게 튄다 */
-function FeatureCard({
-  onPress,
-  accessibilityLabel,
-  colors,
-  badge,
-  icon,
-  title,
-  body,
-}: {
-  onPress: () => void;
-  accessibilityLabel: string;
-  colors: readonly [string, string, ...string[]];
-  badge: string;
-  icon: React.ReactNode;
-  title: string;
-  body: string;
-}) {
-  return (
-    <PressableScale feedback={false} onPress={onPress} accessibilityLabel={accessibilityLabel} style={[styles.feature, BrandShadow]}>
-      <BrandGradient colors={colors} style={styles.featureFill}>
-        <View pointerEvents="none" style={styles.featureOrb} />
-        <View style={styles.featureTop}>
-          <View style={styles.featureIcon}>{icon}</View>
-          <View style={styles.featureBadge}>
-            <Text style={styles.featureBadgeText}>{badge}</Text>
-          </View>
-        </View>
-        <View style={styles.featureTexts}>
-          <Text style={styles.featureTitle} numberOfLines={1}>
-            {title}
-          </Text>
-          <Text style={styles.featureBody} numberOfLines={2}>
-            {body}
-          </Text>
-        </View>
-      </BrandGradient>
-    </PressableScale>
-  );
-}
-
-/** 카드 모서리 — 지침 1.2: 카드·타일 22, 큰 카드 28 */
-const CARD_RADIUS = Radius.lg + 2;
-
 const styles = StyleSheet.create({
   content: { gap: Spacing.md },
   flex: { flex: 1 },
-  head: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.sm, marginBottom: Spacing.xs },
-  title: { ...Typography.hero, fontSize: 30, lineHeight: 39, marginTop: 4 },
-  icon3d: { marginRight: -4 },
-  features: { flexDirection: 'row', gap: Spacing.md },
-  feature: { flex: 1, borderRadius: CARD_RADIUS },
-  featureFill: { borderRadius: CARD_RADIUS, padding: Spacing.lg, minHeight: 164, overflow: 'hidden', justifyContent: 'space-between' },
-  featureOrb: { position: 'absolute', width: 150, height: 150, borderRadius: 75, top: -60, right: -50, backgroundColor: Brand.glass },
-  featureTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: Spacing.xs },
-  featureIcon: { width: 42, height: 42, borderRadius: 21, backgroundColor: Brand.glass, borderWidth: 1, borderColor: Brand.glassBorder, alignItems: 'center', justifyContent: 'center' },
-  featureEmoji: { fontSize: 22, lineHeight: 28 },
-  featureBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: Radius.pill, backgroundColor: Brand.glass },
-  featureBadgeText: { color: Brand.onBrand, fontSize: 12, lineHeight: 16, fontWeight: '800' },
-  featureTexts: { gap: 3, marginTop: Spacing.lg },
-  featureTitle: { color: Brand.onBrand, fontSize: 18, lineHeight: 24, fontWeight: '900', letterSpacing: -0.4 },
-  featureBody: { color: Brand.onBrand, opacity: 0.92, fontSize: 13, lineHeight: 18, fontWeight: '700' },
-  practice: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: CARD_RADIUS, padding: Spacing.lg },
-  practiceIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  head: { gap: 2, marginTop: Spacing.sm, marginBottom: Spacing.xs, paddingHorizontal: 2 },
+  title: { ...Typography.hero, fontSize: 28, lineHeight: 36 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -Spacing.xs - 1 },
+  gridItem: { width: '50%', padding: Spacing.xs + 1 },
+  rowEmoji: { fontSize: 20, lineHeight: 26 },
   sectionGap: { gap: Spacing.md },
-  sectionHeader: { marginTop: Spacing.lg, marginBottom: 0, paddingHorizontal: 2 },
+  sectionHeader: { marginTop: Spacing.lg, marginBottom: Spacing.sm, paddingHorizontal: 2 },
   perspective: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs + 2 },
-  card: { borderRadius: Radius.xl, padding: Spacing.xl - 2, gap: Spacing.md, minHeight: 230 },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.sm },
-  catChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: Spacing.sm + 2, paddingVertical: 5, borderRadius: Radius.pill, flexShrink: 1 },
-  catIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  card: { borderRadius: Radius.xl, padding: Spacing.xl - 2, gap: Spacing.md, minHeight: 220 },
   situation: { letterSpacing: -0.4 },
   cardActions: { flexDirection: 'row', gap: Spacing.sm, marginTop: 'auto' },
   shuffle: { flex: 1, height: 50, borderRadius: Radius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   reveal: { flex: 1.3, height: 50, borderRadius: Radius.md },
   revealFill: { flex: 1, borderRadius: Radius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, overflow: 'hidden' },
   revealText: { color: Brand.onBrand, fontSize: 15, lineHeight: 20, fontWeight: '800' },
-  catsWrap: { marginHorizontal: -Spacing.lg, flexGrow: 0 },
-  cats: { gap: Spacing.sm, paddingHorizontal: Spacing.lg },
-  own: { borderRadius: CARD_RADIUS, padding: Spacing.lg + 2, gap: Spacing.md, marginTop: Spacing.sm },
+  own: { borderRadius: TIP_CARD_RADIUS },
+  ownHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.lg + 2, minHeight: 56 },
+  ownBody: { gap: Spacing.md, paddingHorizontal: Spacing.lg + 2, paddingBottom: Spacing.lg + 2 },
   ownInput: { borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2, minHeight: 80, textAlignVertical: 'top' },
   ownBtn: { height: 50, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
-  group: { borderRadius: CARD_RADIUS },
-  groupClip: { borderRadius: CARD_RADIUS, overflow: 'hidden' },
-  separator: { height: StyleSheet.hairlineWidth, marginLeft: TIP_INSET, marginRight: Spacing.lg },
-  historySeparator: { marginLeft: Spacing.lg },
+  historyWrap: { gap: Spacing.sm, marginTop: Spacing.sm },
+  historyTitle: { paddingHorizontal: Spacing.xs },
+  group: { borderRadius: TIP_CARD_RADIUS },
+  groupClip: { borderRadius: TIP_CARD_RADIUS, overflow: 'hidden' },
+  separator: { height: StyleSheet.hairlineWidth, marginLeft: Spacing.lg, marginRight: Spacing.lg },
   historyRow: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md + 2, gap: 2 },
-  tip: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md + 2, gap: Spacing.md },
-  tipHead: { flexDirection: 'row', gap: Spacing.md, alignItems: 'center' },
-  tipEmojiWrap: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  tipEmoji: { fontSize: 24, lineHeight: 30 },
-  tipBody: { paddingLeft: 44 + Spacing.md },
 });

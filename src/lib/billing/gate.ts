@@ -3,7 +3,7 @@ import { quotaStatus, type QuotaStatus } from '@/lib/billing/quota';
 import { APP_CONFIG } from '@/lib/config';
 import { isDemoMode } from '@/lib/demo';
 import { authAvailable } from '@/lib/supabase';
-import { useAppStore } from '@/store/app-store';
+import { introUntil, useAppStore } from '@/store/app-store';
 
 /**
  * 무료 횟수 제한은 우리 서버(코치 API)를 쓸 때만 적용합니다.
@@ -17,8 +17,8 @@ const UNLIMITED: QuotaStatus = { kind: 'premium', remaining: Infinity };
 
 export function currentQuota(now = Date.now()): QuotaStatus {
   if (!quotaEnforced) return UNLIMITED;
-  const { premium, usage, wallet, team, member } = useAppStore.getState();
-  return quotaStatus(premium, usage, now, wallet, team, freeRules(authAvailable, member != null));
+  const s = useAppStore.getState();
+  return quotaStatus(s.premium, s.usage, now, s.wallet, s.team, freeRules(authAvailable, s.member != null), introUntil(s));
 }
 
 /** 화면용: 저장소 변화에 맞춰 다시 계산되는 남은 횟수 */
@@ -28,9 +28,10 @@ export function useQuota(): QuotaStatus & { enforced: boolean } {
   const wallet = useAppStore((s) => s.wallet);
   const team = useAppStore((s) => s.team);
   const isMember = useAppStore((s) => s.member != null);
+  const intro = useAppStore(introUntil);
   if (!quotaEnforced) return { ...UNLIMITED, enforced: false };
-  return { ...quotaStatus(premium, usage, Date.now(), wallet, team, freeRules(authAvailable, isMember)), enforced: true };
+  return { ...quotaStatus(premium, usage, Date.now(), wallet, team, freeRules(authAvailable, isMember), intro), enforced: true };
 }
 
-/** 무제한(프리미엄·팀원·하루 이용권·제한 없음)인지 */
-export const isUnlimited = (q: QuotaStatus) => q.kind === 'premium' || q.kind === 'team' || q.kind === 'pass';
+/** 무제한(프리미엄·팀원·하루 이용권·「처음 5분」 체험·제한 없음)인지 */
+export const isUnlimited = (q: QuotaStatus) => q.kind === 'premium' || q.kind === 'team' || q.kind === 'pass' || q.kind === 'intro';

@@ -56,6 +56,8 @@ const analyticsIdentity = (s: StoreState, ready: boolean) => ({
   contentConsent: s.contentConsent === true,
   deletionPending: isFullDeletion(s.pendingDeletion),
   contentDeletionPending: s.pendingDeletion != null,
+  // A/B 「처음 5분 무제한」 — 실험 전부터 쓰던 기기(na)는 붙이지 않는다
+  experiment: s.introArm === 'na' ? null : `free5:${s.introArm}`,
 });
 
 // 데모 웹 빌드가 임의의 경로(예: 호스팅 페이지 하위 경로)에서 열려도 라우터가 '/'에서 시작하도록 합니다.
@@ -266,13 +268,21 @@ export default function RootLayout() {
               <Stack.Screen name="practice/[id]" options={{ title: '' }} />
               <Stack.Screen name="practice/custom" options={{ title: '연습 상대 만들기', presentation: 'modal', ...ANDROID_MODAL }} />
               <Stack.Screen name="mind" options={{ title: '속마음 풀이' }} />
+              <Stack.Screen name="tips/[topic]" options={{ title: '' }} />
               <Stack.Screen name="quick" options={{ title: '빠른 코칭', presentation: 'modal', ...ANDROID_MODAL }} />
               <Stack.Screen name="kkti/index" options={{ headerShown: false }} />
               <Stack.Screen name="kkti/result" options={{ headerShown: false }} />
               <Stack.Screen name="settings/profile" options={{ title: '내 프로필' }} />
               <Stack.Screen name="settings/api-key" options={{ title: 'AI 코치 연결' }} />
               <Stack.Screen name="settings/privacy" options={{ title: '개인정보 설정' }} />
+              {/* 마이 → 큰 주제 4개 (11/12 회의 4번). 큰 제목·뒤로 가기·유리 머리말은 화면이 직접 그린다 (components/ui/sub-screen) */}
+              <Stack.Screen name="settings/account" options={{ title: '이용권·계정', headerShown: false }} />
+              <Stack.Screen name="settings/app" options={{ title: '앱 설정', headerShown: false }} />
+              <Stack.Screen name="settings/data" options={{ title: '개인정보', headerShown: false }} />
+              <Stack.Screen name="settings/help" options={{ title: '도움말·정보', headerShown: false }} />
               <Stack.Screen name="paywall" options={{ headerShown: false, presentation: 'modal', ...ANDROID_MODAL }} />
+              {/* 무료를 다 써서 막힌 순간 아래에서 올라오는 타임어택 특가 시트 (lib/billing/paywall-route) */}
+              <Stack.Screen name="sale" options={{ headerShown: false, presentation: 'transparentModal', animation: 'fade', contentStyle: { backgroundColor: 'transparent' } }} />
               <Stack.Screen name="signup" options={{ headerShown: false, presentation: 'modal', ...ANDROID_MODAL }} />
               <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
               <Stack.Screen name="+not-found" options={{ title: '페이지를 찾을 수 없어요' }} />

@@ -4,11 +4,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { track } from '@/lib/analytics';
 import { beginAiRequest } from '@/lib/ai-request-lifetime';
 import { currentQuota } from '@/lib/billing/gate';
+import { paywallTarget, type PaywallReason } from '@/lib/billing/paywall-route';
 import { aiRouteOf, CoachError, requireAiConsent, type AiFeature } from '@/lib/coach-client';
 import { useAppStore } from '@/store/app-store';
 import { loadApiKey } from '@/store/storage';
 
-export type PaywallReason = 'quota' | 'regenerate' | 'my' | 'banner' | 'upsell' | 'report' | 'practice' | 'mind';
+export type { PaywallReason };
 
 /**
  * 보고서·속마음·연습처럼 AI 를 한 번 부르는 기능의 공통 흐름.
@@ -27,7 +28,8 @@ export function useAiAction() {
   const abortRef = useRef<AbortController | null>(null);
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  const openPaywall = useCallback((reason: PaywallReason) => router.push({ pathname: '/paywall', params: { reason } }), [router]);
+  // 무료를 다 써서 막혔으면 특가 팝업, 아니면 결제 화면 (lib/billing/paywall-route)
+  const openPaywall = useCallback((reason: PaywallReason) => router.push(paywallTarget(reason)), [router]);
 
   /** 남은 횟수 확인. 없으면 결제 화면을 띄우고 false */
   const ensureQuota = useCallback(

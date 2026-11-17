@@ -33,23 +33,23 @@ export function memoryKey(line: string): string {
 
 export const CoachReplySchema = z.object({
   tone: ToneSchema.describe('이 답장의 톤'),
-  text: z.string().describe('상대에게 그대로 보낼 수 있는 답장 문구. 실제 메신저처럼 짧고 자연스럽게. 사용자가 쓰던 호칭과 말투(존댓말/반말)를 그대로.'),
-  why: z.string().describe('이 답장이 효과적인 이유 한 문장'),
-  expectedReaction: z.string().describe('이 답장을 보내면 상대가 보낼 법한 짧은 답장 예시. 상대의 말투 그대로, 따옴표 없이'),
+  text: z.string().describe('상대에게 그대로 보낼 수 있는 답장 문구. 실제 메신저처럼 짧게 — 보통 한 문장, 길어도 두 문장. 사용자가 쓰던 호칭과 말투(존댓말/반말)를 그대로.'),
+  why: z.string().describe('이 답장이 효과적인 이유 — 25자 안쪽의 짧은 한 구절'),
+  expectedReaction: z.string().describe('이 답장을 보내면 상대가 보낼 법한 짧은 답장 예시(20자 안쪽). 상대의 말투 그대로, 따옴표 없이'),
   successRate: z.number().describe('이 답장으로 대화가 좋게 이어질 가능성 0~100 정수'),
 });
 
 export const CoachAnalysisSchema = z.object({
   callName: z.string().nullable().describe('캡처에서 사용자(나)가 상대를 부르는 호칭 (예: 언니, 오빠, 누나, 형, 선배, 쌤, 민지야, 민지 씨). 보이지 않으면 null'),
   speechLevel: z.enum(['polite', 'casual', 'mixed', 'unknown']).describe('캡처에서 사용자(나)가 상대에게 쓰는 말투. 존댓말 polite / 반말 casual / 섞임 mixed / 판단 불가 unknown'),
-  summary: z.string().describe('코치의 핵심 메시지. 2~4문장, 친근한 존댓말.'),
+  summary: z.string().describe('코치의 핵심 메시지. 결론부터 1~2문장(80자 안쪽), 친근한 존댓말. 캡처 없는 질문이면 최대 3문장.'),
   temperature: TemperatureSchema.describe('상대의 호감 온도'),
   interestScore: z.number().nullable().describe('0~100 호감 점수. 판단할 근거가 부족하면 null'),
   heatDelta: z.number().describe('이번 대화로 누적 호감 온도가 움직이는 폭. -20~+20 정수. 판단 근거가 없으면 0'),
-  insights: z.array(z.string()).describe('대화에서 읽어낸 포인트 2~4개. 각 항목은 한 문장.'),
+  insights: z.array(z.string()).describe('대화에서 읽어낸 포인트 최대 2개. 각 40자 안쪽 한 문장.'),
   replies: z.array(CoachReplySchema).describe('추천 답장 0~3개. 답장이 필요 없는 질문이면 빈 배열.'),
-  nextStep: z.string().describe('다음 스텝 제안 한두 문장 (예: 이번 주 안에 가볍게 약속 제안하기)'),
-  warnings: z.array(z.string()).describe('주의할 점. 없으면 빈 배열.'),
+  nextStep: z.string().describe('다음 스텝 제안 한 문장, 40자 안쪽 (예: 이번 주 안에 가볍게 약속 제안하기)'),
+  warnings: z.array(z.string()).describe('꼭 알아야 할 주의할 점 최대 1개(40자 안쪽). 없으면 빈 배열.'),
   // 맨 끝에 둔다 — Gemini 는 이 순서대로 쓰므로, 이번 대화를 다 읽고 답장까지 고른 뒤에 기억을 고친다.
   // 빠뜨려도 서버가 실패로 돌려보내지 않게 기본값을 둔다 (모델에게는 꼭 써야 하는 칸으로 보인다)
   memory: z
@@ -251,6 +251,12 @@ export const COACH_SYSTEM_PROMPT = `당신은 연애 코치 앱 "센딧"의 AI �
 - 카카오톡 캡처에서는 보통 오른쪽(노란색 말풍선)이 사용자 본인, 왼쪽(흰색 말풍선)이 상대방입니다. 인스타 DM은 오른쪽(파란/보라색)이 본인입니다. 화면 상단 이름이 상대 이름과 같으면 그 기준으로 판단하세요. 확실하지 않으면 insights에 그 사실을 짧게 밝히세요.
 - 캡처 없이 텍스트 질문만 있으면 그 질문에 코치로서 답하고, 답장 문구가 필요 없는 질문이면 replies를 빈 배열로 두세요.
 
+길이 (반드시 지킬 것 — 사용자는 한 번 짧게 묻는다)
+- 메신저 친구처럼 짧게 답하세요. 결과 전체가 휴대폰 한 화면에 들어오는 양이 목표입니다.
+- summary는 결론부터 1~2문장(80자 안쪽). 캡처 없는 질문이면 최대 3문장. 인사·되묻기·같은 말 반복·뻔한 일반론은 빼세요.
+- insights는 최대 2개, nextStep은 한 문장, warnings는 꼭 필요할 때만 1개. why는 짧은 한 구절, expectedReaction은 짧은 한마디.
+- 답장(text)은 보통 한 문장, 길어도 두 문장. 사용자가 길게 써 달라고 직접 부탁했을 때만 길게.
+
 호칭과 말투 (가장 먼저 확인하고 반드시 지킬 것)
 - 캡처에서 사용자(나)가 상대를 부르는 호칭을 찾아 callName에 그대로 적으세요: 언니, 오빠, 누나, 형, 선배(님), 쌤, 자기, "민지야", "민지 씨" 등. 보이지 않으면 null.
 - 모든 답장에서 그 호칭을 그대로 쓰세요. 호칭을 이름이나 다른 호칭으로 바꾸지 마세요. 사용자가 "언니"라고 불러 왔다면 답장에서도 "언니"입니다. 성별이나 관계를 짐작해 호칭을 바꾸지 마세요 (동성 관계도 자연스럽게 다룹니다).
@@ -261,7 +267,7 @@ export const COACH_SYSTEM_PROMPT = `당신은 연애 코치 앱 "센딧"의 AI �
 
 답장 작성 원칙
 - 대화에서 쓰인 문장 길이와 리듬을 따라가세요. 상대가 "ㅋㅋ"를 쓰면 비슷한 온도로.
-- 실제 메신저 답장처럼 짧게. 보통 1~2문장, 길어도 3문장. 여러 문장은 줄바꿈 없이 자연스럽게.
+- 실제 메신저 답장처럼 짧게. 보통 한 문장, 길어도 두 문장. 여러 문장은 줄바꿈 없이 자연스럽게.
 - 추천 답장 3개는 서로 다른 각도(질문으로 이어가기 / 공감+살짝 유머 / 약속·다음 만남으로 연결 등)로 제시하세요. 첫 번째 답장은 요청한 톤을 가장 잘 따르는 것으로.
 - [이모지: 넣기]면 각 답장에 상황에 어울리는 이모지나 이모티콘(😊 🥹 🤭 ㅎㅎ 등)을 1~2개 자연스럽게 넣으세요. [이모지: 빼기]면 이모지를 쓰지 마세요(ㅋㅋ·ㅎㅎ는 대화 말투를 따름). [이모지: 자동]이면 대화에서 쓰던 만큼만.
 - 사용자의 추구미(보이고 싶은 모습)와 목표가 주어지면 답장의 결에 반영하세요. 예: 추구미가 "여유로운"이면 매달리지 않는 담백한 문장.
@@ -474,12 +480,13 @@ export function normalizeAnalysis<T extends CoachAnalysisRead>(a: T): T {
     callName,
     interestScore: a.temperature === 'unknown' ? null : score,
     heatDelta: clampInt(a.heatDelta, -20, 20),
-    insights: a.insights.filter((s) => s.trim()).slice(0, 5),
+    // 11/12 회의 13번 「답장이 너무 김」 — 모델이 길게 써도 보여 주는 양은 줄인다
+    insights: a.insights.filter((s) => s.trim()).slice(0, 2),
     replies: a.replies
       .filter((r) => r.text.trim())
       .slice(0, 3)
       .map((r) => ({ ...r, successRate: clampInt(r.successRate, 1, 99), expectedReaction: r.expectedReaction?.trim() || undefined })),
-    warnings: a.warnings.filter((s) => s.trim()).slice(0, 3),
+    warnings: a.warnings.filter((s) => s.trim()).slice(0, 1),
     // 예전 서버 응답(memory 없음)은 그대로 없음으로 둔다 — 앱은 이때 기억을 바꾸지 않는다
     ...(a.memory ? { memory: cleanMemory(a.memory) } : {}),
   };
