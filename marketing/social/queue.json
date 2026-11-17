@@ -432,6 +432,259 @@
       "approved": true,
       "after": "r-arrived-home-years",
       "note": "릴스 영상 그대로 스토리 (스티커는 API 불가)"
+    },
+    {
+      "id": "r-three-hours",
+      "at": "2026-11-18 12:30",
+      "channel": "instagram",
+      "kind": "reel",
+      "media": [
+        "marketing/social/r-three-hours/reel.mp4"
+      ],
+      "cover": "marketing/social/r-three-hours/cover.jpg",
+      "caption": "썸남이 3시간 동안 읽씹하다가 이렇게 답했다면? 🤔\n\n읽씹 시간보다 중요한 건 '어떻게' 답했는지야. 이유를 말해 주고 다음 약속을 받아 주면 신경 쓰고 있다는 뜻.\n\n너라면 여기서 뭐라고 보낼래?\n\n#읽씹 #썸 #카톡답장 #썸남 #연애고민",
+      "audio": {
+        "trending": true,
+        "videoVolume": 25,
+        "minSeconds": 15
+      },
+      "approved": true,
+      "note": "자동 생산 · chat-reel",
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-17T11:04:37.853Z"
+    },
+    {
+      "id": "r-three-hours-story",
+      "at": "2026-11-18 12:31",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/r-three-hours/reel.mp4"
+      ],
+      "approved": true,
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-17T11:04:37.853Z",
+      "after": "r-three-hours",
+      "note": "자동 생산 · chat-reel 스토리"
+    },
+    {
+      "id": "p-just-thought",
+      "at": "2026-11-19 12:30",
+      "channel": "instagram",
+      "kind": "carousel",
+      "media": [
+        "marketing/social/p-just-thought/01.jpg",
+        "marketing/social/p-just-thought/02.jpg",
+        "marketing/social/p-just-thought/03.jpg",
+        "marketing/social/p-just-thought/04.jpg",
+        "marketing/social/p-just-thought/05.jpg",
+        "marketing/social/p-just-thought/06.jpg"
+      ],
+      "caption": "\"그냥 생각나서 연락했어\"에 뭐라고 답할래? 💭\n\n용건 없는 연락은 그 자체가 신호야. 세 가지 답장을 보냈을 때 반응까지 비교해 봤어.\n\n너는 이런 연락 받으면 어떻게 답해?\n\n#썸 #카톡답장 #썸신호 #연애고민 #연애상담",
+      "approved": true,
+      "note": "자동 생산 · pick-carousel",
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-17T11:04:40.380Z"
+    },
+    {
+      "id": "p-just-thought-story",
+      "at": "2026-11-19 12:31",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/p-just-thought/story.jpg"
+      ],
+      "approved": true,
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-17T11:04:40.380Z",
+      "after": "p-just-thought",
+      "note": "자동 생산 · pick-carousel 스토리"
+    },
+    {
+      "id": "q-test-the-waters",
+      "at": "2026-11-20 12:30",
+      "channel": "instagram",
+      "kind": "reel",
+      "media": [
+        "marketing/social/q-test-the-waters/reel.mp4"
+      ],
+      "cover": "marketing/social/q-test-the-waters/cover.jpg",
+      "caption": "애매한 관계, 마음 떠보는 카톡 한 줄 뭐 보낼래? 👀\n\n돌려 말할지 직진할지에 따라 성격 다 나옴 ㅋㅋ\n\n너라면 몇 번이야?\n\n#애매한관계 #썸 #카톡 #연애고민 #밸런스게임",
+      "audio": {
+        "trending": true,
+        "videoVolume": 25,
+        "minSeconds": 9
+      },
+      "approved": true,
+      "note": "자동 생산 · pick-reel",
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-17T11:04:43.697Z"
+    },
+    {
+      "id": "q-test-the-waters-story",
+      "at": "2026-11-20 12:31",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/q-test-the-waters/reel.mp4"
+      ],
+      "approved": true,
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-17T11:04:43.697Z",
+      "after": "q-test-the-waters",
+      "note": "자동 생산 · pick-reel 스토리"
+    },
+    {
+      "id": "l-some-or-fishing",
+      "at": "2026-11-21 12:30",
+      "channel": "instagram",
+      "kind": "carousel",
+      "media": [
+        "marketing/social/l-some-or-fishing/01.jpg",
+        "marketing/social/l-some-or-fishing/02.jpg",
+        "marketing/social/l-some-or-fishing/03.jpg",
+        "marketing/social/l-some-or-fishing/04.jpg",
+        "marketing/social/l-some-or-fishing/05.jpg",
+        "marketing/social/l-some-or-fishing/06.jpg",
+        "marketing/social/l-some-or-fishing/07.jpg"
+      ],
+      "caption": "썸인지 어장인지 헷갈릴 때 카톡으로 보는 법 🎣\n\n약속이 실제로 잡히는지, 내 얘기를 기억하는지, 연락이 꾸준한지. 이 셋이면 대부분 보여.\n\n지금 그 사람은 어느 쪽에 가까워?\n\n#어장 #썸 #썸신호 #연애심리 #카톡",
+      "approved": true,
+      "note": "자동 생산 · list-carousel",
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-17T11:04:45.093Z"
+    },
+    {
+      "id": "l-some-or-fishing-story",
+      "at": "2026-11-21 12:31",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/l-some-or-fishing/story.jpg"
+      ],
+      "approved": true,
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-17T11:04:45.093Z",
+      "after": "l-some-or-fishing",
+      "note": "자동 생산 · list-carousel 스토리"
+    },
+    {
+      "id": "r-profile-photo",
+      "at": "2026-11-22 12:30",
+      "channel": "instagram",
+      "kind": "reel",
+      "media": [
+        "marketing/social/r-profile-photo/reel.mp4"
+      ],
+      "cover": "marketing/social/r-profile-photo/cover.jpg",
+      "caption": "프사 바꾸자마자 썸남한테 카톡이 왔다면 👀\n\n프사 칭찬 + 질문은 꽤 확실한 관심 신호야. 이럴 땐 장소 얘기로 약속까지 이어 가 봐.\n\n너라면 여기서 뭐라고 보낼래?\n\n#프사 #썸 #썸신호 #카톡답장 #썸남",
+      "audio": {
+        "trending": true,
+        "videoVolume": 25,
+        "minSeconds": 13
+      },
+      "approved": true,
+      "note": "자동 생산 · chat-reel",
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-17T11:05:00.469Z"
+    },
+    {
+      "id": "r-profile-photo-story",
+      "at": "2026-11-22 12:31",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/r-profile-photo/reel.mp4"
+      ],
+      "approved": true,
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-17T11:05:00.469Z",
+      "after": "r-profile-photo",
+      "note": "자동 생산 · chat-reel 스토리"
+    },
+    {
+      "id": "kkti-esfj-entp",
+      "at": "2026-11-23 12:30",
+      "channel": "instagram",
+      "kind": "carousel",
+      "media": [
+        "marketing/social/kkti-esfj-entp/01.jpg",
+        "marketing/social/kkti-esfj-entp/02.jpg",
+        "marketing/social/kkti-esfj-entp/03.jpg",
+        "marketing/social/kkti-esfj-entp/04.jpg",
+        "marketing/social/kkti-esfj-entp/05.jpg"
+      ],
+      "caption": "직진 불도저 × 밀당 낚시꾼 카톡 궁합 30% 🔥\n\n정반대라서 오히려 불꽃이 튀는 조합이에요.\n\n너희 둘은 무슨 조합이야? 카톡 습관 12문항이면 내 유형이 나오고, 둘 다 하면 궁합까지 나와. 테스트는 프로필 링크에.\n\n#KKTI #카톡궁합 #MBTI궁합 #연애유형 #썸",
+      "approved": true,
+      "note": "자동 생산 · kkti-pair",
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-17T11:05:04.199Z"
+    },
+    {
+      "id": "kkti-esfj-entp-story",
+      "at": "2026-11-23 12:31",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/kkti-esfj-entp/story.jpg"
+      ],
+      "approved": true,
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-17T11:05:04.199Z",
+      "after": "kkti-esfj-entp",
+      "note": "자동 생산 · kkti-pair 스토리"
+    },
+    {
+      "id": "q-weekend-plan",
+      "at": "2026-11-24 12:30",
+      "channel": "instagram",
+      "kind": "reel",
+      "media": [
+        "marketing/social/q-weekend-plan/reel.mp4"
+      ],
+      "cover": "marketing/social/q-weekend-plan/cover.jpg",
+      "caption": "썸남이 갑자기 \"주말에 뭐 해?\" 보냈다면 몇 번으로 답할래? 👀\n\n이건 거의 데이트 신청 전 단계인데… 여기서 어떻게 받느냐가 중요함\n\n너라면 몇 번이야?\n\n#썸 #썸남 #카톡답장 #데이트 #연애",
+      "audio": {
+        "trending": true,
+        "videoVolume": 25,
+        "minSeconds": 9
+      },
+      "approved": true,
+      "note": "자동 생산 · pick-reel",
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-17T11:05:07.510Z"
+    },
+    {
+      "id": "q-weekend-plan-story",
+      "at": "2026-11-24 12:31",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/q-weekend-plan/reel.mp4"
+      ],
+      "approved": true,
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-17T11:05:07.510Z",
+      "after": "q-weekend-plan",
+      "note": "자동 생산 · pick-reel 스토리"
+    },
+    {
+      "id": "a-weekend-plan",
+      "at": "2026-11-25 12:30",
+      "channel": "instagram",
+      "kind": "reel",
+      "media": [
+        "marketing/social/a-weekend-plan/reel.mp4"
+      ],
+      "cover": "marketing/social/a-weekend-plan/cover.jpg",
+      "caption": "썸남이 \"주말에 뭐해?\" 보냈을 때 센딧에 그대로 넣어 봤어\n\n답장 3개를 성공 확률이랑 같이 골라 주고, 보내면 상대가 뭐라고 할지 예상 반응까지 보여 줘. 영상 속 앱 화면과 답장은 실제 AI 결과 그대로고, 마지막 카톡 장면은 연출이야.\n\n너라면 셋 중에 뭐 보낼 것 같아?\n\n#썸 #카톡답장 #썸남 #연애코치 #센딧",
+      "audio": {
+        "trending": true,
+        "videoVolume": 25,
+        "minSeconds": 19
+      },
+      "approved": true,
+      "note": "자동 생산 · app-reel",
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-17T11:08:29.528Z"
+    },
+    {
+      "id": "a-weekend-plan-story",
+      "at": "2026-11-25 12:31",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/a-weekend-plan/reel.mp4"
+      ],
+      "approved": true,
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-17T11:08:29.528Z",
+      "after": "a-weekend-plan",
+      "note": "자동 생산 · app-reel 스토리"
     }
   ]
 }
