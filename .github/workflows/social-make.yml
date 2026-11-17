@@ -56,6 +56,15 @@ jobs:
           command -v ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
           # app-reel 녹화용 브라우저 조종(설치된 Google Chrome 사용) · 답장 속 이모지 글꼴
           npm i --no-save --no-audit --no-fund playwright-core@1.48.2 && { fc-list | grep -qi 'Noto Color Emoji' || (sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-color-emoji) || echo '::warning::이모지 글꼴을 못 깔았어요 — app-reel 답장 속 이모지가 네모로 나올 수 있어요'; }
+          # 우분투에는 한글 글꼴이 없어 앱 화면 글자가 네모(□)로 나온다 (2026-11-17 첫 CI 녹화) — 저장소의 Pretendard 를 시스템 글꼴로 깔고 기본 글꼴로
+          mkdir -p ~/.local/share/fonts ~/.config/fontconfig
+          cp scripts/assets/fonts/Pretendard-*.otf api/_assets/fonts/Pretendard-*.otf ~/.local/share/fonts/
+          printf '%s\n' '<?xml version="1.0"?>' '<!DOCTYPE fontconfig SYSTEM "fonts.dtd">' '<fontconfig>' \
+            '<alias><family>sans-serif</family><prefer><family>Pretendard</family></prefer></alias>' \
+            '<alias><family>system-ui</family><prefer><family>Pretendard</family></prefer></alias>' '</fontconfig>' > ~/.config/fontconfig/fonts.conf
+          fc-cache -f > /dev/null
+          echo "기본 글꼴: $(fc-match sans-serif) · 한글: $(fc-match 'sans-serif:lang=ko')"
+          fc-match 'sans-serif:lang=ko' | grep -q Pretendard || { echo '::error::한글 글꼴(Pretendard)이 안 깔렸어요'; exit 1; }
 
       - name: 창고 검사
         run: node tools/social-make/make.mjs --bank queue/marketing/content/bank.json --check
