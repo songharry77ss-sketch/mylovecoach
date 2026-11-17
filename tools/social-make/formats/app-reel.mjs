@@ -299,7 +299,11 @@ function appFrames(rec, steps, budget) {
   return { frames: out, tl };
 }
 
-export async function makeAppReel(it, analysis, rec, file) {
+/**
+ * file: 한 편 MP4. split: { head, tail } 를 주면 둘로 나눠 저장한다 — 훅+앱 / 보내면?+끝 카드 (ai-reel 이 사이에 사람 장면을 넣음)
+ * total: 영상 전체 길이 상한(초) — 앱 구간이 남는 만큼만 쓴다
+ */
+export async function makeAppReel(it, analysis, rec, file, { split, total = 19.5 } = {}) {
   const pick = pickIndex(it, analysis);
   const chosen = analysis.replies[pick];
   const mine = safe(chosen.text);
@@ -329,9 +333,11 @@ export async function makeAppReel(it, analysis, rec, file) {
   addT(endScene(it, 1), 2.2);
   const tailSec = tail.reduce((a, f) => a + Math.max(1, Math.round(f.dur * FPS)) / FPS, 0);
 
-  // 2) 실제 앱 — 전체가 19.5초를 넘지 않게
-  const app = appFrames(rec, steps, Math.min(11.5, 19.5 - hookSec - tailSec));
-  frames.push(...app.frames, ...tail);
+  // 2) 실제 앱 — 전체가 total(기본 19.5초)을 넘지 않게
+  const app = appFrames(rec, steps, Math.min(11.5, total - hookSec - tailSec));
+  frames.push(...app.frames);
+  if (split) return (await saveMp4(frames, W, H, split.head)) + (await saveMp4(tail, W, H, split.tail));
+  frames.push(...tail);
   return saveMp4(frames, W, H, file);
 }
 
