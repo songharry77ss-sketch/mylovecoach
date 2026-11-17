@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { FEED_PER_DAY, STALE_DAYS, assertAccount, dueEntries, igApiFor, kst, mediaUrl, nextKstDay, normalizeText, pickAudio, problems, queueProblems, recentAudioIds, reschedule } from './social.mjs';
+import { FEED_PER_DAY, MIN_GAP_HOURS, STALE_DAYS, assertAccount, dueEntries, igApiFor, kst, mediaUrl, nextKstDay, normalizeText, pickAudio, problems, queueProblems, recentAudioIds, reschedule } from './social.mjs';
 
 const carousel = (n, ext = 'jpg') => Array.from({ length: n }, (_, i) => `marketing/social/d3/${String(i + 1).padStart(2, '0')}.${ext}`);
 const base = { id: 'd3-ig', at: '2026-11-04 21:00', channel: 'instagram', kind: 'carousel', media: carousel(10), caption: '캡션 #KKTI', approved: true };
@@ -48,7 +48,7 @@ test('큐 검사 — id 중복도 잡는다', () => {
 const ids = (list) => list.map((e) => e.id);
 const posts = (...list) => ({ posts: list.map(([id, at]) => ({ id, channel: 'instagram', at: kst(at).toISOString() })) });
 
-test('올릴 항목 — 허락 · 이미 올림 · 하루 하나 · 예정 시각 순서', () => {
+test('올릴 항목 — 허락 · 이미 올림 · 하루 둘 · 한 실행에 하나 · 3시간 간격 · 예정 시각 순서', () => {
   const q = {
     entries: [
       base, // 11-04 21:00
@@ -57,23 +57,33 @@ test('올릴 항목 — 허락 · 이미 올림 · 하루 하나 · 예정 시�
       { ...base, id: 'earlier', at: '2026-11-04 20:00' },
     ],
   };
-  assert.equal(FEED_PER_DAY, 1);
-  // 21:00 항목은 그날 12시부터 — 먼저 예정된 것 하나만
+  assert.equal(FEED_PER_DAY, 2);
+  assert.equal(MIN_GAP_HOURS, 3);
+  // 둘 다 때가 됐어도 한 실행엔 먼저 예정된 것 하나만
   assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 12:00'))), ['earlier']);
   assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 21:30'))), ['earlier']);
-  // 오늘 이미 하나 올렸으면 더 안 올린다 → 다음 날 하나씩
-  assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 22:00'), posts(['earlier', '2026-11-04 18:40']))), []);
-  assert.deepEqual(ids(dueEntries(q, kst('2026-11-05 13:00'), posts(['earlier', '2026-11-04 18:40']))), ['d3-ig']);
-  assert.deepEqual(ids(dueEntries(q, kst('2026-11-06 13:00'), posts(['earlier', '2026-11-04 18:40'], ['d3-ig', '2026-11-05 13:00']))), ['later']);
-  // id 집합만 주면 하루 개수는 세지 않는다 (예전 호출 방식)
+  // 직전 피드에서 3시간 안이면 쉰다, 지나면 그날 두 번째
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 20:00'), posts(['earlier', '2026-11-04 18:40']))), []);
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 22:00'), posts(['earlier', '2026-11-04 18:40']))), ['d3-ig']);
+  // 오늘 이미 둘 올렸으면 더 안 올린다 → 다음 날
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 23:50'), posts(['earlier', '2026-11-04 13:00'], ['d3-ig', '2026-11-04 18:00']))), []);
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-05 13:00'), posts(['earlier', '2026-11-04 13:00'], ['d3-ig', '2026-11-04 18:00']))), ['later']);
+  // id 집합만 주면 하루 개수·간격은 세지 않는다 (예전 호출 방식)
   assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 21:30'), new Set(['earlier']))), ['d3-ig']);
   // 예정일에서 STALE_DAYS 넘게 지난 것은 버린다
   assert.deepEqual(ids(dueEntries({ entries: [base] }, new Date(kst(base.at).getTime() + STALE_DAYS * 86_400_000 + 60_000))), []);
 });
 
+test('점심 12:30 항목은 오전 10시 실행부터, 밤 21:00 항목은 12시부터', () => {
+  const lunch = { ...base, id: 'lunch', at: '2026-11-04 12:30' };
+  assert.deepEqual(ids(dueEntries({ entries: [lunch, base] }, kst('2026-11-04 09:59'))), []);
+  assert.deepEqual(ids(dueEntries({ entries: [lunch, base] }, kst('2026-11-04 10:52'))), ['lunch']); // 실제 실행 시각(11-13)
+  assert.deepEqual(ids(dueEntries({ entries: [lunch, base] }, kst('2026-11-04 18:36'), posts(['lunch', '2026-11-04 10:52']))), ['d3-ig']);
+});
+
 test('예약 실행이 아무 때나 돌아도 — 새벽엔 안 올리고, 그날 낮 12시~자정 실행이면 올린다', () => {
   const q = { entries: [base] };
-  assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 11:59'))), []); // 12시 전
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 11:59'))), []); // 21:00 항목은 12시 전엔 아직
   assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 11:10'))), []);
   assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 18:55'))), ['d3-ig']); // 2026-11-10 실제 실행 시각 — 예전 규칙(21~24시)이면 놓침
   assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 23:59'))), ['d3-ig']);
@@ -95,7 +105,7 @@ test('after 가 있으면 그 항목이 올라간 뒤에만', () => {
   const story = { ...base, id: 'd3-story', kind: 'story', at: '2026-11-04 21:01', media: ['marketing/social/d3/story.jpg'], after: 'd3-ig' };
   const q = { entries: [base, story] };
   assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 21:30'))), ['d3-ig', 'd3-story']); // 같은 실행에서 릴스 다음
-  assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 21:30'), posts(['other-feed', '2026-11-04 13:00']))), []); // 오늘 피드가 차서 릴스가 밀리면 스토리도
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 21:30'), posts(['other-feed', '2026-11-04 20:00']))), []); // 간격 때문에 릴스가 밀리면 스토리도
   assert.deepEqual(ids(dueEntries({ entries: [story] }, kst('2026-11-04 21:30'))), []); // 릴스가 큐에 없거나 허락 전
   assert.deepEqual(ids(dueEntries(q, kst('2026-11-05 13:00'), posts(['d3-ig', '2026-11-04 23:00']))), ['d3-story']);
   assert.deepEqual(queueProblems({ entries: [story] }), ['d3-story: after 의 d3-ig 가 큐에 없어요']);

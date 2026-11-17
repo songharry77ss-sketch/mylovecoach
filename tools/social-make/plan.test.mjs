@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { kst } from '../lib/social.mjs';
-import { WEEK, daysFromTo, firstFreeDay, howMany, nextDay, pickByPattern, pickNext } from './plan.mjs';
+import { WEEK, daysFromTo, firstFreeDay, freeSlots, howMany, nextDay, pickByPattern, pickNext } from './plan.mjs';
 
 const it = (id, format) => ({ id, format });
 
@@ -47,4 +47,22 @@ test('넣기 시작할 날 — 큐 마지막 피드 다음 날, 지났으면 내
   assert.equal(firstFreeDay([], now), '2026-11-14');
   assert.equal(firstFreeDay([{ at: '2026-11-12 21:00', kind: 'carousel' }], now), '2026-11-14');
   assert.equal(firstFreeDay([{ at: '2026-11-18 21:00', kind: 'reel' }, { at: '2026-11-20 21:00', kind: 'story' }], now), '2026-11-19');
+});
+
+test('빈 게시 칸 — 하루 둘(12:30·21:00), 이미 21:00 이 찬 날은 점심만, 스토리는 안 셈', () => {
+  const times = ['12:30', '21:00'];
+  const entries = [
+    { id: 'a', at: '2026-11-18 21:00', kind: 'reel', channel: 'instagram' },
+    { id: 'a-story', at: '2026-11-18 21:01', kind: 'story', channel: 'instagram' },
+    { id: 'b', at: '2026-11-19 12:30', kind: 'carousel', channel: 'instagram' },
+    { id: 'c', at: '2026-11-19 21:00', kind: 'reel', channel: 'instagram' },
+  ];
+  assert.deepEqual(freeSlots(entries, { from: '2026-11-18', to: '2026-11-20', times }), [
+    { day: '2026-11-18', time: '12:30' },
+    { day: '2026-11-20', time: '12:30' },
+    { day: '2026-11-20', time: '21:00' },
+  ]);
+  assert.equal(freeSlots(entries, { from: '2026-11-18', to: '2026-11-30', times, max: 4 }).length, 4);
+  // 하루 하나 시절 시각(20:00)이 있는 날은 하나만 더
+  assert.deepEqual(freeSlots([{ id: 'x', at: '2026-11-21 20:00', kind: 'reel' }], { from: '2026-11-21', to: '2026-11-21', times }), [{ day: '2026-11-21', time: '12:30' }]);
 });

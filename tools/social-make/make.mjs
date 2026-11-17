@@ -3,9 +3,9 @@
 //
 //   검사:      node tools/social-make/make.mjs --bank <bank.json> --check
 //   하나 보기:  node tools/social-make/make.mjs --bank <bank.json> --id <항목> --out <폴더>
-//   큐 채우기:  node tools/social-make/make.mjs --bank <bank.json> --queue <queue.json> --root <social-queue 폴더> --fill [--ahead 8] [--days 7] [--from 2026-11-16] [--time 21:00] [--approve]
+//   큐 채우기:  node tools/social-make/make.mjs --bank <bank.json> --queue <queue.json> --root <social-queue 폴더> --fill [--ahead 8] [--days 7] [--from 2026-11-16] [--times 12:30,21:00] [--approve] [--plan]
 //
-// 큐 채우기: 창고에서 아직 큐에 없는 항목을 하루 하나씩(마지막 예정일 다음 날부터) 넣는다.
+// 큐 채우기: 창고에서 아직 큐에 없는 항목을 빈 게시 칸(날마다 12:30·21:00)마다 하나씩 넣는다.
 // 무엇을 고를지는 지난 성과로 배운 것(<root>/marketing/learn/stats.json → tools/lib/learn.mjs)을 따른다:
 //   잘 된 포맷은 칸을 더 받고, 같은 포맷 안에서는 잘 된 주제 먼저. 성과가 3개 미만이면 기본 한 주 구성(WEEK).
 // 그림·영상은 <root>/marketing/social/<id>/ 에 만들고, 큐 항목은 approved:false — 사람이 「게시 허락」을 눌러야 올라간다.
@@ -15,10 +15,11 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { learnModel, rankItems, reportMarkdown, topicsOf } from '../lib/learn.mjs';
+import { FEED_TIMES, kstDay } from '../lib/social.mjs';
 import { bankProblems } from './bank.mjs';
 import { FORMATS, closeFormats } from './formats/index.mjs';
 import { makeFeedStory } from './formats/story.mjs';
-import { WEEK, firstFreeDay, howMany, nextDay, pickForDays } from './plan.mjs';
+import { WEEK, freeSlots, nextDay, pickForDays } from './plan.mjs';
 
 const args = process.argv.slice(2);
 const has = (f) => args.includes(f);
@@ -93,16 +94,21 @@ if (has('--fill')) {
   if (!queuePath) throw new Error('--queue <queue.json> 이 필요해요');
   const queue = readJson(queuePath);
   const entries = queue.entries ?? [];
-  const time = argOf('--time') ?? '21:00';
-  const day = argOf('--from') ?? firstFreeDay(entries, new Date());
-  // --ahead N: 오늘부터 N 일 뒤까지 차도록만 (몇 번을 돌려도 겹치지 않음). 없으면 --days 개
-  const max = Number(argOf('--days') ?? 7);
-  const days = argOf('--ahead') ? howMany(day, new Date(), Number(argOf('--ahead')), max) : max;
-  if (days <= 0) {
-    console.log(`큐에 이미 ${argOf('--ahead')}일치가 있어요 — 넣을 게 없어요 (다음 빈 날 ${day}).`);
+  // 게시 칸: 날마다 FEED_TIMES(점심 12:30 · 밤 21:00 — --times 로 바꿈), --from(없으면 내일)부터
+  //   --ahead N: 오늘부터 N 일 뒤까지의 빈 칸만 (몇 번을 돌려도 겹치지 않음) · 없으면 --days 일치. 최대 --days 일 × 하루 칸 수
+  const times = String(argOf('--times') ?? argOf('--time') ?? FEED_TIMES.join(',')).split(',').map((x) => x.trim()).sort();
+  const now = new Date();
+  const from = argOf('--from') ?? kstDay(new Date(now.getTime() + 86_400_000));
+  const maxDays = Number(argOf('--days') ?? 7);
+  let to = from;
+  if (argOf('--ahead')) to = kstDay(new Date(now.getTime() + Number(argOf('--ahead')) * 86_400_000));
+  else for (let i = 1; i < maxDays; i++) to = nextDay(to);
+  const slots = freeSlots(entries, { from, to, times, max: maxDays * times.length });
+  if (!slots.length) {
+    console.log(`${from}~${to} 칸이 다 찼어요 — 넣을 게 없어요.`);
     process.exit(0);
   }
-  const feed = entries.filter((e) => e.kind !== 'story');
+  const feed = entries.filter((e) => e.kind !== 'story').sort((a, b) => String(a.at).localeCompare(String(b.at)));
   // 큐에 있거나 사람이 뺀(queue.dropped) 항목은 다시 고르지 않는다
   const used = new Set([...entries.map((e) => e.id), ...(queue.dropped ?? [])]);
   const itemOf = (id) => items.find((it) => it.id === id);
@@ -111,20 +117,18 @@ if (has('--fill')) {
   const statsPath = path.join(root, 'marketing', 'learn', 'stats.json');
   const stats = existsSync(statsPath) ? readJson(statsPath) : { posts: {} };
   const formats = [...new Set(items.filter((it) => !used.has(it.id)).map((it) => it.format))];
-  const model = learnModel(stats, { formats });
+  const model = learnModel(stats, { formats, slots: 7 * times.length });
   const pattern = model.scored >= 3 ? model.week : WEEK;
   const recentTopics = feed.slice(-2).reverse().flatMap((e) => topicsOf(itemOf(e.id) ?? {}, e.caption));
-  const dayList = [day];
-  while (dayList.length < days) dayList.push(nextDay(dayList.at(-1)));
-  const picks = pickForDays(items, used, dayList, pattern, { lastFormat, recentTopics, topicsOf, rank: (pool, recent) => rankItems(pool, model, recent) });
+  const picks = pickForDays(items, used, slots.map((x) => x.day), pattern, { lastFormat, recentTopics, topicsOf, rank: (pool, recent) => rankItems(pool, model, recent) });
   if (!picks.length) {
     console.log('창고에 새 항목이 없어요 — 콘텐츠를 더 넣어 주세요.');
     process.exit(0);
   }
-  console.log(`큐에 ${picks.length}개 추가 (${day}부터 하루 하나, ${time}) — 구성: ${model.scored >= 3 ? '배운 대로' : '기본'} ${pattern.join(' · ')}`);
+  console.log(`큐에 ${picks.length}개 추가 (${slots[0].day} ${slots[0].time}부터 · 하루 ${times.join('·')}) — 구성: ${model.scored >= 3 ? '배운 대로' : '기본'} ${pattern.join(' · ')}`);
   // --plan: 무엇을 어느 날 넣을지만 보여 주고 끝 (그림·큐는 그대로)
   if (has('--plan')) {
-    for (const { day: d, item: it } of picks) console.log(`  ${d} ${it.format.padEnd(14)} ${it.id.padEnd(24)} ${topicsOf(it).join(' · ')}`);
+    picks.forEach(({ item: it }, i) => console.log(`  ${slots[i].day} ${slots[i].time} ${it.format.padEnd(14)} ${it.id.padEnd(24)} ${topicsOf(it).join(' · ')}`));
     process.exit(0);
   }
   const approve = has('--approve');
@@ -141,10 +145,10 @@ if (has('--fill')) {
         failed.push({ id: it.id, format: it.format, error: String(e.message).slice(0, 300) });
         continue;
       }
-      const d = dayList[added.filter((x) => x.kind !== 'story').length];
+      const { day: d, time } = slots[added.filter((x) => x.kind !== 'story').length];
       const ok = approve ? { approved: true, approvedBy: `자동 허락 (SOCIAL_AUTO_APPROVE) ${new Date().toISOString()}` } : {};
-      const { story, ...feed } = entry;
-      added.push({ ...feed, ...ok, at: `${d} ${time}` });
+      const { story, ...post } = entry;
+      added.push({ ...post, ...ok, at: `${d} ${time}` });
       // 사장님 규칙: 피드마다 스토리도 — 피드가 올라간 뒤(after)에만 나간다
       if (story) added.push({ id: `${it.id}-story`, at: `${d} ${plusMinute(time)}`, channel: 'instagram', kind: 'story', media: [story], approved: false, ...ok, after: it.id, note: `자동 생산 · ${it.format} 스토리` });
     }

@@ -74,3 +74,24 @@ export function firstFreeDay(entries, now) {
   const last = feed.map((e) => kstDay(kst(e.at))).sort().at(-1);
   return [tomorrow, nextDay(last)].sort().at(-1);
 }
+
+/**
+ * 비어 있는 게시 칸 — from 부터 to 까지(둘 다 포함) 날마다 times(예: 12:30·21:00) 중 아직 인스타 피드가 없는 시각, 최대 max 개.
+ * 그날 피드가 이미 times 개만큼 있으면 꽉 찬 날. 빠진 칸(뺀 항목·하루 하나 시절)도 채운다. 스토리는 안 센다.
+ */
+export function freeSlots(entries, { from, to, times, max = Infinity }) {
+  const feed = (entries ?? []).filter((e) => e.kind !== 'story' && (e.channel ?? 'instagram') === 'instagram');
+  const out = [];
+  for (let day = from; day <= to && out.length < max; day = nextDay(day)) {
+    const taken = feed.filter((e) => String(e.at).startsWith(`${day} `));
+    const takenTimes = new Set(taken.map((e) => String(e.at).split(' ')[1]));
+    let room = times.length - taken.length;
+    for (const time of times) {
+      if (room <= 0 || out.length >= max) break;
+      if (takenTimes.has(time)) continue;
+      out.push({ day, time });
+      room--;
+    }
+  }
+  return out;
+}

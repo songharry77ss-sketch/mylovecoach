@@ -6,16 +6,19 @@ export const REPO = 'songharry77ss-sketch/mylovecoach';
 /*
  * 언제 올리나 — GitHub 예약 실행은 이 저장소에서 「매시간」으로 걸어도 하루 3~4번만, 아무 때나 돈다
  * (2026-11-10: 11:10 · 18:55 · 02:54 · 08:26 KST). 그래서 정확한 시각 대신
- *   · 낮 12시~자정(POST_HOURS)에 도는 실행에서만 올리고 — 새벽에 올라가지 않게,
+ *   · 오전 10시~자정(POST_HOURS)에 도는 실행에서만 올리고 — 새벽에 올라가지 않게,
  *   · 예정 시각 9시간 전(EARLY_HOURS)부터 올릴 수 있게 해 — 21:00 항목이면 그날 12시 이후 첫 실행에,
- *   · 하루(한국 날짜)에 피드 글은 채널마다 FEED_PER_DAY 개까지만 — 밀린 항목은 다음 날로 하나씩 넘어가고,
+ *   · 하루(한국 날짜)에 피드 글은 채널마다 FEED_PER_DAY 개까지 — 2026-11-17 「더 적극적으로」: 점심 12:30 · 밤 21:00 두 개(FEED_TIMES),
+ *   · 한 번 실행에 피드 글은 채널마다 하나, 직전 피드 글과 MIN_GAP_HOURS 는 띄운다 — 두 글이 연달아 붙어 나가지 않게,
  *   · 예정일에서 STALE_DAYS 넘게 지난 항목은 버린다.
  *   · after(다른 항목 id)가 있으면 그 항목이 먼저 올라간 뒤에만 — 릴스 스토리가 릴스보다 먼저 나가지 않게.
- * 스토리는 하루 개수에 세지 않는다.
+ * 스토리는 하루 개수·간격에 세지 않는다.
  */
-export const POST_HOURS = [12, 24];
+export const POST_HOURS = [10, 24];
 export const EARLY_HOURS = 9;
-export const FEED_PER_DAY = 1;
+export const FEED_PER_DAY = 2;
+export const FEED_TIMES = ['12:30', '21:00'];
+export const MIN_GAP_HOURS = 3;
 export const STALE_DAYS = 7;
 const HOUR = 3600_000;
 const DAY = 24 * HOUR;
@@ -179,16 +182,19 @@ export function dueEntries(queue, now, posted = { posts: [] }) {
   const byId = new Map(entries.map((e) => [e.id, e]));
   const today = kstDay(now);
   const used = {};
+  const lastFeed = {};
   for (const p of records) {
-    if (!p.at || kstDay(new Date(p.at)) !== today) continue;
+    if (!p.at) continue;
     const e = byId.get(p.id);
     if ((e?.kind ?? p.kind) === 'story') continue;
     const ch = p.channel ?? e?.channel;
-    used[ch] = (used[ch] ?? 0) + 1;
+    lastFeed[ch] = Math.max(lastFeed[ch] ?? 0, new Date(p.at).getTime());
+    if (kstDay(new Date(p.at)) === today) used[ch] = (used[ch] ?? 0) + 1;
   }
 
   const t = now.getTime();
   const out = [];
+  const fedThisRun = new Set();
   for (const e of entries
     .filter((x) => x.approved === true && !done.has(x.id))
     .filter((x) => t >= kst(x.at).getTime() - EARLY_HOURS * HOUR && t - kst(x.at).getTime() <= STALE_DAYS * DAY)
@@ -197,7 +203,9 @@ export function dueEntries(queue, now, posted = { posts: [] }) {
     if (e.after && !done.has(e.after) && !out.some((x) => x.id === e.after)) continue;
     if (e.kind !== 'story') {
       if ((used[e.channel] ?? 0) >= FEED_PER_DAY) continue;
+      if (fedThisRun.has(e.channel) || t - (lastFeed[e.channel] ?? 0) < MIN_GAP_HOURS * HOUR) continue;
       used[e.channel] = (used[e.channel] ?? 0) + 1;
+      fedThisRun.add(e.channel);
     }
     out.push(e);
   }
