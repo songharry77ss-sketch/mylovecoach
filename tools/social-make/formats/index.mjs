@@ -2,6 +2,7 @@
 import path from 'node:path';
 
 import { closeApp } from '../record-app.mjs';
+import { checkAiReel, makeAiReelItem } from './ai-reel.mjs';
 import { checkAppReel, makeAppReelItem } from './app-reel.mjs';
 import { makeListCarousel, makePickCarousel } from './carousels.mjs';
 import { makeChatReel, makeChatReelCover } from './chat-reel.mjs';
@@ -51,6 +52,15 @@ export const FORMATS = {
     kind: 'reel',
     check: (it) => checkAppReel(it, msgProblems),
     make: makeAppReelItem,
+    close: closeApp,
+  },
+
+  // AI 인물 + 실제 앱 — 카페에서 고민하는 사람(AI 영상, 「AI로 만든 장면」 표시) 사이에 실제 앱 녹화를 넣는다 (ai-reel.mjs · omni.mjs).
+  // 사람 영상을 새로 만들 때만 GEMINI_API_KEY 와 SOCIAL_AI_VIDEO=on 이 필요하다 (돈이 듦 — 없으면 그 항목만 실패하고 건너뜀)
+  'ai-reel': {
+    kind: 'reel',
+    check: (it) => checkAiReel(it, msgProblems),
+    make: makeAiReelItem,
     close: closeApp,
   },
 

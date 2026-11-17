@@ -1,0 +1,114 @@
+name: AI 인물 릴스 만들기
+
+# 「AI 인물 + 실제 앱」 릴스(ai-reel) 하나를 만든다 — 사람 장면은 Gemini Omni Flash(돈이 듦), 앱 장면은 실제 앱 녹화.
+# 만든 영상은 social-queue 가지 marketing/social/<id>/ 에 넣는다(큐에는 안 넣음 — 확인한 뒤 손으로 큐에 넣거나 「허락」).
+# 사람 영상(person.mp4)은 가지에 넣지 않고(무거워서 jsDelivr 한도) 실행 캐시에 둬서, 다시 돌려도 새로 만들지 않는다.
+# 흐름: docs/SOCIAL_AUTOPOST.md 「AI 인물 릴스」
+
+on:
+  workflow_dispatch:
+    inputs:
+      id:
+        description: '창고 항목 id'
+        required: true
+        default: 'ai-christmas-cafe'
+      bank:
+        description: '창고 파일 (비우면 예시 tools/social-make/samples/ai-reel.json)'
+        required: false
+        default: ''
+      put:
+        description: 'social-queue 가지에 넣기 (끄면 Artifacts 로만)'
+        type: boolean
+        default: true
+  push:
+    # 만들던 가지에서 고칠 때마다 바로 돌려 본다 (병합 뒤에는 위의 손 실행만)
+    branches: ['feat/ai-reel-*']
+    paths: ['tools/social-make/**', '.github/workflows/social-ai-reel.yml']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: social-queue-write
+  cancel-in-progress: false
+
+jobs:
+  make:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      ID: ${{ inputs.id || 'ai-christmas-cafe' }}
+      BANK: ${{ inputs.bank || 'tools/social-make/samples/ai-reel.json' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: social-queue
+          path: queue
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: 준비 (패키지 · ffmpeg · 브라우저 조종 · 글꼴)
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          command -v ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
+          npm i --no-save --no-audit --no-fund playwright-core@1.48.2 && { fc-list | grep -qi 'Noto Color Emoji' || (sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-color-emoji) || echo '::warning::이모지 글꼴을 못 깔았어요'; }
+          mkdir -p ~/.local/share/fonts ~/.config/fontconfig
+          cp scripts/assets/fonts/Pretendard-*.otf api/_assets/fonts/Pretendard-*.otf ~/.local/share/fonts/
+          printf '%s\n' '<?xml version="1.0"?>' '<!DOCTYPE fontconfig SYSTEM "fonts.dtd">' '<fontconfig>' \
+            '<alias><family>sans-serif</family><prefer><family>Pretendard</family></prefer></alias>' \
+            '<alias><family>system-ui</family><prefer><family>Pretendard</family></prefer></alias>' '</fontconfig>' > ~/.config/fontconfig/fonts.conf
+          fc-cache -f > /dev/null
+          fc-match 'sans-serif:lang=ko' | grep -q Pretendard || { echo '::error::한글 글꼴(Pretendard)이 안 깔렸어요'; exit 1; }
+
+      - name: 만들어 둔 사람 영상 꺼내기
+        uses: actions/cache/restore@v4
+        with:
+          path: out/${{ env.ID }}
+          key: ai-person-${{ env.ID }}-${{ github.run_id }}
+          restore-keys: ai-person-${{ env.ID }}-
+
+      - name: 만들기
+        env:
+          SOCIAL_AI_VIDEO: 'on'
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
+          EXPO_PUBLIC_API_TOKEN: ${{ secrets.EXPO_PUBLIC_API_TOKEN }}
+        run: |
+          node tools/social-make/make.mjs --bank "$BANK" --check
+          node tools/social-make/make.mjs --bank "$BANK" --id "$ID" --out out
+          ls -la "out/$ID"
+
+      - name: 사람 영상 남겨 두기
+        if: always() && hashFiles(format('out/{0}/person.mp4', env.ID)) != ''
+        uses: actions/cache/save@v4
+        with:
+          path: out/${{ env.ID }}
+          key: ai-person-${{ env.ID }}-${{ github.run_id }}
+
+      - name: 확인용 장면 모음
+        run: |
+          cd "out/$ID"
+          ffmpeg -hide_banner -loglevel error -y -i reel.mp4 -vf "fps=1,scale=270:-1,tile=8x4" -frames:v 1 contact.jpg
+          ffmpeg -hide_banner -loglevel error -y -i person.mp4 -vf "fps=2,scale=200:-1,tile=8x3" -frames:v 1 person-contact.jpg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ai-reel
+          path: out/
+          retention-days: 7
+
+      - name: social-queue 에 넣기 (사람 영상 원본은 빼고)
+        if: github.event_name == 'workflow_dispatch' && inputs.put
+        run: |
+          mkdir -p "queue/marketing/social/$ID"
+          cp "out/$ID/reel.mp4" "out/$ID/cover.jpg" "out/$ID/analysis.json" "out/$ID/person.json" "queue/marketing/social/$ID/"
+          cd queue
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "marketing/social/$ID"
+          git diff --cached --quiet && { echo '바뀐 게 없음'; exit 0; }
+          git commit -qm "AI 인물 릴스: $ID"
+          for i in 1 2 3; do git pull -q --rebase origin social-queue && git push -q origin HEAD:social-queue && exit 0; sleep 5; done
+          exit 1

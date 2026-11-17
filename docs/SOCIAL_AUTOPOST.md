@@ -38,6 +38,7 @@
 |---|---|---|
 | `chat-reel` | 릴스 13~40초 | 훅 한 줄 + 카톡이 한 줄씩(상대는 「입력 중…」 뒤에) + 해설 꼬리표 + 판정 카드(추천 답장). `cast` 를 주면 「T 여친 vs F 남친」 같은 대비형. 표지 그림도 만듦 |
 | `app-reel` | 릴스 15~20초 | **실제 앱 사용 영상** — 받은 카톡(훅) → 폰 틀 안의 실제 앱 녹화(받은 카톡 넣기 → 진짜 AI 답장 3개·성공 확률 → 하나 골라 복사) → 고른 답장을 보내면 AI 예상 반응이 오는 카톡(「연출」·「예상 반응」) → 「센딧」 검색 끝 카드. 표지도 만듦 |
+| `ai-reel` | 릴스 25초 안팎 | **AI 인물 + 실제 앱** — 카페에서 썸 카톡을 받고 고민하는 사람(AI 영상) → 받은 카톡 → 폰 틀 안의 실제 앱 녹화(진짜 AI 답장) → 골라 보내고 답을 받아 웃는 사람(AI 영상) → 예상 반응 카톡 → 끝 카드. 사람 장면 내내 「AI로 만든 장면」 표시, 캡션에도 AI 연출이라고 써야 검사 통과. 표지는 사람 얼굴 |
 | `pick-reel` | 릴스 8초 | 「너라면 몇 번?」 받은 카톡 하나 + 답장 보기 1~4번 (정답 없는 고르기 — 댓글이 가장 쉽게 달림) |
 | `pick-carousel` | 캐러셀 | 「답장 고르기」 상황 → 보기 A·B·C → 보기마다 (보내면 상대 반응 + 판정) → 정리 |
 | `list-carousel` | 캐러셀 | 「신호·체크리스트」 표지 → 항목마다 한 장(예시 말풍선) → 정리 (저장형) |
@@ -50,6 +51,9 @@
 - 창고 항목에 `from`·`until`(YYYY-MM-DD)을 주면 그 날짜 안에서만 올라갑니다 — 크리스마스·기말고사 같은 철 지난 글이 늦게 나가지 않게. `topics: [...]` 를 주면 주제를 해시태그 대신 그것으로 봅니다.
 - 연애 고민 검색은 밤 10시~새벽 1시, 일·월요일 밤에 가장 많음(2026-11 네이버 데이터랩·구글 트렌드). 예정 시각은 21:00.
 - `app-reel` 만드는 법: ① `tools/social-make/coach-call.mjs` 가 앱과 같은 요청을 운영 코치 서버(`EXPO_PUBLIC_API_URL`/api/coach, 헤더 `x-app-token`·`x-ai-consent: google`)에 보내 진짜 결과를 받아 `<폴더>/analysis.json` 에 둔다(있으면 다시 안 부름, 창고 항목의 `analysis` 가 있으면 그것). ② `tools/social-make/record-app.mjs` 가 데모 웹 빌드(`EXPO_PUBLIC_DEMO_MODE=1`, 한 실행에 한 번 — `APP_DEMO_WEB=<폴더>` 로 재사용)를 띄우고 `window.__SENDIT_DEMO__.analysis` 로 결과를 넣은 뒤 390×844·DPR 3 으로 누르고 치는 흐름을 녹화한다(CDP 스크린캐스트). 앱이 실제로 만든 요청이 ①의 요청과 다르거나 화면에 「데모」가 보이면 멈춘다. 필요: playwright-core(CI 는 `npm i --no-save playwright-core@1.48.2`, PC 는 `PLAYWRIGHT_CORE=<폴더>`), Chrome(윈도우는 Edge).
+- `ai-reel` 만드는 법 (`tools/social-make/formats/ai-reel.mjs`): ① 사람 장면 12초를 Google **Gemini Omni Flash**(`tools/social-make/omni.mjs`, Gemini API `/v1beta/interactions` · 9:16 · 1080p · 약 $1.3 — Veo 3.1 미리 보기는 2026-10-22 종료)로 한 번에 만든다: 0~4초 고민 · 4~8초 답장 쳐서 보냄 · 8~12초 답 받고 웃음, 폰 화면은 카메라 반대쪽(가짜 화면이 안 보이게), 말·글자 없이. ② 앞(고민)·뒤(보내고 답 받음)를 잘라(`person.cuts`) 사이에 `app-reel` 의 훅+앱 녹화를, 뒤에 「보내면?」+끝 카드를 붙인다. 자막은 숏폼식 흰 띠(`person.hook`·`sent`·`reply`). ③ 4~5MB 로 맞춘다(게시 큐 가지가 커지면 jsDelivr 가 막힘).
+  - **돈이 드는 일이라** 사람 영상은 `SOCIAL_AI_VIDEO=on` 일 때만 새로 만든다 — 토요일 자동 생산(`social-make.yml`)은 이 스위치를 켜지 않으므로 창고에 `ai-reel` 이 있어도 그 항목만 실패하고 건너뛴다. 만들 때는 「AI 인물 릴스 만들기」(`social-ai-reel.yml`)를 손으로 돌린다 → social-queue 가지 `marketing/social/<id>/` 에 reel.mp4·cover.jpg 가 생기고(사람 영상 원본은 실행 캐시에만), 확인한 뒤 큐에 넣는다. 한 번 만든 사람 영상은 글(`personPrompt`)이 바뀌지 않으면 다시 만들지 않는다.
+  - 정직: 사람은 AI 인물이라 실사용 후기처럼 말하지 않는다(「연출」). 앱 화면과 답장은 실제 결과.
 - 손으로: `node tools/social-make/make.mjs --bank <bank.json> --check` · `--id <항목> --out <폴더>`(하나 만들어 보기, `FFMPEG=<경로>` 필요할 수 있음).
 - **피드마다 스토리**(사장님 규칙): 자동 생산이 항목마다 `<id>-story`(`after: <id>`, 피드가 올라간 뒤에만)를 같이 넣습니다. 릴스는 영상 그대로, 캐러셀은 `story.jpg`(첫 장 + 첫 장만 보고 답할 수 있는 질문 + 「답장으로 알려 줘」 — `formats/story.mjs`, 창고 항목 `storyAsk` 로 바꿀 수 있음). API 로는 스티커를 못 붙입니다.
 - 하나가 실패해도(예: 코치 서버 응답 없음) 나머지는 만들고, 미리 보기 이슈에 실패를 적습니다. 실패한 항목은 다음 주에 다시 시도합니다.

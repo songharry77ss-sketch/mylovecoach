@@ -23,6 +23,7 @@ export const FORMAT_NAMES = {
   'chat-reel': '카톡 재현 릴스',
   'pick-reel': '「몇 번?」 릴스',
   'app-reel': '실제 앱 사용 릴스',
+  'ai-reel': 'AI 인물 + 실제 앱 릴스',
   'real-reel': '사장님 실사 릴스',
   'pick-carousel': '답장 고르기 캐러셀',
   'list-carousel': '체크리스트 캐러셀',
