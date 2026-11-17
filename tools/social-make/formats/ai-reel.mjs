@@ -78,10 +78,12 @@ export function probe(file) {
 /** 자르기 구간 — 영상 길이에 맞춰 안전하게 */
 export function resolveCuts(cuts = {}, seconds = 12) {
   const end = Math.max(1, seconds - 0.05);
-  const a = cuts.a ?? [0.2, Math.min(3.8, end * 0.32)];
-  const b = cuts.b ?? [Math.min(4.2, end * 0.35), end];
+  // 기본은 글(personPrompt)의 12초 순서 — 영상이 짧게 나오면 같은 비율로 당긴다
+  const k = Math.min(1, seconds / 12);
+  const a = cuts.a ?? [0.2, 3.8 * k];
+  const b = cuts.b ?? [4.2 * k, end];
   const out = { a: [Math.max(0, a[0]), Math.min(end, a[1])], b: [Math.max(0, b[0]), Math.min(end, b[1])] };
-  out.replyAt = Math.min(out.b[1] - 0.5, Math.max(out.b[0] + 0.5, cuts.replyAt ?? Math.min(8.2, end * 0.68)));
+  out.replyAt = Math.min(out.b[1] - 0.5, Math.max(out.b[0] + 0.5, cuts.replyAt ?? 8.2 * k));
   if (!(out.a[1] - out.a[0] >= 1) || !(out.b[1] - out.b[0] >= 2)) throw new Error(`사람 장면 자르기 구간이 너무 짧아요 (a ${out.a} · b ${out.b} · 영상 ${seconds.toFixed(1)}초)`);
   return out;
 }
