@@ -685,6 +685,39 @@
       "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-17T11:08:29.528Z",
       "after": "a-weekend-plan",
       "note": "자동 생산 · app-reel 스토리"
+    },
+    {
+      "id": "ai-christmas-cafe",
+      "at": "2026-11-17 21:50",
+      "channel": "instagram",
+      "kind": "reel",
+      "format": "ai-reel",
+      "media": [
+        "marketing/social/ai-christmas-cafe/reel.mp4"
+      ],
+      "cover": "marketing/social/ai-christmas-cafe/cover.jpg",
+      "caption": "썸남이 먼저 \"크리스마스에 뭐 해?\" 물어보면 뭐라고 답해야 약속까지 갈까\n\n센딧에 그대로 넣었더니 답장 3개를 성공 확률이랑 같이 골라 줬어. 앱 화면과 답장은 실제 센딧 AI 결과 그대로야.\n\n※ 사람 나오는 장면은 AI로 만든 연출이고, 마지막 카톡 반응은 센딧이 예상한 답장이야.\n\n너라면 뭐라고 보낼래?\n\n#크리스마스 #썸 #썸남 #카톡답장 #센딧",
+      "audio": {
+        "trending": true,
+        "videoVolume": 35,
+        "minSeconds": 29
+      },
+      "approved": true,
+      "approvedBy": "사장님 요청 — 채팅 2026-11-17 「실제로 배포까지」",
+      "note": "AI 인물 + 실제 앱 (ai-reel) · 사람 장면 Gemini Omni Flash · 「AI로 만든 장면」 표시"
+    },
+    {
+      "id": "ai-christmas-cafe-story",
+      "at": "2026-11-17 21:51",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/ai-christmas-cafe/reel.mp4"
+      ],
+      "approved": true,
+      "approvedBy": "사장님 요청 — 채팅 2026-11-17 「실제로 배포까지」",
+      "after": "ai-christmas-cafe",
+      "note": "ai-reel 스토리"
     }
   ]
 }
