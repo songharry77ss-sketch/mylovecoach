@@ -145,6 +145,19 @@
       "note": "위 릴스의 스토리 — 릴스마다 스토리 규칙(스티커는 API 불가)"
     },
     {
+      "id": "u-kudae-first-text-quiz",
+      "at": "2026-11-17 20:00",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/u-kudae-number-1/quiz-story.jpg"
+      ],
+      "caption": "",
+      "approved": true,
+      "after": "u-kudae-number-1",
+      "note": "번호 따기 1일차 이어 받기 — 「첫 톡 뭐라고 보내?」 1·2·3 고르기, 답장으로 숫자 (스티커 대신). 사장님 11-17 「이어서 진행해줘」"
+    },
+    {
       "id": "p-late-night-what",
       "at": "2026-11-18 21:00",
       "channel": "instagram",
