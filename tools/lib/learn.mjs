@@ -136,7 +136,7 @@ const kindOfFormat = (f) => (/reel/.test(f) ? 'reel' : /carousel|pair/.test(f) ?
  * 성과 → 모델. formats: 지금 만들 수 있는 포맷 이름들.
  * 포맷 점수는 같은 종류(릴스·캐러셀)의 평균 쪽으로 당긴다 — 새 포맷도 종류 성적만큼은 믿고 시작
  */
-export function learnModel(stats, { formats = [], now = new Date() } = {}) {
+export function learnModel(stats, { formats = [], now = new Date(), slots = WEEK_SLOTS } = {}) {
   const { rows, base } = scorePosts(stats);
   const kinds = groupBy(rows, (r) => [r.meta.kind ?? kindOfFormat(r.meta.format ?? '')]);
   const kindScore = Object.fromEntries(Object.entries(kinds).map(([k, rs]) => [k, shrunk(sum(rs), rs.length)]));
@@ -164,7 +164,7 @@ export function learnModel(stats, { formats = [], now = new Date() } = {}) {
     best: ranked.slice(0, 3).map(brief),
     worst: ranked.length > 3 ? ranked.slice(-2).reverse().map(brief) : [],
   };
-  model.week = planWeek(model, formats);
+  model.week = planWeek(model, formats, slots);
   return model;
 }
 
@@ -172,20 +172,22 @@ const sum = (rs) => rs.reduce((a, r) => a + r.score, 0);
 const avg = (rs, k) => rs.reduce((a, r) => a + r[k], 0) / rs.length;
 
 /**
- * 다음 주 7칸 — 점수가 1 높으면(log2) 두 배 자주. 해 본 게 2개 미만인 포맷은 한 칸씩 꼭 시험하고, 한 포맷은 3칸까지.
+ * 다음 주 칸(기본 7, 하루 둘이면 14) — 점수가 1 높으면(log2) 두 배 자주. 해 본 게 2개 미만인 포맷은 한 칸씩 꼭 시험하고, 한 포맷은 7칸에 3칸 비율까지.
  * 순서는 같은 포맷이 붙지 않게, 칸이 많은 포맷부터 번갈아.
  */
-export function planWeek(model, formats) {
+export function planWeek(model, formats, slotCount = WEEK_SLOTS) {
+  const WEEK_N = slotCount;
+  const CAP = Math.ceil((slotCount * MAX_SLOTS) / WEEK_SLOTS); // 7칸에 3칸 비율
   const list = formats.filter((f) => model.formats?.[f]);
   if (!list.length) return [];
   const weight = Object.fromEntries(list.map((f) => [f, 2 ** model.formats[f].score]));
   const total = list.reduce((a, f) => a + weight[f], 0);
-  const raw = Object.fromEntries(list.map((f) => [f, (WEEK_SLOTS * weight[f]) / total]));
-  const slots = Object.fromEntries(list.map((f) => [f, Math.min(MAX_SLOTS, Math.floor(raw[f]))]));
+  const raw = Object.fromEntries(list.map((f) => [f, (WEEK_N * weight[f]) / total]));
+  const slots = Object.fromEntries(list.map((f) => [f, Math.min(CAP, Math.floor(raw[f]))]));
   const byRemainder = [...list].sort((a, b) => raw[b] - Math.floor(raw[b]) - (raw[a] - Math.floor(raw[a])) || weight[b] - weight[a]);
   const byWeight = [...list].sort((a, b) => weight[b] - weight[a]);
   const used = () => list.reduce((a, f) => a + slots[f], 0);
-  for (const f of [...byRemainder, ...byWeight]) if (used() < WEEK_SLOTS && slots[f] < MAX_SLOTS) slots[f]++;
+  for (const f of [...byRemainder, ...byWeight]) if (used() < WEEK_N && slots[f] < CAP) slots[f]++;
   // 시험: 표본이 2개 미만인 포맷은 최소 한 칸 (칸이 가장 많은 포맷에서 가져옴)
   for (const f of list) {
     if (slots[f] > 0 || model.formats[f].n >= 2) continue;
@@ -195,14 +197,14 @@ export function planWeek(model, formats) {
       slots[f]++;
     }
   }
-  while (used() < WEEK_SLOTS) {
-    const f = byWeight.find((x) => slots[x] < MAX_SLOTS) ?? byWeight[0];
+  while (used() < WEEK_N) {
+    const f = byWeight.find((x) => slots[x] < CAP) ?? byWeight[0];
     slots[f]++;
   }
   // 순서: 칸이 남은 포맷 중 바로 앞과 다른 포맷, 되도록 다른 종류(릴스↔캐러셀), 칸 많은·점수 높은 순
   const week = [];
   let prev;
-  while (week.length < WEEK_SLOTS) {
+  while (week.length < WEEK_N) {
     const left = [...byWeight].filter((x) => slots[x] > 0).sort((a, b) => slots[b] - slots[a] || weight[b] - weight[a]);
     const other = left.filter((x) => x !== prev);
     const f = other.find((x) => !prev || kindOfFormat(x) !== kindOfFormat(prev)) ?? other[0] ?? left[0];
