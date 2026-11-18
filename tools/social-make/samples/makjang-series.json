@@ -57,6 +57,7 @@
       "gender": "female",
       "myGender": "female",
       "relationship": "friend",
+      "pick": 1,
       "messages": [
         {
           "from": "me",
