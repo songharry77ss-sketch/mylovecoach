@@ -122,6 +122,25 @@
       "url": "https://www.instagram.com/stories/my.lovecoach/4032874387707243372",
       "mediaId": "18133931287804562",
       "at": "2026-11-18T04:29:05.776Z"
+    },
+    {
+      "id": "ai-makjang-1",
+      "channel": "instagram",
+      "url": "https://www.instagram.com/reel/Df4dAEtjg4R/",
+      "mediaId": "17993852169118187",
+      "at": "2026-11-18T11:59:22.481Z",
+      "audio": {
+        "id": "2330655201002925",
+        "title": "November Magic",
+        "artist": "Peaceful Reveries"
+      }
+    },
+    {
+      "id": "ai-makjang-1-story",
+      "channel": "instagram",
+      "url": "https://www.instagram.com/stories/my.lovecoach/4033101352846592276",
+      "mediaId": "18120170987007446",
+      "at": "2026-11-18T11:59:58.692Z"
     }
   ]
 }
