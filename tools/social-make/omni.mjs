@@ -64,6 +64,9 @@ export function findVideo(node, depth = 0) {
   return null;
 }
 
+/** 실패한 응답 요약 — 넘긴 그림(base64)처럼 긴 글은 길이만 남기고, 거절 이유가 어디에 있든 보이게 */
+export const briefOf = (it) => JSON.stringify(it ?? {}, (k, v) => (typeof v === 'string' && v.length > 200 ? `<${v.length}자>` : v)).slice(0, 1500);
+
 /** 다 끝났는지 (상태 이름이 바뀌어도 「진행 중」 류만 기다린다) */
 export const pending = (status) => /^(in_progress|queued|pending|running|processing|created|generating)$/i.test(String(status ?? ''));
 
@@ -114,7 +117,7 @@ export async function omniVideo({ prompt, images = [], aspectRatio = '9:16', res
     if (i % 3 === 2) log(`  … ${Math.round((Date.now() - started) / 1000)}초 (${it?.status})`);
   }
   const video = findVideo(it);
-  if (!video) throw new Error(`영상이 안 나왔어요 (상태 ${it?.status ?? '?'} · ${JSON.stringify(it?.error ?? it?.steps?.at?.(-1) ?? {}).slice(0, 300)})`);
+  if (!video) throw new Error(`영상이 안 나왔어요 (상태 ${it?.status ?? '?'} · ${briefOf(it)})`);
   const buf = await download(video, key);
   log(`  사람 장면 ${(buf.length / 1e6).toFixed(1)}MB · ${Math.round((Date.now() - started) / 1000)}초 걸림`);
   return buf;

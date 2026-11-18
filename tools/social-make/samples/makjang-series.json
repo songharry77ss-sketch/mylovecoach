@@ -88,6 +88,7 @@
       "gender": "male",
       "myGender": "female",
       "relationship": "ex",
+      "pick": 2,
       "messages": [
         {
           "from": "them",
@@ -103,8 +104,8 @@
       ],
       "person": {
         "hook": "막장 연애 3화\n바람핀 전남친한테\n카톡 옴",
-        "sent": "센딧이 골라 준\n사이다 한마디",
-        "reply": "전남친 반응\n레전드…",
+        "sent": "센딧 추천 중\n제일 쿨한 걸로",
+        "reply": "전남친 바로\n또 매달림 ㅋㅋ",
         "image": "tools/social-make/samples/makjang/ep3.jpg",
         "prompt": "Vertical 9:16 smartphone video with the realism of a casual Instagram vlog: filmed on a phone propped up on the bar table facing her, a tiny handheld wobble, realistic skin texture, true-to-life colors.\nThe woman is exactly the person in the reference image: same face, hair and outfit. Keep her identity consistent for the whole clip and start from the reference image composition.\nShe sits at a chic wine bar at night with soft city-light bokeh behind her, wearing an elegant black satin slip dress, a glass of red wine beside her. She holds her own smartphone in portrait orientation; the back of the phone faces the camera the whole time and its screen is never visible.\n0-4s: the phone lights up; she glances at it, raises one eyebrow and lets out a small amused scoff, rolling her eyes slightly.\n4-8s: with a confident little smirk she types quickly, taps send with a flourish, sets the phone face-down on the bar and picks up her wine glass.\n8-12s: the phone buzzes; she peeks at it, laughs freely, tucks her hair behind her ear, then raises her wine glass toward the camera in a toast with a radiant, triumphant smile.\nAudio: soft wine bar ambience, glasses clinking, low chatter, the phone buzzing at 8 seconds. No music. She does not speak: no dialogue, no voice-over.\nNo on-screen text, captions, subtitles, logos or watermarks."
       },
