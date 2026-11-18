@@ -85,3 +85,9 @@ test('주인공 기준 그림 — 읽어서 영상 모델에 넘길 모양으로
   assert.throws(() => personImage({ person: { image: 'a.gif' } }, dir), /png·jpg·webp/);
   assert.ok(FORMATS['ai-reel'].check({ ...sample, person: { ...sample.person, image: 'tools/없는-그림.jpg' } }).some((p) => p.includes('파일이 없어요')));
 });
+
+test('사람 장면 자막 위치(captionTop) — 얼굴을 가리지 않게 내릴 수 있고, 인스타 아래 글 자리는 넘지 않는다', () => {
+  assert.deepEqual(FORMATS['ai-reel'].check({ ...sample, person: { ...sample.person, captionTop: 1150 } }), []);
+  assert.ok(FORMATS['ai-reel'].check({ ...sample, person: { ...sample.person, captionTop: 1500 } }).some((p) => p.includes('captionTop')));
+  assert.ok(FORMATS['ai-reel'].check({ ...sample, person: { ...sample.person, captionTop: '1150' } }).some((p) => p.includes('captionTop')));
+});
