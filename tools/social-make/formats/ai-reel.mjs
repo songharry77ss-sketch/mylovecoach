@@ -8,8 +8,11 @@
 // 항목 (bank.json): app-reel 항목 + format: 'ai-reel', person: {
 //   hook: '썸남이 먼저\n크리스마스 물어봄'(앞 장면 자막) · sent: '센딧이 골라 준 걸로 보냄' · reply: '답 왔다…'(뒷 장면 자막 둘),
 //   who?, place?(영어 — 사람·장소 묘사) | prompt?(통째로), seconds? (6~15, 기본 12), resolution? ('720p' | '1080p'),
-//   cuts?: { a: [시작, 끝], b: [시작, 끝], replyAt } (영상 속 초 — 기본 a 0.2~3.8 · b 4.2~끝 · replyAt 8.2) }
+//   cuts?: { a: [시작, 끝], b: [시작, 끝], replyAt } (영상 속 초 — 기본 a 0.2~3.8 · b 4.2~끝 · replyAt 8.2),
+//   image? (저장소 안 그림 경로 — 주인공 기준 그림. 시리즈에서 같은 사람이 나오게 영상 모델에 함께 넘긴다.
+//           실제 인물 사진은 넣지 않는다 — AI로 만든 가상 인물 그림만) }
 // 사람 영상은 <폴더>/person.mp4 로 남겨 두고 다시 만들지 않는다 (만들려면 SOCIAL_AI_VIDEO=on — 돈이 듦)
+import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -40,6 +43,20 @@ export function personPrompt(it) {
     'Audio: quiet café ambience, cups clinking, soft background chatter. No music. She does not speak: no dialogue, no voice-over.',
     'No on-screen text, captions, subtitles, logos or watermarks.',
   ].join('\n');
+}
+
+const IMAGE_MIME = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' };
+
+/** 주인공 기준 그림 — 저장소 기준 경로(실행 위치)에서 읽는다. 없으면 null */
+export function personImage(it, root = process.cwd()) {
+  const rel = it.person?.image;
+  if (!str(rel)) return null;
+  const file = path.resolve(root, rel);
+  const mime = IMAGE_MIME[path.extname(file).toLowerCase()];
+  if (!mime) throw new Error(`person.image 는 png·jpg·webp (${rel})`);
+  if (!existsSync(file)) throw new Error(`person.image 파일이 없어요 (${rel})`);
+  const data = readFileSync(file);
+  return { data, mime, rel, sha: createHash('sha256').update(data).digest('hex').slice(0, 16) };
 }
 
 // ───────────── 자막 그림 (투명 PNG) ─────────────
@@ -132,14 +149,18 @@ async function personClip(it, dir) {
   const prompt = personPrompt(it);
   const seconds = it.person.seconds ?? 12;
   const resolution = it.person.resolution ?? '1080p';
+  const image = personImage(it);
   if (existsSync(file)) {
     const meta = existsSync(metaFile) ? JSON.parse(readFileSync(metaFile, 'utf8')) : null;
-    // 글을 고쳤어도 만들기가 꺼져 있으면(돈 안 씀) 있던 영상을 그대로 쓴다
-    if (!meta || meta.prompt === prompt || process.env.SOCIAL_AI_VIDEO !== 'on') return { file, source: 'cache' };
+    // 글·기준 그림을 고쳤어도 만들기가 꺼져 있으면(돈 안 씀) 있던 영상을 그대로 쓴다
+    const same = meta && meta.prompt === prompt && (meta.image?.sha ?? null) === (image?.sha ?? null);
+    if (!meta || same || process.env.SOCIAL_AI_VIDEO !== 'on') return { file, source: 'cache' };
   }
-  const buf = await omniVideo({ prompt, seconds, resolution, log: (m) => console.log(m) });
+  const images = image ? [{ data: image.data, mime: image.mime }] : [];
+  const buf = await omniVideo({ prompt, images, seconds, resolution, log: (m) => console.log(m) });
   writeFileSync(file, buf);
-  writeFileSync(metaFile, `${JSON.stringify({ at: new Date().toISOString(), model: OMNI_MODEL, seconds, resolution, note: 'AI로 만든 사람 장면 — 영상에 「AI로 만든 장면」 표시', prompt }, null, 2)}\n`);
+  const imageMeta = image ? { image: { file: image.rel, sha: image.sha } } : {};
+  writeFileSync(metaFile, `${JSON.stringify({ at: new Date().toISOString(), model: OMNI_MODEL, seconds, resolution, note: 'AI로 만든 사람 장면 — 영상에 「AI로 만든 장면」 표시', ...imageMeta, prompt }, null, 2)}\n`);
   return { file, source: 'ai' };
 }
 
@@ -160,6 +181,13 @@ export function checkAiReel(it, msgProblems) {
     const ok = (r) => Array.isArray(r) && r.length === 2 && r.every((x) => typeof x === 'number' && x >= 0) && r[1] > r[0];
     if (p.cuts.a !== undefined && !ok(p.cuts.a)) out.push('person.cuts.a 는 [시작, 끝] 초');
     if (p.cuts.b !== undefined && !ok(p.cuts.b)) out.push('person.cuts.b 는 [시작, 끝] 초');
+  }
+  if (p.image !== undefined) {
+    try {
+      personImage(it);
+    } catch (e) {
+      out.push(e.message);
+    }
   }
   // 사람 장면이 AI 라는 걸 캡션에서도 밝힌다
   if (!/AI\s*로\s*만든|AI\s*연출|AI\s*생성/.test(String(it.caption ?? ''))) out.push('caption 에 사람 장면이 AI로 만든 것이라고 써 주세요 (예: 「사람 나오는 장면은 AI로 만든 연출」)');
