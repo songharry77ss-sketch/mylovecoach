@@ -8,6 +8,7 @@ export const REPO = 'songharry77ss-sketch/mylovecoach';
  * (2026-11-10: 11:10 · 18:55 · 02:54 · 08:26 KST). 그래서 정확한 시각 대신
  *   · 오전 10시~자정(POST_HOURS)에 도는 실행에서만 올리고 — 새벽에 올라가지 않게,
  *   · 예정 시각 9시간 전(EARLY_HOURS)부터 올릴 수 있게 해 — 21:00 항목이면 그날 12시 이후 첫 실행에,
+ *     항목에 early(0~9시간)가 있으면 그만큼만 일찍 — 저녁에 나가야 하는 시리즈 같은 것 (예: 21:00 · early 3 → 18시 이후),
  *   · 하루(한국 날짜)에 피드 글은 채널마다 FEED_PER_DAY 개까지 — 2026-11-17 「더 적극적으로」: 점심 12:30 · 밤 21:00 두 개(FEED_TIMES),
  *   · 한 번 실행에 피드 글은 채널마다 하나, 직전 피드 글과 MIN_GAP_HOURS 는 띄운다 — 두 글이 연달아 붙어 나가지 않게,
  *   · 예정일에서 STALE_DAYS 넘게 지난 항목은 버린다.
@@ -71,6 +72,7 @@ export function problems(entry) {
     say(e.message);
   }
   if (entry.after !== undefined && (!/^[a-z0-9][a-z0-9-]{1,60}$/.test(String(entry.after)) || entry.after === entry.id)) say('after 는 먼저 올라가야 할 다른 항목의 id');
+  if (entry.early !== undefined && !(typeof entry.early === 'number' && entry.early >= 0 && entry.early <= EARLY_HOURS)) say(`early 는 0~${EARLY_HOURS} (예정 시각 몇 시간 전부터 올릴지)`);
   const media = Array.isArray(entry.media) ? entry.media : [];
   const text = normalizeText(entry.caption);
   const limit = LIMITS[entry.channel];
@@ -197,7 +199,7 @@ export function dueEntries(queue, now, posted = { posts: [] }) {
   const fedThisRun = new Set();
   for (const e of entries
     .filter((x) => x.approved === true && !done.has(x.id))
-    .filter((x) => t >= kst(x.at).getTime() - EARLY_HOURS * HOUR && t - kst(x.at).getTime() <= STALE_DAYS * DAY)
+    .filter((x) => t >= kst(x.at).getTime() - (x.early ?? EARLY_HOURS) * HOUR && t - kst(x.at).getTime() <= STALE_DAYS * DAY)
     .sort((a, b) => kst(a.at) - kst(b.at))) {
     // 먼저 올라가야 할 항목이 이미 올라갔거나, 이번 실행에서 앞서 올라갈 때만 (게시 단계에서 실패하면 다시 거른다)
     if (e.after && !done.has(e.after) && !out.some((x) => x.id === e.after)) continue;
