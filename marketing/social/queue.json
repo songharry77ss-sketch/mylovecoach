@@ -159,7 +159,7 @@
     },
     {
       "id": "p-late-night-what",
-      "at": "2026-11-18 21:00",
+      "at": "2026-11-26 12:30",
       "channel": "instagram",
       "kind": "carousel",
       "media": [
@@ -172,11 +172,11 @@
       ],
       "caption": "썸남이 밤 11시에 \"너는 뭐해?\" 보냈다면 뭐라고 답할래? 🌙\n\n세 가지 답장을 보냈을 때 상대 반응까지 정리해 봤어.\n\n너는 평소에 어떤 스타일이야?\n\n#썸 #카톡답장 #썸남 #연애고민 #연애상담",
       "approved": true,
-      "note": "자동 생산 · pick-carousel · 11-17 사장님 「올리기 시작해봐」로 허락·날짜 다시 잡음"
+      "note": "자동 생산 · pick-carousel · 11-17 사장님 「올리기 시작해봐」로 허락·날짜 다시 잡음 · 막장 연애 3부작에 21:00 칸을 내주고 옮김 (11-18)"
     },
     {
       "id": "p-late-night-what-story",
-      "at": "2026-11-18 21:01",
+      "at": "2026-11-26 12:31",
       "channel": "instagram",
       "kind": "story",
       "media": [
@@ -189,7 +189,7 @@
     },
     {
       "id": "r-sick-t-vs-f",
-      "at": "2026-11-19 21:00",
+      "at": "2026-11-27 12:30",
       "channel": "instagram",
       "kind": "reel",
       "media": [
@@ -203,11 +203,11 @@
         "minSeconds": 19
       },
       "approved": true,
-      "note": "자동 생산 · chat-reel · 11-17 사장님 「올리기 시작해봐」로 허락·날짜 다시 잡음"
+      "note": "자동 생산 · chat-reel · 11-17 사장님 「올리기 시작해봐」로 허락·날짜 다시 잡음 · 막장 연애 3부작에 21:00 칸을 내주고 옮김 (11-18)"
     },
     {
       "id": "r-sick-t-vs-f-story",
-      "at": "2026-11-19 21:01",
+      "at": "2026-11-27 12:31",
       "channel": "instagram",
       "kind": "story",
       "media": [
@@ -220,7 +220,7 @@
     },
     {
       "id": "kkti-esfj-isfj",
-      "at": "2026-11-20 21:00",
+      "at": "2026-11-27 21:00",
       "channel": "instagram",
       "kind": "carousel",
       "media": [
@@ -232,11 +232,11 @@
       ],
       "caption": "직진 불도저 × 꼬리 흔드는 골댕이 카톡 궁합 99% 💍\n\n카톡만 봐도 결이 같아요. 이런 조합 흔치 않아요!\n\n너희 둘은 무슨 조합이야? 카톡 습관 12문항이면 내 유형이 나오고, 둘 다 하면 궁합까지 나와. 테스트는 프로필 링크에.\n\n#KKTI #카톡궁합 #MBTI궁합 #연애유형 #썸",
       "approved": true,
-      "note": "자동 생산 · kkti-pair · 11-17 사장님 「올리기 시작해봐」로 허락·날짜 다시 잡음"
+      "note": "자동 생산 · kkti-pair · 11-17 사장님 「올리기 시작해봐」로 허락·날짜 다시 잡음 · 막장 연애 3부작에 21:00 칸을 내주고 옮김 (11-18)"
     },
     {
       "id": "kkti-esfj-isfj-story",
-      "at": "2026-11-20 21:01",
+      "at": "2026-11-27 21:01",
       "channel": "instagram",
       "kind": "story",
       "media": [
@@ -717,6 +717,108 @@
       "approved": true,
       "approvedBy": "사장님 요청 — 채팅 2026-11-17 「실제로 배포까지」",
       "after": "ai-christmas-cafe",
+      "note": "ai-reel 스토리"
+    },
+    {
+      "id": "ai-makjang-1",
+      "at": "2026-11-18 21:00",
+      "channel": "instagram",
+      "kind": "reel",
+      "format": "ai-reel",
+      "media": [
+        "marketing/social/ai-makjang-1/reel.mp4"
+      ],
+      "cover": "marketing/social/ai-makjang-1/cover.jpg",
+      "caption": "[막장 연애 1화] 남친 폰에 '자기야 오늘 고마웠어'가 떴다. 회사 동기가 장난친 거라는데… 이거 믿어도 돼?\n\n센딧에 대화를 그대로 넣었더니 답장 3개를 성공 확률이랑 같이 골라 줬어. 앱 화면과 답장은 실제 센딧 AI 결과 그대로야.\n\n※ 지어낸 이야기야. 사람 나오는 장면은 AI로 만든 연출이고, 마지막 카톡은 센딧이 예상한 답장이야.\n\n2화에서 그 '동기'의 정체 공개. 너라면 여기서 뭐라고 보낼래?\n\n#막장 #바람 #남친 #카톡답장 #센딧",
+      "audio": {
+        "trending": true,
+        "videoVolume": 35,
+        "minSeconds": 29
+      },
+      "early": 3,
+      "approved": true,
+      "approvedBy": "사장님 요청 — 채팅 2026-11-18 「세 개 정도 막장드라마 시리즈 올려보자」",
+      "note": "막장 연애 3부작 · 주인공은 Codex 로 만든 가상 인물 · 사람 장면 Gemini Omni Flash(「AI로 만든 장면」 표시) · 앱 화면은 실제 결과"
+    },
+    {
+      "id": "ai-makjang-1-story",
+      "at": "2026-11-18 21:01",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/ai-makjang-1/reel.mp4"
+      ],
+      "approved": true,
+      "approvedBy": "사장님 요청 — 채팅 2026-11-18 「세 개 정도 막장드라마 시리즈 올려보자」",
+      "after": "ai-makjang-1",
+      "note": "ai-reel 스토리"
+    },
+    {
+      "id": "ai-makjang-2",
+      "at": "2026-11-19 21:00",
+      "channel": "instagram",
+      "kind": "reel",
+      "format": "ai-reel",
+      "media": [
+        "marketing/social/ai-makjang-2/reel.mp4"
+      ],
+      "cover": "marketing/social/ai-makjang-2/cover.jpg",
+      "caption": "[막장 연애 2화] 남친 폰 속 '자기야'의 주인공… 내 절친이었다. 절친 스토리에 남친 시계가 찍혀 있는데, 어제 집에서 혼자 넷플 봤대.\n\n센딧에 그대로 넣었더니 답장 3개를 성공 확률이랑 같이 골라 줬어. 앱 화면과 답장은 실제 센딧 AI 결과 그대로야.\n\n※ 지어낸 이야기야. 사람 나오는 장면은 AI로 만든 연출이고, 마지막 카톡은 센딧이 예상한 답장이야.\n\n3화에서 남친이 매달린다. 너라면 절친한테 뭐라고 보낼래?\n\n#막장 #절친 #바람 #카톡답장 #센딧",
+      "audio": {
+        "trending": true,
+        "videoVolume": 35,
+        "minSeconds": 29
+      },
+      "early": 3,
+      "approved": true,
+      "approvedBy": "사장님 요청 — 채팅 2026-11-18 「세 개 정도 막장드라마 시리즈 올려보자」",
+      "note": "막장 연애 3부작 · 주인공은 Codex 로 만든 가상 인물 · 사람 장면 Gemini Omni Flash(「AI로 만든 장면」 표시) · 앱 화면은 실제 결과"
+    },
+    {
+      "id": "ai-makjang-2-story",
+      "at": "2026-11-19 21:01",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/ai-makjang-2/reel.mp4"
+      ],
+      "approved": true,
+      "approvedBy": "사장님 요청 — 채팅 2026-11-18 「세 개 정도 막장드라마 시리즈 올려보자」",
+      "after": "ai-makjang-2",
+      "note": "ai-reel 스토리"
+    },
+    {
+      "id": "ai-makjang-3",
+      "at": "2026-11-20 21:00",
+      "channel": "instagram",
+      "kind": "reel",
+      "format": "ai-reel",
+      "media": [
+        "marketing/social/ai-makjang-3/reel.mp4"
+      ],
+      "cover": "marketing/social/ai-makjang-3/cover.jpg",
+      "caption": "[막장 연애 3화·완결] 내 절친이랑 바람핀 전남친이 새벽 1시에 \"한 번만 기회 줘\"래.\n\n센딧에 그대로 넣었더니 답장 3개를 성공 확률이랑 같이 골라 줬어. 앱 화면과 답장은 실제 센딧 AI 결과 그대로야.\n\n※ 지어낸 이야기야. 사람 나오는 장면은 AI로 만든 연출이고, 마지막 카톡은 센딧이 예상한 답장이야.\n\n너라면 받아 줄 거야, 차단할 거야?\n\n#막장 #전남친 #재회 #카톡답장 #센딧",
+      "audio": {
+        "trending": true,
+        "videoVolume": 35,
+        "minSeconds": 29
+      },
+      "early": 3,
+      "approved": true,
+      "approvedBy": "사장님 요청 — 채팅 2026-11-18 「세 개 정도 막장드라마 시리즈 올려보자」",
+      "note": "막장 연애 3부작 · 주인공은 Codex 로 만든 가상 인물 · 사람 장면 Gemini Omni Flash(「AI로 만든 장면」 표시) · 앱 화면은 실제 결과"
+    },
+    {
+      "id": "ai-makjang-3-story",
+      "at": "2026-11-20 21:01",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/ai-makjang-3/reel.mp4"
+      ],
+      "approved": true,
+      "approvedBy": "사장님 요청 — 채팅 2026-11-18 「세 개 정도 막장드라마 시리즈 올려보자」",
+      "after": "ai-makjang-3",
       "note": "ai-reel 스토리"
     }
   ]

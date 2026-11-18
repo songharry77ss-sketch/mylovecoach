@@ -1,0 +1,12 @@
+{
+  "at": "2026-11-18T06:11:43.004Z",
+  "model": "gemini-omni-1.2-flash",
+  "seconds": 12,
+  "resolution": "1080p",
+  "note": "AI로 만든 사람 장면 — 영상에 「AI로 만든 장면」 표시",
+  "image": {
+    "file": "tools/social-make/samples/makjang/heroine.jpg",
+    "sha": "b35006655d04a702"
+  },
+  "prompt": "Vertical 9:16 smartphone video with the realism of a casual Instagram vlog: filmed on a phone propped up on the coffee table facing her, a tiny handheld wobble, realistic skin texture, true-to-life colors.\nThe woman has the same face and hair as the adult woman in the reference image (late 20s); keep her identity consistent for the whole clip. Her outfit and the location are as described below, not as in the reference photo.\nShe sits on a sofa in a cozy apartment living room at night with warm lamp light, wearing a cream ribbed knit. She holds her own smartphone in portrait orientation; the back of the phone faces the camera the whole time and its screen is never visible.\n0-4s: she stares at her phone, frozen; her eyes widen in shock, her lips part, she slowly covers her mouth with one hand, then glances away, hurt and suspicious.\n4-8s: her face hardens; she types fast with both thumbs, jaw set, taps send firmly, then drops the phone onto the sofa cushion beside her and crosses her arms, breathing out sharply.\n8-12s: the phone buzzes; she snatches it up, reads, lets out a short disbelieving laugh, shakes her head slowly, then looks straight into the camera with a cold, unimpressed stare.\nAudio: quiet room tone, a faint TV murmur far away, the phone buzzing at 8 seconds. No music. She does not speak: no dialogue, no voice-over.\nNo on-screen text, captions, subtitles, logos or watermarks."
+}

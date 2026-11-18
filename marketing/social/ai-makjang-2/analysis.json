@@ -1,0 +1,66 @@
+{
+  "at": "2026-11-18T06:16:50.336Z",
+  "note": "운영 코치 서버(/api/coach)가 돌려준 실제 결과 — app-reel 녹화에 넣음",
+  "request": {
+    "crush": {
+      "name": "지수",
+      "gender": "female",
+      "relationship": "friend",
+      "style": [],
+      "notes": "",
+      "heat": 0
+    },
+    "user": {
+      "name": "",
+      "gender": "female",
+      "style": []
+    },
+    "tone": "natural",
+    "emoji": "on",
+    "toneChosen": false,
+    "emojiChosen": false,
+    "text": "나: 너 어제 스토리에 찍힌 시계 준호 거 아냐?\n지수: 엥? 무슨 소리야 ㅋㅋ 비슷한 거겠지\n지수: 나 어제 집에서 혼자 넷플 봤어",
+    "history": [],
+    "today": "11/18(수)"
+  },
+  "analysis": {
+    "callName": null,
+    "speechLevel": "casual",
+    "summary": "지수가 오해를 바로잡고 오직 집에서 넷플릭스를 봤다고 해명하는 상황이에요. 담백하게 믿어주며 가볍게 대화를 전환해 보세요.",
+    "temperature": "neutral",
+    "interestScore": 50,
+    "heatDelta": 2,
+    "insights": [
+      "지수가 당황하며 솔직하게 해명함",
+      "친해질 수 있는 자연스러운 기회"
+    ],
+    "replies": [
+      {
+        "tone": "natural",
+        "text": "아 진짜? 디자인 똑같아서 착각했네 차라리 다행이다 ㅎㅎ 넷플 뭐 봤어? 🍿",
+        "why": "오해 해소 후 자연스러운 티키타카 유도",
+        "expectedReaction": "나 어제 완결까지 다 봄 ㅋㅋ",
+        "successRate": 85
+      },
+      {
+        "tone": "witty",
+        "text": "휴 깜짝이야 너 준호랑 비밀연애하는 줄 알고 식은땀 흘렸잖아 🤭 넷플 재밌는 거 추천 좀!",
+        "why": "농담으로 어색함 풀어주고 대화 이어나가기",
+        "expectedReaction": "아 웃겨ㅋㅋ 절대 아니거든!",
+        "successRate": 80
+      },
+      {
+        "tone": "sincere",
+        "text": "아 진짜 비슷해 보여서 착각했나 봐! 혼자 넷플 보면서 맛있는 거라도 먹었어? 😊",
+        "why": "관심사 자연스럽게 물어보며 리액션",
+        "expectedReaction": "응ㅋㅋ 떡볶이 시켜 먹음!",
+        "successRate": 82
+      }
+    ],
+    "nextStep": "넷플릭스 작품 이야기로 가볍게 대화 이어가기",
+    "warnings": [],
+    "memory": [
+      "11/18(수) 지수의 스토리 시계를 착각했으나 지수는 집에서 혼자 넷플릭스를 봤다고 해명함."
+    ]
+  }
+}
