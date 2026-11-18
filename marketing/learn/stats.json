@@ -23,6 +23,17 @@
      "likes": 0,
      "comments": 0,
      "watchMs": 6204
+    },
+    {
+     "at": "2026-11-18T08:06:39.843Z",
+     "ageH": 98,
+     "views": 230,
+     "reach": 209,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "watchMs": 6204
     }
    ],
    "meta": {
@@ -57,6 +68,18 @@
     {
      "at": "2026-11-17T08:42:42.419Z",
      "ageH": 116,
+     "views": 3,
+     "reach": 1,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 0
+    },
+    {
+     "at": "2026-11-18T08:06:39.843Z",
+     "ageH": 139,
      "views": 3,
      "reach": 1,
      "saved": 0,
@@ -104,6 +127,17 @@
      "likes": 1,
      "comments": 0,
      "watchMs": 1892
+    },
+    {
+     "at": "2026-11-18T08:06:39.843Z",
+     "ageH": 139,
+     "views": 214,
+     "reach": 197,
+     "saved": 0,
+     "shares": 0,
+     "likes": 1,
+     "comments": 0,
+     "watchMs": 1887
     }
    ],
    "meta": {
@@ -136,6 +170,18 @@
     {
      "at": "2026-11-17T08:42:42.419Z",
      "ageH": 186,
+     "views": 18,
+     "reach": 4,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 0
+    },
+    {
+     "at": "2026-11-18T08:06:39.843Z",
+     "ageH": 210,
      "views": 18,
      "reach": 4,
      "saved": 0,
@@ -183,6 +229,17 @@
      "likes": 3,
      "comments": 0,
      "watchMs": 2100
+    },
+    {
+     "at": "2026-11-18T08:06:39.843Z",
+     "ageH": 237,
+     "views": 128,
+     "reach": 105,
+     "saved": 1,
+     "shares": 0,
+     "likes": 3,
+     "comments": 0,
+     "watchMs": 2088
     }
    ],
    "meta": {
@@ -221,6 +278,17 @@
      "likes": 5,
      "comments": 0,
      "watchMs": 4501
+    },
+    {
+     "at": "2026-11-18T08:06:39.843Z",
+     "ageH": 601,
+     "views": 157,
+     "reach": 146,
+     "saved": 3,
+     "shares": 0,
+     "likes": 5,
+     "comments": 0,
+     "watchMs": 4473
     }
    ],
    "meta": {
@@ -254,6 +322,18 @@
     {
      "at": "2026-11-17T08:42:42.419Z",
      "ageH": 595,
+     "views": 12,
+     "reach": 7,
+     "saved": 0,
+     "shares": 0,
+     "likes": 2,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 1
+    },
+    {
+     "at": "2026-11-18T08:06:39.843Z",
+     "ageH": 618,
      "views": 12,
      "reach": 7,
      "saved": 0,
@@ -303,6 +383,18 @@
      "comments": 0,
      "follows": 0,
      "profileVisits": 1
+    },
+    {
+     "at": "2026-11-18T08:06:39.843Z",
+     "ageH": 641,
+     "views": 16,
+     "reach": 5,
+     "saved": 0,
+     "shares": 0,
+     "likes": 1,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 1
     }
    ],
    "meta": {
@@ -335,6 +427,18 @@
     {
      "at": "2026-11-17T08:42:42.419Z",
      "ageH": 617,
+     "views": 13,
+     "reach": 4,
+     "saved": 0,
+     "shares": 0,
+     "likes": 1,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 0
+    },
+    {
+     "at": "2026-11-18T08:06:39.843Z",
+     "ageH": 641,
      "views": 13,
      "reach": 4,
      "saved": 0,
@@ -381,6 +485,18 @@
      "comments": 0,
      "follows": 0,
      "profileVisits": 1
+    },
+    {
+     "at": "2026-11-18T08:06:39.843Z",
+     "ageH": 641,
+     "views": 16,
+     "reach": 4,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 1
     }
    ],
    "meta": {
@@ -406,6 +522,17 @@
      "likes": 3,
      "comments": 0,
      "watchMs": 7523
+    },
+    {
+     "at": "2026-11-18T08:06:39.843Z",
+     "ageH": 40,
+     "views": 599,
+     "reach": 511,
+     "saved": 0,
+     "shares": 7,
+     "likes": 3,
+     "comments": 0,
+     "watchMs": 7544
     }
    ],
    "meta": {
@@ -413,14 +540,70 @@
     "url": "https://www.instagram.com/reel/Dfzso1sjgxt/",
     "postedAt": "2026-11-16T15:39:41+0000",
     "kind": "reel",
-    "format": "old-reel",
+    "format": "real-reel",
     "hook": "고대에서 번호 따기 1일차 🎓",
     "topics": [
      "썸"
     ],
     "hourKst": 0
    }
+  },
+  "r-three-hours": {
+   "snaps": [
+    {
+     "at": "2026-11-18T08:06:39.843Z",
+     "ageH": 4,
+     "views": 223,
+     "reach": 207,
+     "saved": 1,
+     "shares": 0,
+     "likes": 2,
+     "comments": 0,
+     "watchMs": 2643
+    }
+   ],
+   "meta": {
+    "mediaId": "18128279833675830",
+    "url": "https://www.instagram.com/reel/Df3pZQ5jAMx/",
+    "postedAt": "2026-11-18T04:28:20+0000",
+    "kind": "reel",
+    "format": "chat-reel",
+    "hook": "썸남이 내 카톡\n3시간째 읽씹 중",
+    "topics": [
+     "연락 텀·읽씹",
+     "썸"
+    ],
+    "hourKst": 13
+   }
+  },
+  "ai-christmas-cafe": {
+   "snaps": [
+    {
+     "at": "2026-11-18T08:06:39.843Z",
+     "ageH": 19,
+     "views": 191,
+     "reach": 179,
+     "saved": 1,
+     "shares": 0,
+     "likes": 1,
+     "comments": 0,
+     "watchMs": 2419
+    }
+   ],
+   "meta": {
+    "mediaId": "17976301047189823",
+    "url": "https://www.instagram.com/reel/Df19UwcmS9p/",
+    "postedAt": "2026-11-17T12:44:19+0000",
+    "kind": "reel",
+    "format": "ai-reel",
+    "hook": "썸남이 먼저 \"크리스마스에 뭐 해?\" 물어보면 뭐라고 답해야 약속까지 갈",
+    "topics": [
+     "시즌",
+     "썸"
+    ],
+    "hourKst": 21
+   }
   }
  },
- "updatedAt": "2026-11-17T08:42:42.419Z"
+ "updatedAt": "2026-11-18T08:06:39.843Z"
 }
