@@ -75,7 +75,9 @@ const aiTag = () =>
     { position: 'absolute', left: 44, top: 168, padding: '10px 22px', borderRadius: 999, backgroundColor: 'rgba(0,0,0,0.55)' },
     text('AI로 만든 장면', { fontSize: 30, fontWeight: 700, color: '#FFFFFF', letterSpacing: -0.5 }),
   );
-export const overlayTree = (value) => box({ width: W, height: H, fontFamily: 'Pretendard' }, aiTag(), captionLines(value, 300));
+/** 사람 장면 자막 위치(px, 1920 기준 위쪽 끝) — 기본 300(머리 위쪽). 얼굴을 보여 줘야 하면 person.captionTop 으로 가슴께(1150 안팎)로 내린다 */
+export const CAPTION_TOP = 300;
+export const overlayTree = (value, top = CAPTION_TOP) => box({ width: W, height: H, fontFamily: 'Pretendard' }, aiTag(), captionLines(value, top));
 
 // ───────────── ffmpeg ─────────────
 
@@ -189,6 +191,8 @@ export function checkAiReel(it, msgProblems) {
       out.push(e.message);
     }
   }
+  // 자막 3줄(줄마다 약 100px)이 인스타 아래 글·버튼 자리(1600px 아래)에 닿지 않게
+  if (p.captionTop !== undefined && !(Number.isInteger(p.captionTop) && p.captionTop >= 160 && p.captionTop <= 1300)) out.push('person.captionTop 은 160~1300 (px)');
   // 사람 장면이 AI 라는 걸 캡션에서도 밝힌다
   if (!/AI\s*로\s*만든|AI\s*연출|AI\s*생성/.test(String(it.caption ?? ''))) out.push('caption 에 사람 장면이 AI로 만든 것이라고 써 주세요 (예: 「사람 나오는 장면은 AI로 만든 연출」)');
   return out;
@@ -215,9 +219,10 @@ export async function makeAiReelItem(it, dir) {
   const ovA = tmp('_ov-a.png');
   const ovB1 = tmp('_ov-b1.png');
   const ovB2 = tmp('_ov-b2.png');
-  writeFileSync(ovA, await png(overlayTree(it.person.hook), W, H));
-  writeFileSync(ovB1, await png(overlayTree(it.person.sent), W, H));
-  writeFileSync(ovB2, await png(overlayTree(it.person.reply), W, H));
+  const top = it.person.captionTop ?? CAPTION_TOP;
+  writeFileSync(ovA, await png(overlayTree(it.person.hook, top), W, H));
+  writeFileSync(ovB1, await png(overlayTree(it.person.sent, top), W, H));
+  writeFileSync(ovB2, await png(overlayTree(it.person.reply, top), W, H));
 
   const file = path.join(dir, 'reel.mp4');
   const seconds = composeAiReel({ person: person.file, cuts, head, tail, ovA, ovB1, ovB2, out: file });
