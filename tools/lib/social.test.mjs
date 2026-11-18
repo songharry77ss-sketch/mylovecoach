@@ -92,6 +92,18 @@ test('예약 실행이 아무 때나 돌아도 — 새벽엔 안 올리고, 그�
   assert.deepEqual(ids(dueEntries(q, kst('2026-11-05 15:33'))), ['d3-ig']); // 다음 날 낮에 이어서
 });
 
+test('항목의 early 만큼만 일찍 — 저녁에 나가야 하는 시리즈', () => {
+  const series = { ...base, id: 'series', early: 3 };
+  const q = { entries: [series] };
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 13:28'))), []); // 기본 규칙(9시간)이면 올라갔을 시각
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 17:59'))), []);
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 18:00'))), ['series']);
+  assert.deepEqual(ids(dueEntries(q, kst('2026-11-04 20:41'))), ['series']);
+  assert.deepEqual(problems(series), []);
+  assert.ok(problems({ ...series, early: 12 }).some((p) => p.includes('early')));
+  assert.ok(problems({ ...series, early: '3' }).some((p) => p.includes('early')));
+});
+
 test('스토리는 하루 개수에 세지 않는다', () => {
   const story = { ...base, id: 'd3-story', kind: 'story', media: ['marketing/social/d3/story.jpg'] };
   const q = { entries: [base, story] };
