@@ -1,0 +1,115 @@
+{
+  "note": "「막장 연애」 3부작 ai-reel — 같은 가상 주인공(Codex 그림 생성으로 만든 AI 인물, samples/makjang/*.jpg)이 세 편에 이어 나온다. 실제 인물 사진은 쓰지 않는다. 사람 장면은 Gemini Omni Flash(「AI로 만든 장면」 표시), 앱 화면과 답장은 운영 코치 서버의 실제 결과. 받은 카톡·상대 반응·이야기는 지어낸 것이라 캡션에 밝힌다. 사장님 요청 2026-11-18.",
+  "items": [
+    {
+      "id": "ai-makjang-1",
+      "format": "ai-reel",
+      "label": "막장 연애 1화",
+      "hook": "남친 폰에 뜬\n「자기야」",
+      "hookEm": ["자기야"],
+      "name": "준호",
+      "avatar": "🐻",
+      "gender": "male",
+      "myGender": "female",
+      "relationship": "dating",
+      "messages": [
+        {
+          "from": "me",
+          "text": "아까 니 폰에 뜬 '자기야 오늘 고마웠어' 누구야?",
+          "time": "오후 11:12"
+        },
+        {
+          "from": "them",
+          "text": "아 그거 ㅋㅋ 회사 동기가 장난친 거야",
+          "time": "오후 11:20"
+        },
+        {
+          "from": "them",
+          "text": "별거 아니니까 신경 쓰지 마",
+          "time": "오후 11:20"
+        }
+      ],
+      "person": {
+        "hook": "막장 연애 1화\n남친 폰에 뜬\n「자기야」 알림",
+        "sent": "센딧이 골라 준\n한마디 보냄",
+        "reply": "답장 온 거\n실화냐…",
+        "image": "tools/social-make/samples/makjang/ep1.jpg",
+        "prompt": "Vertical 9:16 smartphone video with the realism of a casual Instagram vlog: filmed on a phone propped up on the coffee table facing her, a tiny handheld wobble, realistic skin texture, true-to-life colors.\nThe woman is exactly the person in the reference image: same face, hair and outfit. Keep her identity consistent for the whole clip and start from the reference image composition.\nShe sits on a sofa in a cozy apartment living room at night with warm lamp light, wearing a cream ribbed knit. She holds her own smartphone in portrait orientation; the back of the phone faces the camera the whole time and its screen is never visible.\n0-4s: she stares at her phone, frozen; her eyes widen in shock, her lips part, she slowly covers her mouth with one hand, then glances away, hurt and suspicious.\n4-8s: her face hardens; she types fast with both thumbs, jaw set, taps send firmly, then drops the phone onto the sofa cushion beside her and crosses her arms, breathing out sharply.\n8-12s: the phone buzzes; she snatches it up, reads, lets out a short disbelieving laugh, shakes her head slowly, then looks straight into the camera with a cold, unimpressed stare.\nAudio: quiet room tone, a faint TV murmur far away, the phone buzzing at 8 seconds. No music. She does not speak: no dialogue, no voice-over.\nNo on-screen text, captions, subtitles, logos or watermarks."
+      },
+      "end": { "ask": "2화: 그 「동기」의 정체" },
+      "caption": "[막장 연애 1화] 남친 폰에 '자기야 오늘 고마웠어'가 떴다. 회사 동기가 장난친 거라는데… 이거 믿어도 돼?\n\n센딧에 대화를 그대로 넣었더니 답장 3개를 성공 확률이랑 같이 골라 줬어. 앱 화면과 답장은 실제 센딧 AI 결과 그대로야.\n\n※ 지어낸 이야기야. 사람 나오는 장면은 AI로 만든 연출이고, 마지막 카톡은 센딧이 예상한 답장이야.\n\n2화에서 그 '동기'의 정체 공개. 너라면 여기서 뭐라고 보낼래?\n\n#막장 #바람 #남친 #카톡답장 #센딧"
+    },
+    {
+      "id": "ai-makjang-2",
+      "format": "ai-reel",
+      "label": "막장 연애 2화",
+      "hook": "그 「동기」\n내 절친이었다",
+      "hookEm": ["절친"],
+      "name": "지수",
+      "avatar": "🐰",
+      "gender": "female",
+      "myGender": "female",
+      "relationship": "friend",
+      "messages": [
+        {
+          "from": "me",
+          "text": "너 어제 스토리에 찍힌 시계 준호 거 아냐?",
+          "time": "오후 9:41"
+        },
+        {
+          "from": "them",
+          "text": "엥? 무슨 소리야 ㅋㅋ 비슷한 거겠지",
+          "time": "오후 9:47"
+        },
+        {
+          "from": "them",
+          "text": "나 어제 집에서 혼자 넷플 봤어",
+          "time": "오후 9:47"
+        }
+      ],
+      "person": {
+        "hook": "막장 연애 2화\n절친 스토리에\n남친 시계가…",
+        "sent": "센딧이 골라 준\n한마디 보냄",
+        "reply": "절친 답장\n이게 맞아…?",
+        "image": "tools/social-make/samples/makjang/ep2.jpg",
+        "prompt": "Vertical 9:16 smartphone video with the realism of a casual Instagram vlog: filmed handheld by a friend's phone from the chest up, a slight natural wobble, realistic skin texture, true-to-life colors.\nThe woman is exactly the person in the reference image: same face, hair and outfit. Keep her identity consistent for the whole clip and start from the reference image composition.\nShe stands on a night street in Seoul with warm neon shop signs softly blurred behind her (all signs unreadable), wearing a camel wool coat over a cream knit. She holds her own smartphone in portrait orientation; the back of the phone faces the camera the whole time and its screen is never visible.\n0-4s: she scrolls, stops, and freezes; her eyes turn glossy, she presses her lips together, blinks back tears and looks up in disbelief.\n4-8s: she wipes the corner of one eye, exhales, and her expression turns cold and determined; she types steadily with both thumbs, taps send and lowers the phone.\n8-12s: the phone buzzes in her hand; she reads it, gives a bitter half-smile, slowly shakes her head, then looks straight into the camera, calm and icy.\nAudio: city night ambience, distant traffic, footsteps, the phone vibrating at 8 seconds. No music. She does not speak: no dialogue, no voice-over.\nNo on-screen text, captions, subtitles, logos or watermarks."
+      },
+      "end": { "ask": "3화: 남친이 매달린다" },
+      "caption": "[막장 연애 2화] 남친 폰 속 '자기야'의 주인공… 내 절친이었다. 절친 스토리에 남친 시계가 찍혀 있는데, 어제 집에서 혼자 넷플 봤대.\n\n센딧에 그대로 넣었더니 답장 3개를 성공 확률이랑 같이 골라 줬어. 앱 화면과 답장은 실제 센딧 AI 결과 그대로야.\n\n※ 지어낸 이야기야. 사람 나오는 장면은 AI로 만든 연출이고, 마지막 카톡은 센딧이 예상한 답장이야.\n\n3화에서 남친이 매달린다. 너라면 절친한테 뭐라고 보낼래?\n\n#막장 #절친 #바람 #카톡답장 #센딧"
+    },
+    {
+      "id": "ai-makjang-3",
+      "format": "ai-reel",
+      "label": "막장 연애 3화",
+      "hook": "바람핀 전남친이\n다시 매달림",
+      "hookEm": ["매달림"],
+      "name": "준호",
+      "avatar": "🐻",
+      "gender": "male",
+      "myGender": "female",
+      "relationship": "ex",
+      "messages": [
+        {
+          "from": "them",
+          "text": "지수랑은 진짜 아무 사이 아니야",
+          "time": "오전 1:12"
+        },
+        {
+          "from": "them",
+          "text": "내가 미쳤었어 한 번만 기회 줘",
+          "time": "오전 1:13"
+        },
+        { "from": "them", "text": "보고 싶어", "time": "오전 1:13" }
+      ],
+      "person": {
+        "hook": "막장 연애 3화\n바람핀 전남친한테\n카톡 옴",
+        "sent": "센딧이 골라 준\n사이다 한마디",
+        "reply": "전남친 반응\n레전드…",
+        "image": "tools/social-make/samples/makjang/ep3.jpg",
+        "prompt": "Vertical 9:16 smartphone video with the realism of a casual Instagram vlog: filmed on a phone propped up on the bar table facing her, a tiny handheld wobble, realistic skin texture, true-to-life colors.\nThe woman is exactly the person in the reference image: same face, hair and outfit. Keep her identity consistent for the whole clip and start from the reference image composition.\nShe sits at a chic wine bar at night with soft city-light bokeh behind her, wearing an elegant black satin slip dress, a glass of red wine beside her. She holds her own smartphone in portrait orientation; the back of the phone faces the camera the whole time and its screen is never visible.\n0-4s: the phone lights up; she glances at it, raises one eyebrow and lets out a small amused scoff, rolling her eyes slightly.\n4-8s: with a confident little smirk she types quickly, taps send with a flourish, sets the phone face-down on the bar and picks up her wine glass.\n8-12s: the phone buzzes; she peeks at it, laughs freely, tucks her hair behind her ear, then raises her wine glass toward the camera in a toast with a radiant, triumphant smile.\nAudio: soft wine bar ambience, glasses clinking, low chatter, the phone buzzing at 8 seconds. No music. She does not speak: no dialogue, no voice-over.\nNo on-screen text, captions, subtitles, logos or watermarks."
+      },
+      "end": { "ask": "너라면 받아 줄 거야?" },
+      "caption": "[막장 연애 3화·완결] 내 절친이랑 바람핀 전남친이 새벽 1시에 \"한 번만 기회 줘\"래.\n\n센딧에 그대로 넣었더니 답장 3개를 성공 확률이랑 같이 골라 줬어. 앱 화면과 답장은 실제 센딧 AI 결과 그대로야.\n\n※ 지어낸 이야기야. 사람 나오는 장면은 AI로 만든 연출이고, 마지막 카톡은 센딧이 예상한 답장이야.\n\n너라면 받아 줄 거야, 차단할 거야?\n\n#막장 #전남친 #재회 #카톡답장 #센딧"
+    }
+  ]
+}

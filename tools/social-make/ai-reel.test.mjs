@@ -1,10 +1,13 @@
 // ai-reel(AI 인물 + 실제 앱)의 계산 부분 — node --test tools/social-make/ai-reel.test.mjs
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { Buffer } from 'node:buffer';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
 
 import { FORMATS } from './formats/index.mjs';
-import { personPrompt, resolveCuts } from './formats/ai-reel.mjs';
+import { personImage, personPrompt, resolveCuts } from './formats/ai-reel.mjs';
 import { findVideo, omniVideo, pending } from './omni.mjs';
 
 const sample = JSON.parse(readFileSync(new URL('./samples/ai-reel.json', import.meta.url), 'utf8')).items[0];
@@ -58,4 +61,27 @@ test('만들기 스위치가 꺼져 있으면 돈 드는 호출을 하지 않는
   delete process.env.SOCIAL_AI_VIDEO;
   await assert.rejects(omniVideo({ prompt: 'x', key: 'k' }), /꺼져 있어요/);
   if (before !== undefined) process.env.SOCIAL_AI_VIDEO = before;
+});
+
+test('막장 연애 3부작 예시 — 셋 다 검사를 통과하고 같은 가상 주인공 그림을 쓴다', () => {
+  const series = JSON.parse(readFileSync(new URL('./samples/makjang-series.json', import.meta.url), 'utf8')).items;
+  assert.equal(series.length, 3);
+  for (const it of series) {
+    assert.deepEqual(FORMATS['ai-reel'].check(it), [], it.id);
+    assert.ok(it.person.image.startsWith('tools/social-make/samples/makjang/'), it.person.image);
+    assert.match(it.caption, /지어낸 이야기/);
+  }
+});
+
+test('주인공 기준 그림 — 읽어서 영상 모델에 넘길 모양으로, 없거나 형식이 틀리면 막는다', () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'ai-reel-'));
+  writeFileSync(path.join(dir, 'a.jpg'), Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+  const got = personImage({ person: { image: 'a.jpg' } }, dir);
+  assert.equal(got.mime, 'image/jpeg');
+  assert.equal(got.data.length, 4);
+  assert.match(got.sha, /^[0-9a-f]{16}$/);
+  assert.equal(personImage({ person: {} }, dir), null);
+  assert.throws(() => personImage({ person: { image: 'nope.png' } }, dir), /파일이 없어요/);
+  assert.throws(() => personImage({ person: { image: 'a.gif' } }, dir), /png·jpg·webp/);
+  assert.ok(FORMATS['ai-reel'].check({ ...sample, person: { ...sample.person, image: 'tools/없는-그림.jpg' } }).some((p) => p.includes('파일이 없어요')));
 });
