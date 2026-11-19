@@ -72,7 +72,8 @@ jobs:
       - name: 만들기
         env:
           SOCIAL_AI_VIDEO: 'on'
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # 영상은 앱 코칭과 다른 프로젝트의 키로만 (앱 키를 쓰면 영상 비용이 앱 월 한도를 먹어 코칭이 멈춘다 — 2026-11-19)
+          GEMINI_VIDEO_API_KEY: ${{ secrets.GEMINI_VIDEO_API_KEY }}
           EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
           EXPO_PUBLIC_API_TOKEN: ${{ secrets.EXPO_PUBLIC_API_TOKEN }}
         run: |

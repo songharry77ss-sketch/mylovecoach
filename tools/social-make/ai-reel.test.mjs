@@ -107,3 +107,18 @@ test('상대 인물 장면(other) — 드라마 시리즈 예시는 검사를 �
   assert.ok(resolveOtherCut([1, 20], 6)[1] < 6);
   assert.throws(() => resolveOtherCut([0, 0.5], 8), /너무 짧아요/);
 });
+
+test('영상은 앱 코칭 키(GEMINI_API_KEY)로 대신 만들지 않는다 — 영상용 키가 없으면 멈춘다', async () => {
+  const keep = { on: process.env.SOCIAL_AI_VIDEO, app: process.env.GEMINI_API_KEY, video: process.env.GEMINI_VIDEO_API_KEY };
+  process.env.SOCIAL_AI_VIDEO = 'on';
+  process.env.GEMINI_API_KEY = 'app-coach-key';
+  delete process.env.GEMINI_VIDEO_API_KEY;
+  try {
+    await assert.rejects(omniVideo({ prompt: 'x' }), /GEMINI_VIDEO_API_KEY/);
+  } finally {
+    for (const [k, v] of [['SOCIAL_AI_VIDEO', keep.on], ['GEMINI_API_KEY', keep.app], ['GEMINI_VIDEO_API_KEY', keep.video]]) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  }
+});
