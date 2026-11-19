@@ -125,6 +125,8 @@ export interface QuotaStatus {
   daily?: number;
   /** 하루 이용권이 끝나는 시각 */
   until?: number;
+  /** 하루 이용권 칸이 24시간보다 길게 남았는지 (쿠폰·여러 장) — 이름을 「무제한 이용권」, 날짜까지 보여 준다 */
+  long?: boolean;
 }
 
 function freeLeft(usage: UsageState, now: number, rules: FreeRules): { kind: 'trial' | 'daily'; left: number } {
@@ -148,7 +150,7 @@ export function quotaStatus(
 ): QuotaStatus {
   if (isPremiumActive(premium, now)) return { kind: 'premium', remaining: Infinity };
   if (isTeamActive(team, now)) return { kind: 'team', remaining: Infinity };
-  if (wallet.passUntil > now) return { kind: 'pass', remaining: Infinity, until: wallet.passUntil };
+  if (wallet.passUntil > now) return { kind: 'pass', remaining: Infinity, until: wallet.passUntil, ...(wallet.passUntil - now > DAY_PASS_MS ? { long: true } : {}) };
   if (introUntil > now) return { kind: 'intro', remaining: Infinity, until: introUntil };
   const free = freeLeft(usage, now, rules);
   const bonus = bonusOf(wallet);
@@ -203,6 +205,21 @@ export function grantConsumable(wallet: WalletState, plan: ConsumablePlanKey, tr
   return { ...wallet, credits: wallet.credits + CREDITS_PER_PACK, granted };
 }
 
+/** 쿠폰을 이 기기에서 받았다는 표시 (지갑 granted 칸) */
+export const couponKey = (code: string) => `coupon:${code}`;
+
+/** 이 기기에서 이미 받은 쿠폰인지 */
+export const couponUsed = (wallet: WalletState, code: string) => wallet.granted.includes(couponKey(code));
+
+/**
+ * 쿠폰 지급 — 하루 이용권 칸에 days 일만큼 무제한을 더한다 (이미 이용 중이면 남은 시간 뒤로 이어 붙인다).
+ * 같은 기기에서 같은 코드는 한 번만. 이미 받았으면 null
+ */
+export function grantCoupon(wallet: WalletState, code: string, days: number, now: number): WalletState | null {
+  if (!code || !(days > 0) || couponUsed(wallet, code)) return null;
+  return { ...wallet, passUntil: Math.max(now, wallet.passUntil) + days * DAY_MS, granted: [...wallet.granted, couponKey(code)].slice(-50) };
+}
+
 /**
  * 지금 하루 이용권을 사면 언제까지 무제한인지 — 충전(grantConsumable)과 같은 계산.
  * 이미 이용 중이면 남은 시간 뒤에 24시간이 이어 붙는다.
@@ -214,6 +231,9 @@ const clock = (at: number) => {
   const h = d.getHours();
   return `${h < 12 ? '오전' : '오후'} ${h % 12 === 0 ? 12 : h % 12}:${String(d.getMinutes()).padStart(2, '0')}`;
 };
+
+/** 「11월 22일 오후 3:42」 (기기 현지 시간) */
+export const dateClock = (at: number) => `${new Date(at).getMonth() + 1}월 ${new Date(at).getDate()}일 ${clock(at)}`;
 
 /** 「오늘 오후 3:42」 · 「내일 오후 3:42」 · 「모레 …」 · 그 뒤는 「11월 9일 오후 3:42」 (기기 현지 시간) */
 export function formatPassEnd(at: number, now: number): string {
@@ -236,6 +256,7 @@ export function quotaLabel(status: QuotaStatus): string {
     case 'team':
       return '팀원 · 무제한';
     case 'pass':
+      if (status.long && status.until) return `무제한 이용권 · ${dateClock(status.until)}까지`;
       return `하루 이용권 · ${status.until ? `${clock(status.until)}까지 ` : ''}무제한`;
     case 'intro':
       return `무제한 체험 중 · ${status.until ? `${clock(status.until)}까지` : '잠깐 동안'}`;
