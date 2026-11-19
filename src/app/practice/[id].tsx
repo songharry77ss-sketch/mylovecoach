@@ -5,26 +5,29 @@ import { FlatList, KeyboardAvoidingView, Pressable, StyleSheet, View } from 'rea
 import Animated, { FadeIn, FadeInDown, FadeInUp, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { HeroCard, Icon3D } from '@/components/brand/brand';
+import { GradientButton } from '@/components/brand/brand';
 import { useAiReport } from '@/components/coach/ai-report-sheet';
 import { COMPOSER_FADE, ComposerBackdrop, PILL_HEIGHT, PillInput, SendOrb } from '@/components/coach/composer';
 import { HeatGauge } from '@/components/coach/heat-gauge';
+import { RoomAvatar } from '@/components/crush/crush-list-item';
 import { useCelebrate } from '@/components/fx/celebration';
+import { useCostNote } from '@/components/tips/tip-book';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { GlassSurface } from '@/components/ui/glass-surface';
 import { IconButton } from '@/components/ui/icon-button';
-import { Brand, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { kktiLabel } from '@/hooks/use-coach';
 import { useAiAction } from '@/hooks/use-ai-action';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useKeyboardVisible } from '@/hooks/use-keyboard';
 import { useResumeAfterPaywall } from '@/hooks/use-resume-after-paywall';
 import { useTheme } from '@/hooks/use-theme';
 import { practiceFeedbackReportContent, practiceReportContent } from '@/lib/ai-report';
 import { beginAiRequest } from '@/lib/ai-request-lifetime';
-import { currentQuota, isUnlimited, useQuota } from '@/lib/billing/gate';
+import { currentQuota } from '@/lib/billing/gate';
 import { paywallTarget } from '@/lib/billing/paywall-route';
 import { PRACTICE_PROMPT_TURNS } from '@/lib/ai-tasks';
 import { aiRouteOf, requestAi } from '@/lib/coach-client';
@@ -34,6 +37,8 @@ import { relationshipLabel } from '@/lib/labels';
 import { PRACTICE_MAX_TURNS, bestLine, latestPartnerText, myTurnCount, practiceVerdict } from '@/lib/practice';
 import type { PracticeTurn } from '@/lib/types';
 import { useAppStore } from '@/store/app-store';
+
+const LEVEL = ['', '쉬움', '보통', '어려움'] as const;
 
 /** 동의 철회·화면 종료 때 말풍선 대기도 바로 끝낸다. */
 function waitForReply(ms: number, signal: AbortSignal): Promise<boolean> {
@@ -60,7 +65,9 @@ export default function PracticeSessionScreen() {
   const session = useAppStore((s) => (id ? s.practice[id] : undefined));
   const user = useAppStore((s) => s.user);
   const kkti = useAppStore((s) => s.kkti);
-  const quota = useQuota();
+  const dark = useColorScheme() === 'dark';
+  // 첫 답장을 받을 때 쓰는 무료 1회 — 남았으면 「1회를 써요」, 0회면 「다 썼어요」(예전엔 0회에도 「1회가 차감돼요」였다)
+  const cost = useCostNote('첫 답장을 받을 때');
   const { run, busy, error, setError, cancel } = useAiAction();
   // 횟수가 없어 막힌 첫 답장을 결제·가입 뒤 한 번 이어서 보낸다 (입력한 글은 입력창에 그대로 남아 있음)
   const resume = useResumeAfterPaywall('practice');
@@ -230,21 +237,22 @@ export default function PracticeSessionScreen() {
     report.open(latest ? { mode: 'practice', content: practiceReportContent(p.name, latest) } : { mode: 'practice' });
   };
 
+  // 회색 면(상대 말풍선·상황·결과)과 그 안 흰 면 — 다크는 한 단계씩 밝게
+  const fill = dark ? theme.surfaceElevated : theme.surface;
+  const inner = dark ? theme.border : theme.card;
   const verdict = practiceVerdict(session.heat);
   const best = bestLine(session);
   const rel = relationshipLabel(p.relationship);
 
   const renderTurn = ({ item }: { item: PracticeTurn }) =>
     item.role === 'them' ? (
-      <Animated.View entering={FadeInUp.springify().damping(15)} style={styles.themRow}>
-        <View style={[styles.avatar, { backgroundColor: p.color }]}>
-          <AppText style={styles.avatarEmoji}>{p.emoji}</AppText>
-        </View>
+      <Animated.View entering={FadeInUp.duration(240)} style={styles.themRow}>
+        <RoomAvatar crush={{ id: p.id, name: p.name }} size={32} />
         {/* AI 상대역의 말 — 길게 누르면 이 말을 신고 (화면 위 깃발은 가장 최근 말) */}
         <Pressable
           onLongPress={report.available ? () => report.open({ mode: 'practice', content: practiceReportContent(p.name, item.text) }) : undefined}
           accessibilityHint={report.available ? '길게 누르면 이 말을 신고할 수 있어요' : undefined}
-          style={[styles.themBubble, { backgroundColor: theme.surface }]}>
+          style={[styles.themBubble, { backgroundColor: fill }]}>
           <AppText variant="body">{item.text}</AppText>
         </Pressable>
       </Animated.View>
@@ -259,13 +267,14 @@ export default function PracticeSessionScreen() {
             <Pressable
               onLongPress={report.available ? () => report.open({ mode: 'practice', content: practiceFeedbackReportContent(item) }) : undefined}
               accessibilityHint={report.available ? '길게 누르면 이 피드백을 신고할 수 있어요' : undefined}
-              style={[styles.feedback, { backgroundColor: (item.delta ?? 0) >= 0 ? theme.accentSoft : theme.primarySoft }]}>
-              <AppText variant="caption" weight="700" color={(item.delta ?? 0) >= 0 ? 'accent' : 'primary'}>
-                {(item.delta ?? 0) >= 0 ? `👍 +${item.delta ?? 0}°` : `💡 ${item.delta}°`}
+              style={[styles.feedback, { backgroundColor: fill }]}>
+              {/* 코치 피드백 — 회색 한 가지 + 온도 변화 숫자(예전엔 오르면 보라·내리면 파랑이라 앱 색이 「아쉬움」을 뜻했다) */}
+              <AppText variant="caption" weight="700" style={styles.delta}>
+                {(item.delta ?? 0) >= 0 ? `+${item.delta ?? 0}°` : `−${Math.abs(item.delta ?? 0)}°`}
               </AppText>
               <AppText variant="caption" color="textSecondary" style={styles.flex}>
                 {item.feedback}
-                {item.better ? `\n✏️ 이렇게 보내면 더 좋아요: ${item.better}` : ''}
+                {item.better ? `\n이렇게 보내면 더 좋아요 · ${item.better}` : ''}
               </AppText>
               {report.available ? (
                 <Pressable
@@ -288,13 +297,13 @@ export default function PracticeSessionScreen() {
         options={{
           headerTitle: () => (
             <View style={styles.headerTitle}>
-              <View style={[styles.avatar, { backgroundColor: p.color }]}>
-                <AppText style={styles.avatarEmoji}>{session.mood || p.emoji}</AppText>
-              </View>
+              <RoomAvatar crush={{ id: p.id, name: p.name }} size={32} />
               <View>
                 <AppText variant="bodyStrong">{p.name}</AppText>
-                <AppText variant="caption" color="textTertiary">
-                  연습 중 · {rel.label} · {'★'.repeat(p.difficulty)}
+                {/* 상대 기분은 AI 가 답할 때 정한 것만 내용으로 보여 준다(처음 값은 예전 얼굴 이모지라 숨긴다) */}
+                <AppText variant="caption" color="textSecondary">
+                  {finished ? '연습 끝' : '연습 중'} · {rel.label} · {LEVEL[p.difficulty] ?? ''}
+                  {session.mood && session.mood !== p.emoji ? ` · ${session.mood}` : ''}
                 </AppText>
               </View>
             </View>
@@ -329,22 +338,20 @@ export default function PracticeSessionScreen() {
           contentContainerStyle={[styles.list, finished ? { paddingBottom: insets.bottom + Spacing.xl } : null]}
           keyboardShouldPersistTaps="handled"
           ListHeaderComponent={
-            <View style={[styles.scenario, { backgroundColor: theme.surface }]}>
-              <View style={styles.labelRow}>
-                <Ionicons name="film-outline" size={14} color={theme.textSecondary} />
-                <AppText variant="smallStrong" color="textSecondary">
-                  오늘의 상황
-                </AppText>
-              </View>
+            <View style={[styles.scenario, { backgroundColor: fill }]}>
+              <AppText variant="caption" color="textSecondary" weight="600">
+                오늘의 상황
+              </AppText>
               <AppText variant="body">{p.scenario}</AppText>
-              <View style={[styles.hint, { backgroundColor: theme.primarySoft }]}>
-                <Ionicons name="bulb" size={14} color={theme.primary} style={styles.hintIcon} />
-                <AppText variant="small" color="primary" style={styles.flex}>
+              {/* 힌트 — 연파랑 상자 대신 흰 면 한 줄 */}
+              <View style={[styles.hint, { backgroundColor: inner }]}>
+                <AppText variant="small" color="textSecondary" style={styles.flex}>
+                  <AppText variant="smallStrong">힌트 </AppText>
                   {p.hint}
                 </AppText>
               </View>
               {report.available ? (
-                <AppText variant="caption" color="textTertiary">
+                <AppText variant="caption" color="textSecondary">
                   AI가 연기하는 상대예요. 불쾌한 말은 위 깃발(가장 최근 말)이나 말풍선 길게 누르기로, 코치 피드백은 옆 깃발로 신고할 수 있어요
                 </AppText>
               ) : null}
@@ -353,55 +360,48 @@ export default function PracticeSessionScreen() {
           ListFooterComponent={
             typing ? (
               <Animated.View entering={FadeIn} style={styles.themRow}>
-                <View style={[styles.avatar, { backgroundColor: p.color }]}>
-                  <AppText style={styles.avatarEmoji}>{p.emoji}</AppText>
-                </View>
-                <View style={[styles.themBubble, { backgroundColor: theme.surface }]}>
+                <RoomAvatar crush={{ id: p.id, name: p.name }} size={32} />
+                <View style={[styles.themBubble, { backgroundColor: fill }]}>
                   <AppText variant="body" color="textTertiary">
                     입력 중…
                   </AppText>
                 </View>
               </Animated.View>
             ) : finished ? (
-              <Animated.View entering={ZoomIn.springify().damping(14)} style={styles.result}>
-                <HeroCard>
-                  <View style={styles.resultHead}>
-                    <View style={styles.flex}>
-                      <AppText variant="caption" weight="700" color={Brand.onBrandDim}>
-                        {verdict.emoji} {p.name}님과의 연습 결과
-                      </AppText>
-                      <AppText variant="title2" color={Brand.onBrand}>
-                        {verdict.title}
-                      </AppText>
-                    </View>
-                    <Icon3D name="heart" size={64} float />
+              <Animated.View entering={ZoomIn.duration(300)} style={[styles.result, { backgroundColor: fill }]}>
+                {/* 연습 결과 — 회색 카드 한 장(예전 파란 카드·3D 하트·64pt 숫자를 걷었다). 큰 숫자는 최종 온도 하나 */}
+                <View style={styles.resultHead}>
+                  <View style={styles.flex}>
+                    <AppText variant="caption" color="textSecondary" weight="600">
+                      {p.name}님과의 연습 결과
+                    </AppText>
+                    <AppText variant="title2">{verdict.title}</AppText>
                   </View>
-                  <AnimatedNumber value={session.heat} suffix="°" variant="hero" color={Brand.onBrand} style={styles.resultHeat} accessibilityLabel={`최종 호감 온도 ${session.heat}도`} />
-                  <AppText variant="small" color={Brand.onBrandDim}>
-                    {verdict.body}
-                  </AppText>
-                  {best ? (
-                    <View style={styles.best}>
-                      <AppText variant="caption" color={Brand.onBrandDim} weight="700">
-                        오늘의 한 마디 · +{best.delta}°
-                      </AppText>
-                      <AppText variant="bodyStrong" color={Brand.onBrand}>
-                        {best.text}
-                      </AppText>
-                    </View>
-                  ) : null}
-                  <View style={styles.resultActions}>
-                    <Button title="같은 상대와 다시" variant="stage" onPress={restart} />
-                    <Button title="다른 상대 고르기" variant="stageGhost" onPress={() => router.replace('/(tabs)/practice')} />
+                  <AnimatedNumber value={session.heat} suffix="°" ticks={false} color="primary" style={styles.resultHeat} accessibilityLabel={`최종 호감 온도 ${session.heat}도`} />
+                </View>
+                <AppText variant="small" color="textSecondary">
+                  {verdict.body}
+                </AppText>
+                {best ? (
+                  <View style={[styles.best, { backgroundColor: inner }]}>
+                    <AppText variant="caption" color="textSecondary" weight="600">
+                      오늘의 한 마디 · +{best.delta}°
+                    </AppText>
+                    <AppText variant="bodyStrong">{best.text}</AppText>
                   </View>
-                </HeroCard>
+                ) : null}
+                <View style={styles.resultActions}>
+                  {/* 같은 상대와 다시 = 새 연습이라 첫 답장 때 다시 1회를 쓴다 — 누르기 전에 알린다 */}
+                  <GradientButton title={`같은 상대와 다시${cost.suffix}`} accessibilityLabel="같은 상대와 다시" onPress={restart} />
+                  <Button title="다른 상대 고르기" variant="ghost" onPress={() => router.replace('/(tabs)/practice')} />
+                </View>
               </Animated.View>
             ) : null
           }
         />
 
         {error ? (
-          <View style={[styles.error, { backgroundColor: theme.accentSoft }]}>
+          <View style={[styles.error, { backgroundColor: fill }]}>
             <AppText variant="caption" color="danger">
               {error}
             </AppText>
@@ -412,9 +412,9 @@ export default function PracticeSessionScreen() {
         {!finished ? (
           <View style={[styles.composer, { paddingBottom: (keyboardVisible ? 0 : insets.bottom) + Spacing.sm }]}>
             <ComposerBackdrop />
-            {!session.charged && quota.enforced && !isUnlimited(quota) ? (
-              <AppText variant="caption" color="textTertiary" align="center">
-                첫 답장을 받으면 코칭 1회가 차감돼요 · 한 번의 연습에서 {PRACTICE_MAX_TURNS}마디까지
+            {!session.charged && cost.note ? (
+              <AppText variant="caption" color="textSecondary" align="center">
+                {cost.out ? '무료 횟수를 다 썼어요 · 이용권이 있으면 바로 시작돼요' : `첫 답장을 받으면 코칭 1회를 써요 · ${PRACTICE_MAX_TURNS}마디까지 · ${cost.left}`}
               </AppText>
             ) : null}
             <GlassSurface radius={PILL_HEIGHT / 2} style={styles.pill}>
@@ -438,23 +438,22 @@ const styles = StyleSheet.create({
   gauge: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   // 아래 여백은 입력창 위 흐림보다 넉넉히 — 마지막 말풍선이 흐림에 덮인 채로 멈추지 않게
   list: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, paddingBottom: COMPOSER_FADE + Spacing.sm, gap: Spacing.md, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
-  scenario: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.sm, marginBottom: Spacing.sm },
-  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  hint: { flexDirection: 'row', gap: Spacing.sm, borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2 },
-  hintIcon: { marginTop: 3 },
+  scenario: { borderRadius: 20, padding: Spacing.lg, gap: Spacing.sm, marginBottom: Spacing.sm },
+  hint: { flexDirection: 'row', gap: Spacing.sm, borderRadius: 14, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2 },
   themRow: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'flex-end', maxWidth: '85%' },
-  avatar: { width: 32, height: 32, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  avatarEmoji: { fontSize: 17, lineHeight: 21 },
-  themBubble: { borderRadius: Radius.lg, borderBottomLeftRadius: 4, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2, flexShrink: 1 },
+  // 말풍선 22, 이어지는 쪽 모서리만 6 (지침 1.4)
+  themBubble: { borderRadius: 22, borderBottomLeftRadius: 6, paddingHorizontal: Spacing.md + 2, paddingVertical: Spacing.sm + 2, flexShrink: 1 },
   meWrap: { alignItems: 'flex-end', gap: Spacing.xs },
-  meBubble: { borderRadius: Radius.lg, borderBottomRightRadius: 4, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2, maxWidth: '85%' },
+  meBubble: { borderRadius: 22, borderBottomRightRadius: 6, paddingHorizontal: Spacing.md + 2, paddingVertical: Spacing.sm + 2, maxWidth: '85%' },
   feedbackWrap: { maxWidth: '92%' },
-  feedback: { flexDirection: 'row', gap: Spacing.sm, borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
-  result: { marginTop: Spacing.lg },
+  feedback: { flexDirection: 'row', gap: Spacing.sm, borderRadius: 14, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
+  delta: { minWidth: 30 },
+  result: { marginTop: Spacing.lg, borderRadius: 24, padding: Spacing.lg + 2, gap: Spacing.md },
   resultHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  resultHeat: { fontSize: 64, lineHeight: 72, marginTop: Spacing.sm },
-  best: { borderRadius: Radius.md, padding: Spacing.md, gap: 4, marginTop: Spacing.md, backgroundColor: Brand.glass, borderWidth: 1, borderColor: Brand.glassBorder },
-  resultActions: { gap: Spacing.xs, marginTop: Spacing.lg },
+  // 카드의 큰 숫자는 최종 온도 하나
+  resultHeat: { fontSize: 32, lineHeight: 38, fontWeight: '700', letterSpacing: -1 },
+  best: { borderRadius: 20, padding: Spacing.md + 2, gap: 4 },
+  resultActions: { gap: Spacing.xs, marginTop: Spacing.sm },
   error: { marginHorizontal: Spacing.lg, borderRadius: Radius.md, padding: Spacing.sm },
   composer: { paddingTop: Spacing.xs, paddingHorizontal: Spacing.md, gap: Spacing.sm },
   pill: { flexDirection: 'row', alignItems: 'flex-end', minHeight: PILL_HEIGHT, padding: 6, paddingLeft: Spacing.md, gap: Spacing.xs },

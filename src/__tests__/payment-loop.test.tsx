@@ -17,7 +17,7 @@ import { purchasePlan } from '@/lib/billing/iap';
 import { paywallTarget, salePopupEligible } from '@/lib/billing/paywall-route';
 import { INTRO_FREE_MS } from '@/lib/billing/plans';
 import { EMPTY_USAGE, EMPTY_WALLET, quotaLabel, quotaStatus } from '@/lib/billing/quota';
-import { saleAudience, SALE_COOLDOWN_MS, SALE_WINDOW_MS } from '@/lib/billing/sale';
+import { saleAudience, SALE_ANCHOR_FROM, SALE_COOLDOWN_MS, SALE_WINDOW_MS } from '@/lib/billing/sale';
 import { introUntil, useAppStore } from '@/store/app-store';
 
 jest.mock('@react-native-async-storage/async-storage', () => {
@@ -226,17 +226,26 @@ describe('타임어택 특가 팝업 (/sale)', () => {
     renderer = undefined;
   });
 
-  it('뜨는 순간 10분 특가가 시작되고 남은 시간·정가 취소선·특가·할인율이 보인다', () => {
+  it('뜨는 순간 10분 특가가 시작되고 남은 시간·특가가 보인다 — 11-27 20:45 전에는 취소선 정가·할인율을 숨긴다(최근 20일 최저가 ₩2,700)', () => {
     mount();
     expect(useAppStore.getState().saleOfferStartedAt).toBe(T);
     expect(tracked).toHaveBeenCalledWith('sale_offer_start', { reason: 'quota', from: 'popup' });
     const text = screen();
     expect(text).toContain('민준님, 무료 코칭을');
     expect(text).toContain('10:00');
+    expect(text).toContain('2,900원');
+    expect(text).not.toContain('3,900원');
+    expect(text).not.toContain('25%');
+    expect(text).toContain('7일에 한 번, 10분만 열려요');
+  });
+
+  it('2026-11-27 20:45(KST) 부터는 취소선 정가·할인율도 보인다', () => {
+    now = SALE_ANCHOR_FROM + MIN;
+    mount();
+    const text = screen();
     expect(text).toContain('3,900원');
     expect(text).toContain('2,900원');
-    expect(text).toContain('25%');
-    expect(text).toContain('7일에 한 번, 10분만 열려요');
+    expect(text).toContain('25% 할인');
   });
 
   it('팝업에서 바로 특가 상품을 사고, 결제되면 「하루 무제한 시작!」', async () => {

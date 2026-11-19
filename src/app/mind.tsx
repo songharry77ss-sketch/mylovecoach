@@ -3,30 +3,29 @@ import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { FadeInDown, ZoomIn, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, FadeInDown, ZoomIn, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 
-import { BrandGradient, HeroCard, Icon3D } from '@/components/brand/brand';
 import { AiReportLink } from '@/components/coach/ai-report-sheet';
 import { PendingBubble } from '@/components/coach/pending-bubble';
 import { useCelebrate } from '@/components/fx/celebration';
+import { useCostNote } from '@/components/tips/tip-book';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { AppText } from '@/components/ui/app-text';
-import { Button } from '@/components/ui/button';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { Screen } from '@/components/ui/screen';
 import { useToast } from '@/components/ui/toast';
 import { Brand, Radius, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useMindReading, type MindOutcome } from '@/hooks/use-mind-reading';
 import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
 import { useResumeAfterPaywall } from '@/hooks/use-resume-after-paywall';
 import { useTheme } from '@/hooks/use-theme';
-import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { haptic } from '@/lib/haptics';
 import { themLabel } from '@/lib/mind-cards';
 import type { Gender } from '@/lib/types';
 import { useAppStore } from '@/store/app-store';
 
-const PHRASES = ['그 사람 입장이 되어 보는 중…', '흔한 경우의 수를 따져 보는 중…', '속마음을 받아 적는 중… 💭', '가능성을 계산하는 중…', '거의 다 됐어요!'];
+const PHRASES = ['그 사람 입장이 되어 보는 중…', '흔한 경우의 수를 따져 보는 중…', '속마음을 받아 적는 중…', '가능성을 계산하는 중…', '거의 다 됐어요!'];
 
 /** 결과가 나오면 두근, 실패하면 툭 */
 const feel = (outcome: MindOutcome) => {
@@ -34,22 +33,36 @@ const feel = (outcome: MindOutcome) => {
   else if (outcome) haptic.heartbeat();
 };
 
-/** 속마음 풀이 결과 — 상황 카드나 직접 쓴 질문을 받아 「그 사람」의 속마음을 보여 준다 */
+/**
+ * 속마음 풀이 결과 — 상황 카드나 직접 쓴 질문을 받아 「그 사람」의 속마음을 보여 준다.
+ * 1.4 「깔끔하게」 개편: 채팅방과 같은 대화 모양 — 내 질문은 오른쪽 말풍선, 속마음 한마디는 왼쪽 회색 말풍선,
+ * 그 아래 회색 결과 카드 한 장(바로 보낼 문장 + 검정 「복사」 → 가능성 세 가지 키-값 줄 → 이렇게 해 봐요 → 알약 버튼).
+ * 예전의 큰 파란 카드·3D 하트·「1위」 배지·연파랑 상자·파란 작은 라벨 넷을 걷었다. 큰 숫자는 가장 큰 가능성 하나.
+ */
 export default function MindScreen() {
   const params = useLocalSearchParams<{ situation?: string; perspective?: string; history?: string }>();
   const theme = useTheme();
+  const dark = useColorScheme() === 'dark';
   const router = useRouter();
   const toast = useToast();
   const celebrate = useCelebrate();
   const history = useAppStore((s) => s.mindHistory);
-  const quota = useQuota();
   const hasDayPass = onSalePrice(usePlanProducts(), 'day') != null;
+  // 「다시 풀이」가 무료 1회를 쓰는지 — 남았으면 버튼에 「· 1회」, 0회면 「무료 횟수를 다 썼어요」(예전엔 0회에도 「1회가 차감돼요」였다)
+  const again = useCostNote('다시 풀면');
   // 기록에서 연 풀이는 처음 연 그 기록을 계속 보여 준다 (다시 풀면 기록 순서가 바뀌어도 화면이 다른 기록으로 넘어가지 않게)
   const [fromHistory] = useState(() => (params.history != null ? history[Number(params.history)] : undefined));
   const perspective: Gender = fromHistory?.perspective ?? (params.perspective === 'female' || params.perspective === 'other' ? params.perspective : 'male');
   const situation = fromHistory?.situation ?? params.situation ?? '';
   const { reading, reused, ask, retry, busy, error, blocked, blockCount, openPaywall } = useMindReading(situation, perspective, fromHistory?.reading);
   const started = useRef(false);
+  // 복사한 문장 — 다시 풀어 문장이 바뀌면 「복사했어요」가 저절로 꺼진다
+  const [copiedText, setCopiedText] = useState<string | null>(null);
+  const copied = copiedText != null && copiedText === reading?.sampleReply;
+
+  // 회색 면(말풍선·결과 카드)과 그 안의 흰 카드 — 다크는 한 단계씩 밝게
+  const bubble = dark ? theme.surface : theme.bubbleCoach;
+  const inner = dark ? theme.surfaceElevated : theme.card;
 
   // 횟수가 없어 막혔다면, 결제·가입하고 돌아왔을 때 다시 누르지 않아도 한 번 풀어 준다
   // (예전에는 결제하고 와도 「다 썼어요」 카드가 그대로 남아 결제가 안 된 줄 알 수 있었다)
@@ -73,7 +86,9 @@ export default function MindScreen() {
   const copySample = async () => {
     if (!reading?.sampleReply) return;
     await Clipboard.setStringAsync(reading.sampleReply);
-    celebrate({ kind: 'hearts', count: 12 });
+    haptic.success();
+    setCopiedText(reading.sampleReply);
+    celebrate({ kind: 'sparkles', count: 12, haptic: false });
     toast.show('복사했어요. 카톡에 붙여넣기만 하면 끝!', 'success');
   };
 
@@ -81,114 +96,126 @@ export default function MindScreen() {
 
   return (
     <Screen contentStyle={styles.content}>
-      <Animated.View entering={FadeInDown.duration(320)} style={[styles.situation, { backgroundColor: theme.surface }]}>
-        <View style={styles.labelRow}>
-          <Ionicons name="chatbubble-ellipses" size={14} color={theme.primary} />
-          <AppText variant="caption" color="primary" weight="700">
-            물어본 상황
-          </AppText>
-        </View>
-        <AppText variant="title3">{situation || '물어볼 상황이 없어요.'}</AppText>
+      {/* 내 질문 — 채팅방의 내 말풍선과 같은 모양 */}
+      <Animated.View entering={FadeInDown.duration(300)} style={[styles.mine, { backgroundColor: theme.bubbleUser }]} accessibilityLabel={`물어본 상황: ${situation || '없음'}`}>
+        <AppText variant="body">{situation || '물어볼 상황이 없어요.'}</AppText>
       </Animated.View>
 
       {busy ? <PendingBubble phrases={PHRASES} /> : null}
 
+      {/* 무료 횟수를 다 썼을 때 — 무엇을 받게 되는지 항목만 보여 주고(가짜 결과를 깔지 않는다) 이용권으로 */}
       {blocked && !reading ? (
-        <View style={[styles.error, { backgroundColor: theme.primarySoft }]}>
-          <View style={styles.labelRow}>
-            <Icon3D name="ticket" size={36} />
+        <Animated.View entering={FadeInDown.duration(300)} style={[styles.card, { backgroundColor: bubble }]}>
+          <View style={styles.block}>
             <AppText variant="bodyStrong">무료 횟수를 다 썼어요</AppText>
+            <AppText variant="small" color="textSecondary">
+              {hasDayPass ? '하루 이용권이면 지금부터 24시간 동안 속마음을 마음껏 물어볼 수 있어요.' : '이용권이면 횟수 걱정 없이 속마음을 마음껏 물어볼 수 있어요.'}
+            </AppText>
           </View>
-          <AppText variant="small" color="textSecondary">
-            {hasDayPass ? '하루 이용권이면 지금부터 24시간 동안 속마음을 마음껏 물어볼 수 있어요.' : '이용권이면 횟수 걱정 없이 속마음을 마음껏 물어볼 수 있어요.'}
+          <View style={[styles.inner, { backgroundColor: inner }]}>
+            <AppText variant="caption" color="textSecondary" weight="600">
+              풀이에 나오는 것
+            </AppText>
+            {['그 사람의 속마음 한마디', '가능성 세 가지와 그 숫자', '바로 보낼 수 있는 문장'].map((line) => (
+              <View key={line} style={styles.checkRow}>
+                <Ionicons name="checkmark" size={16} color={theme.textSecondary} />
+                <AppText variant="small">{line}</AppText>
+              </View>
+            ))}
+          </View>
+          <AppText variant="caption" color="textSecondary">
+            최근에 본 속마음은 횟수 없이 계속 볼 수 있어요
           </AppText>
-          <View style={styles.row}>
-            <Button title="이용권 보기" size="sm" variant="brand" fullWidth={false} onPress={() => openPaywall('mind')} />
-            <Button title="다시 시도" size="sm" variant="soft" fullWidth={false} onPress={() => retry().then(feel)} />
+          <View style={styles.pills}>
+            <Pill title="이용권 보기" tone="blue" onPress={() => openPaywall('mind')} />
+            <Pill title="다시 시도" tone="white" fill={inner} onPress={() => retry().then(feel)} />
           </View>
-        </View>
+        </Animated.View>
       ) : null}
 
       {error ? (
-        <View style={[styles.error, { backgroundColor: theme.accentSoft }]}>
+        <View style={[styles.card, { backgroundColor: bubble }]}>
           <AppText variant="small" color="danger">
             {error}
           </AppText>
-          <Button title="다시 시도" size="sm" variant="secondary" fullWidth={false} onPress={() => retry().then(feel)} />
+          <View style={styles.pills}>
+            <Pill title="다시 시도" tone="white" fill={inner} onPress={() => retry().then(feel)} />
+          </View>
         </View>
       ) : null}
 
       {reading && !busy ? (
         <>
           {reused ? (
-            <AppText variant="caption" color="textTertiary" align="center">
+            <AppText variant="caption" color="textSecondary" align="center">
               전에 풀어 본 상황이라 저장된 풀이를 보여 드려요
             </AppText>
           ) : null}
-          {/* 이 화면의 주인공 — 그 사람의 속마음 한마디가 그라데이션 카드 위에 타닥타닥 써진다 */}
-          <Animated.View entering={ZoomIn.springify().damping(14)}>
-            <HeroCard>
-              <View style={styles.voiceHead}>
-                <View style={styles.voiceLabel}>
-                  <AppText variant="caption" weight="700" color={Brand.onBrandDim}>
-                    {who}의 속마음
-                  </AppText>
-                  <AppText variant="small" color={Brand.onBrandDim}>
-                    이런 생각일 가능성이 커요
-                  </AppText>
-                </View>
-                <Icon3D name="heart" size={60} float />
-              </View>
-              <View style={styles.voice}>
-                <Typewriter text={reading.innerVoice} color={Brand.onBrand} />
-              </View>
-            </HeroCard>
+
+          {/* 그 사람의 속마음 한마디 — 왼쪽 회색 말풍선 */}
+          <Animated.View entering={ZoomIn.duration(280)} style={[styles.voice, { backgroundColor: bubble }]}>
+            <AppText variant="caption" color="textSecondary" weight="600">
+              {who}의 속마음
+            </AppText>
+            <AppText variant="title3" weight="700" style={styles.voiceText}>
+              {reading.innerVoice}
+            </AppText>
           </Animated.View>
 
-          <Animated.View entering={FadeInDown.delay(200).duration(300)} style={[styles.section, { backgroundColor: theme.surface }]}>
-            <AppText variant="title3">{reading.headline}</AppText>
-            {reading.possibilities.map((p, i) => (
-              <Possibility key={p.label} label={p.label} percent={p.percent} reason={p.reason} index={i} />
-            ))}
-          </Animated.View>
+          {/* 결과 카드 한 장 — 보낼 문장(가장 쓸모 있는 것)을 맨 위로 */}
+          <Animated.View entering={FadeInDown.delay(160).duration(320)} style={[styles.card, { backgroundColor: bubble }]}>
+            {reading.sampleReply ? (
+              <View style={styles.block}>
+                <AppText variant="bodyStrong">이렇게 보내 봐요</AppText>
+                <PressableScale
+                  feedback={false}
+                  pressedScale={0.98}
+                  onPress={copySample}
+                  accessibilityLabel={copied ? '보낼 메시지 복사했어요' : `보낼 메시지 예시 복사: ${reading.sampleReply}`}
+                  style={[styles.inner, { backgroundColor: inner, borderColor: copied ? theme.primary : 'transparent' }]}>
+                  <AppText style={[styles.sampleText, { color: theme.text }]}>{reading.sampleReply}</AppText>
+                  {/* 카드마다 색이 찬 버튼은 「복사」 하나 — 검정 알약, 복사하면 센딧 파랑(채팅방 답장 카드와 같다) */}
+                  <View style={[styles.copyPill, { backgroundColor: copied ? theme.primary : theme.text }]}>
+                    {copied ? <Ionicons name="checkmark" size={15} color={Brand.onBrand} /> : null}
+                    <AppText variant="smallStrong" color={copied ? Brand.onBrand : theme.background}>
+                      {copied ? '복사했어요' : '복사'}
+                    </AppText>
+                  </View>
+                </PressableScale>
+              </View>
+            ) : null}
 
-          <Animated.View entering={FadeInDown.delay(400).duration(300)} style={[styles.section, { backgroundColor: theme.primarySoft }]}>
-            <View style={styles.labelRow}>
-              <Ionicons name="bulb" size={16} color={theme.primary} />
-              <AppText variant="smallStrong" color="primary">
-                이렇게 해 보세요
+            {/* 가능성 세 가지 — 흰 카드 하나에 키-값 줄. 큰 숫자는 첫째 하나 */}
+            <View style={[styles.inner, { backgroundColor: inner }]}>
+              <AppText variant="bodyStrong">{reading.headline}</AppText>
+              {reading.possibilities.map((p, i) => (
+                <Possibility key={p.label} label={p.label} percent={p.percent} reason={p.reason} index={i} divider={i > 0} />
+              ))}
+            </View>
+
+            <View style={styles.block}>
+              <AppText variant="smallStrong">이렇게 해 봐요</AppText>
+              <AppText variant="small" color="textSecondary" style={styles.advice}>
+                {reading.advice}
               </AppText>
             </View>
-            <AppText variant="body">{reading.advice}</AppText>
-          </Animated.View>
 
-          {reading.sampleReply ? (
-            <Animated.View entering={FadeInDown.delay(550).duration(300)} style={styles.sampleWrap}>
-              <AppText variant="caption" color="textTertiary" style={styles.sampleCaption}>
-                이렇게 보내 보세요 · 누르면 복사돼요
-              </AppText>
-              <PressableScale feedback={false} onPress={copySample} accessibilityLabel={`보낼 메시지 예시 복사: ${reading.sampleReply}`} style={[styles.sample, { backgroundColor: theme.bubbleUser }]}>
-                <AppText variant="body">{reading.sampleReply}</AppText>
-                <View style={[styles.copyChip, { backgroundColor: theme.surfaceElevated }]}>
-                  <Ionicons name="copy-outline" size={13} color={theme.primary} />
-                  <AppText variant="caption" weight="700" color="primary">
-                    복사
-                  </AppText>
-                </View>
-              </PressableScale>
-            </Animated.View>
-          ) : null}
-          <AiReportLink mode="mind" situation={situation} reading={reading} label="이 풀이 신고" />
-
-          <View style={styles.actions}>
-            <Button title="다른 상황도 물어보기" variant="soft" onPress={() => router.back()} />
-            {/* 저장된 풀이 대신 AI 에게 새로 묻는다 */}
-            <Button title="다시 풀이" variant="ghost" onPress={() => ask(true).then(feel)} />
-            {quota.enforced && !isUnlimited(quota) ? (
-              <AppText variant="caption" color="textTertiary" align="center">
-                다시 풀면 1회가 차감돼요
+            <View style={styles.footer}>
+              <View style={styles.pills}>
+                <Pill title="다른 상황 물어보기" tone="white" fill={inner} onPress={() => router.back()} />
+                {/* 저장된 풀이 대신 AI 에게 새로 묻는다 — 무료 1회를 쓰면 누르기 전에 「· 1회」 */}
+                <Pill title={`다시 풀이${again.suffix}`} a11y="다시 풀이" hint={again.suffix ? '무료 코칭 1회를 써요' : undefined} tone="white" fill={inner} onPress={() => ask(true).then(feel)} />
+              </View>
+            </View>
+            {again.out && again.note ? (
+              <AppText variant="caption" color="textSecondary">
+                {again.note}
               </AppText>
             ) : null}
+          </Animated.View>
+
+          <View style={styles.report}>
+            <AiReportLink mode="mind" situation={situation} reading={reading} label="이 풀이 신고" />
           </View>
         </>
       ) : null}
@@ -196,60 +223,53 @@ export default function MindScreen() {
   );
 }
 
-/** 속마음 한마디가 한 글자씩 타닥타닥 써진다 */
-function Typewriter({ text, color }: { text: string; color?: string }) {
-  const [n, setN] = useState(0);
-  useEffect(() => {
-    setN(0);
-    const t = setInterval(() => {
-      setN((v) => {
-        if (v >= text.length) {
-          clearInterval(t);
-          return v;
-        }
-        if (v % 3 === 0) haptic.tick();
-        return v + 1;
-      });
-    }, 45);
-    return () => clearInterval(t);
-  }, [text]);
+/** 알약 버튼 — 파랑(주요) · 흰색(회색 카드 안 보조). 높이 44 */
+function Pill({ title, onPress, tone, fill, a11y, hint }: { title: string; onPress: () => void; tone: 'blue' | 'white'; fill?: string; a11y?: string; hint?: string }) {
+  const theme = useTheme();
+  const blue = tone === 'blue';
   return (
-    <AppText variant="title2" color={color}>
-      {text.slice(0, n)}
-      {n < text.length ? '▍' : ''}
-    </AppText>
+    <PressableScale
+      feedback="tap"
+      pressedScale={0.97}
+      onPress={onPress}
+      accessibilityLabel={a11y ?? title}
+      accessibilityHint={hint}
+      style={[styles.pill, { backgroundColor: blue ? Brand.blue : (fill ?? theme.card) }]}>
+      <AppText variant="smallStrong" color={blue ? Brand.onBrand : theme.text}>
+        {title}
+      </AppText>
+    </PressableScale>
   );
 }
 
-function Possibility({ label, percent, reason, index }: { label: string; percent: number; reason: string; index: number }) {
+/** 가능성 한 줄 — 이름 · 숫자(첫째만 크게 파랑) · 가는 막대 · 이유 */
+function Possibility({ label, percent, reason, index, divider }: { label: string; percent: number; reason: string; index: number; divider: boolean }) {
   const theme = useTheme();
   const w = useSharedValue(0);
   useEffect(() => {
-    w.value = withDelay(300 + index * 180, withTiming(percent, { duration: 900 }));
+    w.value = withDelay(300 + index * 160, withTiming(percent, { duration: 900, easing: Easing.out(Easing.cubic) }));
   }, [percent, index, w]);
   const bar = useAnimatedStyle(() => ({ width: `${w.value}%` }));
   const top = index === 0;
   return (
-    <View style={styles.possibility}>
+    <View style={[styles.possibility, divider && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.separator, paddingTop: Spacing.md }]}>
       <View style={styles.possHead}>
-        <View style={[styles.flex, styles.labelRow]}>
-          {top ? (
-            <View style={[styles.topBadge, { backgroundColor: theme.primary }]}>
-              <AppText variant="caption" weight="700" color={Brand.onBrand}>
-                1위
-              </AppText>
-            </View>
-          ) : null}
-          <AppText variant={top ? 'bodyStrong' : 'smallStrong'} style={styles.flex}>
-            {label}
-          </AppText>
-        </View>
-        <AnimatedNumber value={percent} suffix="%" delay={300 + index * 180} duration={900} variant={top ? 'title2' : 'smallStrong'} color={top ? 'primary' : 'textSecondary'} ticks={top} />
+        <AppText variant={top ? 'bodyStrong' : 'smallStrong'} style={styles.flex}>
+          {label}
+        </AppText>
+        <AnimatedNumber
+          value={percent}
+          suffix="%"
+          delay={300 + index * 160}
+          duration={900}
+          ticks={top}
+          variant="smallStrong"
+          color={top ? 'primary' : 'textSecondary'}
+          style={top ? styles.topNumber : null}
+        />
       </View>
-      <View style={[styles.track, top ? styles.trackTop : null, { backgroundColor: theme.surfaceSelected }]}>
-        <Animated.View style={[styles.fill, bar]}>
-          {top ? <BrandGradient style={StyleSheet.absoluteFill} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.primary, opacity: 0.45 }]} />}
-        </Animated.View>
+      <View style={[styles.track, { backgroundColor: theme.surface }]}>
+        <Animated.View style={[styles.fill, { backgroundColor: top ? theme.primary : theme.textTertiary }, bar]} />
       </View>
       <AppText variant="caption" color="textSecondary">
         {reason}
@@ -259,25 +279,28 @@ function Possibility({ label, percent, reason, index }: { label: string; percent
 }
 
 const styles = StyleSheet.create({
-  content: { gap: Spacing.lg, paddingTop: Spacing.md },
+  content: { gap: Spacing.md, paddingTop: Spacing.md },
   flex: { flex: 1 },
-  situation: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.xs + 2 },
-  labelRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  error: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.sm },
-  row: { flexDirection: 'row', gap: Spacing.sm },
-  actions: { gap: Spacing.xs },
-  voiceHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.md },
-  voiceLabel: { flexShrink: 1, gap: 2 },
-  voice: { marginTop: Spacing.md, minHeight: 56 },
-  section: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.md },
+  // 내 말풍선 — 오른쪽, 이어지는 쪽 모서리만 작게
+  mine: { alignSelf: 'flex-end', maxWidth: '85%', borderRadius: 22, borderBottomRightRadius: 6, paddingHorizontal: Spacing.lg - 2, paddingVertical: Spacing.sm + 3 },
+  voice: { alignSelf: 'flex-start', maxWidth: '92%', borderRadius: 22, borderTopLeftRadius: 6, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, gap: 4 },
+  voiceText: { fontSize: 18, lineHeight: 26, letterSpacing: -0.3 },
+  // 회색 결과 카드 — 테두리·그림자 없이 면 하나(채팅방 결과 카드와 같은 결)
+  card: { borderRadius: 24, borderTopLeftRadius: 6, padding: Spacing.md + 2, gap: Spacing.lg },
+  block: { gap: Spacing.sm, paddingHorizontal: 2 },
+  inner: { borderRadius: 20, padding: Spacing.md + 2, gap: Spacing.md, borderWidth: 1.5, borderColor: 'transparent' },
+  checkRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  sampleText: { fontSize: 16, lineHeight: 24, fontWeight: '500', letterSpacing: -0.2 },
+  copyPill: { alignSelf: 'flex-end', height: 36, minWidth: 60, paddingHorizontal: 14, borderRadius: Radius.pill, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
   possibility: { gap: 6 },
   possHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  topBadge: { paddingHorizontal: Spacing.sm, paddingVertical: 2, borderRadius: Radius.pill },
-  track: { height: 8, borderRadius: 4, overflow: 'hidden' },
-  trackTop: { height: 12, borderRadius: 6 },
-  fill: { height: '100%', borderRadius: 6, overflow: 'hidden' },
-  sampleWrap: { alignItems: 'flex-end', gap: Spacing.xs },
-  sampleCaption: { marginRight: Spacing.xs },
-  sample: { borderRadius: Radius.lg, borderTopRightRadius: 6, padding: Spacing.lg, gap: Spacing.sm, maxWidth: '92%' },
-  copyChip: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-end', paddingHorizontal: Spacing.sm + 2, paddingVertical: 4, borderRadius: Radius.pill },
+  // 카드의 큰 숫자는 이것 하나
+  topNumber: { fontSize: 24, lineHeight: 30, fontWeight: '700', letterSpacing: -0.6 },
+  track: { height: 6, borderRadius: Radius.pill, overflow: 'hidden' },
+  fill: { height: '100%', borderRadius: Radius.pill },
+  advice: { lineHeight: 21 },
+  footer: { marginTop: -Spacing.xs },
+  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  pill: { height: 44, paddingHorizontal: Spacing.lg, borderRadius: Radius.pill, alignItems: 'center', justifyContent: 'center' },
+  report: { alignItems: 'flex-end' },
 });

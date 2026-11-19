@@ -183,8 +183,8 @@ export default function SalePopup() {
           ) : (
             <>
               {/* 1.4 개편: 가장 큰 것은 값(예전엔 44pt 카운트다운) — 남은 시간은 머리 한 줄과 카드 아래에 작게, 빨간 할인 배지는 걷었다 */}
-              <AppText variant="caption" color="primary" weight="700" style={styles.eyebrow} accessibilityLabel={`${SALE_WINDOW_MS / 60_000}분 한정 특가, 마감까지 ${Math.floor(left / 60000)}분 ${Math.floor((left % 60000) / 1000)}초`}>
-                {SALE_WINDOW_MS / 60_000}분 한정 특가 · <Text style={styles.tabular}>{formatClock(left)}</Text> 남음
+              <AppText variant="caption" color="primary" weight="700" style={styles.eyebrow}>
+                {SALE_WINDOW_MS / 60_000}분 한정 특가
               </AppText>
               <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>
                 {name ? `${name}님, 무료 코칭을 다 썼어요` : '무료 코칭을 다 썼어요'}
@@ -216,7 +216,12 @@ export default function SalePopup() {
                     <AppText variant="caption" color="textSecondary">
                       막힌 코칭이 결제 뒤 바로 이어져요
                     </AppText>
-                    <AppText variant="caption" color={live ? 'primary' : 'textTertiary'} weight="700" style={styles.tabular}>
+                    <AppText
+                      variant="caption"
+                      color={live ? 'primary' : 'textTertiary'}
+                      weight="700"
+                      style={styles.tabular}
+                      accessibilityLabel={`특가 마감까지 ${Math.floor(left / 60000)}분 ${Math.floor((left % 60000) / 1000)}초`}>
                       마감까지 {formatClock(left)}
                     </AppText>
                   </View>

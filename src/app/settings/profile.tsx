@@ -3,8 +3,6 @@ import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { Icon3D } from '@/components/brand/brand';
-import { useCelebrate } from '@/components/fx/celebration';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { CardSection, FormField, useCardStyle } from '@/components/ui/list-group';
@@ -21,17 +19,23 @@ import type { EmojiPref, Gender, Tone } from '@/lib/types';
 import { useAppStore } from '@/store/app-store';
 
 const GOAL_OPTIONS = MY_GOALS.map((g) => ({ key: g, label: g }));
+/** 라벨 앞 이모지(「😊 넣기」)는 칩에 그리지 않는다 — 1.4 「AI 티」 (labels.ts 의 값은 다른 화면도 써서 여기서만 뗀다) */
+const plainLabel = (label: string) => {
+  const space = label.indexOf(' ');
+  return space > 0 && !/[가-힣A-Za-z0-9]/.test(label.slice(0, space)) ? label.slice(space + 1) : label;
+};
+const EMOJI_CHOICES = EMOJI_OPTIONS.map((o) => ({ ...o, label: plainLabel(o.label) }));
 
 /**
  * 내 프로필 — 나에 대한 정보 · 추구미 · 목표를 알려 주면 「내 말투 같은」 답장이 나온다.
  * 1.2 개편: 옅은 회색 바탕 위 흰 카드 묶음(기본 정보 · 연애 스타일 · 답장 스타일), 맨 아래 큰 저장 버튼.
+ * 1.4 개편: 떠 있는 3D 그림·저장 때 반짝이·칩 이모지를 걷고, 고른 칩은 한 가지(검정) — 파랑·보라 두 선택 색을 없앴다.
  */
 export default function ProfileSettings() {
   const theme = useTheme();
   const card = useCardStyle();
   const router = useRouter();
   const toast = useToast();
-  const celebrate = useCelebrate();
   const user = useAppStore((s) => s.user);
   const kkti = useAppStore((s) => s.kkti);
   const setUser = useAppStore((s) => s.setUser);
@@ -63,8 +67,7 @@ export default function ProfileSettings() {
       emoji,
       createdAt: user?.createdAt ?? Date.now(),
     });
-    celebrate({ kind: 'sparkles', count: 12 });
-    toast.show('프로필을 저장했어요. 이제 더 내 말투 같은 답장이 나와요 ✨', 'success');
+    toast.show('프로필을 저장했어요. 다음 답장부터 반영돼요', 'success');
     router.back();
   };
 
@@ -73,15 +76,12 @@ export default function ProfileSettings() {
       {/* 머리말도 바탕과 같은 회색으로 — 흰 띠가 따로 떠 보이지 않게 */}
       <Stack.Screen options={{ headerStyle: { backgroundColor: theme.canvas } }} />
       <View style={styles.intro}>
-        <View style={styles.introTexts}>
-          <AppText variant="title2" weight="700">
-            {'나를 알려 줄수록\n「나다운」 답장이 나와요'}
-          </AppText>
-          <AppText variant="small" color="textSecondary">
-            전부 선택이고, 이 기기에만 저장돼요.
-          </AppText>
-        </View>
-        <Icon3D name="memory" size={64} float />
+        <AppText variant="title3" weight="700">
+          알려 줄수록 「나다운」 답장이 나와요
+        </AppText>
+        <AppText variant="small" color="textSecondary">
+          전부 선택이고, 이 기기에만 저장돼요.
+        </AppText>
       </View>
 
       <CardSection title="기본 정보">
@@ -106,10 +106,10 @@ export default function ProfileSettings() {
 
       <CardSection title="연애 스타일">
         <FormField label="나의 추구미" hint="상대에게 보이고 싶은 모습 · 최대 3개">
-          <TagPicker options={VIBE_TAGS} value={vibes} onChange={setVibes} max={3} tone="accent" />
+          <TagPicker options={VIBE_TAGS} value={vibes} onChange={setVibes} max={3} />
         </FormField>
         <FormField label="나의 연애 목표" hint="코치가 이 방향으로 답장을 만들어요">
-          <ChoiceChips options={GOAL_OPTIONS} value={goal} onChange={setGoal} tone="accent" allowEmpty />
+          <ChoiceChips options={GOAL_OPTIONS} value={goal} onChange={setGoal} allowEmpty />
         </FormField>
       </CardSection>
 
@@ -118,10 +118,10 @@ export default function ProfileSettings() {
           <TagPicker options={MY_STYLE_TAGS} value={style} onChange={setStyle} max={5} />
         </FormField>
         <FormField label="기본 답장 톤">
-          <ChoiceChips options={TONES} value={tone} onChange={(t) => t && setTone(t)} tone="accent" />
+          <ChoiceChips options={TONES} value={tone} onChange={(t) => t && setTone(t)} />
         </FormField>
         <FormField label="답장에 이모지">
-          <ChoiceChips options={EMOJI_OPTIONS} value={emoji} onChange={(e) => e && setEmoji(e)} />
+          <ChoiceChips options={EMOJI_CHOICES} value={emoji} onChange={(e) => e && setEmoji(e)} />
         </FormField>
       </CardSection>
 
@@ -130,16 +130,15 @@ export default function ProfileSettings() {
         accessibilityLabel={kkti ? `내 KKTI ${kkti.code} ${kkti.name}, 다시 하기` : 'KKTI 테스트 하기'}
         onPress={() => router.push('/kkti')}
         style={[styles.kkti, card]}>
-        <View style={[styles.kktiDot, { backgroundColor: kkti?.color ?? theme.primarySoft }]}>
-          <AppText style={styles.kktiEmoji}>{kkti?.emoji ?? '💬'}</AppText>
-        </View>
+        {/* KKTI 는 유형 색이 내용이라 작은 점 하나로만 (이모지 타일은 걷었다) */}
+        {kkti?.color ? <View style={[styles.kktiDot, { backgroundColor: kkti.color }]} /> : null}
         <View style={styles.kktiTexts}>
           <AppText variant="bodyStrong">{kkti ? `내 KKTI: ${kkti.code} ${kkti.name}` : 'KKTI 테스트 — 카톡으로 보는 진짜 연애 MBTI'}</AppText>
-          <AppText variant="caption" color="textSecondary">
+          <AppText variant="small" color="textSecondary" style={styles.kktiCaption}>
             {kkti ? `연애 컬러 ${kkti.colorName} · 진짜 MBTI ${kkti.mbti} · 다시 하기` : '1분이면 끝. 결과가 코칭에도 반영돼요'}
           </AppText>
         </View>
-        <Ionicons name="chevron-forward" size={18} color={theme.textTertiary} />
+        <Ionicons name="chevron-forward" size={16} color={theme.textTertiary} />
       </PressableScale>
 
       <Button title="저장" variant="brand" onPress={save} style={styles.save} />
@@ -160,11 +159,10 @@ const styles = StyleSheet.create({
   content: { gap: Spacing.xl, paddingTop: Spacing.md },
   twoCol: { flexDirection: 'row', gap: Spacing.md },
   col: { flex: 1 },
-  intro: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingHorizontal: Spacing.xs },
-  introTexts: { flex: 1, gap: Spacing.xs + 2 },
-  kkti: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: Radius.lg + 2, padding: Spacing.lg + 2 },
-  kktiDot: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  kktiEmoji: { fontSize: 22, lineHeight: 28 },
+  intro: { gap: Spacing.xs, paddingHorizontal: Spacing.xs },
+  kkti: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: Radius.lg, padding: Spacing.lg + 2 },
+  kktiDot: { width: 12, height: 12, borderRadius: 6 },
   kktiTexts: { flex: 1, gap: 2 },
+  kktiCaption: { fontSize: 13, lineHeight: 19 },
   save: { marginTop: Spacing.xs },
 });

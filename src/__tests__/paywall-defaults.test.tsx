@@ -137,7 +137,7 @@ it('스토어 확인 실패면 주간 구독이 아닌 1년권이 골라지고, 
   mockReason = 'quota';
   mockProducts = UNCONFIRMED;
   mount();
-  expect(buyLabel()).toContain('1년권');
+  expect(buyLabel()).toContain('1년 무제한');
   expect(allText()).toContain('다시 불러오기');
   const reload = renderer.root.findAll((n) => typeof n.props.onPress === 'function' && textOf(n).includes('다시 불러오기'))[0];
   act(() => reload.props.onPress());
@@ -168,15 +168,17 @@ describe('평생권 → 1년권 (2026-11-07)', () => {
   ];
   const radio = (label: string) => renderer.root.findAll((n) => n.props.accessibilityRole === 'radio' && textOf(n).includes(label))[0];
 
-  it('목록에 평생권은 없고, 1년권이 주간 구독 다음에 있다', () => {
+  it('목록에 평생권은 없고, 하루 이용권·1년권이 먼저, 주간 구독·횟수권은 「다른 이용권 보기」 (1.4 개편)', () => {
     mockReason = 'my';
     mockProducts = SELLING;
     mount();
     const text = allText();
     expect(text).not.toContain('평생');
     expect(text).toContain('1년권');
-    expect(text.indexOf('주간 구독')).toBeLessThan(text.indexOf('1년권'));
-    expect(text.indexOf('1년권')).toBeLessThan(text.indexOf('횟수권'));
+    expect(text.indexOf('하루 이용권')).toBeLessThan(text.indexOf('1년권'));
+    expect(text.indexOf('1년권')).toBeLessThan(text.indexOf('다른 이용권 보기'));
+    expect(text.indexOf('다른 이용권 보기')).toBeLessThan(text.indexOf('주간 구독'));
+    expect(text.indexOf('주간 구독')).toBeLessThan(text.indexOf('횟수권'));
     // 기본 선택은 그대로 하루 이용권
     expect(buyLabel()).toContain('하루 무제한');
   });
@@ -186,13 +188,13 @@ describe('평생권 → 1년권 (2026-11-07)', () => {
     mockProducts = SELLING;
     mount();
     act(() => radio('1년권').props.onPress());
-    expect(buyLabel()).toBe('1년권 시작하기');
+    expect(buyLabel()).toBe('29,800원으로 1년 무제한 시작하기');
     const text = allText();
     expect(text).toContain('1년권 안내');
     expect(text).toContain('1년권은 29,800원 1회 결제로 결제한 날부터 1년 동안 무제한이에요');
     expect(text).toContain('자동으로 갱신되거나 다시 결제되지 않아요');
     expect(text).toContain('같은 App Store 계정이면 기기를 바꿔도 「구매 복원」으로 다시 쓸 수 있어요');
-    expect(text).toContain('29,800원 한 번 결제 · 1년 무제한 · 자동 결제 없음');
+    expect(text).toContain('한 번만 결제돼요 · 1년 뒤 저절로 끝나요 · 자동 결제 없음');
     expect(text).not.toMatch(/Google ?Play|평생/);
   });
 
@@ -206,7 +208,7 @@ describe('평생권 → 1년권 (2026-11-07)', () => {
       mount();
       const date = `${until.getFullYear()}년 ${until.getMonth() + 1}월 ${until.getDate()}일`;
       expect(allText()).toContain(`1년권으로 모든 기능을 무제한으로 쓰고 있어요. ${date}까지 쓸 수 있어요.`);
-      expect(allText()).not.toContain('1년권 시작하기');
+      expect(allText()).not.toContain('1년 무제한 시작하기');
       act(() => renderer.unmount());
       useAppStore.setState({ premium: { plan: 'lifetime', productId: 'mylovecoach.premium.lifetime', expiresAt: null, verifiedAt: 1 } });
       mount();

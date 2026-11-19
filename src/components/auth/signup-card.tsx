@@ -72,9 +72,6 @@ export function SignupCard({ onDone, title, subtitle, heading = true }: Props) {
     <View style={[styles.card, heading ? { backgroundColor: theme.surface } : styles.bare]}>
       {heading ? (
         <View style={styles.texts}>
-          <View style={[styles.gift, { backgroundColor: theme.primarySoft }]}>
-            <Ionicons name="gift" size={22} color={theme.primary} />
-          </View>
           <AppText variant="title3" align="center" weight="700">
             {title ?? `가입하고 무료 코칭 ${SIGNUP_BONUS}회 더 받기`}
           </AppText>

@@ -532,7 +532,7 @@ function buyTitle(plan: PlanKey, price: string, sale: boolean): string {
   const won = priceText(price);
   switch (plan) {
     case 'day':
-      return sale ? `특가 ${won}으로 하루 무제한 시작` : `${won}으로 하루 무제한 시작하기`;
+      return sale ? `특가 ${won}으로 시작하기` : `${won}으로 하루 무제한 시작하기`;
     case 'weekly':
       return `주 ${won}으로 구독 시작하기`;
     case 'year':

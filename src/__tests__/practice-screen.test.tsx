@@ -214,6 +214,9 @@ describe('연애 연습 화면 — 말풍선 상한과 AI 답변 신고', () => 
     const screen = tree as unknown as ReactTestRenderer;
     let unmounted = false;
     try {
+      // 아직 차감 전이고 횟수가 남았으면 입력창 위에 「첫 답장을 받으면 1회를 써요 · 12마디까지 · N회 남았어요」
+      const costLine = `첫 답장을 받으면 코칭 1회를 써요 · ${PRACTICE_MAX_TURNS}마디까지 · `;
+      expect(texts(screen).some((n) => n.startsWith(costLine) && /^[0-9]+회 남았어요$/.test(n.slice(costLine.length)))).toBe(true);
       act(() => screen.root.findByType(TextInput).props.onChangeText('이번 주말 어때요?'));
       await act(async () => {
         const send = byLabel(screen, '보내기');

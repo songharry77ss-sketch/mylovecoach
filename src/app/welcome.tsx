@@ -5,13 +5,15 @@ import { BackHandler, Pressable, ScrollView, StyleSheet, Text, View, useWindowDi
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandGradient, BrandPill, GradientButton, Icon3D, SenditLogo, WashBackground } from '@/components/brand/brand';
+import { Image } from 'expo-image';
+
+import { BrandPill, GradientButton, SenditLogo } from '@/components/brand/brand';
 import { StartConsentSheet, type StartConsentAnswer } from '@/components/consent/start-consent-sheet';
 import { GuidePhone } from '@/components/guide/guide-phone';
 import { GUIDE_STEPS, type GuideStep } from '@/components/guide/guide-steps';
-import { useCardStyle } from '@/components/ui/list-group';
 import { APP_NAME, APP_SUBTITLE, RESEARCH_LINE } from '@/constants/brand';
-import { Brand, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
@@ -160,7 +162,7 @@ export default function Welcome() {
   const closeLabel = mode === 'fresh' ? '건너뛰기' : '닫기';
 
   return (
-    <WashBackground style={styles.root}>
+    <View style={[styles.root, { backgroundColor: theme.background }]}>
       <View style={[styles.topBar, { paddingTop: insets.top + Spacing.sm, width }]}>
         <View style={styles.topLogo}>{onCover ? null : <SenditLogo size="sm" />}</View>
         <Pressable
@@ -196,16 +198,11 @@ export default function Welcome() {
             <View key={p.kind === 'cover' ? 'cover' : p.step.key} style={[styles.dot, { backgroundColor: i === page ? theme.primary : theme.border }, i === page && styles.dotOn]} />
           ))}
         </View>
-        <GradientButton
-          title={last ? (mode === 'fresh' ? '시작하기' : '다 봤어요') : '다음'}
-          onPress={next}
-          shine={last}
-          icon={last ? <Ionicons name={mode === 'fresh' ? 'sparkles' : 'checkmark'} size={18} color={Brand.onBrand} /> : undefined}
-        />
+        <GradientButton title={last ? (mode === 'fresh' ? '시작하기' : '다 봤어요') : '다음'} onPress={next} />
       </View>
 
       <StartConsentSheet visible={asking} onAgree={onAgree} onClose={() => setAsking(false)} />
-    </WashBackground>
+    </View>
   );
 }
 
@@ -221,16 +218,14 @@ function useArea() {
 
 /**
  * 첫 장 — 이름·부제·연구진 문구 (업데이트한 이용자에게는 「새로워졌어요」).
- * 11/12 회의 5번 「첫 화면 글씨·카드가 너무 크다」: 제목 24pt, 카드 안은 3D 아이콘 하나 + 이름 글자만 (앱 아이콘 모양 로고는 3D 아이콘과 겹쳐 뺐다),
- * 동그라미 장식·연구진 배지 알약 없이. 아래에 「이런 기능도 있어요」(연애 연습)를 한 줄 카드로.
+ * 11/12 회의 5번 「첫 파란 화면 글씨가 너무 크다」 → 1.4 개편: 파란 큰 카드 자체를 걷었다.
+ * 흰 바탕에 앱 아이콘 + 이름·부제·연구진 한 줄만 조용히(피클 스토어 그림 결). 아래에 「이런 기능도 있어요」(연애 연습)를 회색 카드 한 줄로.
  */
 function CoverPage({ width, mode }: { width: number; mode: 'fresh' | 'update' }) {
   const theme = useTheme();
   const copy = COVER[mode];
   // 연애 연습을 아직 못 본 이용자에게만 (탭 바 「탐색」의 빨간 점과 같은 값)
   const practiceNew = useAppStore((s) => !s.practiceDotSeen);
-  const { area, onLayout } = useArea();
-  const icon = area ? Math.round(Math.max(56, Math.min(96, area.height * 0.3))) : 80;
   return (
     <View style={[styles.page, { width }]}>
       <Animated.View entering={FadeInDown.duration(420)} style={styles.texts}>
@@ -242,17 +237,13 @@ function CoverPage({ width, mode }: { width: number; mode: 'fresh' | 'update' })
       </Animated.View>
       {/* 카드는 높이를 묶어 덜 압도적으로 — 남는 공간은 카드·소개 줄을 세로 가운데로 모으는 데 쓴다 */}
       <View style={styles.coverBody}>
-        <Animated.View entering={FadeInUp.delay(120).duration(520)} style={styles.coverCardWrap}>
-          <BrandGradient style={styles.card}>
-            <View style={styles.coverInner} onLayout={onLayout}>
-              <Icon3D name="send" size={icon} />
-              <View style={styles.wordmark} accessible accessibilityRole="header" accessibilityLabel={`${APP_NAME}, ${APP_SUBTITLE}`}>
-                <Text style={styles.wordmarkName}>{APP_NAME}</Text>
-                <Text style={styles.wordmarkSub}>{APP_SUBTITLE}</Text>
-              </View>
-              <Text style={styles.research}>{RESEARCH_LINE}</Text>
-            </View>
-          </BrandGradient>
+        <Animated.View entering={FadeInUp.delay(120).duration(420)} style={styles.coverInner}>
+          <Image source={require('../../assets/images/sendit-mark.png')} style={styles.mark} contentFit="contain" accessibilityIgnoresInvertColors />
+          <View style={styles.wordmark} accessible accessibilityRole="header" accessibilityLabel={`${APP_NAME}, ${APP_SUBTITLE}`}>
+            <Text style={[styles.wordmarkName, { color: theme.text }]}>{APP_NAME}</Text>
+            <Text style={[styles.wordmarkSub, { color: theme.textSecondary }]}>{APP_SUBTITLE}</Text>
+          </View>
+          <Text style={[styles.research, { color: theme.textSecondary }]}>{RESEARCH_LINE}</Text>
         </Animated.View>
         {practiceNew ? <PracticeTeaser /> : null}
       </View>
@@ -266,16 +257,16 @@ function CoverPage({ width, mode }: { width: number; mode: 'fresh' | 'update' })
  */
 function PracticeTeaser() {
   const theme = useTheme();
-  const card = useCardStyle();
+  const dark = useColorScheme() === 'dark';
   return (
     <Animated.View
       entering={FadeInUp.delay(220).duration(520)}
       accessible
       accessibilityLabel="이런 기능도 있어요. 연애 연습, AI 상대와 카톡으로 미리 연습해요. 탐색 탭에서 해 볼 수 있어요"
-      style={[styles.teaser, card]}>
-      <View style={[styles.teaserIcon, { backgroundColor: theme.primarySoft }]}>
-        <Ionicons name="compass-outline" size={20} color={theme.primary} />
-        <View style={[styles.teaserDot, { backgroundColor: theme.danger, borderColor: theme.primarySoft }]} />
+      style={[styles.teaser, { backgroundColor: dark ? theme.surfaceElevated : theme.surface }]}>
+      <View style={styles.teaserIcon}>
+        <Ionicons name="compass-outline" size={24} color={theme.text} />
+        <View style={[styles.teaserDot, { backgroundColor: theme.danger, borderColor: dark ? theme.surfaceElevated : theme.surface }]} />
       </View>
       <View style={styles.teaserTexts}>
         <Text style={[styles.teaserEyebrow, { color: theme.textTertiary }]}>이런 기능도 있어요</Text>
@@ -288,9 +279,10 @@ function PracticeTeaser() {
   );
 }
 
-/** 사용법 한 장 — 제목·설명 + 그라데이션 카드 안의 실제 화면 */
+/** 사용법 한 장 — 제목·설명 + 회색 카드 안의 실제 화면 (1.4 개편: 파란 카드 → 무채색 회색 면) */
 function StepPage({ width, step, active }: { width: number; step: GuideStep; active: boolean }) {
   const theme = useTheme();
+  const dark = useColorScheme() === 'dark';
   const { area, onLayout } = useArea();
   return (
     <View style={[styles.page, { width }]}>
@@ -303,23 +295,23 @@ function StepPage({ width, step, active }: { width: number; step: GuideStep; act
         <Text style={[styles.body, { color: theme.textSecondary }]}>{step.body}</Text>
       </View>
       <View style={styles.cardWrap}>
-        <BrandGradient style={styles.card}>
+        <View style={[styles.card, { backgroundColor: dark ? theme.surfaceElevated : theme.surface }]}>
           {/* 휴대폰은 카드 위쪽에 붙고, 화면이 길면 카드 아래로 잘려 이어진다 */}
           <View style={styles.phoneArea} onLayout={onLayout} accessibilityLabel={`${step.title} — 실제 앱 화면`} accessible>
             {area ? <GuidePhone shot={step.shot} area={{ width: area.width, height: area.height - Spacing.xl }} active={active} /> : null}
           </View>
-        </BrandGradient>
+        </View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { alignItems: 'center' },
+  root: { flex: 1, alignItems: 'center' },
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.xl, paddingBottom: Spacing.xs },
   topLogo: { height: 32, justifyContent: 'center' },
   skip: { paddingHorizontal: Spacing.md, paddingVertical: 7, borderRadius: Radius.pill },
-  skipText: { fontSize: 13, fontWeight: '700' },
+  skipText: { fontSize: 13, fontWeight: '600' },
   pressed: { opacity: 0.7 },
   pager: { flex: 1 },
   page: { flex: 1, paddingTop: Spacing.md },
@@ -329,19 +321,20 @@ const styles = StyleSheet.create({
   body: { fontSize: 15, lineHeight: 22, fontWeight: '500', letterSpacing: -0.2 },
   eyebrow: { fontSize: 13, lineHeight: 18, fontWeight: '700', letterSpacing: -0.1 },
   cardWrap: { flex: 1, marginTop: Spacing.lg, marginHorizontal: Spacing.lg },
-  card: { flex: 1, borderRadius: Radius.xl, overflow: 'hidden' },
+  card: { flex: 1, borderRadius: 28, overflow: 'hidden' },
   coverBody: { flex: 1, justifyContent: 'center', paddingTop: Spacing.lg },
-  coverCardWrap: { flexGrow: 1, flexShrink: 1, minHeight: 180, maxHeight: 280, marginHorizontal: Spacing.lg },
-  coverInner: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md, padding: Spacing.xl },
+  coverInner: { alignItems: 'center', justifyContent: 'center', gap: Spacing.md, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.xl },
+  // 앱 아이콘 — 1.4 개편: 3D 그림 대신 실제 앱 아이콘 하나
+  mark: { width: 76, height: 76, borderRadius: 18 },
   wordmark: { alignItems: 'center', gap: 2 },
-  wordmarkName: { color: Brand.onBrand, fontSize: 26, lineHeight: 32, fontWeight: '700', letterSpacing: -0.8 },
-  wordmarkSub: { color: Brand.onBrandDim, fontSize: 14, lineHeight: 19, fontWeight: '700', letterSpacing: -0.2 },
-  research: { color: Brand.onBrandDim, fontSize: 12, lineHeight: 17, fontWeight: '600', textAlign: 'center', marginTop: Spacing.xs },
-  teaser: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginTop: Spacing.md, marginHorizontal: Spacing.lg, paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, borderRadius: Radius.lg },
-  teaserIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  teaserDot: { position: 'absolute', top: 3, right: 3, width: 9, height: 9, borderRadius: 4.5, borderWidth: 1.5 },
+  wordmarkName: { fontSize: 22, lineHeight: 28, fontWeight: '700', letterSpacing: -0.6 },
+  wordmarkSub: { fontSize: 14, lineHeight: 19, fontWeight: '500', letterSpacing: -0.2 },
+  research: { fontSize: 12, lineHeight: 17, fontWeight: '500', textAlign: 'center' },
+  teaser: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginTop: Spacing.lg, marginHorizontal: Spacing.lg, paddingVertical: Spacing.md + 2, paddingHorizontal: Spacing.lg, borderRadius: 20 },
+  teaserIcon: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+  teaserDot: { position: 'absolute', top: 1, right: 0, width: 9, height: 9, borderRadius: 4.5, borderWidth: 1.5 },
   teaserTexts: { flex: 1, gap: 1 },
-  teaserEyebrow: { fontSize: 12, lineHeight: 16, fontWeight: '700' },
+  teaserEyebrow: { fontSize: 12, lineHeight: 16, fontWeight: '600' },
   teaserTitle: { fontSize: 14, lineHeight: 20, fontWeight: '700', letterSpacing: -0.2 },
   teaserBody: { fontSize: 13, lineHeight: 18, fontWeight: '500', letterSpacing: -0.1 },
   phoneArea: { flex: 1, alignItems: 'center', paddingTop: Spacing.xl },

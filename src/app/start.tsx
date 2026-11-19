@@ -199,8 +199,8 @@ export default function Start() {
           <Text style={[styles.guideLabel, { color: theme.textSecondary }]}>캡처하는 법</Text>
           {STEPS.map((s, i) => (
             <View key={s.title} style={styles.stepRow}>
-              <View style={[styles.stepNum, { backgroundColor: theme.primarySoft }]}>
-                <Text style={[styles.stepNumText, { color: theme.primary }]}>{i + 1}</Text>
+              <View style={[styles.stepNum, { backgroundColor: theme.surface }]}>
+                <Text style={[styles.stepNumText, { color: theme.textSecondary }]}>{i + 1}</Text>
               </View>
               <View style={styles.stepTexts}>
                 <Text style={[styles.stepTitle, { color: theme.text }]}>{s.title}</Text>
@@ -258,14 +258,11 @@ export default function Start() {
               variant={typed ? 'brand' : 'secondary'}
               onPress={() => go('text')}
               disabled={busy || !typed}
-              icon={<Ionicons name="sparkles" size={18} color={typed ? Brand.onBrand : theme.textSecondary} />}
             />
           </Animated.View>
         ) : (
           <PressableScale onPress={openWriting} style={[styles.writeRow, card]} accessibilityLabel="캡처 없이 상황만 적기">
-            <View style={[styles.writeIcon, { backgroundColor: theme.primarySoft }]}>
-              <Ionicons name="create-outline" size={18} color={theme.primary} />
-            </View>
+            <Ionicons name="create-outline" size={20} color={theme.textSecondary} />
             <View style={styles.flex}>
               <Text style={[styles.writeTitle, { color: theme.text }]}>캡처가 없다면? 상황만 적어도 돼요</Text>
               <Text style={[styles.writeBody, { color: theme.textSecondary }]}>「소개팅 다음 날 먼저 연락해도 될까?」처럼</Text>

@@ -6,9 +6,10 @@ import { BackHandler, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, T
 import Animated, { Easing, FadeInUp, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandGradient, GradientButton, WashBackground } from '@/components/brand/brand';
-import { useCardStyle, useInsetFill } from '@/components/ui/list-group';
-import { APP_NAME, APP_SUBTITLE } from '@/constants/brand';
+import { GradientButton } from '@/components/brand/brand';
+import { AppText } from '@/components/ui/app-text';
+import { useInsetFill } from '@/components/ui/list-group';
+import { APP_NAME } from '@/constants/brand';
 import { Brand, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useKeyboardVisible } from '@/hooks/use-keyboard';
 import { useTheme } from '@/hooks/use-theme';
@@ -48,8 +49,8 @@ const MAX_VIBES = 3;
 
 function introOf(knownName: string | undefined): string[] {
   return knownName
-    ? [`다시 반가워요, ${knownName}님! 👋`, '답장을 더 「나답게」 만들려고 몇 가지만 더 물어볼게요. 모르는 건 건너뛰어도 돼요.']
-    : [`안녕하세요! 오늘부터 함께할 연애 코치, ${APP_NAME}이에요 👋`, '답장을 「나답게」 만들려고 몇 가지만 물어볼게요. 30초면 끝나고, 모르는 건 건너뛰어도 돼요.'];
+    ? [`다시 반가워요, ${knownName}님!`, '답장을 더 「나답게」 만들려고 몇 가지만 더 물어볼게요. 모르는 건 건너뛰어도 돼요.']
+    : [`안녕하세요! 오늘부터 함께할 연애 코치, ${APP_NAME}이에요.`, '답장을 「나답게」 만들려고 몇 가지만 물어볼게요. 30초면 끝나고, 모르는 건 건너뛰어도 돼요.'];
 }
 
 /** 이미 알고 있는 항목 — 홈·마이에서 다시 열면 묻지 않는다 */
@@ -76,15 +77,15 @@ function questionOf(step: Step, a: Answers): string {
     case 'name':
       return '뭐라고 불러 드릴까요?';
     case 'gender':
-      return a.name ? `반가워요, ${a.name}님! 😊\n성별을 알려 주실래요?` : '성별을 알려 주실래요?';
+      return a.name ? `반가워요, ${a.name}님!\n성별을 알려 주실래요?` : '성별을 알려 주실래요?';
     case 'age':
       return '나이는요? 또래 말투에 맞춰 답장을 만드는 데 써요.';
     case 'mbti':
       return 'MBTI 알고 있어요? 몰라도 괜찮아요.';
     case 'vibes':
-      return `상대에게 어떤 사람으로 보이고 싶어요?\n${MAX_VIBES}개까지 골라 주세요 ✨`;
+      return `상대에게 어떤 사람으로 보이고 싶어요?\n${MAX_VIBES}개까지 골라 주세요.`;
     case 'goal':
-      return '마지막이에요! 지금 연애 목표는요? 🎯';
+      return '마지막이에요! 지금 연애 목표는요?';
   }
 }
 
@@ -93,8 +94,8 @@ const filledCount = (a: Answers) => [a.name, a.gender, a.age, a.mbti, a.vibes?.l
 function endingOf(a: Answers, fromHome: boolean, knownName: string | undefined): string[] {
   const name = a.name ?? knownName;
   const who = name ? `, ${name}님` : '';
-  if (filledCount(a) === 0) return ['괜찮아요! 언제든 마이 → 내 프로필에서 알려 주세요.', ...(fromHome ? [] : ['그럼 바로 답장이 고민되는 대화를 보여 주세요 📸'])];
-  return [`좋아요${who}! 알려 주신 대로 「나다운」 말투로 답장을 만들어 드릴게요 ✨`, fromHome ? '다음 답장부터 바로 반영돼요 💌' : '이제 답장이 고민되는 대화를 보여 주세요 📸'];
+  if (filledCount(a) === 0) return ['괜찮아요! 언제든 마이 → 내 프로필에서 알려 주세요.', ...(fromHome ? [] : ['그럼 바로 답장이 고민되는 대화를 보여 주세요.'])];
+  return [`좋아요${who}! 알려 주신 대로 「나다운」 말투로 답장을 만들어 드릴게요.`, fromHome ? '다음 답장부터 바로 반영돼요.' : '이제 답장이 고민되는 대화를 보여 주세요.'];
 }
 
 /**
@@ -103,12 +104,14 @@ function endingOf(a: Answers, fromHome: boolean, knownName: string | undefined):
  * 답한 만큼만 내 프로필(마이 → 내 프로필)에 저장하고 첫 캡처 화면으로 간다.
  * 앱 안(홈·마이의 「나에 대해 알려주세요」)에서 열면(?from=home|my) 이미 아는 항목은 묻지 않고, 끝나면 연 화면으로 돌아간다.
  * 안드로이드 뒤로 가기는 「나중에 할게요」와 같다 (이미 답한 건 저장).
+ * 1.4 「깔끔하게」 개편(점검 4.14): 흰 바탕 + 회색 코치 말풍선(보통 굵기) + 옅은 라벤더 내 말풍선(검정 글자) — 채팅방과 같은 말풍선.
+ * 그라데이션 바탕·말풍선·고른 칩, 그림자, 코치 말 이모지, 점선 「건너뛰기」를 걷었다.
  */
 export default function AboutMe() {
   const router = useRouter();
   const theme = useTheme();
-  // 코치 말풍선·아래 답하는 시트는 옅은 빛 바탕 위에 뜬 흰 카드 (1.2 개편)
-  const card = useCardStyle();
+  // 코치 말풍선은 회색 면(다크는 한 단계 밝게) — 채팅방의 코치 말풍선과 같은 결
+  const fill = useInsetFill();
   const from = useLocalSearchParams<{ from?: string }>().from;
   const fromHome = from === 'home' || from === 'my';
   const insets = useSafeAreaInsets();
@@ -234,7 +237,7 @@ export default function AboutMe() {
   };
 
   return (
-    <WashBackground>
+    <View style={[styles.flex, { backgroundColor: theme.background }]}>
       {/* 안드로이드도 화면 끝까지 그리는 방식이라 adjustResize 만으로는 입력칸이 올라오지 않는다 — 채팅방처럼 두 기기 모두 padding */}
       <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <View style={[styles.head, { paddingTop: insets.top + Spacing.md }]}>
@@ -243,7 +246,7 @@ export default function AboutMe() {
               <CoachAvatar size={36} />
               <View>
                 <Text style={[styles.coachName, { color: theme.text }]}>{APP_NAME}</Text>
-                <Text style={[styles.coachSub, { color: typing ? theme.primary : theme.textTertiary }]}>{typing ? '입력 중…' : `${APP_SUBTITLE} · 30초면 끝나요`}</Text>
+                <Text style={[styles.coachSub, { color: typing ? theme.primary : theme.textSecondary }]}>{typing ? '입력 중…' : '30초면 끝나요'}</Text>
               </View>
             </View>
             {!done ? (
@@ -252,19 +255,16 @@ export default function AboutMe() {
                 accessibilityLabel="나에 대해 알려주기 나중에 하기"
                 onPress={() => finish('later')}
                 hitSlop={12}
-                style={({ pressed }) => [styles.skip, { backgroundColor: theme.surface }, pressed && styles.pressed]}>
+                style={({ pressed }) => [styles.skip, pressed && styles.pressed]}>
                 <Text style={[styles.skipText, { color: theme.textSecondary }]}>나중에 할게요</Text>
               </Pressable>
             ) : null}
           </View>
           <View style={styles.progress} accessibilityLabel={`질문 ${steps.length}개 중 ${Math.min(step, steps.length)}개 답함`}>
-            {steps.map((s, i) =>
-              i < step ? (
-                <BrandGradient key={s} style={styles.seg} />
-              ) : (
-                <View key={s} style={[styles.seg, { backgroundColor: i === step ? theme.surfaceSelected : theme.border }]} />
-              ),
-            )}
+            {/* 답한 칸만 파랑 단색, 나머지는 회색 */}
+            {steps.map((s, i) => (
+              <View key={s} style={[styles.seg, { backgroundColor: i < step ? theme.primary : theme.border }]} />
+            ))}
           </View>
         </View>
 
@@ -282,37 +282,35 @@ export default function AboutMe() {
               <Animated.View key={line.id} entering={FadeInUp.duration(260)} style={styles.coachRow}>
                 {/* 이어지는 코치 말풍선은 얼굴을 한 번만 */}
                 {lines[i - 1]?.from === 'coach' ? <View style={styles.avatarGap} /> : <CoachAvatar />}
-                <View style={[styles.bubble, styles.coachBubble, card]}>
-                  <Text style={[styles.coachText, { color: theme.text }]}>{line.text}</Text>
+                <View style={[styles.bubble, styles.coachBubble, { backgroundColor: fill }]}>
+                  {/* AppText — 한글을 단어 단위로 줄바꿈(「건/너뛰어도」처럼 끊기지 않게) */}
+                  <AppText style={styles.coachText}>{line.text}</AppText>
                 </View>
               </Animated.View>
             ) : (
               <Animated.View key={line.id} entering={FadeInUp.duration(220)} style={styles.meRow}>
-                {line.skipped ? (
-                  <View style={[styles.bubble, styles.skippedBubble, { borderColor: theme.border }]}>
-                    <Text style={[styles.skippedText, { color: theme.textSecondary }]}>{line.text}</Text>
-                  </View>
-                ) : (
-                  <BrandGradient style={[styles.bubble, styles.meBubble]}>
-                    <Text style={styles.meText}>{line.text}</Text>
-                  </BrandGradient>
-                )}
+                {/* 내 말풍선 — 옅은 라벤더 블루 + 검정 글자(채팅방과 같다). 건너뛴 답은 회색 글자로 */}
+                <View style={[styles.bubble, styles.meBubble, { backgroundColor: theme.bubbleUser }]}>
+                  <AppText color={line.skipped ? 'textSecondary' : 'text'} style={styles.meText}>
+                    {line.text}
+                  </AppText>
+                </View>
               </Animated.View>
             ),
           )}
           {typing ? (
             <View style={styles.coachRow}>
               {lines[lines.length - 1]?.from === 'coach' ? <View style={styles.avatarGap} /> : <CoachAvatar />}
-              <View style={[styles.bubble, styles.coachBubble, styles.typingBubble, card]} accessibilityLabel="코치가 입력 중">
+              <View style={[styles.bubble, styles.coachBubble, styles.typingBubble, { backgroundColor: fill }]} accessibilityLabel="코치가 입력 중">
                 {[0, 1, 2].map((d) => (
-                  <TypingDot key={d} index={d} color={theme.textTertiary} />
+                  <TypingDot key={d} index={d} color={theme.textSecondary} />
                 ))}
               </View>
             </View>
           ) : null}
         </ScrollView>
 
-        <View style={[styles.dock, card, { paddingBottom: (keyboardVisible ? 0 : insets.bottom) + Spacing.md }]}>
+        <View style={[styles.dock, { backgroundColor: theme.background, borderTopColor: theme.separator, paddingBottom: (keyboardVisible ? 0 : insets.bottom) + Spacing.md }]}>
           {ready && current === 'name' ? (
             <Animated.View entering={FadeInUp.duration(220)} style={styles.dockInner}>
               <InputRow value={draft} onChange={setDraft} onSend={sendText} placeholder="이름이나 별명 (예: 지은)" label="부를 이름" maxLength={20} />
@@ -367,20 +365,17 @@ export default function AboutMe() {
             </Animated.View>
           ) : ready && done ? (
             <Animated.View entering={FadeInUp.duration(260)} style={styles.dockInner}>
-              <GradientButton
-                title={fromHome ? '완료' : '첫 캡처 올리러 가기'}
-                shine={!fromHome}
-                onPress={() => finish('done')}
-                icon={<Ionicons name={fromHome ? 'checkmark' : 'image'} size={18} color={Brand.onBrand} />}
-              />
-              <Text style={[styles.footnote, { color: theme.textTertiary }]}>알려 주신 내용은 마이 → 내 프로필에서 언제든 바꿀 수 있어요</Text>
+              <GradientButton title={fromHome ? '완료' : '첫 캡처 올리러 가기'} onPress={() => finish('done')} />
+              <AppText color="textSecondary" style={styles.footnote}>
+                알려 주신 내용은 마이 → 내 프로필에서 언제든 바꿀 수 있어요
+              </AppText>
             </Animated.View>
           ) : (
             <View style={styles.dockWaiting} />
           )}
         </View>
       </KeyboardAvoidingView>
-    </WashBackground>
+    </View>
   );
 }
 
@@ -422,7 +417,7 @@ function InputRow({ value, onChange, onSend, placeholder, label, maxLength, nume
         style={[styles.input, { backgroundColor: fill, color: theme.text }]}
       />
       <Pressable accessibilityRole="button" accessibilityLabel="보내기" accessibilityState={{ disabled: !can }} onPress={onSend} disabled={!can} style={({ pressed }) => [styles.send, pressed && styles.pressed]}>
-        {can ? <BrandGradient style={StyleSheet.absoluteFill} /> : <View style={[StyleSheet.absoluteFill, { backgroundColor: fill }]} />}
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: can ? Brand.blue : fill }]} />
         <Ionicons name="arrow-up" size={20} color={can ? Brand.onBrand : theme.textTertiary} />
       </Pressable>
     </View>
@@ -432,13 +427,13 @@ function InputRow({ value, onChange, onSend, placeholder, label, maxLength, nume
 function SkipChip({ onPress }: { onPress: () => void }) {
   const theme = useTheme();
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel="이 질문 건너뛰기" onPress={onPress} hitSlop={6} style={({ pressed }) => [styles.skipChip, { borderColor: theme.textTertiary }, pressed && styles.pressed]}>
+    <Pressable accessibilityRole="button" accessibilityLabel="이 질문 건너뛰기" onPress={onPress} hitSlop={6} style={({ pressed }) => [styles.skipChip, pressed && styles.pressed]}>
       <Text style={[styles.skipChipText, { color: theme.textSecondary }]}>건너뛰기</Text>
     </Pressable>
   );
 }
 
-/** 답 칩 — 누르면 바로 답이 된다 (추구미만 그라데이션으로 켜지고 끔) */
+/** 답 칩 — 누르면 바로 답이 된다 (추구미만 켜고 끔 — 고르면 검정 채움 + 흰 글자, 공통 Chip 과 같은 결) */
 function Choice({ label, selected, onPress, big, grid, wide }: { label: string; selected?: boolean; onPress: () => void; big?: boolean; grid?: boolean; wide?: boolean }) {
   const theme = useTheme();
   const fill = useInsetFill();
@@ -447,9 +442,8 @@ function Choice({ label, selected, onPress, big, grid, wide }: { label: string; 
       accessibilityRole="button"
       accessibilityState={selected != null ? { selected } : undefined}
       onPress={onPress}
-      style={({ pressed }) => [styles.choice, { backgroundColor: fill }, big && styles.choiceBig, grid && styles.choiceGrid, wide && styles.choiceWide, pressed && styles.choicePressed]}>
-      {selected ? <BrandGradient style={StyleSheet.absoluteFill} /> : null}
-      <Text style={[styles.choiceText, { color: selected ? Brand.onBrand : theme.text }, big && styles.choiceTextBig]}>{label}</Text>
+      style={({ pressed }) => [styles.choice, { backgroundColor: selected ? theme.text : fill }, big && styles.choiceBig, grid && styles.choiceGrid, wide && styles.choiceWide, pressed && styles.choicePressed]}>
+      <Text style={[styles.choiceText, { color: selected ? theme.background : theme.text }, big && styles.choiceTextBig]}>{label}</Text>
     </Pressable>
   );
 }
@@ -462,26 +456,24 @@ const styles = StyleSheet.create({
   coachId: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   coachName: { fontSize: 16, fontWeight: '700', letterSpacing: -0.3 },
   coachSub: { fontSize: 12, fontWeight: '600' },
-  skip: { paddingHorizontal: Spacing.md, paddingVertical: 7, borderRadius: Radius.pill },
-  skipText: { fontSize: 13, fontWeight: '700' },
+  skip: { minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.xs },
+  skipText: { fontSize: 14, fontWeight: '600' },
   progress: { flexDirection: 'row', gap: 4 },
-  seg: { flex: 1, height: 4, borderRadius: 2, overflow: 'hidden' },
+  seg: { flex: 1, height: 3, borderRadius: 2 },
   chat: { paddingHorizontal: Spacing.xl, paddingVertical: Spacing.lg, gap: Spacing.sm, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   coachRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
   meRow: { flexDirection: 'row', justifyContent: 'flex-end', marginVertical: Spacing.xs },
   avatarGap: { width: 30 },
-  bubble: { maxWidth: '82%', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10, overflow: 'hidden' },
-  // 그림자가 잘리지 않게 코치 말풍선은 자르지 않는다 (그라데이션을 깔지 않음)
-  coachBubble: { borderTopLeftRadius: 6, overflow: 'visible' },
-  coachText: { fontSize: 15, lineHeight: 22, fontWeight: '600', letterSpacing: -0.2 },
+  // 말풍선 모서리 22(이어지는 쪽 6) — 1.4 지침
+  bubble: { maxWidth: '82%', borderRadius: 22, paddingHorizontal: 15, paddingVertical: 10 },
+  coachBubble: { borderTopLeftRadius: 6 },
+  coachText: { fontSize: 15, lineHeight: 22, fontWeight: '400', letterSpacing: -0.2 },
   meBubble: { borderBottomRightRadius: 6 },
-  meText: { fontSize: 15, lineHeight: 22, fontWeight: '700', color: Brand.onBrand, letterSpacing: -0.2 },
-  skippedBubble: { borderWidth: 1, borderStyle: 'dashed', borderBottomRightRadius: 6 },
-  skippedText: { fontSize: 14, lineHeight: 20, fontWeight: '600' },
+  meText: { fontSize: 15, lineHeight: 22, fontWeight: '400', letterSpacing: -0.2 },
   typingBubble: { flexDirection: 'row', gap: 5, paddingVertical: 15 },
   dot: { width: 7, height: 7, borderRadius: 4 },
-  // 아래에서 올라온 흰 시트처럼 — 위 모서리만 둥글게
-  dock: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg + 2, borderTopLeftRadius: Radius.xl, borderTopRightRadius: Radius.xl, borderBottomWidth: 0 },
+  // 답하는 칸 — 흰 바탕 위 가는 선 하나로 나눈다 (그림자 없이)
+  dock: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg, borderTopWidth: StyleSheet.hairlineWidth },
   dockInner: { gap: Spacing.md, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   dockWaiting: { height: 52 },
   dockActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
@@ -489,16 +481,16 @@ const styles = StyleSheet.create({
   chipScroll: { maxHeight: 220, flexGrow: 0 },
   mbtiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  input: { flex: 1, height: 50, borderRadius: Radius.pill, paddingHorizontal: Spacing.lg, fontSize: 16, fontWeight: '600' },
+  input: { flex: 1, height: 50, borderRadius: Radius.pill, paddingHorizontal: Spacing.lg, fontSize: 16, fontWeight: '400' },
   send: { width: 50, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  skipChip: { alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 10, borderRadius: Radius.pill, borderWidth: 1, borderStyle: 'dashed' },
-  skipChipText: { fontSize: 14, fontWeight: '700' },
-  choice: { borderRadius: Radius.pill, paddingHorizontal: 16, paddingVertical: 10, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  skipChip: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.xs },
+  skipChipText: { fontSize: 14, fontWeight: '600', textDecorationLine: 'underline' },
+  choice: { borderRadius: Radius.pill, paddingHorizontal: 16, paddingVertical: 11, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   choiceBig: { paddingHorizontal: 24, paddingVertical: 13 },
   choiceGrid: { flexBasis: '22%', flexGrow: 1, paddingHorizontal: 0 },
   choiceWide: { alignItems: 'center' },
   choicePressed: { opacity: 0.75, transform: [{ scale: 0.97 }] },
-  choiceText: { fontSize: 14, fontWeight: '700' },
+  choiceText: { fontSize: 14, fontWeight: '600' },
   choiceTextBig: { fontSize: 16 },
-  footnote: { fontSize: 12, fontWeight: '500', textAlign: 'center' },
+  footnote: { fontSize: 12, lineHeight: 17, fontWeight: '400', textAlign: 'center' },
 });

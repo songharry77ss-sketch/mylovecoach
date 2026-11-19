@@ -1,6 +1,8 @@
 /**
  * 묶음 목록 카드 (1.2 개편 — 토스·iOS 설정처럼 옅은 회색 바탕 위 흰 카드 하나에 줄들을 담는다).
- * 안에 넣은 ListRow 는 카드 안쪽 여백·누름 색·아이콘 색을 카드에 맞춘다. 줄 사이에는 가는 선.
+ * 안에 넣은 ListRow 는 카드 안쪽 여백·누름 색을 카드에 맞춘다. 줄 사이에는 가는 선.
+ * 1.4 「깔끔하게」 개편: 그림자 없이 면으로만 나누고(다크는 가는 테두리), 줄마다 붙던 아이콘 타일을 걷었다 — 카드 안 줄은 글자만.
+ * 바탕(canvas) 위에 놓이는 제목·설명·아래 안내는 읽어야 하는 글이라 textSecondary(옅은 회색은 canvas 위 4.5:1 이 안 됐다).
  *
  *   <ListGroup title="프라이버시">
  *     <ListRow icon="eye-off-outline" title="채팅 미리보기 숨기기" right={<Switch …/>} />
@@ -54,7 +56,7 @@ export function CardSection({ title, subtitle, footer, children, style, contentS
             {title}
           </AppText>
           {subtitle ? (
-            <AppText variant="caption" color="textTertiary">
+            <AppText variant="caption" color="textSecondary">
               {subtitle}
             </AppText>
           ) : null}
@@ -62,7 +64,7 @@ export function CardSection({ title, subtitle, footer, children, style, contentS
       ) : null}
       <View style={[styles.card, styles.padded, card, contentStyle]}>{children}</View>
       {footer ? (
-        <AppText variant="caption" color="textTertiary" style={styles.footer}>
+        <AppText variant="caption" color="textSecondary" style={styles.footer}>
           {footer}
         </AppText>
       ) : null}
@@ -79,7 +81,7 @@ export function FormField({ label, hint, children, style }: { label: string; hin
           {label}
         </AppText>
         {hint ? (
-          <AppText variant="caption" color="textTertiary">
+          <AppText variant="caption" color="textSecondary">
             {hint}
           </AppText>
         ) : null}
@@ -110,13 +112,13 @@ export function ListGroup({ title, subtitle, footer, children, style }: ListGrou
             {title}
           </AppText>
           {subtitle ? (
-            <AppText variant="caption" color="textTertiary">
+            <AppText variant="caption" color="textSecondary">
               {subtitle}
             </AppText>
           ) : null}
         </View>
       ) : null}
-      {/* 그림자는 바깥 칸에, 누름 색이 모서리 밖으로 나가지 않게 자르는 건 안쪽 칸에 (아이폰은 overflow 를 자르면 그림자도 잘린다) */}
+      {/* 누름 색이 모서리 밖으로 나가지 않게 안쪽 칸에서 자른다 (바깥 칸은 다크 모드 테두리) */}
       <View style={[styles.card, { backgroundColor: theme.card }, dark ? { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.separator } : CardShadow]}>
         <View style={styles.clip}>
           <InListGroup.Provider value>
@@ -130,7 +132,7 @@ export function ListGroup({ title, subtitle, footer, children, style }: ListGrou
         </View>
       </View>
       {footer ? (
-        <AppText variant="caption" color="textTertiary" style={styles.footer}>
+        <AppText variant="caption" color="textSecondary" style={styles.footer}>
           {footer}
         </AppText>
       ) : null}
@@ -141,11 +143,12 @@ export function ListGroup({ title, subtitle, footer, children, style }: ListGrou
 const styles = StyleSheet.create({
   group: { gap: Spacing.sm },
   head: { gap: 2, paddingHorizontal: Spacing.xs },
-  card: { borderRadius: Radius.lg + 2 },
+  // 카드 모서리 20 (1.4 지침: 카드 20~24)
+  card: { borderRadius: Radius.lg },
   padded: { padding: Spacing.lg + 2, gap: Spacing.lg + 4 },
   fieldHead: { gap: 2, marginBottom: Spacing.sm + 2, marginLeft: 2 },
-  clip: { borderRadius: Radius.lg + 2, overflow: 'hidden' },
-  // 아이콘(36) + 간격(12) + 안쪽 여백(16) 만큼 들여서 — 글자 줄 아래에서 시작한다
-  separator: { height: StyleSheet.hairlineWidth, marginLeft: Spacing.lg + 36 + Spacing.md, marginRight: Spacing.lg },
-  footer: { paddingHorizontal: Spacing.xs },
+  clip: { borderRadius: Radius.lg, overflow: 'hidden' },
+  // 줄 글자와 같은 자리(안쪽 여백 18)에서 시작해 오른쪽 끝까지 — 아이콘 타일이 없어져 들여 쓸 자리가 없다
+  separator: { height: StyleSheet.hairlineWidth, marginLeft: Spacing.lg + 2 },
+  footer: { paddingHorizontal: Spacing.xs, lineHeight: 17 },
 });

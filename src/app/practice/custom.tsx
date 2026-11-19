@@ -3,14 +3,15 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { GradientButton, Icon3D } from '@/components/brand/brand';
+import { GradientButton } from '@/components/brand/brand';
 import { AppText } from '@/components/ui/app-text';
 import { Chip } from '@/components/ui/chip';
 import { Screen } from '@/components/ui/screen';
 import { SelectSheet } from '@/components/ui/select-sheet';
 import { TagPicker } from '@/components/ui/tag-picker';
 import { TextField } from '@/components/ui/text-field';
-import { Brand, Radius, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { haptic } from '@/lib/haptics';
 import { CRUSH_STYLE_TAGS, GENDERS, MBTI_LIST, RELATIONSHIPS } from '@/lib/labels';
@@ -18,9 +19,19 @@ import { customPersona } from '@/lib/practice';
 import type { Gender, Relationship } from '@/lib/types';
 import { useAppStore } from '@/store/app-store';
 
-/** 연습 상대 직접 만들기 */
+const LEVELS = [
+  { key: 1, label: '쉬움' },
+  { key: 2, label: '보통' },
+  { key: 3, label: '어려움' },
+] as const;
+
+/**
+ * 연습 상대 직접 만들기.
+ * 1.4 「깔끔하게」 개편: 떠다니는 3D 하트, 칩 앞 이모지(🙇 👋)·별(★☆)을 걷었다. 고른 칩은 검정(Chip), 색은 아래 「연습 시작하기」 하나.
+ */
 export default function CustomPersonaScreen() {
   const theme = useTheme();
+  const dark = useColorScheme() === 'dark';
   const router = useRouter();
   const startPractice = useAppStore((s) => s.startPractice);
   const [name, setName] = useState('');
@@ -60,13 +71,10 @@ export default function CustomPersonaScreen() {
   return (
     <Screen sheet keyboard contentStyle={styles.content}>
       <View style={styles.intro}>
-        <View style={styles.introTexts}>
-          <AppText variant="title2">어떤 상대와 연습할까요?</AppText>
-          <AppText variant="small" color="textSecondary">
-            실제 그 사람과 비슷하게 적을수록 연습이 실전 같아져요
-          </AppText>
-        </View>
-        <Icon3D name="heart" size={64} float />
+        <AppText variant="title2">어떤 상대와 연습할까요?</AppText>
+        <AppText variant="small" color="textSecondary">
+          실제 그 사람과 비슷하게 적을수록 연습이 실전 같아져요
+        </AppText>
       </View>
       <TextField
         label="상대 이름"
@@ -95,7 +103,7 @@ export default function CustomPersonaScreen() {
           <AppText variant="smallStrong" color="textSecondary" style={styles.label}>
             MBTI
           </AppText>
-          <Pressable accessibilityRole="button" accessibilityLabel={`MBTI ${mbti}, 바꾸기`} onPress={() => setMbtiOpen(true)} style={[styles.select, { backgroundColor: theme.surface }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={`MBTI ${mbti}, 바꾸기`} onPress={() => setMbtiOpen(true)} style={[styles.select, { backgroundColor: dark ? theme.surfaceElevated : theme.surface }]}>
             <AppText variant="body">{mbti}</AppText>
             <Ionicons name="chevron-down" size={18} color={theme.textTertiary} />
           </Pressable>
@@ -107,7 +115,7 @@ export default function CustomPersonaScreen() {
         </AppText>
         <View style={styles.chips}>
           {RELATIONSHIPS.map((r) => (
-            <Chip key={r.key} label={r.label} emoji={r.emoji} selected={relationship === r.key} onPress={() => setRelationship(r.key)} tone="accent" />
+            <Chip key={r.key} label={r.label} selected={relationship === r.key} onPress={() => setRelationship(r.key)} />
           ))}
         </View>
       </View>
@@ -116,8 +124,8 @@ export default function CustomPersonaScreen() {
           상대 말투
         </AppText>
         <View style={styles.chips}>
-          <Chip label="🙇 존댓말" selected={speech === 'polite'} onPress={() => setSpeech('polite')} />
-          <Chip label="👋 반말" selected={speech === 'casual'} onPress={() => setSpeech('casual')} />
+          <Chip label="존댓말" selected={speech === 'polite'} onPress={() => setSpeech('polite')} />
+          <Chip label="반말" selected={speech === 'casual'} onPress={() => setSpeech('casual')} />
         </View>
       </View>
       <View>
@@ -125,8 +133,8 @@ export default function CustomPersonaScreen() {
           난이도
         </AppText>
         <View style={styles.chips}>
-          {([1, 2, 3] as const).map((d) => (
-            <Chip key={d} label={`${'★'.repeat(d)}${'☆'.repeat(3 - d)} ${d === 1 ? '쉬움' : d === 2 ? '보통' : '어려움'}`} selected={difficulty === d} onPress={() => setDifficulty(d)} />
+          {LEVELS.map((d) => (
+            <Chip key={d.key} label={d.label} selected={difficulty === d.key} onPress={() => setDifficulty(d.key)} />
           ))}
         </View>
       </View>
@@ -144,7 +152,7 @@ export default function CustomPersonaScreen() {
         multiline
         maxLength={200}
       />
-      <GradientButton title="연습 시작하기" shine onPress={start} icon={<Ionicons name="chatbubbles" size={18} color={Brand.onBrand} />} />
+      <GradientButton title="연습 시작하기" onPress={start} />
       <SelectSheet
         visible={mbtiOpen}
         title="MBTI 선택"
@@ -160,11 +168,10 @@ export default function CustomPersonaScreen() {
 
 const styles = StyleSheet.create({
   content: { gap: Spacing.xl, paddingTop: Spacing.lg },
-  intro: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  introTexts: { flex: 1, gap: 4 },
+  intro: { gap: 4 },
   label: { marginBottom: Spacing.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   twoCol: { flexDirection: 'row', gap: Spacing.md },
   col: { flex: 1 },
-  select: { height: 54, borderRadius: Radius.md, paddingHorizontal: Spacing.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  select: { height: 54, borderRadius: 14, paddingHorizontal: Spacing.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 });
