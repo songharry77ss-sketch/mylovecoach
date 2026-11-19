@@ -155,6 +155,25 @@
       "url": "https://www.instagram.com/stories/my.lovecoach/4033572440974693907",
       "mediaId": "18120112073117891",
       "at": "2026-11-19T03:35:38.613Z"
+    },
+    {
+      "id": "ai-makjang-2",
+      "channel": "instagram",
+      "url": "https://www.instagram.com/reel/Df7BZlzkQG9/",
+      "mediaId": "18160360534523265",
+      "at": "2026-11-19T11:55:51.048Z",
+      "audio": {
+        "id": "4335800886709917",
+        "title": "November Vibes",
+        "artist": "Luna Jason Hart"
+      }
+    },
+    {
+      "id": "ai-makjang-2-story",
+      "channel": "instagram",
+      "url": "https://www.instagram.com/stories/my.lovecoach/4033824349396700474",
+      "mediaId": "17983261134157418",
+      "at": "2026-11-19T11:56:27.673Z"
     }
   ]
 }
