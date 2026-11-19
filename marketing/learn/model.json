@@ -1,108 +1,126 @@
 {
-  "at": "2026-11-18T08:06:39.843Z",
-  "scored": 10,
-  "measuring": 3,
+  "at": "2026-11-19T08:13:23.107Z",
+  "scored": 11,
+  "measuring": 7,
   "base": {
-    "views": 16,
+    "views": 17,
     "spread": 0
   },
   "kinds": {
-    "reel": 1.63,
-    "carousel": -0.17,
-    "image": -0.08
+    "reel": 2.12,
+    "carousel": -0.19,
+    "image": -0.1
   },
   "formats": {
     "chat-reel": {
       "n": 0,
       "mean": null,
-      "score": 1.63,
+      "score": 2.12,
       "views": null,
       "spread": null
     },
     "pick-carousel": {
       "n": 0,
       "mean": null,
-      "score": -0.17,
+      "score": -0.19,
       "views": null,
       "spread": null
     },
     "pick-reel": {
       "n": 0,
       "mean": null,
-      "score": 1.63,
+      "score": 2.12,
       "views": null,
       "spread": null
     },
     "list-carousel": {
       "n": 0,
       "mean": null,
-      "score": -0.17,
+      "score": -0.19,
       "views": null,
       "spread": null
     },
     "kkti-pair": {
       "n": 0,
       "mean": null,
-      "score": -0.17,
+      "score": -0.19,
       "views": null,
       "spread": null
     },
     "app-reel": {
       "n": 0,
       "mean": null,
-      "score": 1.63,
+      "score": 2.12,
       "views": null,
       "spread": null
     },
     "old-reel": {
       "n": 4,
-      "mean": 2.85,
-      "score": 2.33,
+      "mean": 2.81,
+      "score": 2.51,
       "views": 181,
       "spread": 1
     },
     "old-carousel": {
       "n": 3,
-      "mean": -0.34,
-      "score": -0.26,
+      "mean": -0.38,
+      "score": -0.29,
       "views": 9,
       "spread": 0
     },
     "old-image": {
       "n": 3,
-      "mean": -0.16,
-      "score": -0.08,
+      "mean": -0.2,
+      "score": -0.1,
       "views": 12,
       "spread": 0
+    },
+    "real-reel": {
+      "n": 1,
+      "mean": 5.69,
+      "score": 3.01,
+      "views": 607,
+      "spread": 4.1
     }
   },
   "topics": {
     "썸": {
-      "n": 5,
-      "score": 0.71,
-      "views": 83,
-      "spread": 0.8
+      "n": 6,
+      "score": 1.24,
+      "views": 170,
+      "spread": 1.4
     },
     "연락 텀·읽씹": {
       "n": 1,
-      "score": 0.7,
+      "score": 0.69,
       "views": 230,
       "spread": 0
     },
     "꼴: 받은 카톡": {
       "n": 1,
-      "score": 0.7,
+      "score": 0.69,
       "views": 230,
       "spread": 0
     },
     "성향·궁합": {
       "n": 7,
-      "score": 0.73,
+      "score": 0.7,
       "views": 76,
       "spread": 0.6
     }
   },
   "best": [
+    {
+      "id": "u-kudae-number-1",
+      "format": "real-reel",
+      "hook": "고대에서 번호 따기 1일차 🎓",
+      "url": "https://www.instagram.com/reel/Dfzso1sjgxt/",
+      "views": 607,
+      "shares": 7,
+      "saved": 0,
+      "spread": 4.1,
+      "score": 5.69
+    },
     {
       "id": "ig-18126614482676279",
       "format": "old-reel",
@@ -112,7 +130,7 @@
       "shares": 0,
       "saved": 3,
       "spread": 4.1,
-      "score": 3.91
+      "score": 3.87
     },
     {
       "id": "d6-ig-reel",
@@ -123,18 +141,7 @@
       "shares": 0,
       "saved": 0,
       "spread": 0,
-      "score": 2.8
-    },
-    {
-      "id": "d7-ig-reel",
-      "format": "old-reel",
-      "hook": "우리 궁합, 몇 %부터 찐일까? 💞",
-      "url": "https://www.instagram.com/reel/DfpF9KZHBar/",
-      "views": 210,
-      "shares": 0,
-      "saved": 0,
-      "spread": 0,
-      "score": 2.68
+      "score": 2.76
     }
   ],
   "worst": [
@@ -147,7 +154,7 @@
       "shares": 0,
       "saved": 0,
       "spread": 0,
-      "score": -0.85
+      "score": -0.89
     },
     {
       "id": "ig-18115733822517290",
@@ -158,7 +165,7 @@
       "shares": 0,
       "saved": 0,
       "spread": 0,
-      "score": -0.26
+      "score": -0.3
     }
   ],
   "week": [
