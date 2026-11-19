@@ -235,7 +235,9 @@ jobs:
           code=$(curl -sS -o /dev/null -w "%{http_code}" "$url/crush/new"); echo "앱 주소 다시 쓰기: $code"; [ "$code" = 200 ] || exit 1
           # 아이콘 글꼴이 글꼴로 오는지(빠졌으면 index.html 이 대신 온다)
           font=$(find preview/assets/nm -name 'Ionicons*.ttf' | head -1 | sed 's#^preview##')
-          type=$(curl -sS -o /dev/null -w "%{content_type}" "$url$font"); echo "아이콘 글꼴: $type"
+          # 배포 직후 잠깐은 예전 판이 응답한다 — 새 판의 글꼴이 보일 때까지 최대 2분
+          for i in $(seq 1 24); do type=$(curl -sS -o /dev/null -w "%{content_type}" "$url$font"); case "$type" in text/html*) sleep 5 ;; *) break ;; esac; done
+          echo "아이콘 글꼴: $type"
           case "$type" in text/html*) echo "::error::아이콘 글꼴이 올라가지 않았습니다"; exit 1 ;; esac
           if [ "$WITH_IOS" = "true" ]; then
             curl -sS -o /dev/null -w "ios: %{http_code}\n" "$url/ios/index.html"
