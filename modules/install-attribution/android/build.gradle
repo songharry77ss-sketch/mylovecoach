@@ -1,0 +1,20 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'app.mylovecoach'
+version = '1.0.0'
+
+android {
+  namespace "expo.modules.installattribution"
+  defaultConfig {
+    versionCode 1
+    versionName '1.0.0'
+  }
+}
+
+dependencies {
+  // Play 설치 경로(install referrer) — 광고 ID·기기 정보는 읽지 않는다
+  implementation 'com.android.installreferrer:installreferrer:2.2'
+}

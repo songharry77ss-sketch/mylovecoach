@@ -6,12 +6,14 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
+import { SignupCard } from '@/components/auth/signup-card';
 import { GradientButton, Icon3D } from '@/components/brand/brand';
 import { useAiReport } from '@/components/coach/ai-report-sheet';
 import { AnalysisCard } from '@/components/coach/analysis-card';
 import { CoachLabel } from '@/components/coach/coach-avatar';
 import { COMPOSER_FADE, Composer } from '@/components/coach/composer';
 import { MemoryCard, MemorySheet } from '@/components/coach/memory-sheet';
+import { useCelebrate } from '@/components/fx/celebration';
 import { COACH_PHRASES, PendingBubble } from '@/components/coach/pending-bubble';
 import { UserBubble } from '@/components/coach/user-bubble';
 import { AppText } from '@/components/ui/app-text';
@@ -35,12 +37,14 @@ import { track } from '@/lib/analytics';
 import { rememberAuthReturn } from '@/lib/auth-return';
 import { currentQuota, isUnlimited, useQuota } from '@/lib/billing/gate';
 import { paywallTarget, RENEW_NOTICE_MS } from '@/lib/billing/paywall-route';
+import { SIGNUP_BONUS } from '@/lib/billing/plans';
 import { quotaLabel } from '@/lib/billing/quota';
 import { dateLabel, isSameDay } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
 import { clearImageCaches, deleteImageQuietly, pickImage, type PickedImage } from '@/lib/images';
 import { relationshipLabel } from '@/lib/labels';
 import { drawChatQuestions } from '@/lib/mind-cards';
+import { shouldShowSignupNudge } from '@/lib/signup-nudge';
 import { authAvailable } from '@/lib/supabase';
 import type { ChatMessage, EmojiPref, Tone } from '@/lib/types';
 import { isVariationRequest, turnRequestOf, useAppStore, variationTargetOf } from '@/store/app-store';
@@ -59,6 +63,9 @@ export default function CrushChat() {
   const freeUsed = useAppStore((s) => s.usage.total);
   const isMember = useAppStore((s) => s.member != null);
   const upsellDismissed = useAppStore((s) => s.upsellDismissed);
+  const signupNudgeDismissedAt = useAppStore((s) => s.signupNudgeDismissedAt);
+  const dismissSignupNudge = useAppStore((s) => s.dismissSignupNudge);
+  const celebrate = useCelebrate();
   const dismissUpsell = useAppStore((s) => s.dismissUpsell);
   const { send, sending } = useCoach();
   const quota = useQuota();
@@ -150,6 +157,20 @@ export default function CrushChat() {
   const showUpsell = quota.enforced && !isUnlimited(quota) && freeUsed >= 1 && !upsellDismissed && !sending && analyzed > 0;
   // 두 번 이상 분석했으면 상대 분석 보고서를 권한다
   const showReport = !secret && analyzed >= 2 && !sending;
+  // 비회원이 첫 답장을 받아 봤으면 그 자리에서 바로 가입을 권한다 (카카오·Google·Apple 한 번 누르기 + 무료 코칭 보너스) — 다른 카드보다 먼저
+  const showSignupNudge = shouldShowSignupNudge({
+    authAvailable,
+    isMember,
+    secret: Boolean(secret),
+    analyzed,
+    sending,
+    dismissedAt: signupNudgeDismissedAt,
+    platform: Platform.OS,
+    now: Date.now(),
+  });
+  useEffect(() => {
+    if (showSignupNudge) track('signup_nudge', { action: 'view' });
+  }, [showSignupNudge]);
 
   // 무료를 다 써서 막혔으면 타임어택 특가 팝업, 아니면 결제 화면 (lib/billing/paywall-route — 결제 루프)
   const openPaywall = useCallback((reason: 'quota' | 'regenerate' | 'banner' | 'upsell' | 'renew') => router.push(paywallTarget(reason)), [router]);
@@ -592,7 +613,29 @@ export default function CrushChat() {
             </View>
           }
           ListFooterComponent={
-            needsCrushInfo ? (
+            showSignupNudge ? (
+              <Animated.View entering={FadeInDown.delay(400)} style={styles.nudge}>
+                <SignupCard
+                  title={`답장 어땠어요? 가입하면 ${SIGNUP_BONUS}회 더 무료`}
+                  subtitle="쓰던 계정으로 한 번만 누르면 끝나요. 매일 무료 코칭 1회도 충전돼요."
+                  onDone={(result) => {
+                    track('signup_nudge', { action: 'done', bonus: result.bonus });
+                    haptic.celebrate();
+                    celebrate({ kind: 'sparkles', count: 22, haptic: false });
+                    toast.show(result.bonus ? `가입 완료! 무료 코칭 ${SIGNUP_BONUS}회를 받았어요 🎁` : '로그인했어요.', 'success');
+                  }}
+                />
+                <Button
+                  title="나중에 할게요"
+                  size="sm"
+                  variant="ghost"
+                  onPress={() => {
+                    track('signup_nudge', { action: 'dismiss' });
+                    dismissSignupNudge(Date.now());
+                  }}
+                />
+              </Animated.View>
+            ) : needsCrushInfo ? (
               <Animated.View entering={FadeInDown.delay(400)} style={[styles.promo, { backgroundColor: theme.surface }]}>
                 <View style={styles.promoRow}>
                   <View style={[styles.promoIcon, { backgroundColor: theme.primarySoft }]}>
@@ -776,6 +819,7 @@ const styles = StyleSheet.create({
   starterRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: Spacing.sm },
   starter: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: Spacing.md + 2, minHeight: 44, borderRadius: Radius.pill, borderWidth: StyleSheet.hairlineWidth * 2 },
   promo: { borderRadius: Radius.xl, padding: Spacing.lg, gap: Spacing.md },
+  nudge: { gap: Spacing.xs },
   promoRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   promoIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   promoTexts: { gap: 2, flex: 1 },

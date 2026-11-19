@@ -74,6 +74,8 @@ const BodySchema = z.object({
       source: z.string().max(80).optional(),
       medium: z.string().max(80).optional(),
       campaign: z.string().max(80).optional(),
+      term: z.string().max(80).optional(),
+      content: z.string().max(80).optional(),
       referrer: z.string().max(120).optional(),
       landing: z.string().max(120).optional(),
       at: z.number().int().optional(),
@@ -257,6 +259,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // 유입 경로를 모으기 전에 만들어진 이용자는 처음 한 번만 채운다 — 수집 1년이 지나 파기한 경로를 다시 채우지 않게 1년 안의 이용자만
       const yearAgo = encodeURIComponent(new Date(nowMs - 365 * DAY_MS).toISOString());
       if (source) await patch('app_user', `${userFilter}&source=is.null&first_seen_at=gte.${yearAgo}`, { source, source_detail: acq });
+      // 설치 뒤에 알게 된 광고·링크 유입(안드로이드 Play 설치 경로·아이폰 애플 광고 귀속)은 설치 경로(ios·android·apk)만 적혀 있던 기기에 한 번 덧쓴다
+      if (lateAttribution(acq)) await patch('app_user', `${userFilter}&source=in.(${NATIVE_CHANNELS.join(',')})&first_seen_at=gte.${yearAgo}`, { source, source_detail: acq });
       return patch('app_user', userFilter, {
         last_seen_at: now,
         // 판 3 이 되면 예전 동의로 저장돼 있던 이름도 지운다 (지금 안내하는 수집 항목에 이름이 없으므로)
@@ -291,6 +295,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   await alertFunnel(b.deviceId, eventRows, { platform: b.platform ?? null, appVersion: b.appVersion ?? null, premiumPlan: b.premiumPlan ?? null, source });
 
   res.status(204).end();
+}
+
+/** 앱 설치 경로 — app_user.source 에 이것만 적혀 있으면 아직 광고 유입을 모르는 기기 */
+export const NATIVE_CHANNELS = ['ios', 'android', 'apk'] as const;
+
+/** 앱(웹 아님)이 설치 뒤에 광고·링크 유입을 알아냈는지 — utm_source 처럼 설치 경로가 아닌 source 가 있으면 */
+export function lateAttribution(acq: { channel?: string; source?: string } | null | undefined): boolean {
+  if (!acq?.source || !acq.channel) return false;
+  return (NATIVE_CHANNELS as readonly string[]).includes(acq.channel) && !(NATIVE_CHANNELS as readonly string[]).includes(acq.source);
 }
 
 /** 앱이 만든 임의 ID 를 UUID 형식으로 맞춘다 (Postgres uuid 컬럼용) */
