@@ -169,7 +169,12 @@ jobs:
           JSON
       - name: Vercel 프로젝트 연결 (sendit-preview, 없으면 만든다)
         working-directory: preview
-        run: vercel --version >/dev/null 2>&1 || npm i -g vercel@latest; vercel link --yes --project sendit-preview --token "$VERCEL_TOKEN" ${VERCEL_SCOPE:+--scope "$VERCEL_SCOPE"}
+        run: |
+          vercel --version >/dev/null 2>&1 || npm i -g vercel@latest
+          vercel link --yes --project sendit-preview --token "$VERCEL_TOKEN" ${VERCEL_SCOPE:+--scope "$VERCEL_SCOPE"}
+          # link --yes 는 저장소(GitHub)를 저절로 연결한다 — 그러면 push 마다 이 프로젝트에 저장소 전체(운영 앱·cron)가 배포된다.
+          # 이 프로젝트는 CLI 로만 올리므로 연결을 끊는다(이미 끊겼으면 넘어간다)
+          vercel git disconnect --yes --token "$VERCEL_TOKEN" ${VERCEL_SCOPE:+--scope "$VERCEL_SCOPE"} || true
       - name: 배포
         id: deploy
         working-directory: preview
@@ -216,7 +221,9 @@ jobs:
       - name: 동작 확인
         run: |
           url="${{ steps.deploy.outputs.url }}"
-          curl -sS -o /dev/null -w "index: %{http_code}\n" "$url/"
+          # 별칭이 붙은 직후에는 잠깐 404 가 난다 — 최대 2분 기다린다
+          for i in $(seq 1 24); do code=$(curl -sS -o /dev/null -w "%{http_code}" "$url/"); [ "$code" = 200 ] && break; sleep 5; done
+          echo "index: $code"
           code=$(curl -sS -o /dev/null -w "%{http_code}" "$url/crush/new"); echo "앱 주소 다시 쓰기: $code"; [ "$code" = 200 ] || exit 1
           if [ "$WITH_IOS" = "true" ]; then
             curl -sS -o /dev/null -w "ios: %{http_code}\n" "$url/ios/index.html"
