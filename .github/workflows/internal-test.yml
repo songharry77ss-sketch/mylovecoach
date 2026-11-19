@@ -148,7 +148,15 @@ jobs:
         env:
           EXPO_PUBLIC_DEMO_MODE: '1'
           EXPO_PUBLIC_PAYWALL_PREVIEW: ios
-        run: npx expo export --platform web --output-dir preview
+        run: |
+          npx expo export --platform web --output-dir preview
+          # Vercel CLI 는 올릴 때 node_modules 폴더를 뺀다 → 아이콘 글꼴(assets/node_modules/@expo/vector-icons/…)이 사라져 아이콘이 네모로 보였다.
+          # 폴더 이름을 바꾸고 번들 안 경로도 같이 바꾼다
+          if [ -d preview/assets/node_modules ]; then
+            mv preview/assets/node_modules preview/assets/nm
+            grep -rlF '/assets/node_modules/' preview --include='*.js' --include='*.html' --include='*.css' --include='*.json' | xargs -r sed -i 's#/assets/node_modules/#/assets/nm/#g'
+          fi
+          ! grep -rqF '/assets/node_modules/' preview --include='*.js' || { echo "::error::번들에 node_modules 경로가 남았습니다"; exit 1; }
       - uses: actions/download-artifact@v4
         if: ${{ env.WITH_IOS == 'true' }}
         with:
@@ -225,6 +233,10 @@ jobs:
           for i in $(seq 1 24); do code=$(curl -sS -o /dev/null -w "%{http_code}" "$url/"); [ "$code" = 200 ] && break; sleep 5; done
           echo "index: $code"
           code=$(curl -sS -o /dev/null -w "%{http_code}" "$url/crush/new"); echo "앱 주소 다시 쓰기: $code"; [ "$code" = 200 ] || exit 1
+          # 아이콘 글꼴이 글꼴로 오는지(빠졌으면 index.html 이 대신 온다)
+          font=$(find preview/assets/nm -name 'Ionicons*.ttf' | head -1 | sed 's#^preview##')
+          type=$(curl -sS -o /dev/null -w "%{content_type}" "$url$font"); echo "아이콘 글꼴: $type"
+          case "$type" in text/html*) echo "::error::아이콘 글꼴이 올라가지 않았습니다"; exit 1 ;; esac
           if [ "$WITH_IOS" = "true" ]; then
             curl -sS -o /dev/null -w "ios: %{http_code}\n" "$url/ios/index.html"
             curl -sS "$url/ios/manifest.plist" | grep -q 'sendit.ipa' || { echo "::error::manifest 가 이상합니다"; exit 1; }
