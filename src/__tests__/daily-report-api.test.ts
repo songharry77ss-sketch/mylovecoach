@@ -115,26 +115,24 @@ describe('/api/daily-report', () => {
     expect(calls.find((c) => c.url.includes('/rest/v1/store_event?'))!.url).toContain('environment=eq.Production');
 
     const [text] = telegramTexts();
-    expect(text).toBe(
-      [
-        '📊 어제 리포트 (10/20)',
-        '',
-        '👥 신규 회원 12명 · 누적 340명',
-        ' · 민수 · 카카오 · minsu@example.com',
-        ' · &lt;지은&gt; · Apple · abc@privaterelay.appleid.com',
-        ' · 외 10명',
-        '',
-        '💰 매출 ₩15,300 (3건)',
-        ' · iOS 하루 이용권 ₩5,400 (2건)',
-        ' · Android 주간 구독 ₩9,900 (1건)',
-        ' · ↩️ 환불 1건 · ⚠️ 해지 예약 1건',
-        '',
-        '📱 이용 (이용 기록이 있는 기기)',
-        ' · 앱 실행 기기 3대',
-        ' · 코칭 결과 57건',
-        ' · 결제 화면 열람 2대 → 결제창 진입 1대',
-      ].join('\n'),
-    );
+    // 앞부분(회원·어제 매출)은 그대로, 그 뒤에 누적 매출·이용·상세(기기·경로·나이·성별·체류 시간)가 붙는다
+    const head = [
+      '📊 어제 리포트 (10/20)',
+      '',
+      '👥 신규 회원 12명 · 누적 340명',
+      ' · 민수 · 카카오 · minsu@example.com',
+      ' · &lt;지은&gt; · Apple · abc@privaterelay.appleid.com',
+      ' · 외 10명',
+      '',
+      '💰 매출 ₩15,300 (3건)',
+      ' · iOS 하루 이용권 ₩5,400 (2건)',
+      ' · Android 주간 구독 ₩9,900 (1건)',
+      ' · ↩️ 환불 1건 · ⚠️ 해지 예약 1건',
+    ].join('\n');
+    expect(text.startsWith(head)).toBe(true);
+    expect(text).toContain(' · <b>누적 ₩15,300</b> (3건 · 환불 1건)');
+    expect(text).toContain(['', '📱 이용 (이용 기록이 있는 기기)', ' · 앱 실행 기기 3대', ' · 코칭 결과 57건', ' · 결제 화면 열람 2대 → 결제창 진입 1대'].join('\n'));
+    for (const section of ['📱 <b>아이폰 · 갤럭시</b>', '🧭 <b>들어온 경로</b>', '👤 <b>나이 · 성별</b>', '⏱️ <b>체류 시간</b>']) expect(text).toContain(section);
   });
 
   it('텔레그램을 설정하지 않았으면 데이터베이스를 읽지 않고 sent: false', async () => {
