@@ -30,6 +30,8 @@ import { authAvailable } from '@/lib/supabase';
 import { introUntil, useAppStore } from '@/store/app-store';
 
 type Reason = 'quota' | 'regenerate' | 'my' | 'banner' | 'upsell' | 'report' | 'practice' | 'mind' | 'renew';
+/** 스토어에 닿지 못했을 때 저절로 다시 묻는 횟수 (그다음은 「다시 불러오기」 버튼) */
+const AUTO_RELOADS = 2;
 
 /** 들어온 곳마다 맨 위 큰 제목 — *…* 는 파란 강조 */
 const HEADLINES: Record<Reason, { title: string; subtitle: string }> = {
@@ -161,6 +163,16 @@ export default function Paywall() {
   const chosen = visible.some((p) => p.plan === selected) ? selected : (visible.find((p) => p.plan !== 'weekly')?.plan ?? visible[0]?.plan ?? 'year');
   // 앱에서 스토어 상품을 하나도 확인하지 못했으면 다시 불러오기를 권한다
   const storeUnreachable = billingSupported && !previewStore && products != null && !confirmed;
+  // 스토어에 닿지 못했으면 두 번까지 저절로 다시 묻는다 (Play 네트워크 오류 12·연결 끊김 -1 은 잠깐 뒤 대부분 풀린다 —
+  // 예전에는 「다시 불러오기」를 눌러야 해서 하루 이용권이 빠진 채 1년권만 보고 닫는 경우가 많았다, 11-19 데이터)
+  useEffect(() => {
+    if (!storeUnreachable || loadAttempt >= AUTO_RELOADS) return;
+    const t = setTimeout(() => {
+      track('store_retry', { reason, attempt: loadAttempt + 1 });
+      setLoadAttempt((n) => n + 1);
+    }, 1500 * (loadAttempt + 1));
+    return () => clearTimeout(t);
+  }, [storeUnreachable, loadAttempt, reason]);
   // 스토어 상품을 하나도 확인하지 못했으면 그 이유(스토어 오류 코드·Google Play 응답 코드)를 남긴다 — 결제가 막힌 원인을 찾게
   useEffect(() => {
     if (!storeUnreachable) return;

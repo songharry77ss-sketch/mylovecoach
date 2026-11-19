@@ -90,6 +90,8 @@ export interface AppState {
   resetEpoch: number;
   /** 채팅 하단의 프리미엄 안내 카드를 닫았는지 */
   upsellDismissed: boolean;
+  /** 대화방 「가입하고 무료 코칭 더 받기」 카드를 닫은 시각 — 3일 뒤 다시 보여 준다 (signup-nudge.ts) */
+  signupNudgeDismissedAt: number | null;
   /** 스토어에 나와 있는 새 버전 (저장하지 않음 — 켤 때마다 서버에 다시 묻는다). 없으면 null */
   appUpdate: AppUpdate | null;
   /** 새 버전 안내를 미룬 기록 — 그 버전은 until 까지 다시 권하지 않는다 */
@@ -206,6 +208,7 @@ export interface AppState {
   /** 예전 이름 — consumeQuota 와 같다 */
   consumeFreeCredit: () => void;
   dismissUpsell: () => void;
+  dismissSignupNudge: (at: number) => void;
   setAppUpdate: (update: AppUpdate | null) => void;
   /** 새 버전 안내를 until 까지 미룬다. null 이면 미룬 기록을 지워 바로 다시 권한다 */
   snoozeUpdate: (snooze: { version: string; until: number } | null) => void;
@@ -363,6 +366,7 @@ export const useAppStore = create<AppState>()(
       legacyServerRecords: false,
       resetEpoch: 0,
       upsellDismissed: false,
+      signupNudgeDismissedAt: null,
       appUpdate: null,
       updateSnooze: null,
       deviceId: createId('d_'),
@@ -580,6 +584,7 @@ export const useAppStore = create<AppState>()(
       },
       consumeFreeCredit: () => get().consumeQuota(),
       dismissUpsell: () => set({ upsellDismissed: true }),
+      dismissSignupNudge: (at) => set({ signupNudgeDismissedAt: at }),
       setAppUpdate: (appUpdate) => set({ appUpdate }),
       snoozeUpdate: (updateSnooze) => set({ updateSnooze }),
       setHapticsOn: (hapticsOn) => set({ hapticsOn }),
@@ -748,6 +753,7 @@ export const useAppStore = create<AppState>()(
           legacyDeletionChecked: s.legacyDeletionChecked,
           legacyServerRecords: s.legacyServerRecords,
           upsellDismissed: s.upsellDismissed,
+          signupNudgeDismissedAt: s.signupNudgeDismissedAt,
           updateSnooze: s.updateSnooze,
           deviceId: s.deviceId,
           termsAgreedAt: s.termsAgreedAt,
