@@ -26,6 +26,7 @@ jest.mock('@/lib/config', () => ({
   APP_CONFIG: { apiUrl: 'https://coach.test', apiSameOrigin: false, apiToken: '', supportEmail: '', privacyUrl: '', termsUrl: '' },
 }));
 let mockReason = 'quota';
+let mockProblem: { code: string; responseCode?: number } | null = { code: 'query-product', responseCode: 3 };
 jest.mock('expo-router', () => ({
   useRouter: () => ({ canGoBack: () => true, back: jest.fn(), replace: jest.fn() }),
   useLocalSearchParams: () => ({ reason: mockReason }),
@@ -71,7 +72,7 @@ jest.mock('@/lib/billing/iap', () => ({
   billingSupported: true,
   purchasePlan: jest.fn(),
   restorePremium: jest.fn(),
-  lastStoreProblem: () => ({ code: 'query-product', responseCode: 3 }),
+  lastStoreProblem: () => mockProblem,
 }));
 
 const CONFIRMED = [
@@ -110,6 +111,7 @@ const buyLabel = () => {
 };
 
 beforeEach(() => {
+  mockProblem = { code: 'query-product', responseCode: 3 };
   jest.mocked(track).mockClear();
   mockProducts = CONFIRMED;
   mockAttempts.length = 0;
@@ -149,6 +151,25 @@ it('스토어 확인 실패면 그 원인(오류 코드·Google Play 응답 코�
   mockProducts = UNCONFIRMED;
   mount();
   expect(track).toHaveBeenCalledWith('store_unavailable', { reason: 'quota', code: 'query-product', rc: 3 });
+});
+
+it('스토어 앱이 오래돼(-2) 확인하지 못하면 업데이트 방법을 다시 불러오기와 함께 보여 준다', () => {
+  mockReason = 'quota';
+  mockProducts = UNCONFIRMED;
+  mockProblem = { code: 'query-product', responseCode: -2 };
+  mount();
+  expect(allText()).toContain('스토어 앱이 오래돼서');
+  expect(allText()).toContain('다시 불러오기');
+  expect(allText()).not.toContain('Google Play');
+});
+
+it('잠깐의 오류(12)면 업데이트 안내 없이 다시 불러오기만 보여 준다', () => {
+  mockReason = 'quota';
+  mockProducts = UNCONFIRMED;
+  mockProblem = { code: 'query-product', responseCode: 12 };
+  mount();
+  expect(allText()).toContain('스토어 정보를 다 불러오지 못했어요');
+  expect(allText()).not.toContain('오래돼서');
 });
 
 it('스토어에서 확인되면 다시 불러오기를 보여 주지 않는다', () => {

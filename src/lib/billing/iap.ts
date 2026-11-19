@@ -20,6 +20,7 @@ import {
   type PlanKey,
 } from '@/lib/billing/plans';
 import type { PremiumState } from '@/lib/billing/quota';
+import { storeFixHint } from '@/lib/billing/store-hint';
 
 type IapModule = typeof import('expo-iap');
 let IAP: IapModule | null = null;
@@ -94,11 +95,13 @@ const codeOf = (error: unknown): string => {
 
 /**
  * 상품 조회 실패를 사람이 할 수 있는 조치로 바꾼다.
- * Google Play 응답 코드: -1 결제 서비스 끊김, 2 서비스 사용 불가, 3 결제 사용 불가(Play 스토어 로그인·업데이트·국가), 12 네트워크
+ * Google Play 응답 코드: -2 스토어 앱이 오래됨, -1 결제 서비스 끊김, 2 서비스 사용 불가, 3 결제 사용 불가(Play 스토어 로그인·업데이트·국가), 12 네트워크
  */
 const storeHint = (error: unknown): string => {
-  const { responseCode } = problemOf(error);
-  if (responseCode === 3) return '이 기기에서 스토어 결제를 쓸 수 없는 상태예요. 스토어 앱을 열어 로그인·업데이트한 뒤 다시 시도해주세요.';
+  const problem = problemOf(error);
+  const { responseCode } = problem;
+  const fix = storeFixHint(problem);
+  if (fix) return fix;
   if (responseCode != null && TRANSIENT_STORE_CODES.has(responseCode))
     return '스토어 앱에 잠시 연결되지 않아요. 스토어 앱을 한 번 열었다가 돌아오거나, 와이파이·데이터를 바꿔(VPN 은 끄고) 다시 시도해주세요.';
   return '상품 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.';

@@ -141,6 +141,7 @@ Some features are accessible without an account, but account management requires
 
 - 결제할 때 스토어 연결이 잠깐 끊겨도 한 번 더 확인해서 결제 화면이 이어져요.
 - 1년권 결제가 더 안정적으로 열려요.
+- 휴대폰의 스토어 앱이 오래돼 결제가 안 열릴 때, 업데이트 방법을 바로 알려 드려요.
 
 ## 이번 버전의 새로운 기능 (1.3.3)
 
