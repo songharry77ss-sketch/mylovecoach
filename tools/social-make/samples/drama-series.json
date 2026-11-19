@@ -1,0 +1,40 @@
+{
+  "note": "「환승 이별」 시리즈 ai-reel — 두 가상 인물(Codex 그림 생성으로 만든 AI 인물, samples/drama/hero.jpg·heroine.jpg)이 번갈아 나오는 드라마. 실제 인물 사진은 쓰지 않는다(사장님이 보낸 레퍼런스는 분위기만 글로 옮김). 구조는 잘 된 AI 드라마 시리즈(@cinefable26 「Love's Lie」 류)를 따름: 첫 프레임부터 사건 + 훅 자막 → 상대 쪽 장면(이유를 숨김) → 해결 도구(센딧 실제 화면) → 반응 → 「2화」 예고·댓글 질문. 사람 장면은 Gemini Omni Flash(「AI로 만든 장면」 표시), 앱 화면과 답장은 운영 코치 서버의 실제 결과. 이야기는 지어낸 것이라 캡션에 밝힌다. 사장님 요청 2026-11-19.",
+  "items": [
+    {
+      "id": "ai-drama-1",
+      "format": "ai-reel",
+      "label": "환승 이별 1화",
+      "hook": "환승한 전여친\n새벽 2시 「자…?」",
+      "hookEm": ["자…?"],
+      "name": "서아",
+      "avatar": "🐰",
+      "gender": "female",
+      "myGender": "male",
+      "relationship": "ex",
+      "messages": [
+        { "from": "them", "text": "자…?", "time": "오전 2:13" },
+        { "from": "them", "text": "그냥 갑자기 생각나서", "time": "오전 2:13" },
+        { "from": "them", "text": "잘 지내?", "time": "오전 2:14" }
+      ],
+      "person": {
+        "hook": "날 차고 환승한\n전여친한테\n새벽 2시에 카톡 옴",
+        "sent": "센딧이 골라 준\n한마디 보냄",
+        "reply": "답장 온 거\n실화냐…",
+        "image": "tools/social-make/samples/drama/hero.jpg",
+        "captionTop": 1150,
+        "prompt": "Vertical 9:16 smartphone video with the realism of a casual Instagram vlog: filmed on a phone propped up on the nightstand facing him, a tiny handheld wobble, realistic skin texture, true-to-life colors.\nThe young man has the same face and hair as the man in the reference image (about 24, messy black layered hair with soft curtain bangs); keep his identity consistent for the whole clip. His outfit and the location are as described below, not as in the reference photo.\nLate at night in a dark small bedroom lit only by a dim warm bedside lamp and the glow of his phone. He wears a plain black T-shirt and a thin silver chain. He holds his own smartphone in portrait orientation; the back of the phone faces the camera the whole time and its screen is never visible.\n0-4s: from the very first frame he is lying in bed holding the glowing phone above his face; he reads and freezes, eyes widening, then slowly sits up against the headboard, stunned, and runs a hand through his hair.\n4-8s: he exhales, jaw tight, types a short reply with both thumbs, hesitates for a beat, then taps send firmly and drops the phone face-down on the blanket, staring at the ceiling.\n8-12s: the phone buzzes again; he grabs it, reads, and a slow, slightly bitter smirk appears; he shakes his head once, then looks straight into the camera with a calm, unreadable expression.\nAudio: quiet room tone at night, a phone buzzing at the start and at 8 seconds, blanket rustle. No music. He does not speak: no dialogue, no voice-over.\nNo on-screen text, captions, subtitles, logos or watermarks.",
+        "cuts": { "a": [0.1, 3.9], "replyAt": 8.4 },
+        "other": {
+          "caption": "3개월 만에\n먼저 연락한\n진짜 이유는?",
+          "image": "tools/social-make/samples/drama/heroine.jpg",
+          "seconds": 8,
+          "cut": [0.2, 4.4],
+          "prompt": "Vertical 9:16 smartphone video with the realism of a casual Instagram vlog: filmed on a phone propped up on the bed facing her, a tiny handheld wobble, realistic skin texture, true-to-life colors.\nThe young woman has the same face and hair as the woman in the reference image (about 23, long dark-brown wavy hair with see-through curtain bangs); keep her identity consistent for the whole clip. Her outfit and the location are as described below, not as in the reference photo.\nLate at night she sits on her bed in a small dim bedroom with a gray wall and beige curtains, cool bluish lamp light, wearing a plain white T-shirt, knees pulled up. She holds her own smartphone in portrait orientation; the back of the phone faces the camera the whole time and its screen is never visible.\n0-4s: she stares at the phone, hesitating, bites her lower lip, types a few words with her thumb, pauses, then taps send and quickly presses the phone against her chest, eyes closed, regretful.\n4-8s: she opens her eyes, looks down at the phone again, waiting, then glances away toward the dark window with a sad, complicated look.\nAudio: quiet room tone at night, a soft message-sent sound around 3 seconds. No music. She does not speak: no dialogue, no voice-over.\nNo on-screen text, captions, subtitles, logos or watermarks."
+        }
+      },
+      "end": { "ask": "2화: 그녀가 돌아온 진짜 이유" },
+      "caption": "[환승 이별 1화] 날 차고 바로 다른 사람 만나던 전여친이, 3개월 만에 새벽 2시에 \"자…?\" 보냄.\n\n센딧에 그대로 넣었더니 답장 3개를 성공 확률이랑 같이 골라 줬어. 앱 화면과 답장은 실제 센딧 AI 결과 그대로야.\n\n※ 지어낸 이야기야. 사람 나오는 장면은 AI로 만든 연출이고, 마지막 카톡은 센딧이 예상한 답장이야.\n\n2화에서 그녀가 돌아온 진짜 이유 공개. 너라면 받아 줄 거야, 읽씹할 거야? 댓글로 👇\n\n#전여친 #환승이별 #자니 #카톡답장 #센딧"
+    }
+  ]
+}

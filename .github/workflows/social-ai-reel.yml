@@ -92,6 +92,7 @@ jobs:
           cd "out/$ID"
           ffmpeg -hide_banner -loglevel error -y -i reel.mp4 -vf "fps=1,scale=270:-1,tile=8x4" -frames:v 1 contact.jpg
           ffmpeg -hide_banner -loglevel error -y -i person.mp4 -vf "fps=2,scale=200:-1,tile=8x3" -frames:v 1 person-contact.jpg
+          if [ -f other.mp4 ]; then ffmpeg -hide_banner -loglevel error -y -i other.mp4 -vf "fps=2,scale=200:-1,tile=8x2" -frames:v 1 other-contact.jpg; fi
 
       - uses: actions/upload-artifact@v4
         with:
@@ -104,6 +105,7 @@ jobs:
         run: |
           mkdir -p "queue/marketing/social/$ID"
           cp "out/$ID/reel.mp4" "out/$ID/cover.jpg" "out/$ID/analysis.json" "out/$ID/person.json" "queue/marketing/social/$ID/"
+          if [ -f "out/$ID/other.json" ]; then cp "out/$ID/other.json" "queue/marketing/social/$ID/"; fi
           cd queue
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
