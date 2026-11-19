@@ -110,6 +110,9 @@ beforeAll(async () => {
   // 저장소를 다 읽은 뒤에 연습 상태를 넣는다 (늦게 읽힌 빈 저장값이 덮지 않게)
   for (let i = 0; i < 50 && !useAppStore.persist.hasHydrated(); i += 1) await act(flush);
   useAppStore.setState({
+    // 「처음 5분 무제한」 A/B 는 처음 설치 때 무작위 — 고정하지 않으면 가끔 무제한(Infinity)으로 판정돼 횟수 검사가 흔들린다
+    introArm: 'off',
+    introStartedAt: null,
     user: { name: '지훈', gender: 'male', style: [], defaultTone: 'natural', createdAt: 0 },
     // AI 분석 동의는 받은 상태 (동의 시트는 따로 시험한다). 연습 1회 차감도 이미 한 상태
     aiConsent: true,

@@ -5,7 +5,7 @@ import type { AiProvider } from '@/lib/ai-consent';
 import { freeRules, INTRO_FREE_MS, INTRO_FREE_SHARE, type ConsumablePlanKey, type IntroArm } from '@/lib/billing/plans';
 import { track, type Acquisition } from '@/lib/analytics';
 import type { AppUpdate } from '@/lib/app-update';
-import { consumeOne, EMPTY_USAGE, EMPTY_WALLET, grantConsumable, grantSignupBonus, type PremiumState, type TeamState, type UsageState, type WalletState } from '@/lib/billing/quota';
+import { consumeOne, EMPTY_USAGE, EMPTY_WALLET, grantConsumable, grantCoupon, grantSignupBonus, type PremiumState, type TeamState, type UsageState, type WalletState } from '@/lib/billing/quota';
 import { MEMORY_FORGOTTEN_MAX, cleanMemory, memoryKey, type CoachRequest } from '@/lib/coach-schema';
 import { createId } from '@/lib/id';
 import { authAvailable } from '@/lib/supabase';
@@ -196,6 +196,8 @@ export interface AppState {
   clearPendingDeletion: () => void;
   /** 하루 이용권·횟수권 결제 1건 충전. 이미 충전한 거래면 무시하고 false */
   grantConsumable: (plan: ConsumablePlanKey, transactionId: string) => boolean;
+  /** 쿠폰 지급 (days 일 무제한, 같은 코드는 이 기기에서 한 번). 지급했으면 끝나는 시각, 이미 받았으면 null */
+  grantCoupon: (code: string, days: number) => number | null;
   /** AI 를 한 번 쓴 만큼 차감 (무료 → 횟수권 순, 프리미엄·하루 이용권은 차감 없음) */
   consumeQuota: () => void;
   /** 예전 이름 — consumeQuota 와 같다 */
@@ -550,6 +552,12 @@ export const useAppStore = create<AppState>()(
         if (!next) return false;
         set({ wallet: next });
         return true;
+      },
+      grantCoupon: (code, days) => {
+        const next = grantCoupon(get().wallet, code, days, Date.now());
+        if (!next) return null;
+        set({ wallet: next });
+        return next.passUntil;
       },
       consumeQuota: () => {
         const before = get().introStartedAt;

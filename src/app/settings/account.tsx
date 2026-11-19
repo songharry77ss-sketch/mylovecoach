@@ -9,6 +9,7 @@ import { QuietLink, SubScreen } from '@/components/ui/sub-screen';
 import { useToast } from '@/components/ui/toast';
 import { Spacing } from '@/constants/theme';
 import { providerLabel, signOut } from '@/lib/auth';
+import { couponSupported } from '@/lib/billing/coupon';
 import { useQuota } from '@/lib/billing/gate';
 import { billingSupported, openSubscriptionManagement, restorePremium } from '@/lib/billing/iap';
 import { SIGNUP_BONUS, subscriptionStoreName } from '@/lib/billing/plans';
@@ -97,6 +98,13 @@ export default function AccountSettings() {
             <ListRow title="구독 관리 · 해지" onPress={() => openSubscriptionManagement().catch(() => toast.show('스토어 구독 관리 화면을 열지 못했어요.', 'error'))} />
           )}
           {!isPremium ? <ListRow title="구매 복원" subtitle="주간 구독·1년권 (예전에 산 평생권 포함)" onPress={restore} /> : null}
+        </ListGroup>
+      ) : null}
+
+      {/* 쿠폰 — 웹·Android 만 (iOS 는 App Store 지침 3.1.1, lib/billing/coupon) */}
+      {couponSupported && !isPremium ? (
+        <ListGroup title="쿠폰">
+          <ListRow icon="ticket-outline" title="쿠폰 코드 입력" subtitle="코드를 넣으면 무제한 이용권을 받아요" onPress={() => router.push('/coupon')} />
         </ListGroup>
       ) : null}
 

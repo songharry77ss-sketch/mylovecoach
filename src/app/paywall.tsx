@@ -20,6 +20,7 @@ import { paywallClosed } from '@/hooks/use-resume-after-paywall';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { STORE_LABEL, STORE_URL, downloadDevice, type DownloadStore } from '@/lib/app-download';
+import { couponSupported } from '@/lib/billing/coupon';
 import { billingSupported, lastStoreProblem, purchasePlan, restorePremium, type PlanProduct } from '@/lib/billing/iap';
 import { CREDITS_PER_PACK, FALLBACK_PRICES, PRODUCT_IDS, SELLING_PLANS, SIGNUP_BONUS, freeRules, isConsumablePlan, yearPassEnd, type PlanKey } from '@/lib/billing/plans';
 import { PREMIUM_PLAN_NAMES, formatDateKo, formatPassEnd, isPremiumActive, passEndIfBoughtNow, premiumUntilSentence, quotaLabel, quotaStatus } from '@/lib/billing/quota';
@@ -475,6 +476,13 @@ export default function Paywall() {
             <Pressable accessibilityRole="button" onPress={restore} hitSlop={8} disabled={busy != null}>
               <AppText variant="caption" color="textSecondary">
                 {busy === 'restore' ? '복원 중…' : '구매 복원'}
+              </AppText>
+            </Pressable>
+          ) : null}
+          {couponSupported && !active ? (
+            <Pressable accessibilityRole="button" onPress={() => router.push('/coupon')} hitSlop={8}>
+              <AppText variant="caption" color="textSecondary">
+                쿠폰 코드
               </AppText>
             </Pressable>
           ) : null}

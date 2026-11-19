@@ -146,7 +146,9 @@ describe('하루 이용권 · 횟수권', () => {
     expect(quotaStatus(null, EMPTY_USAGE, NOW + DAY_PASS_MS + 1, once).kind).toBe('trial');
     const twice = grantConsumable(once, 'day', 'tx2', NOW + 1000)!;
     expect(twice.passUntil).toBe(NOW + 2 * DAY_PASS_MS);
-    expect(quotaLabel(quotaStatus(null, EMPTY_USAGE, NOW, twice))).toContain('하루 이용권');
+    // 하나면 「하루 이용권 · 오후 …까지」, 겹쳐서 24시간보다 길게 남으면 날짜까지 보여 주는 「무제한 이용권」 (쿠폰과 같은 표시)
+    expect(quotaLabel(quotaStatus(null, EMPTY_USAGE, NOW, once))).toContain('하루 이용권');
+    expect(quotaLabel(quotaStatus(null, EMPTY_USAGE, NOW, twice))).toMatch(/^무제한 이용권 · \d+월 \d+일 /);
   });
 
   it('같은 거래는 두 번 충전하지 않는다', () => {
