@@ -141,7 +141,8 @@ App Store 개인정보 설문은 **화면에서 저장·게시**합니다. 개�
 ## 추가 기능의 답안을 바꿀 때
 
 - **광고·크래시 수집 도구를 넣을 때** — 해당 항목을 추가하고 추적 여부를 다시 판단하세요.
-- **AI 로 보내는 회사를 바꿀 때** — `src/lib/coach-client.ts` 의 `RELAY_ROUTE`, `api/coach.ts`(지금은 Gemini 로만 보냄), AI 분석 동의 시트 문구(`src/components/coach/ai-consent-sheet.tsx`), 처리방침 2번(국외 이전 표)을 같이 고치세요. 서버는 앱이 알려 준 동의 회사(`x-ai-consent` 헤더)와 자기가 보낼 회사가 다르면 거절합니다.
+- **AI 로 보내는 회사를 바꿀 때** — `src/lib/coach-client.ts` 의 `RELAY_ROUTE`, `api/coach.ts`, AI 분석 동의 시트 문구(`src/components/coach/ai-consent-sheet.tsx`), 처리방침 2번(국외 이전 표)·11번을 같이 고치세요. 서버는 앱이 알려 준 동의 회사(`x-ai-consent` 헤더)에 없는 회사로는 보내지 않습니다.
+- **2026-11-20 AI 예비 경로** — 중계 동의(`relay`)는 Google(Gemini, 기본)·Anthropic(Claude)·OpenAI(GPT, 둘 다 Google 이 한도·혼잡·오류로 답하지 못할 때만)를 함께 안내하고, 앱은 `x-ai-consent: google,anthropic,openai` 를 보냅니다. 예전 중계 동의(`google`)는 새 경로를 대신하지 않아 한 번 다시 묻고, 예전 앱은 `google` 만 보내므로 서버가 Gemini 로만 보냅니다. 처리방침 2번·11번, 홈 안내 카드(`PRIVACY_NOTICE_VERSION` 4)를 같이 고쳤습니다. 스토어 개인정보 응답(이 문서 아래 표)의 제공업체 목록에도 Anthropic·OpenAI 가 서비스 제공업체로 더해집니다.
 - 개인정보 처리방침 [site/privacy.html](../site/privacy.html) 도 같이 맞춰야 합니다.
 
 ## 다음 회원가입·Google 빌드 답안 — 2026-10-09 콘솔 반영

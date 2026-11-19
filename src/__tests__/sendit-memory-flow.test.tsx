@@ -89,7 +89,7 @@ beforeEach(() => {
     hydrated: true,
     user: { name: '지훈', gender: 'male', style: [], defaultTone: 'natural', createdAt: 0 },
     aiConsent: true,
-    aiConsentProvider: 'google',
+    aiConsentProvider: 'relay',
     aiConsentAt: 1,
     premium: { plan: 'lifetime', productId: 'test', expiresAt: null, verifiedAt: Date.now() } as never,
   });

@@ -57,7 +57,7 @@ const coachInput = () => ({
   text: '주말에 만나자고 하고 싶어',
 });
 const mindInput = { situation: '읽고 답이 없어요', perspective: 'male' as const };
-const RELAY: AiRoute = { provider: 'google', via: 'relay' };
+const RELAY: AiRoute = { provider: 'relay', via: 'relay' };
 const flush = () => new Promise<void>((resolve) => setImmediate(resolve));
 
 /** 훅을 화면 없이 띄워 최신 값을 읽는다 */
@@ -91,6 +91,26 @@ beforeEach(() => {
 afterEach(() => jest.clearAllTimers());
 
 describe('AI 분석 동의 관문', () => {
+  it('예전 중계 동의(Google 만)는 예비 AI 가 생긴 새 중계 경로를 대신하지 않는다 — 한 번 다시 묻고, 동의하면 relay 로 바뀐다', async () => {
+    useAppStore.setState({ aiConsent: true, aiConsentProvider: 'google', aiConsentAt: 1 });
+    ask.mockResolvedValue(true);
+    await requestCoaching(coachInput());
+    expect(ask).toHaveBeenCalledTimes(1);
+    expect(ask).toHaveBeenCalledWith(RELAY);
+    expect(useAppStore.getState().aiConsentProvider).toBe('relay');
+    expect((fetchMock.mock.calls[0][1] as { headers: Record<string, string> }).headers['x-ai-consent']).toBe('google,anthropic,openai');
+    // 두 번째부터는 묻지 않는다
+    await requestCoaching(coachInput());
+    expect(ask).toHaveBeenCalledTimes(1);
+  });
+
+  it('예전 중계 동의(Google 만)에서 다시 묻는데 동의하지 않으면 아무것도 보내지 않는다', async () => {
+    useAppStore.setState({ aiConsent: true, aiConsentProvider: 'google', aiConsentAt: 1 });
+    ask.mockResolvedValue(false);
+    await expect(requestCoaching(coachInput())).rejects.toMatchObject({ code: 'consent' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('처음이면 동의 시트를 띄우고, 동의하면 그대로 보낸다', async () => {
     ask.mockResolvedValue(true);
     const analysis = await requestCoaching(coachInput());
@@ -98,12 +118,12 @@ describe('AI 분석 동의 관문', () => {
     expect(ask).toHaveBeenCalledWith(RELAY);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe('https://coach.test/api/coach');
-    // 서버가 동의받은 회사로만 보내는지 확인할 수 있게 동의한 회사를 같이 보낸다
-    expect((fetchMock.mock.calls[0][1] as { headers: Record<string, string> }).headers['x-ai-consent']).toBe('google');
+    // 서버가 동의받은 회사로만 보내는지 확인할 수 있게 동의한 회사들(기본 Google, 예비 Anthropic·OpenAI)을 같이 보낸다
+    expect((fetchMock.mock.calls[0][1] as { headers: Record<string, string> }).headers['x-ai-consent']).toBe('google,anthropic,openai');
     expect(analysis.summary).toBe('좋은 분위기예요');
     const s = useAppStore.getState();
     expect(s.aiConsent).toBe(true);
-    expect(s.aiConsentProvider).toBe('google');
+    expect(s.aiConsentProvider).toBe('relay');
     expect(typeof s.aiConsentAt).toBe('number');
   });
 
@@ -228,7 +248,7 @@ describe('AI 분석 동의 관문', () => {
     await flush();
     expect(ask).not.toHaveBeenCalled();
     // 기기에서 읽어 온 값이 이미 동의였다면 묻지 않는다
-    useAppStore.setState({ hydrated: true, aiConsent: true, aiConsentProvider: 'google', aiConsentAt: 1 });
+    useAppStore.setState({ hydrated: true, aiConsent: true, aiConsentProvider: 'relay', aiConsentAt: 1 });
     await expect(done).resolves.toBe(true);
     expect(ask).not.toHaveBeenCalled();
   });

@@ -231,7 +231,7 @@ describe('연애 연습 화면 — 결제 뒤 이어 보내기', () => {
     useAppStore.setState({
       user: { name: '지훈', gender: 'male', style: [], defaultTone: 'natural', createdAt: 0 },
       aiConsent: true,
-      aiConsentProvider: 'google',
+      aiConsentProvider: 'relay',
       aiConsentAt: 1,
       usage: exhausted(),
       wallet: EMPTY_WALLET,
