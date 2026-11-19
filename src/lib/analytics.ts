@@ -30,6 +30,10 @@ export interface Acquisition {
   source?: string;
   medium?: string;
   campaign?: string;
+  /** utm_term — 애플 광고면 키워드 번호 */
+  term?: string;
+  /** utm_content — 애플 광고면 광고그룹 번호 */
+  content?: string;
   /** 이전 사이트 주소의 도메인 */
   referrer?: string;
   /** 처음 연 경로 */

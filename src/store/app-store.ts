@@ -115,6 +115,8 @@ export interface AppState {
   aiConsentAt: number | null;
   /** 처음 앱을 연 곳 (이용 기록과 함께 전송) */
   acquisition: Acquisition | null;
+  /** 광고 유입(Play 설치 경로·애플 광고 귀속)을 확인한 시각 — 한 번만 본다 (install-attribution.ts) */
+  attributionCheckedAt: number | null;
   /** 진동 효과 */
   hapticsOn: boolean;
   /** 채팅방 목록에서 대화 미리보기 숨기기 */
@@ -183,6 +185,7 @@ export interface AppState {
   /** AI 분석 동의 기록 — 동의한 AI 회사, 동의 안 함·철회면 null */
   setAiConsent: (provider: AiProvider | null) => void;
   setAcquisition: (acquisition: Acquisition) => void;
+  markAttributionChecked: (at: number) => void;
   setPremium: (premium: PremiumState | null) => void;
   setTeam: (team: TeamState | null) => void;
   setMember: (member: MemberState | null) => void;
@@ -371,6 +374,7 @@ export const useAppStore = create<AppState>()(
       aiConsentProvider: null,
       aiConsentAt: null,
       acquisition: null,
+      attributionCheckedAt: null,
       hapticsOn: true,
       hidePreviews: false,
       onboardingSeen: false,
@@ -533,6 +537,7 @@ export const useAppStore = create<AppState>()(
       dismissPrivacyNotice: () => set({ privacyNoticeSeen: PRIVACY_NOTICE_VERSION }),
       setAiConsent: (provider) => set({ aiConsent: provider !== null, aiConsentProvider: provider, aiConsentAt: Date.now() }),
       setAcquisition: (acquisition) => set({ acquisition }),
+      markAttributionChecked: (at) => set({ attributionCheckedAt: at }),
       setPremium: (premium) => set({ premium }),
       setTeam: (team) => set({ team }),
       setMember: (member) => set({ member }),
@@ -753,6 +758,7 @@ export const useAppStore = create<AppState>()(
           aiConsentProvider: s.aiConsentProvider,
           aiConsentAt: s.aiConsentAt,
           acquisition: s.acquisition,
+          attributionCheckedAt: s.attributionCheckedAt,
           hapticsOn: s.hapticsOn,
           hidePreviews: s.hidePreviews,
           onboardingSeen: s.onboardingSeen,
