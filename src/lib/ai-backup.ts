@@ -6,7 +6,7 @@
  * 돌려주는 모양은 callGeminiTask 와 맞춘다 — 성공이면 JSON 글(text), 실패면 code·message.
  * 원문 오류(영어)는 로그에 상태 코드만 남기고 화면에는 우리 문구를 쓴다.
  */
-import { jsonSchemaOf, type AiTask } from '@/lib/ai-tasks';
+import { jsonSchemaOf, type AiTask } from './ai-tasks';
 
 export type BackupProvider = 'anthropic' | 'openai';
 
