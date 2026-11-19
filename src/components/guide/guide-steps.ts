@@ -1,7 +1,8 @@
 /**
  * 「센딧 사용법」 안내의 장마다 보여 줄 실제 앱 화면과 강조 위치.
  *
- * 그림을 바꾸는 법 (화면 개편이 끝난 뒤 데모 서버에서 다시 찍어 넣는다):
+ * 그림을 바꾸는 법 (화면 개편이 끝난 뒤 데모 서버에서 다시 찍어 넣는다 — 1.4 개편(2026-11-19)에 다시 찍었다.
+ * 찍기와 강조 위치 재기를 한 번에 하는 도구: scratchpad 의 guide-shots.mjs 와 같은 방식 — 접근성 이름으로 요소 위치를 재어 비율로 적는다):
  * 1. assets/images/guide/step-N.png 를 같은 이름으로 덮어쓴다 — 아이폰 393×852 화면을 2배(786×1704)로,
  *    상태 표시줄·홈 막대까지 한 화면 그대로. 한 장 300KB 안팎 (넘으면 JPG 로 바꾸고 아래 require 이름도 바꾼다).
  * 2. 크기가 다르면 아래 SHOT_WIDTH·SHOT_HEIGHT(비율만 쓴다)와 STATUS_BAR 를 맞춘다.
@@ -76,10 +77,10 @@ export const GUIDE_STEPS: GuideStep[] = [
     body: '답장이 고민되는 대화를 캡처해서 올려요. 캡처가 없으면 상황만 적어도 돼요.',
     // 홈 — 「캡처 올리기」 버튼과 「상황만 적기」 칸
     shot: shot(require('../../../assets/images/guide/step-1.png'), {
-      crop: { top: 0.285, bottom: 0.79 },
+      crop: { top: 0.125, bottom: 0.748 },
       spots: [
-        { x: 0.74, y: 0.527, label: '여기를 눌러요', side: 'bottom' },
-        { x: 0.8, y: 0.737, label: '상황만 적어도 돼요', side: 'bottom' },
+        { x: 0.68, y: 0.366, label: '여기를 눌러요', side: 'bottom' },
+        { x: 0.893, y: 0.469, label: '상황만 적어도 돼요', side: 'bottom' },
       ],
     }),
   },
@@ -91,8 +92,8 @@ export const GUIDE_STEPS: GuideStep[] = [
     // 채팅방 — 답장 카드의 성공 확률과 「복사」
     shot: shot(require('../../../assets/images/guide/step-2.png'), {
       crop: { top: 0, bottom: 0.62 },
-      boxes: [{ x: 0.6, y: 0.338, w: 0.355, h: 0.048, label: '성공 확률', side: 'top' }],
-      spots: [{ x: 0.809, y: 0.491, label: '누르면 복사', side: 'bottom' }],
+      boxes: [{ x: 0.659, y: 0.45, w: 0.239, h: 0.035, label: '성공 확률', side: 'top' }],
+      spots: [{ x: 0.809, y: 0.577, label: '누르면 복사', side: 'bottom' }],
     }),
   },
   {
@@ -100,12 +101,12 @@ export const GUIDE_STEPS: GuideStep[] = [
     pill: '3 · 마음 읽기',
     title: '속마음과 호감 온도까지',
     body: '대화를 올릴 때마다 호감 온도가 오르내리고, 그 사람이 관심 있을 가능성도 짚어 줘요.',
-    // 채팅방 — 머리의 호감 온도와 결과의 관심 있을 가능성
+    // 채팅방 — 머리의 호감 온도와 결과 아래 관심 있을 가능성(1.4: 답장 3가지 아래 흰 카드)
     shot: shot(require('../../../assets/images/guide/step-3.png'), {
       crop: { top: 0, bottom: 0.62 },
       boxes: [
-        { x: 0.235, y: 0.104, w: 0.27, h: 0.034, label: '호감 온도', side: 'bottom' },
-        { x: 0.075, y: 0.463, w: 0.885, h: 0.092, label: '그 사람 마음', side: 'top' },
+        { x: 0.341, y: 0.107, w: 0.164, h: 0.028, label: '호감 온도', side: 'bottom' },
+        { x: 0.076, y: 0.384, w: 0.847, h: 0.124, label: '그 사람 마음', side: 'top' },
       ],
       spots: [],
     }),
@@ -118,7 +119,7 @@ export const GUIDE_STEPS: GuideStep[] = [
     // 채팅방 맨 위 — 「센딧이 기억하는 이야기」
     shot: shot(require('../../../assets/images/guide/step-4.png'), {
       crop: { top: 0, bottom: 0.5 },
-      spots: [{ x: 0.86, y: 0.182, label: '눌러서 보기', side: 'bottom' }],
+      spots: [{ x: 0.898, y: 0.174, label: '눌러서 보기', side: 'bottom' }],
     }),
   },
 ];

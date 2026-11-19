@@ -8,14 +8,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GradientButton } from '@/components/brand/brand';
 import { WhoSheet, type WhoTarget } from '@/components/coach/who-sheet';
-import { WORRY_ICON, useDefaultPerspective } from '@/components/tips/tip-book';
+import { useCostNote, useDefaultPerspective, useFill } from '@/components/tips/tip-book';
 import { AppText } from '@/components/ui/app-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section-header';
 import { APP_NAME } from '@/constants/brand';
-import { Brand, Radius, Spacing, Typography } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
@@ -23,18 +23,17 @@ import { renderSituation, themLabel } from '@/lib/mind-cards';
 import { mindsOf, tipsOf, worryById } from '@/lib/tips';
 import { sortCrushes, useAppStore } from '@/store/app-store';
 
-/** 등장 순서 — 위에서부터 50ms 간격으로 살짝 올라온다 */
-const enter = (step: number) => FadeInDown.delay(step * 50).springify().damping(18);
-/** 아래 고정 버튼 칸 높이 (버튼 58 + 위 여백) — 본문 끝이 버튼에 가리지 않게 이만큼 비운다 */
-const CTA_SPACE = 58 + Spacing.lg;
-/** 속 카드(흰 바탕 위 연회색) 모서리 */
-const INNER_RADIUS = Radius.lg - 2;
+/** 등장 — 위에서부터 짧게 (1.4 개편: 튕김 없이) */
+const enter = (step: number) => FadeInDown.delay(step * 40).duration(300);
+/** 아래 고정 버튼 칸 높이 (버튼 54 + 위 여백) — 본문 끝이 버튼에 가리지 않게 이만큼 비운다 */
+const CTA_SPACE = 54 + Spacing.lg;
 
 /**
  * 연애팁 백서 — 고민 하나의 해답 (11/12 회의 8번 「"어떤 고민이 있어요?" → 그 해답은 여기에!」).
  * 한 줄 결론 → 해결 단계 → 같이 보면 좋은 팁(lib/tips 의 묶음표) → 이럴 때 그 사람 속마음(누르면 속마음 풀이 /mind)
  * → 아래 고정 「이 상황, 센딧에게 물어보기」: 홈의 「상황 적기」처럼 누구와의 대화인지 고른 뒤 그 채팅방에서 이 고민 글로 코칭을 바로 받는다(pendingText).
- * 읽는 화면이라 흰 바탕(지침 1.2).
+ * 1.4 「깔끔하게」 개편: 머리의 아이콘 타일·파란 라벨·연파랑 상자를 걷었다. 한 줄 결론은 상자 없이 큰 문장, 팁은 가는 선으로 나눈 줄
+ * (굵은 제목 + 회색 본문). 색은 아래 버튼 하나. 횟수를 쓰는 곳(속마음 보기·물어보기)에는 누르기 전에 「1회」.
  */
 export default function WorryScreen() {
   const { topic } = useLocalSearchParams<{ topic?: string }>();
@@ -42,12 +41,15 @@ export default function WorryScreen() {
   const theme = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const fill = useFill();
   const perspective = useDefaultPerspective();
   const crushMap = useAppStore((s) => s.crushes);
   const rooms = useMemo(() => sortCrushes(crushMap).filter((c) => !c.secret), [crushMap]);
   const [whoOpen, setWhoOpen] = useState(false);
   const tips = useMemo(() => (worry ? tipsOf(worry) : []), [worry]);
   const minds = useMemo(() => (worry ? mindsOf(worry) : []), [worry]);
+  const mindCost = useCostNote('볼 때');
+  const askCost = useCostNote('물어볼 때');
 
   if (!worry) {
     return (
@@ -58,6 +60,7 @@ export default function WorryScreen() {
   }
 
   const them = themLabel(perspective);
+  const askTitle = `이 상황, ${APP_NAME}에게 물어보기`;
 
   /** 고른 채팅방으로 — 홈의 openRoom 과 같은 규칙(새로운 사람은 늘 새 방, 방이 하나도 없으면 quickStart) */
   const openRoom = (target: WhoTarget) => {
@@ -90,10 +93,8 @@ export default function WorryScreen() {
     <View style={[styles.root, { backgroundColor: theme.background }]}>
       <Screen safeBottom={false} contentStyle={{ ...styles.content, paddingBottom: CTA_SPACE + insets.bottom + Spacing.xl }}>
         <Animated.View entering={enter(0)} style={styles.head}>
-          <View style={[styles.headIcon, { backgroundColor: theme.primarySoft }]}>
-            <Ionicons name={WORRY_ICON[worry.id]} size={22} color={theme.primary} />
-          </View>
-          <AppText variant="smallStrong" color="primary" weight="800">
+          {/* 화면의 작은 라벨은 이것 하나(회색) — 연애팁 백서 · 찾는 말 */}
+          <AppText variant="smallStrong" color="textSecondary">
             연애팁 백서 · {worry.keywords}
           </AppText>
           <Text style={[styles.title, { color: theme.text }]} accessibilityRole="header">
@@ -101,20 +102,12 @@ export default function WorryScreen() {
           </Text>
         </Animated.View>
 
-        {/* 한 줄 결론 */}
-        <Animated.View entering={enter(1)} style={[styles.answer, { backgroundColor: theme.primarySoft }]}>
-          <View style={styles.answerLabel}>
-            <Ionicons name="bulb" size={15} color={theme.primary} />
-            <AppText variant="caption" color="primary" weight="800">
-              한 줄 정리
-            </AppText>
-          </View>
-          <AppText variant="title3" weight="700" style={styles.answerText} lineBreakStrategyIOS="hangul-word">
-            {worry.answer}
-          </AppText>
+        {/* 한 줄 결론 — 상자 없이 큰 문장 */}
+        <Animated.View entering={enter(1)}>
+          <AppText style={[styles.answer, { color: theme.text }]}>{worry.answer}</AppText>
         </Animated.View>
 
-        {/* 해결 단계 — 번호 동그라미를 가는 선으로 잇는다 */}
+        {/* 해결 단계 — 회색 번호 동그라미를 가는 선으로 잇는다 */}
         <Animated.View entering={enter(2)}>
           <SectionHeader title="이렇게 해 봐요" style={styles.sectionHeader} />
           <View accessibilityRole="list">
@@ -123,16 +116,14 @@ export default function WorryScreen() {
               return (
                 <View key={step.title} style={styles.step} accessible accessibilityLabel={`${i + 1}단계, ${step.title}. ${step.body}`}>
                   <View style={styles.stepRail}>
-                    <View style={[styles.stepNum, { backgroundColor: theme.primary }]}>
-                      <Text style={styles.stepNumText}>{i + 1}</Text>
+                    <View style={[styles.stepNum, { backgroundColor: fill }]}>
+                      <AppText style={[styles.stepNumText, { color: theme.text }]}>{i + 1}</AppText>
                     </View>
                     {!last ? <View style={[styles.stepLine, { backgroundColor: theme.separator }]} /> : null}
                   </View>
                   <View style={[styles.stepTexts, !last && styles.stepTextsGap]}>
-                    <AppText variant="bodyStrong" weight="700">
-                      {step.title}
-                    </AppText>
-                    <AppText variant="small" color="textSecondary" style={styles.stepBody}>
+                    <AppText variant="bodyStrong">{step.title}</AppText>
+                    <AppText variant="small" color="textSecondary" style={styles.body}>
                       {step.body}
                     </AppText>
                   </View>
@@ -142,16 +133,14 @@ export default function WorryScreen() {
           </View>
         </Animated.View>
 
-        {/* 같이 보면 좋은 팁 — 기존 팁을 묶음표대로 */}
+        {/* 같이 보면 좋은 팁 — 상자 대신 가는 선으로 나눈 줄 */}
         {tips.length ? (
-          <Animated.View entering={enter(3)} style={styles.stack}>
+          <Animated.View entering={enter(3)}>
             <SectionHeader title="같이 보면 좋은 팁" style={styles.sectionHeader} />
-            {tips.map((tip) => (
-              <View key={tip.id} style={[styles.tip, { backgroundColor: theme.surface }]}>
-                <AppText variant="bodyStrong" weight="700">
-                  {tip.title}
-                </AppText>
-                <AppText variant="small" color="textSecondary" style={styles.tipBody}>
+            {tips.map((tip, i) => (
+              <View key={tip.id} style={[styles.tip, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.separator }]}>
+                <AppText variant="bodyStrong">{tip.title}</AppText>
+                <AppText variant="small" color="textSecondary" style={styles.body}>
                   {tip.body}
                 </AppText>
               </View>
@@ -159,10 +148,10 @@ export default function WorryScreen() {
           </Animated.View>
         ) : null}
 
-        {/* 이럴 때 그 사람 속마음 — 누르면 속마음 풀이 */}
+        {/* 이럴 때 그 사람 속마음 — 누르면 속마음 풀이(무료 1회) */}
         {minds.length ? (
           <Animated.View entering={enter(4)}>
-            <SectionHeader title={`이럴 때 ${them} 속마음은?`} style={styles.sectionHeader} />
+            <SectionHeader title={`이럴 때 ${them} 속마음은?`} subtitle={mindCost.note ?? undefined} style={styles.sectionHeader} />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.mindsWrap} contentContainerStyle={styles.minds}>
               {minds.map((m) => {
                 const situation = renderSituation(m, perspective);
@@ -173,15 +162,16 @@ export default function WorryScreen() {
                     feedback={false}
                     onPress={() => openMind(situation)}
                     accessibilityLabel={`${situation} ${them} 속마음 보기`}
-                    style={[styles.mind, minds.length === 1 && styles.mindWide, { backgroundColor: theme.surface }]}>
-                    <AppText variant="smallStrong" numberOfLines={4} lineBreakStrategyIOS="hangul-word">
+                    accessibilityHint={mindCost.suffix ? '무료 코칭 1회를 써요' : undefined}
+                    style={[styles.mind, minds.length === 1 && styles.mindWide, { backgroundColor: fill }]}>
+                    <AppText variant="smallStrong" numberOfLines={4}>
                       {situation}
                     </AppText>
                     <View style={styles.mindGo}>
-                      <AppText variant="caption" color="primary" weight="800">
-                        속마음 보기
+                      <AppText variant="small" color="primary" weight="600">
+                        속마음 보기{mindCost.suffix}
                       </AppText>
-                      <Ionicons name="arrow-forward" size={13} color={theme.primary} />
+                      <Ionicons name="chevron-forward" size={14} color={theme.primary} />
                     </View>
                   </PressableScale>
                 );
@@ -191,11 +181,16 @@ export default function WorryScreen() {
         ) : null}
       </Screen>
 
-      {/* 아래 고정 — 이 화면의 주요 행동 하나 */}
+      {/* 아래 고정 — 이 화면의 주요 행동 하나(센딧 파랑 단색). 무료 1회를 쓰면 버튼에 「· 1회」, 다 썼으면 위에 한 줄 */}
       <View pointerEvents="box-none" style={styles.ctaWrap}>
         <LinearGradient pointerEvents="none" colors={[`${theme.background}00`, theme.background]} style={styles.ctaFade} />
         <View style={[styles.cta, { backgroundColor: theme.background, paddingBottom: insets.bottom + Spacing.md }]}>
-          <GradientButton title={`이 상황, ${APP_NAME}에게 물어보기`} onPress={askSendit} icon={<Ionicons name="chatbubble-ellipses" size={18} color={Brand.onBrand} />} />
+          {askCost.out && askCost.note ? (
+            <AppText variant="caption" color="textSecondary" align="center">
+              {askCost.note}
+            </AppText>
+          ) : null}
+          <GradientButton title={`${askTitle}${askCost.suffix}`} accessibilityLabel={askTitle} onPress={askSendit} />
         </View>
       </View>
 
@@ -216,31 +211,27 @@ export default function WorryScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  content: { gap: Spacing.md },
-  head: { gap: 6, marginTop: Spacing.sm },
-  headIcon: { width: 44, height: 44, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
-  title: { ...Typography.hero, fontSize: 28, lineHeight: 36 },
-  answer: { borderRadius: Radius.lg + 2, padding: Spacing.lg + 2, gap: Spacing.sm, marginTop: Spacing.sm },
-  answerLabel: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  answerText: { fontSize: 18, lineHeight: 27, letterSpacing: -0.3 },
-  sectionHeader: { marginTop: Spacing.xl, marginBottom: Spacing.md, paddingHorizontal: 2 },
+  content: { gap: Spacing.lg },
+  head: { gap: 4, marginTop: Spacing.sm },
+  title: { fontSize: 26, lineHeight: 34, fontWeight: '700', letterSpacing: -0.6 },
+  // 한 줄 결론 — 이 화면에서 가장 먼저 읽히는 문장(20pt · 600)
+  answer: { fontSize: 20, lineHeight: 30, fontWeight: '600', letterSpacing: -0.4 },
+  sectionHeader: { marginTop: Spacing.lg, marginBottom: Spacing.md, paddingHorizontal: 2 },
   step: { flexDirection: 'row', gap: Spacing.md },
   stepRail: { width: 26, alignItems: 'center' },
   stepNum: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  stepNumText: { color: Brand.onBrand, fontSize: 13, lineHeight: 16, fontWeight: '900' },
-  stepLine: { flex: 1, width: 2, borderRadius: 1, marginVertical: 4 },
+  stepNumText: { fontSize: 13, lineHeight: 16, fontWeight: '700' },
+  stepLine: { flex: 1, width: 1, marginVertical: 4 },
   stepTexts: { flex: 1, gap: 3, paddingTop: 1 },
   stepTextsGap: { paddingBottom: Spacing.lg + 2 },
-  stepBody: { lineHeight: 21 },
-  stack: { gap: Spacing.sm + 2 },
-  tip: { borderRadius: INNER_RADIUS, padding: Spacing.lg, gap: 6 },
-  tipBody: { lineHeight: 21 },
+  body: { lineHeight: 21 },
+  tip: { paddingVertical: Spacing.md + 2, gap: 4 },
   mindsWrap: { marginHorizontal: -Spacing.lg, flexGrow: 0 },
-  minds: { gap: Spacing.sm + 2, paddingHorizontal: Spacing.lg },
-  mind: { width: 216, minHeight: 116, borderRadius: INNER_RADIUS, padding: Spacing.lg, gap: Spacing.md, justifyContent: 'space-between' },
+  minds: { gap: Spacing.sm, paddingHorizontal: Spacing.lg },
+  mind: { width: 216, minHeight: 120, borderRadius: 20, padding: Spacing.lg, gap: Spacing.md, justifyContent: 'space-between' },
   mindWide: { width: 300 },
-  mindGo: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  mindGo: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   ctaWrap: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   ctaFade: { height: 24 },
-  cta: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.xs },
+  cta: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.xs, gap: Spacing.sm },
 });

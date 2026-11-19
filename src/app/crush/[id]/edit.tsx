@@ -65,9 +65,9 @@ export default function EditCrush() {
       {/* 센딧이 기억하는 이야기(채팅방 위 카드와 같은 시트)·채팅방 삭제 — 저장 아래 흰 카드 하나로 */}
       <ListGroup style={styles.more}>
         {showMemory ? (
-          <ListRow icon="bookmark-outline" title={`${APP_NAME}이 기억하는 이야기`} value={`${memoryCount}개`} onPress={() => setMemoryOpen(true)} />
+          <ListRow title={`${APP_NAME}이 기억하는 이야기`} value={`${memoryCount}개`} onPress={() => setMemoryOpen(true)} />
         ) : null}
-        <ListRow icon="trash-outline" title="채팅방 삭제" subtitle="대화·캡처까지 모두 지워져요" destructive onPress={confirmDelete} />
+        <ListRow title="채팅방 삭제" subtitle="대화·캡처까지 모두 지워져요" destructive onPress={confirmDelete} />
       </ListGroup>
       {showMemory ? <MemorySheet crushId={crush.id} partnerName={crush.name} visible={memoryOpen} onClose={() => setMemoryOpen(false)} /> : null}
     </Screen>

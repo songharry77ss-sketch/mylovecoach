@@ -6,11 +6,12 @@ import { AppState, Keyboard, Modal, Platform, ScrollView, StyleSheet, View } fro
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FullWindowOverlay } from 'react-native-screens';
 
-import { BrandGradient, BrandPill, GradientButton, HeroCard, Icon3D, SenditLogo, WashBackground } from '@/components/brand/brand';
+import { GradientButton, SenditLogo } from '@/components/brand/brand';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { APP_NAME } from '@/constants/brand';
-import { Brand, BrandShadow, MaxContentWidth, Radius, Shadow, Spacing } from '@/constants/theme';
+import { Brand, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { compareVersions, currentVersion, fetchAppUpdate, openStore, setUpdateRequestHandler, UPDATE_RETRY_MS, UPDATE_SNOOZE_MS, type AppUpdate } from '@/lib/app-update';
@@ -116,6 +117,7 @@ export function AppUpdateHost({ enabled }: { enabled: boolean }) {
 
 export function UpdateSheet({ update, onUpdate, onLater }: { update: AppUpdate; onUpdate: () => void; onLater: () => void }) {
   const theme = useTheme();
+  const fill = useColorScheme() === 'dark' ? theme.surfaceElevated : theme.surface;
   const insets = useSafeAreaInsets();
   const current = currentVersion();
   const notes = update.notes ?? [];
@@ -127,16 +129,9 @@ export function UpdateSheet({ update, onUpdate, onLater }: { update: AppUpdate; 
         accessibilityViewIsModal
         onAccessibilityEscape={onLater}
         style={[styles.sheet, { backgroundColor: theme.background, paddingBottom: insets.bottom + Spacing.lg }]}>
-        {/* 그라데이션 머리 — 로고와 받을 버전 */}
-        <HeroCard style={styles.hero}>
-          <View style={styles.heroRow}>
-            <View style={styles.heroTexts}>
-              <SenditLogo size="md" subtitle tone="white" />
-              <BrandPill label={`새 버전 ${update.latest}`} icon="arrow-up-circle" tone="glass" />
-            </View>
-            <Icon3D name="send" size={76} float />
-          </View>
-        </HeroCard>
+        {/* 1.4 개편: 그라데이션 머리 카드·3D 그림·유리 알약을 걷고 로고 한 줄 + 제목 + 좋아진 점 */}
+        <View style={[styles.handle, { backgroundColor: theme.border }]} />
+        <SenditLogo size="sm" />
         <AppText variant="title2" accessibilityRole="header">
           새로워진 {APP_NAME}이 나왔어요
         </AppText>
@@ -147,17 +142,15 @@ export function UpdateSheet({ update, onUpdate, onLater }: { update: AppUpdate; 
           <View style={styles.notes}>
             {notes.map((note) => (
               <View key={note} style={styles.note}>
-                <BrandGradient style={styles.noteCheck}>
-                  <Ionicons name="checkmark" size={13} color={Brand.onBrand} />
-                </BrandGradient>
-                <AppText variant="small" style={styles.noteText}>
+                <Ionicons name="checkmark" size={18} color={theme.primary} style={styles.noteCheck} />
+                <AppText variant="body" style={styles.noteText}>
                   {note}
                 </AppText>
               </View>
             ))}
           </View>
         ) : null}
-        <View style={[styles.versions, { backgroundColor: theme.surface }]}>
+        <View style={[styles.versions, { backgroundColor: fill }]}>
           <AppText variant="caption" color="textSecondary">
             지금 버전 {current}
           </AppText>
@@ -167,7 +160,7 @@ export function UpdateSheet({ update, onUpdate, onLater }: { update: AppUpdate; 
           </AppText>
         </View>
         <View style={styles.actions}>
-          <GradientButton title="업데이트하기" onPress={onUpdate} shine icon={<Ionicons name="arrow-up-circle" size={19} color={Brand.onBrand} />} />
+          <GradientButton title="업데이트하기" onPress={onUpdate} />
           <Button title="나중에" variant="ghost" size="md" onPress={onLater} />
         </View>
       </View>
@@ -177,32 +170,29 @@ export function UpdateSheet({ update, onUpdate, onLater }: { update: AppUpdate; 
 
 const appMark = require('../../../assets/images/sendit-mark.png');
 /** 업데이트해도 잃는 것이 없다는 약속 — 꼭 해야 하는 업데이트 화면 아래쪽 */
-const PROMISES = [
-  { icon: 'chatbubbles-outline', text: '채팅방 그대로' },
-  { icon: 'time-outline', text: '1분이면 끝' },
-  { icon: 'ticket-outline', text: '이용권도 그대로' },
-] as const;
+const PROMISES = [{ text: '채팅방 그대로' }, { text: '1분이면 끝' }, { text: '이용권도 그대로' }] as const;
 
 /**
- * 꼭 해야 하는 업데이트 — 닫을 수 없는 전체 화면 (센딧 옅은 바탕 · 앱 아이콘 · 그라데이션 버튼).
+ * 꼭 해야 하는 업데이트 — 닫을 수 없는 전체 화면 (흰 바탕 · 앱 아이콘 · 파란 버튼 하나). 1.4 개편: 그림자·그라데이션 배지·아이콘 타일을 걷었다.
  * 지금 버전으로는 더 쓸 수 없다는 것보다 「새 버전에서 무엇이 좋아졌는지」와 「잃는 것이 없다」를 먼저 보여 주고, 버튼 하나로 스토어에 보낸다.
  */
 export function RequiredUpdate({ update, onUpdate }: { update: AppUpdate; onUpdate: () => void }) {
   const theme = useTheme();
+  const fill = useColorScheme() === 'dark' ? theme.surfaceElevated : theme.surface;
   const insets = useSafeAreaInsets();
   const notes = update.notes ?? [];
   const store = subscriptionStoreName(Platform.OS);
   return (
     <View accessibilityViewIsModal style={[StyleSheet.absoluteFill, { backgroundColor: theme.background }]}>
-      <WashBackground>
+      <View style={styles.flex}>
         <ScrollView contentContainerStyle={[styles.requiredBody, { paddingTop: insets.top + Spacing.xl }]} showsVerticalScrollIndicator={false}>
-          <View style={[styles.iconFrame, BrandShadow]}>
+          <View style={styles.iconFrame}>
             <Image source={appMark} style={styles.appIcon} contentFit="cover" accessibilityIgnoresInvertColors accessible={false} />
-            <BrandGradient style={[styles.iconBadge, { borderColor: theme.background }]}>
+            <View style={[styles.iconBadge, { backgroundColor: Brand.blue, borderColor: theme.background }]}>
               <Ionicons name="arrow-up" size={15} color={Brand.onBrand} />
-            </BrandGradient>
+            </View>
           </View>
-          <View style={[styles.versionPill, { backgroundColor: theme.surface }]}>
+          <View style={[styles.versionPill, { backgroundColor: fill }]}>
             <AppText variant="caption" color="textSecondary">
               {currentVersion()}
             </AppText>
@@ -217,28 +207,26 @@ export function RequiredUpdate({ update, onUpdate }: { update: AppUpdate; onUpda
           <AppText variant="body" color="textSecondary" align="center" style={styles.requiredLead}>
             새로워진 {APP_NAME}이 기다리고 있어요.{'\n'}지금 버전으로는 더 이상 코칭을 받을 수 없어요.
           </AppText>
-          {/* 잃는 것이 없다는 약속을 먼저 — 좋아진 점이 길어 작은 화면에서 아래가 가려져도 이 줄은 보이게 */}
+          {/* 잃는 것이 없다는 약속을 먼저 — 좋아진 점이 길어 작은 화면에서 아래가 가려져도 이 줄은 보이게 (아이콘 타일 없이 한 줄) */}
           <View style={styles.promises}>
             {PROMISES.map((p) => (
-              <View key={p.text} style={[styles.promise, { backgroundColor: theme.surface }]}>
-                <Ionicons name={p.icon} size={18} color={theme.primary} />
-                <AppText variant="caption" color="textSecondary" align="center">
+              <View key={p.text} style={styles.promise}>
+                <Ionicons name="checkmark" size={15} color={theme.textSecondary} />
+                <AppText variant="smallStrong" color="textSecondary">
                   {p.text}
                 </AppText>
               </View>
             ))}
           </View>
           {notes.length ? (
-            <View style={[styles.notesCard, Shadow, { backgroundColor: theme.background, borderColor: theme.border }]}>
-              <AppText variant="smallStrong" color="primary">
+            <View style={[styles.notesCard, { backgroundColor: fill }]}>
+              <AppText variant="smallStrong" color="textSecondary">
                 이번 버전에서 좋아진 점
               </AppText>
               {notes.map((note) => (
                 <View key={note} style={styles.note}>
-                  <BrandGradient style={styles.noteCheck}>
-                    <Ionicons name="checkmark" size={13} color={Brand.onBrand} />
-                  </BrandGradient>
-                  <AppText variant="small" style={styles.noteText}>
+                  <Ionicons name="checkmark" size={18} color={theme.primary} style={styles.noteCheck} />
+                  <AppText variant="body" style={styles.noteText}>
                     {note}
                   </AppText>
                 </View>
@@ -247,12 +235,12 @@ export function RequiredUpdate({ update, onUpdate }: { update: AppUpdate; onUpda
           ) : null}
         </ScrollView>
         <View style={[styles.requiredFooter, { paddingBottom: insets.bottom + Spacing.lg }]}>
-          <GradientButton title="업데이트하기" onPress={onUpdate} shine icon={<Ionicons name="arrow-up-circle" size={19} color={Brand.onBrand} />} />
+          <GradientButton title="업데이트하기" onPress={onUpdate} />
           <AppText variant="caption" color="textSecondary" align="center">
             {store}에서 업데이트한 뒤 앱을 다시 열어 주세요
           </AppText>
         </View>
-      </WashBackground>
+      </View>
     </View>
   );
 }
@@ -266,16 +254,15 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
-    paddingTop: Spacing.lg,
-    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingHorizontal: Spacing.xl,
     gap: Spacing.md,
   },
-  hero: { marginBottom: Spacing.xs },
-  heroRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  heroTexts: { flex: 1, gap: Spacing.md },
+  flex: { flex: 1 },
+  handle: { width: 40, height: 5, borderRadius: 3, alignSelf: 'center', marginTop: -Spacing.xs, marginBottom: Spacing.xs },
   notes: { gap: Spacing.sm },
   note: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
-  noteCheck: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginTop: 0 },
+  noteCheck: { marginTop: 3 },
   noteText: { flex: 1 },
   versions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderRadius: Radius.lg, paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg },
   actions: { gap: Spacing.xs, paddingTop: Spacing.xs },
@@ -286,8 +273,8 @@ const styles = StyleSheet.create({
   iconBadge: { position: 'absolute', right: -6, bottom: -6, width: 32, height: 32, borderRadius: 16, borderWidth: 3, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   versionPill: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, borderRadius: Radius.pill, paddingVertical: Spacing.xs, paddingHorizontal: Spacing.md },
   requiredLead: { marginTop: -Spacing.sm },
-  notesCard: { alignSelf: 'stretch', gap: Spacing.sm, borderRadius: Radius.xl, borderWidth: StyleSheet.hairlineWidth, padding: Spacing.lg },
-  promises: { alignSelf: 'stretch', flexDirection: 'row', gap: Spacing.sm },
-  promise: { flex: 1, alignItems: 'center', gap: Spacing.xs, borderRadius: Radius.lg, paddingVertical: Spacing.md, paddingHorizontal: Spacing.xs },
+  notesCard: { alignSelf: 'stretch', gap: Spacing.sm, borderRadius: Radius.lg, padding: Spacing.lg + 2 },
+  promises: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', columnGap: Spacing.md, rowGap: Spacing.xs },
+  promise: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   requiredFooter: { gap: Spacing.sm, paddingTop: Spacing.md, paddingHorizontal: Spacing.xl, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
 });

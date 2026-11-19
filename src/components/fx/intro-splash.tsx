@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
   titleBlock: { position: 'absolute', top: SPLASH_LOGO_SIZE - 6, left: SPLASH_LOGO_SIZE / 2 - 170, width: 340, alignItems: 'center' },
   lead: { fontSize: 14, lineHeight: 20, fontWeight: '600', letterSpacing: -0.2 },
   titleRow: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 2 },
-  letter: { fontSize: 26, lineHeight: 34, fontWeight: '800', letterSpacing: -0.6 },
+  letter: { fontSize: 26, lineHeight: 34, fontWeight: '700', letterSpacing: -0.6 },
   space: { width: 7 },
   footer: { position: 'absolute', left: 24, right: 24, alignItems: 'center' },
   footerText: { fontSize: 12, lineHeight: 17, fontWeight: '600', letterSpacing: -0.2, textAlign: 'center' },

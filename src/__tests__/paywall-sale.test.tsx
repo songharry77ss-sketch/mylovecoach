@@ -128,35 +128,48 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-it('주인공 카드: 이름·실제로 끝나는 시각·가격', () => {
+it('하루 이용권 줄: 이름·실제로 끝나는 시각·가격, 버튼에 금액 (1.4 개편 — 큰 카드 대신 같은 모양의 줄)', () => {
   mockProducts = [DAY_REGULAR, ...OTHERS];
   mount();
   const text = screen();
-  expect(text).toContain('수연님을 위한');
-  expect(text).toContain('하루 무제한 이용권');
+  expect(text).toContain('수연님을 위한 하루 이용권');
   expect(text).toContain('지금 시작하면 내일 오후 3:42까지 무제한');
   expect(text).toContain('2,700원');
-  expect(textOf(buyButton())).toBe('하루 무제한 시작하기');
+  expect(textOf(buyButton())).toBe('2,700원으로 하루 무제한 시작하기');
+  // 근거 없는 「인기」, 계산이 틀린 「주간 구독 3주 가격」 배지는 없다
+  expect(text).not.toContain('인기');
+  expect(text).not.toContain('3주 가격');
 });
 
-it('이름이 없으면 「오늘 하루 무제한 이용권」', () => {
+it('이름이 없으면 「하루 이용권」', () => {
   useAppStore.setState({ user: null });
   mockProducts = [DAY_REGULAR, ...OTHERS];
   mount();
-  expect(screen()).toContain('오늘 하루무제한 이용권');
+  expect(screen()).toContain('하루 이용권');
   expect(screen()).not.toContain('님을 위한');
 });
 
-it('특가·정가 하루 이용권이 둘 다 있으면 처음 볼 때 10분 세일을 시작한다 — 취소선 정가·특가·할인율', () => {
+it('처음엔 하루 이용권·1년권 두 줄만 — 주간 구독은 「다른 이용권 보기」로 그 자리에서 펼친다', () => {
+  mockProducts = [DAY_REGULAR, ...OTHERS];
+  mount();
+  const radios = () => renderer!.root.findAll((n) => n.props.accessibilityRole === 'radio' && typeof n.props.onPress === 'function').map((n) => textOf(n));
+  expect(radios().some((t) => t.includes('주간 구독'))).toBe(false);
+  expect(radios().some((t) => t.includes('1년권'))).toBe(true);
+  expect(screen()).toContain('하루 약 82원');
+  const more = renderer!.root.findAll((n) => n.props.accessibilityLabel === '다른 이용권 보기' && typeof n.props.onPress === 'function')[0];
+  act(() => more.props.onPress());
+  expect(radios().some((t) => t.includes('주간 구독'))).toBe(true);
+});
+
+it('특가·정가 하루 이용권이 둘 다 있으면 처음 볼 때 10분 세일을 시작한다 — 11-27 20:45 전에는 취소선·할인율 없이 특가만', () => {
   mount();
   expect(useAppStore.getState().saleOfferStartedAt).toBe(T);
   const text = screen();
   expect(text).toContain('특가 마감까지');
   expect(text).toContain('10:00');
-  expect(text).toContain('2,700원');
   expect(text).toContain('1,900원');
-  expect(text).toContain('29%');
-  expect(textOf(buyButton())).toBe('특가로 하루 무제한 시작하기');
+  expect(text).not.toContain('29%');
+  expect(textOf(buyButton())).toBe('특가 1,900원으로 시작하기');
   expect(tracked).toHaveBeenCalledWith('sale_offer_start', { reason: 'quota' });
   expect(tracked).toHaveBeenCalledWith('sale_offer_view', { reason: 'quota', left: 600 });
 });
@@ -191,7 +204,7 @@ it('10분이 지나면 정가로 돌아가고 정가 상품을 산다 — 7일 �
   (purchasePlan as jest.Mock).mockResolvedValue({ status: 'cancelled' });
   mount();
   expect(screen()).not.toContain('특가');
-  expect(textOf(buyButton())).toBe('하루 무제한 시작하기');
+  expect(textOf(buyButton())).toBe('2,700원으로 하루 무제한 시작하기');
   await act(async () => {
     await buyButton().props.onPress();
   });
@@ -221,13 +234,13 @@ it('보고 있는 동안 마감되면 정가로 바뀐다', async () => {
     await new Promise((r) => setTimeout(r, 1100));
   });
   expect(screen()).not.toContain('특가 마감까지');
-  expect(textOf(buyButton())).toBe('하루 무제한 시작하기');
+  expect(textOf(buyButton())).toBe('2,700원으로 하루 무제한 시작하기');
 });
 
 it('화면은 특가인데 누르는 순간 마감이 지났으면 정가 결제창을 열지 않고 알린 뒤 정가로 바꾼다', async () => {
   useAppStore.setState({ saleOfferStartedAt: T - 10 * MIN + 1500 });
   mount();
-  expect(textOf(buyButton())).toBe('특가로 하루 무제한 시작하기');
+  expect(textOf(buyButton())).toBe('특가 1,900원으로 시작하기');
   now = T + 2000;
   await act(async () => {
     await buyButton().props.onPress();
@@ -236,7 +249,7 @@ it('화면은 특가인데 누르는 순간 마감이 지났으면 정가 결제
   expect(tracked).toHaveBeenCalledWith('sale_offer_missed', { reason: 'quota' });
   expect(screen()).toContain('특가가 방금 끝났어요');
   expect(screen()).not.toContain('특가 마감까지');
-  expect(textOf(buyButton())).toBe('하루 무제한 시작하기');
+  expect(textOf(buyButton())).toBe('2,700원으로 하루 무제한 시작하기');
 });
 
 it('특가 안내: 7일에 한 번, 10분', () => {
@@ -249,7 +262,7 @@ it('특가 상품이 스토어에 없으면 세일을 보여 주지도 시작하
   mount();
   expect(useAppStore.getState().saleOfferStartedAt).toBeNull();
   expect(screen()).not.toContain('특가');
-  expect(screen()).toContain('/ 24시간');
+  expect(screen()).toContain('지금 시작하면');
 });
 
 it('정가 하루 이용권이 스토어에 없으면 특가만 있어도 세일을 열지 않는다', () => {
@@ -279,7 +292,7 @@ it('1년권을 고르면 특가와 상관없이 1년권을 산다', async () => 
   mount();
   const year = renderer!.root.findAll((n) => n.props.accessibilityRole === 'radio' && textOf(n).includes('1년권'))[0];
   act(() => year.props.onPress());
-  expect(textOf(buyButton())).toBe('1년권 시작하기');
+  expect(textOf(buyButton())).toBe('29,800원으로 1년 무제한 시작하기');
   await act(async () => {
     await buyButton().props.onPress();
   });

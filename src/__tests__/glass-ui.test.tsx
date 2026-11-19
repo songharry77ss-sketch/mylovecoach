@@ -2,9 +2,10 @@
  * 1.2 개편 「떠 있는 유리」 공통 부품
  * - 탭 화면 바탕은 옅은 회색(canvas), 그 밖은 흰 바탕
  * - 큰 제목이 있는 화면은 제목이 사라질 만큼 내리면 유리 머리말이 나타나고, 맨 위로 오면 숨는다
- * - 묶음 카드(ListGroup)는 줄 사이에 가는 선을 넣고, 안의 줄은 카드 여백·앱 색 아이콘을 쓴다
+ * - 묶음 카드(ListGroup)는 줄 사이에 가는 선을 넣고, 안의 줄은 카드 여백을 쓴다 (1.4: 아이콘 타일 없이 글자만)
  * - 회색 바탕 위 칩은 흰 바탕+테두리
  */
+import { Ionicons } from '@expo/vector-icons';
 import { act } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -100,16 +101,19 @@ describe('묶음 카드 (ListGroup)', () => {
     expect(separators).toHaveLength(2);
   });
 
-  it('카드 안 줄은 아이콘을 앱 색 옅은 바탕에 — 밖의 줄은 예전처럼 회색', () => {
+  it('1.4: 줄마다 붙던 아이콘 타일이 없다 — 카드 안 줄은 글자만, 밖의 줄은 타일 없는 회색 선 아이콘 하나', () => {
     const inside = mount(
       <ListGroup>
         <ListRow icon="sparkles-outline" title="AI 코치 연결" />
       </ListGroup>,
     );
     const outside = mount(<ListRow icon="sparkles-outline" title="AI 코치 연결" />);
-    const iconBg = (t: ReactTestRenderer) => t.root.findAll((n) => typeof n.type === 'string' && flat(n).width === 36 && flat(n).height === 36).map((n) => flat(n).backgroundColor)[0];
-    expect(iconBg(inside)).toBe(light.primarySoft);
-    expect(iconBg(outside)).toBe(light.surface);
+    const tiles = (t: ReactTestRenderer) => t.root.findAll((n) => typeof n.type === 'string' && flat(n).width === 36 && flat(n).height === 36);
+    expect(tiles(inside)).toHaveLength(0);
+    expect(tiles(outside)).toHaveLength(0);
+    expect(inside.root.findAllByType(Ionicons)).toHaveLength(0);
+    const icons = outside.root.findAllByType(Ionicons);
+    expect(icons.map((i) => [i.props.name, i.props.color])).toEqual([['sparkles-outline', light.textSecondary]]);
   });
 });
 
@@ -118,9 +122,9 @@ describe('칩', () => {
     const node = t.root.find((n) => typeof n.props.style === 'function');
     return StyleSheet.flatten(node.props.style({ pressed: false })) as Record<string, unknown>;
   };
-  it('회색 바탕(canvas) 위 고르지 않은 칩은 흰 바탕+가는 테두리, 기본은 연회색', () => {
+  it('회색 바탕(canvas) 위 고르지 않은 칩은 흰 바탕+가는 테두리, 기본은 연회색, 고른 칩은 검정 채움(1.4)', () => {
     expect(chipStyle(mount(<Chip label="여자 속마음" on="canvas" onPress={() => {}} />))).toMatchObject({ backgroundColor: light.card, borderColor: light.separator });
     expect(chipStyle(mount(<Chip label="여자 속마음" onPress={() => {}} />))).toMatchObject({ backgroundColor: light.surface, borderColor: 'transparent' });
-    expect(chipStyle(mount(<Chip label="여자 속마음" selected on="canvas" onPress={() => {}} />))).toMatchObject({ backgroundColor: light.primarySoft, borderColor: light.primary });
+    expect(chipStyle(mount(<Chip label="여자 속마음" selected on="canvas" onPress={() => {}} />))).toMatchObject({ backgroundColor: light.text, borderColor: light.text });
   });
 });

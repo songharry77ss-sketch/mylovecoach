@@ -27,7 +27,7 @@ import { billingSupported, purchasePlan, type PlanProduct } from '@/lib/billing/
 import type { PaywallReason } from '@/lib/billing/paywall-route';
 import { PRODUCT_IDS } from '@/lib/billing/plans';
 import { formatPassEnd } from '@/lib/billing/quota';
-import { isSaleActive, SALE_COOLDOWN_MS, SALE_WINDOW_MS, saleOffer, saleWindow } from '@/lib/billing/sale';
+import { isSaleActive, SALE_COOLDOWN_MS, SALE_WINDOW_MS, saleAnchorAllowed, saleOffer, saleWindow } from '@/lib/billing/sale';
 import { isDemoMode } from '@/lib/demo';
 import { haptic } from '@/lib/haptics';
 import { useAppStore } from '@/store/app-store';
@@ -87,6 +87,8 @@ export default function SalePopup() {
   const win = saleWindow(startedAt, Date.now());
   const left = useRemaining(win.phase === 'active' ? win.endsAt : null);
   const live = hasOffer && win.phase === 'active' && left > 0;
+  // 취소선 정가·할인율은 2026-11-27 20:45 부터 (그 전엔 특가 값과 마감 시간만)
+  const anchor = saleAnchorAllowed();
 
   useEffect(() => {
     if (!live || visit.current.viewed) return;
@@ -167,8 +169,8 @@ export default function SalePopup() {
 
           {done ? (
             <Animated.View entering={FadeInDown.duration(260)} style={styles.doneBox} accessibilityLiveRegion="polite">
-              <View style={[styles.doneIcon, { backgroundColor: theme.primarySoft }]}>
-                <Ionicons name="checkmark" size={34} color={theme.primary} />
+              <View style={[styles.doneIcon, { backgroundColor: theme.primary }]}>
+                <Ionicons name="checkmark" size={34} color="#FFFFFF" />
               </View>
               <Text accessibilityRole="header" style={[styles.title, styles.centerText, { color: theme.text }]}>
                 하루 무제한 시작!
@@ -180,43 +182,48 @@ export default function SalePopup() {
             </Animated.View>
           ) : (
             <>
-              <View style={[styles.pill, { backgroundColor: theme.primarySoft }]}>
-                <Ionicons name="timer-outline" size={14} color={theme.primary} />
-                <AppText variant="caption" color="primary" weight="800">
-                  {SALE_WINDOW_MS / 60_000}분 한정 특가
-                </AppText>
-              </View>
+              {/* 1.4 개편: 가장 큰 것은 값(예전엔 44pt 카운트다운) — 남은 시간은 머리 한 줄과 카드 아래에 작게, 빨간 할인 배지는 걷었다 */}
+              <AppText variant="caption" color="primary" weight="700" style={styles.eyebrow}>
+                {SALE_WINDOW_MS / 60_000}분 한정 특가
+              </AppText>
               <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>
-                {name ? `${name}님, 무료 코칭을\n다 썼어요` : '무료 코칭을\n다 썼어요'}
+                {name ? `${name}님, 무료 코칭을 다 썼어요` : '무료 코칭을 다 썼어요'}
               </Text>
               <AppText variant="body" color="textSecondary">
                 지금 특가로 바로 이어서 코칭받을 수 있어요.
               </AppText>
 
-              {/* 남은 시간 — 실제 시각 기준 */}
-              <View style={[styles.timerBox, { backgroundColor: theme.surface }]} accessibilityLabel={`특가 마감까지 ${Math.floor(left / 60000)}분 ${Math.floor((left % 60000) / 1000)}초`}>
-                <AppText variant="caption" color="textSecondary" weight="700">
-                  특가 마감까지
-                </AppText>
-                <Text style={[styles.timer, { color: live ? theme.primary : theme.textTertiary }]}>{formatClock(left)}</Text>
-              </View>
-
               {offer ? (
-                <View style={styles.priceRow}>
-                  <View style={styles.flex}>
-                    <AppText variant="smallStrong">하루 이용권 · 24시간 무제한</AppText>
-                    <AppText variant="caption" color="textSecondary">
-                      자동 결제 없음 · 막힌 코칭이 바로 이어져요
-                    </AppText>
-                  </View>
-                  <View style={styles.priceCol}>
-                    <Text style={[styles.strike, { color: theme.textTertiary }]}>{won(offer.regular.displayPrice)}</Text>
-                    <View style={styles.priceNow}>
-                      <View style={[styles.off, { backgroundColor: theme.danger }]}>
-                        <Text style={styles.offText}>{offer.percent}%</Text>
-                      </View>
-                      <Text style={[styles.price, { color: theme.text }]}>{won(offer.sale.displayPrice)}</Text>
+                <View style={[styles.offerCard, { backgroundColor: theme.surface }]}>
+                  <View style={styles.priceRow}>
+                    <View style={styles.flex}>
+                      <AppText variant="bodyStrong">하루 이용권</AppText>
+                      <AppText variant="caption" color="textSecondary">
+                        24시간 무제한 · 자동 결제 없음
+                      </AppText>
                     </View>
+                    <View style={styles.priceCol}>
+                      {anchor ? <Text style={[styles.strike, { color: theme.textTertiary }]}>{won(offer.regular.displayPrice)}</Text> : null}
+                      <Text style={[styles.price, { color: theme.primary }]}>{won(offer.sale.displayPrice)}</Text>
+                      {anchor ? (
+                        <AppText variant="caption" color="primary" weight="700">
+                          {offer.percent}% 할인
+                        </AppText>
+                      ) : null}
+                    </View>
+                  </View>
+                  <View style={[styles.offerFoot, { borderTopColor: theme.separator }]}>
+                    <AppText variant="caption" color="textSecondary">
+                      막힌 코칭이 결제 뒤 바로 이어져요
+                    </AppText>
+                    <AppText
+                      variant="caption"
+                      color={live ? 'primary' : 'textTertiary'}
+                      weight="700"
+                      style={styles.tabular}
+                      accessibilityLabel={`특가 마감까지 ${Math.floor(left / 60000)}분 ${Math.floor((left % 60000) / 1000)}초`}>
+                      마감까지 {formatClock(left)}
+                    </AppText>
                   </View>
                 </View>
               ) : null}
@@ -230,7 +237,7 @@ export default function SalePopup() {
               ) : null}
 
               <GradientButton
-                title={live && offer ? `${won(offer.sale.displayPrice)}에 바로 이어서 하기` : '다른 이용권 보기'}
+                title={live && offer ? `${won(offer.sale.displayPrice)}으로 바로 이어서 하기` : '다른 이용권 보기'}
                 onPress={live ? buy : more}
                 loading={busy}
                 disabled={busy}
@@ -254,24 +261,23 @@ export default function SalePopup() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, justifyContent: 'flex-end' },
-  dim: { backgroundColor: 'rgba(13,16,24,0.5)' },
+  dim: { backgroundColor: 'rgba(10,10,14,0.45)' },
   center: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
-  sheet: { borderTopLeftRadius: Radius.xl, borderTopRightRadius: Radius.xl, paddingHorizontal: Spacing.xl, paddingTop: Spacing.md, gap: Spacing.md },
+  sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: Spacing.xl, paddingTop: Spacing.md, gap: Spacing.md },
   grabber: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, marginBottom: Spacing.xs },
   close: { position: 'absolute', right: Spacing.lg, top: Spacing.lg, width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', zIndex: 2 },
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: Radius.pill, marginTop: Spacing.sm },
-  title: { fontSize: 24, lineHeight: 32, fontWeight: '800', letterSpacing: -0.6 },
+  eyebrow: { marginTop: Spacing.sm },
+  tabular: { fontVariant: ['tabular-nums'] },
+  title: { fontSize: 22, lineHeight: 30, fontWeight: '700', letterSpacing: -0.5, paddingRight: Spacing.xxl },
   centerText: { textAlign: 'center' },
-  timerBox: { borderRadius: Radius.lg, paddingVertical: Spacing.md, alignItems: 'center', gap: 2 },
-  timer: { fontSize: 44, lineHeight: 52, fontWeight: '900', letterSpacing: -1, fontVariant: ['tabular-nums'] },
+  offerCard: { borderRadius: 20, padding: Spacing.lg, gap: Spacing.md },
   priceRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   flex: { flex: 1, gap: 2 },
   priceCol: { alignItems: 'flex-end' },
-  strike: { fontSize: 14, lineHeight: 18, fontWeight: '600', textDecorationLine: 'line-through' },
-  priceNow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  off: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  offText: { color: '#FFFFFF', fontSize: 12, lineHeight: 16, fontWeight: '800' },
-  price: { fontSize: 26, lineHeight: 32, fontWeight: '900', letterSpacing: -0.6 },
+  strike: { fontSize: 14, lineHeight: 18, fontWeight: '500', textDecorationLine: 'line-through' },
+  // 팝업에서 가장 큰 글자 — 값
+  price: { fontSize: 28, lineHeight: 34, fontWeight: '700', letterSpacing: -0.6 },
+  offerFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: Spacing.md },
   notice: { borderRadius: Radius.md, padding: Spacing.md },
   cta: { marginTop: Spacing.xs },
   more: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.md },

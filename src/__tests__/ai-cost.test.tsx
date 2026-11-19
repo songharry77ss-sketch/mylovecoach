@@ -189,7 +189,8 @@ beforeEach(() => {
   setAiConsentPrompter(ask);
   useAppStore.getState().resetAll();
   // 무료 횟수는 「모든 데이터 삭제」로 지워지지 않아서 테스트마다 처음 상태로 + 넉넉한 횟수권
-  useAppStore.setState({ hydrated: true, usage: EMPTY_USAGE, wallet: { ...EMPTY_WALLET, credits: 10 } });
+  // 「처음 5분 무제한」 A/B 는 처음 설치 때 무작위라, 고정하지 않으면 가끔 무제한(Infinity)으로 판정돼 횟수 검사가 흔들린다
+  useAppStore.setState({ hydrated: true, usage: EMPTY_USAGE, wallet: { ...EMPTY_WALLET, credits: 10 }, introArm: 'off', introStartedAt: null });
   useAppStore.getState().setUser({ name: '하늘', gender: 'female', age: 26, mbti: 'ENFP', style: [], defaultTone: 'natural', createdAt: 0 });
 });
 afterEach(() => {

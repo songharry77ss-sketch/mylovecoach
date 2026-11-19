@@ -1,13 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 import { Linking, Platform, Pressable, ScrollView, Share, StyleSheet, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
-import Animated, { Easing, Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, FadeIn, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandGradient, GradientButton, HeroCard, Icon3D, ResearchBadge, SenditLogo } from '@/components/brand/brand';
+import { GradientButton, Icon3D } from '@/components/brand/brand';
 import { useCelebrate } from '@/components/fx/celebration';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
@@ -15,7 +14,7 @@ import { PressableScale } from '@/components/ui/pressable-scale';
 import { StatusBarScrim, useScrolledPast } from '@/components/ui/system-bars';
 import { useToast } from '@/components/ui/toast';
 import { APP_NAME } from '@/constants/brand';
-import { Brand, MaxContentWidth, Radius, Shadow, Spacing, palette } from '@/constants/theme';
+import { Brand, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
@@ -28,7 +27,6 @@ import {
   cardUrl,
   chatShareText,
   codeLetters,
-  hexToRgba,
   josa,
   kktiFromCode,
   kktiMatch,
@@ -44,7 +42,6 @@ import {
   shareUrl,
   toSaved,
   type KktiAxisResult,
-  type KktiFit,
   type KktiMatch,
   type KktiMatchAxis,
   type KktiResult,
@@ -55,7 +52,11 @@ import { useAppStore } from '@/store/app-store';
 
 /**
  * KKTI 결과 — /kkti/result?a=답코드[&w=상대답코드]
- * 연애 컬러가 원형으로 퍼지며 화면을 물들이고, 유형 코드 글자가 하나씩 튀어나온 뒤 꽃가루가 터진다.
+ * 연애 컬러가 유형 카드 안에서 원형으로 퍼지고, 유형 코드 글자가 하나씩 튀어나온 뒤 꽃가루가 터진다(결과 도착의 순간).
+ * 1.4 「깔끔하게」 개편: 강한 색은 유형 카드 한 장(스토리에 올리는 공유 그림 — 「연애 컬러」가 내용)에만. 화면 바탕 물들임·
+ * 초록·주황 글자·섹션 아이콘 타일·칩과 축의 이모지·맨 아래 파란 카드(로고·배지·3D)를 걷었다.
+ * 유형 카드 바로 아래에 할 일(공유 / 나도 테스트)과 코치 한마디 + 「이 유형에 맞춘 답장 코칭 받기」를 올리고,
+ * 습관·MBTI·애니어그램·컬러·궁합은 줄로 접어 두었다(누르면 펼친다).
  * 친구가 보낸 링크로 들어온 사람에게는 「나도 테스트하고 궁합 보기」를 먼저 보여 준다.
  * w 가 있으면 둘의 궁합을 함께 보여 준다 — 궁합은 둘 다 테스트를 끝내야 나온다 (공유할 이유를 만든다).
  * 보는 사람은 셋 중 하나: 내 결과(mine) · 내가 보낸 링크로 친구가 돌려보낸 궁합(partner, 주소의 w 가 나) · 그 밖(guest)
@@ -108,7 +109,7 @@ function InvalidLink() {
   return (
     <View style={[styles.invalid, { backgroundColor: theme.background, paddingTop: insets.top, paddingBottom: insets.bottom + Spacing.lg }]}>
       <View style={styles.invalidInner}>
-        <Icon3D name="heart" size={96} float style={styles.invalidIcon} />
+        <Icon3D name="heart" size={96} style={styles.invalidIcon} />
         <AppText variant="title1" align="center">
           결과 링크가 조금 이상해요
         </AppText>
@@ -133,7 +134,7 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
   const toast = useToast();
   const celebrate = useCelebrate();
   const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
+  const { width } = useWindowDimensions();
 
   const hydrated = useAppStore((s) => s.hydrated);
   const saved = useAppStore((s) => s.kkti);
@@ -153,9 +154,12 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
   const inkIsLight = ink === '#FFFFFF';
   const inkSoft = inkIsLight ? 'rgba(255,255,255,0.86)' : 'rgba(25,31,40,0.74)';
   const glass = inkIsLight ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.5)';
-  const pageTint = mixHex(theme.background, color.hex, scheme === 'dark' ? 0.2 : 0.14);
-  const accentText = legibleOn(color.hex, theme.surfaceElevated);
-  const barFill = legibleOn(color.hex, theme.surfaceSelected, 1.8);
+  // 흰 바탕 위 회색 면과 그 안 흰 면 (다크는 한 단계씩 밝게)
+  const dark = scheme === 'dark';
+  const fill = dark ? theme.surfaceElevated : theme.surface;
+  const inner = dark ? theme.border : theme.card;
+  // 축 막대는 유형색(캐릭터 색) — 회색 막대 바탕 위에서 보일 만큼만 진하게
+  const barFill = legibleOn(color.hex, fill, 1.8);
   const tone = toneLabel(type.recommendedTone);
   const letters = codeLetters(result.code);
   const best = KKTI_TYPES[type.bestMatch];
@@ -164,10 +168,8 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
   const text = myResult && theirResult ? matchShareText(myResult, theirResult, link) : shareText(myResult ?? result, link);
   const chatText = myResult && theirResult ? matchChatText(myResult, theirResult, link) : chatShareText(link);
 
-  // 화면을 물들이는 원 — 히어로 이모지 근처에서 시작해 화면 전체를 덮는다
+  // 꽃가루가 터질 자리(유형 그림을 못 재면 이 근처)
   const originY = insets.top + 168;
-  const floodSize = Math.hypot(width, height) * 2.2;
-  const flood = useSharedValue(0);
   const heroFlood = useSharedValue(0);
   const emojiRef = useRef<View>(null);
   const fallbackOrigin = useRef({ x: width / 2, y: originY });
@@ -176,13 +178,12 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
     fallbackOrigin.current = { x: width / 2, y: originY };
   }, [width, originY]);
 
-  // 공개 연출: 색이 퍼지고 → 글자가 하나씩 톡톡 → 꽃가루 + 하트
+  // 공개 연출: 카드 안에서 색이 퍼지고 → 글자가 하나씩 톡톡 → 꽃가루 + 하트 (결과 도착의 순간이라 남긴다)
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
     const at = (ms: number, fn: () => void) => {
       timers.push(setTimeout(fn, ms));
     };
-    flood.value = withTiming(1, { duration: 1300, easing: Easing.out(Easing.cubic) });
     heroFlood.value = withDelay(T.heroFlood, withTiming(1, { duration: 900, easing: Easing.inOut(Easing.quad) }));
     haptic.rise();
     for (let i = 0; i < 4; i++) at(T.letter + i * T.letterGap, () => (i === 3 ? haptic.thud() : haptic.select()));
@@ -200,11 +201,9 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
       }
     });
     return () => timers.forEach(clearTimeout);
-  }, [celebrate, flood, heroFlood]);
+  }, [celebrate, heroFlood]);
 
-  const floodStyle = useAnimatedStyle(() => ({ transform: [{ scale: flood.value }] }));
   const heroFloodStyle = useAnimatedStyle(() => ({ transform: [{ scale: heroFlood.value }] }));
-  const sheenStyle = useAnimatedStyle(() => ({ opacity: interpolate(heroFlood.value, [0.55, 1], [0, 1], Extrapolation.CLAMP) }));
 
   // 공유 링크가 얼마나 다음 사람을 데려오는지 보기 위한 기록 (서비스 이용 기록 — 만 14세 미만은 남지 않는다)
   useEffect(() => {
@@ -404,25 +403,16 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
 
   return (
     <View style={[styles.flex, styles.clip, { backgroundColor: theme.background }]}>
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          styles.flood,
-          { width: floodSize, height: floodSize, borderRadius: floodSize / 2, left: width / 2 - floodSize / 2, top: originY - floodSize / 2, backgroundColor: pageTint },
-          floodStyle,
-        ]}
-      />
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         onScroll={onScroll}
         scrollEventThrottle={32}
         contentContainerStyle={[styles.content, { paddingTop: insets.top + Spacing.sm, paddingBottom: insets.bottom + Spacing.xxl }]}>
         <View style={styles.topBar}>
-          <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={leave} hitSlop={10} style={[styles.iconCircle, { backgroundColor: theme.surfaceElevated }, Shadow as ViewStyle]}>
+          <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={leave} hitSlop={10} style={[styles.iconCircle, { backgroundColor: fill }]}>
             <Ionicons name="close" size={20} color={theme.text} />
           </Pressable>
-          <Pressable accessibilityRole="button" onPress={retake} hitSlop={6} style={[styles.pill, { backgroundColor: theme.surfaceElevated }, Shadow as ViewStyle]}>
+          <Pressable accessibilityRole="button" onPress={retake} hitSlop={6} style={[styles.pill, { backgroundColor: fill }]}>
             <Ionicons name="refresh" size={15} color={theme.textSecondary} />
             <AppText variant="smallStrong" color="textSecondary">
               다시 하기
@@ -430,12 +420,9 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
           </Pressable>
         </View>
 
-        {/* 히어로 — 연애 컬러가 가운데서 퍼져 카드를 물들인다 */}
-        <View style={[styles.hero, { backgroundColor: theme.surfaceElevated }]}>
+        {/* 유형 카드 — 이 화면에서 강한 색은 여기 하나(공유 그림). 연애 컬러가 가운데서 퍼져 카드를 물들인다 */}
+        <View style={[styles.hero, { backgroundColor: fill }]}>
           <Animated.View pointerEvents="none" style={[styles.heroFlood, { backgroundColor: color.hex }, heroFloodStyle]} />
-          <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, sheenStyle]}>
-            <LinearGradient colors={[hexToRgba('#FFFFFF', 0.32), hexToRgba('#FFFFFF', 0), hexToRgba('#000000', 0.1)]} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
-          </Animated.View>
 
           <PopIn delay={T.label}>
             <AppText variant="smallStrong" color={inkSoft}>
@@ -468,7 +455,7 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
             </AppText>
           </FadeUp>
           <FadeUp delay={T.name + 160} style={styles.heroChips}>
-            {[`🎨 ${color.name}`, `🧬 ${mbti.type}`, `🔢 ${enneagram.title}`].map((chip) => (
+            {[color.name, mbti.type, enneagram.title].map((chip) => (
               <View key={chip} style={[styles.heroChip, { backgroundColor: glass }]}>
                 <AppText variant="caption" weight="700" color={ink}>
                   {chip}
@@ -486,9 +473,9 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
         {/* 둘의 궁합 — 둘 다 테스트를 끝내야 나온다 */}
         {hydrated && match && partner ? <MatchSection match={match} left={result} right={partner} role={role} delay={T.rest} /> : null}
 
-        {/* 친구가 보낸 링크로 들어왔을 때 */}
+        {/* 친구가 보낸 링크로 들어왔을 때 — 이 화면의 파란 버튼 */}
         {hydrated && role === 'guest' ? (
-          <FadeUp delay={T.rest + 30} style={[styles.friend, { backgroundColor: theme.surfaceElevated, borderColor: theme.primary }, Shadow as ViewStyle]}>
+          <FadeUp delay={T.rest + 30} style={[styles.box, { backgroundColor: fill }]}>
             <AppText variant="title3">{partner ? '두 사람의 궁합 결과예요' : savedCode ? '친구가 보낸 결과네요!' : '친구가 보낸 결과인가요?'}</AppText>
             <AppText variant="small" color="textSecondary">
               {savedCode
@@ -498,239 +485,249 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
                   : '테스트를 끝내면 둘의 카톡 궁합이 나와요. 12문항, 1분이면 돼요.'}
             </AppText>
             {savedCode ? (
-              <GradientButton title="내 결과와 궁합 보기" size="md" shine onPress={matchWithSaved} haptic={false} />
+              <GradientButton title="내 결과와 궁합 보기" size="md" onPress={matchWithSaved} haptic={false} />
             ) : (
-              <GradientButton title="나도 테스트하고 궁합 보기" size="md" shine onPress={retake} haptic={false} />
+              <GradientButton title="나도 테스트하고 궁합 보기" size="md" onPress={retake} haptic={false} />
             )}
           </FadeUp>
         ) : null}
         {hydrated && role === 'partner' ? (
-          <FadeUp delay={T.rest + 30} style={[styles.friend, { backgroundColor: theme.surfaceElevated, borderColor: theme.primary }, Shadow as ViewStyle]}>
+          <FadeUp delay={T.rest + 30} style={[styles.box, { backgroundColor: fill }]}>
             <AppText variant="title3">친구가 테스트를 끝냈어요!</AppText>
             <AppText variant="small" color="textSecondary">
               위는 친구의 결과예요. 내 결과 화면에서도 같은 궁합을 볼 수 있어요.
             </AppText>
-            <Button title="내 결과 보기" variant="soft" size="md" haptic={false} onPress={seeMine} />
+            <GradientButton title="내 결과 보기" size="md" haptic={false} onPress={seeMine} />
           </FadeUp>
         ) : null}
 
         {/* 공유 — 내 결과가 있는 사람만. 친구 결과를 보는 사람은 먼저 테스트를 하거나 저장된 내 결과로 넘어간다 */}
         {role !== 'guest' ? (
-          <Section icon="paper-plane" title={sharingMatch ? '궁합 결과 보내기' : '결과 공유하기'} delay={T.rest + 60}>
-            <AppText variant="small" color="textSecondary">
-              {sharingMatch
-                ? '링크를 받은 사람도 같은 궁합 화면을 봐요. 다른 친구가 테스트하면 그 친구와의 궁합도 나와요.'
-                : '링크를 받은 친구가 테스트를 끝내면 둘의 궁합이 나와요. 궁금한 그 사람에게 보내 봐요 👀'}
-            </AppText>
+          <FadeUp delay={T.rest + 60} style={styles.share}>
             <GradientButton
               title={sharingMatch ? '궁합 결과 보내기' : '친구에게 보내고 궁합 보기'}
               accessibilityLabel={sharingMatch ? '궁합 결과 보내기, 카톡 등' : '친구에게 보내고 궁합 보기, 카톡 등'}
-              shine
               haptic={false}
               onPress={shareSystem}
-              icon={<Ionicons name="share-social" size={18} color={Brand.onBrand} />}
+              icon={<Ionicons name="share-outline" size={18} color={Brand.onBrand} />}
             />
             <View style={styles.shareRow}>
-              <ShareTile icon="image" label="그림 저장" sub="스토리용" bg={theme.primarySoft} fg={theme.primary} onPress={saveImage} />
-              <ShareTile icon="link" label="링크 복사" sub="인스타·틱톡" bg={theme.accentSoft} fg={theme.accent} onPress={copyLink} />
-              <ShareTile icon="logo-x" label="X" sub="포스트" bg={inkBg(scheme)} fg={inkFg(scheme)} onPress={() => openIntent('x')} />
-              <ShareTile icon="logo-threads" label="스레드" sub="포스트" bg={inkBg(scheme)} fg={inkFg(scheme)} onPress={() => openIntent('threads')} />
+              <ShareTile icon="image-outline" label="그림 저장" sub="스토리용" onPress={saveImage} />
+              <ShareTile icon="link-outline" label="링크 복사" sub="인스타·틱톡" onPress={copyLink} />
+              <ShareTile icon="logo-x" label="X" sub="포스트" onPress={() => openIntent('x')} />
+              <ShareTile icon="logo-threads" label="스레드" sub="포스트" onPress={() => openIntent('threads')} />
             </View>
-          </Section>
+            <AppText variant="caption" color="textSecondary" align="center">
+              {sharingMatch
+                ? '링크를 받은 사람도 같은 궁합 화면을 봐요. 다른 친구가 테스트하면 그 친구와의 궁합도 나와요.'
+                : '링크를 받은 친구가 테스트를 끝내면 둘의 궁합이 나와요.'}
+            </AppText>
+          </FadeUp>
         ) : null}
 
-        {/* 유형 설명 */}
-        <Section emoji={type.emoji} title={`${type.name}${josa(type.name, '은', '는')} 이런 사람`} delay={T.rest + 120}>
+        {/* 코치 한마디 → 앱 코칭 (예전엔 아홉 번째 카드였다 — 유형 카드 가까이로 올렸다) */}
+        <FadeUp delay={T.rest + 90} style={[styles.box, { backgroundColor: fill }]}>
+          <AppText variant="caption" color="textSecondary" weight="600">
+            {APP_NAME} 코치 한마디
+          </AppText>
+          <AppText variant="bodyStrong">{type.coachTip}</AppText>
+          <AppText variant="small" color="textSecondary">
+            추천 답장 톤 · {tone.label} · {tone.description}
+          </AppText>
+          <PressableScale feedback="thud" pressedScale={0.98} onPress={goCoach} accessibilityLabel="이 유형에 맞춘 답장 코칭 받기" style={[styles.coachBtn, { backgroundColor: theme.text }]}>
+            <Ionicons name="chatbubble-ellipses-outline" size={18} color={theme.background} />
+            <AppText variant="bodyStrong" color={theme.background}>
+              이 유형에 맞춘 답장 코칭 받기
+            </AppText>
+          </PressableScale>
+          {onIosWeb() ? (
+            <Button title="아이폰 앱으로 받기 (App Store)" variant="ghost" haptic={false} onPress={openStore} icon={<Ionicons name="logo-apple" size={18} color={theme.textSecondary} />} />
+          ) : null}
+          <AppText variant="caption" color="textSecondary" align="center">
+            캡처 한 장이면 답장 3개와 호감 온도까지
+          </AppText>
+        </FadeUp>
+
+        {/* 유형 설명 — 펼쳐 둔다. 강점·조심은 색 대신 검정 글자 + 기호 */}
+        <FadeUp delay={T.rest + 120} style={styles.about}>
+          <AppText variant="title3" accessibilityRole="header">
+            {type.name}
+            {josa(type.name, '은', '는')} 이런 사람
+          </AppText>
           <AppText variant="body">{type.description}</AppText>
           <View style={styles.list}>
-            <AppText variant="smallStrong" color="success">
+            <AppText variant="smallStrong" color="textSecondary">
               강점
             </AppText>
             {type.strengths.map((s) => (
-              <Bullet key={s} icon="checkmark-circle" color={theme.success} text={s} />
+              <Bullet key={s} icon="checkmark" text={s} />
             ))}
           </View>
           <View style={styles.list}>
-            <AppText variant="smallStrong" color="warning">
+            <AppText variant="smallStrong" color="textSecondary">
               이건 조심
             </AppText>
             {type.watchOut.map((s) => (
-              <Bullet key={s} icon="alert-circle" color={theme.warning} text={s} />
+              <Bullet key={s} icon="alert-circle-outline" text={s} />
             ))}
           </View>
-        </Section>
+        </FadeUp>
 
-        {/* 축 4개 */}
-        <Section icon="stats-chart" title="나의 카톡 습관" delay={T.rest + 180}>
-          {result.axes.map((axis, i) => (
-            <AxisBar key={axis.key} axis={axis} fill={barFill} delay={T.rest + 300 + i * 120} />
-          ))}
-        </Section>
-
-        {/* 카톡 속 진짜 MBTI */}
-        <Section icon="chatbubble-ellipses" title="카톡 속 진짜 MBTI" delay={T.rest + 240}>
-          <View style={styles.mbtiRow}>
-            {mbti.letters.map((l) => (
-              <View key={l.letter} style={[styles.mbtiCell, { backgroundColor: theme.surface }]}>
-                <AppText style={[styles.mbtiLetter, { color: accentText }]}>{l.letter}</AppText>
-                <AppText variant="caption" color="textSecondary">
-                  {l.from} · {l.confidence}%
-                </AppText>
-              </View>
+        {/* 더 보기 — 줄로 접어 두고 누르면 펼친다 */}
+        <FadeUp delay={T.rest + 160} style={styles.folds}>
+          <Fold title="나의 카톡 습관" value={letters.join('')}>
+            {result.axes.map((axis, i) => (
+              <AxisBar key={axis.key} axis={axis} fill={barFill} track={fill} delay={80 + i * 90} />
             ))}
-          </View>
-          <AppText variant="small" color="textSecondary">
-            카톡 습관만으로 본 MBTI예요 (평균 확신도 {mbti.confidence}%). 평소 MBTI랑 다르다면… 카톡 속 내가 진짜일지도? 😉
-          </AppText>
-          <AppText variant="caption" color="textTertiary">
-            공식 MBTI 검사와는 관계없는 재미용 테스트예요.
-          </AppText>
-        </Section>
+          </Fold>
 
-        {/* 애니어그램 추정 */}
-        <Section icon="shapes" title="애니어그램 추정" delay={T.rest + 300}>
-          <View style={styles.enneaRow}>
-            <View style={[styles.enneaBadge, { backgroundColor: hexToRgba(barFill, 0.16) }]}>
-              <AppText style={[styles.enneaNumber, { color: accentText }]}>{enneagram.number}</AppText>
+          <Fold title="카톡 속 진짜 MBTI" value={mbti.type}>
+            <View style={styles.mbtiRow}>
+              {mbti.letters.map((l) => (
+                <View key={l.letter} style={[styles.mbtiCell, { backgroundColor: fill }]}>
+                  <AppText style={[styles.mbtiLetter, { color: theme.text }]}>{l.letter}</AppText>
+                  <AppText variant="caption" color="textSecondary">
+                    {l.from} · {l.confidence}%
+                  </AppText>
+                </View>
+              ))}
             </View>
-            <View style={styles.flexShrink}>
-              <AppText variant="title3">{enneagram.title}</AppText>
-              <AppText variant="small" color="textSecondary">
-                {enneagram.reason}
-              </AppText>
-            </View>
-          </View>
-          <AppText variant="caption" color="textTertiary">
-            ⓘ {enneagram.note}
-          </AppText>
-        </Section>
-
-        {/* 연애 컬러 */}
-        <Section icon="color-palette" title="나만의 연애 컬러" delay={T.rest + 360}>
-          <PressableScale
-            feedback={false}
-            onPress={() => copy(color.hex, `색상 코드 ${color.hex} 복사했어요`, 'hex')}
-            accessibilityLabel={`색상 코드 ${color.hex} 복사`}
-            style={[styles.swatch, { backgroundColor: color.hex }]}>
-            <AppText variant="title2" color={ink}>
-              {color.name}
+            <AppText variant="small" color="textSecondary">
+              카톡 습관만으로 본 MBTI예요 (평균 확신도 {mbti.confidence}%). 평소 MBTI랑 다르다면… 카톡 속 내가 진짜일지도?
             </AppText>
-            <View style={styles.swatchFoot}>
-              <AppText variant="smallStrong" color={inkSoft}>
-                {color.hex}
-              </AppText>
-              <View style={[styles.copyChip, { backgroundColor: glass }]}>
-                <Ionicons name="copy-outline" size={12} color={ink} />
-                <AppText variant="caption" weight="700" color={ink}>
-                  복사
+            <AppText variant="caption" color="textSecondary">
+              공식 MBTI 검사와는 관계없는 재미용 테스트예요.
+            </AppText>
+          </Fold>
+
+          <Fold title="애니어그램 추정" value={`${enneagram.number}번`}>
+            <View style={styles.enneaRow}>
+              <View style={[styles.enneaBadge, { backgroundColor: fill }]}>
+                <AppText style={[styles.enneaNumber, { color: theme.text }]}>{enneagram.number}</AppText>
+              </View>
+              <View style={styles.flexShrink}>
+                <AppText variant="bodyStrong">{enneagram.title}</AppText>
+                <AppText variant="small" color="textSecondary">
+                  {enneagram.reason}
                 </AppText>
               </View>
             </View>
-          </PressableScale>
-          <AppText variant="body">{color.description}</AppText>
-          <View style={styles.metaRow}>
-            {[
-              { label: '색상', value: `${color.hsl.h}°` },
-              { label: '채도', value: `${color.hsl.s}%` },
-              { label: '명도', value: `${color.hsl.l}%` },
-            ].map((m) => (
-              <View key={m.label} style={[styles.meta, { backgroundColor: theme.surface }]}>
-                <AppText variant="caption" color="textTertiary">
-                  {m.label}
-                </AppText>
-                <AppText variant="smallStrong">{m.value}</AppText>
-              </View>
-            ))}
-          </View>
-          <AppText variant="caption" color="textTertiary">
-            답 조합마다 색이 미묘하게 달라요. 560만 가지가 넘는 색 중 나만의 색이에요.
-          </AppText>
-        </Section>
+            <AppText variant="caption" color="textSecondary">
+              {enneagram.note}
+            </AppText>
+          </Fold>
 
-        {/* 궁합 */}
-        <Section icon="heart" title="연애 궁합" delay={T.rest + 420}>
-          {best ? <MatchRow label="찰떡궁합" good emoji={best.emoji} name={best.name} code={best.code} reason={matchReason(result.code, best.code)} /> : null}
-          {worst ? <MatchRow label="상극 주의" good={false} emoji={worst.emoji} name={worst.name} code={worst.code} reason={matchReason(result.code, worst.code)} /> : null}
-        </Section>
-
-        {/* 코치 한마디 → 앱 코칭으로 (화면에서 앱 그라데이션 큰 면은 여기 하나) */}
-        <FadeUp delay={T.rest + 480}>
-          <HeroCard>
-            <View style={styles.coachHead}>
-              <View style={styles.coachBrand}>
-                <SenditLogo size="sm" subtitle tone="white" />
-                <ResearchBadge tone="glass" />
-              </View>
-              <Icon3D name="send" size={64} float />
-            </View>
-            <AppText variant="caption" weight="700" color={Brand.onBrandDim} style={styles.coachLabel}>
-              {APP_NAME} 코치 한마디
-            </AppText>
-            <AppText variant="bodyStrong" color={Brand.onBrand}>
-              {type.coachTip}
-            </AppText>
-            <AppText variant="small" color={Brand.onBrandDim} style={styles.coachTone}>
-              추천 답장 톤 {tone.emoji} {tone.label} · {tone.description}
-            </AppText>
-            <View style={styles.coachActions}>
-              <Button title="이 유형에 맞춘 답장 코칭 받기" variant="stage" haptic={false} onPress={goCoach} icon={<Ionicons name="chatbubble-ellipses" size={18} color={Brand.onBrand} />} />
-              {onIosWeb() ? (
-                <Button title="아이폰 앱으로 받기 (App Store)" variant="stageGhost" haptic={false} onPress={openStore} icon={<Ionicons name="logo-apple" size={18} color={Brand.onBrandDim} />} />
-              ) : null}
-              <AppText variant="caption" color={Brand.onBrandDim} align="center">
-                캡처 한 장이면 답장 3개와 호감 온도까지
+          <Fold title="나만의 연애 컬러" value={color.name} swatch={color.hex}>
+            <PressableScale
+              feedback={false}
+              onPress={() => copy(color.hex, `색상 코드 ${color.hex} 복사했어요`, 'hex')}
+              accessibilityLabel={`색상 코드 ${color.hex} 복사`}
+              style={[styles.swatch, { backgroundColor: color.hex }]}>
+              <AppText variant="title2" color={ink}>
+                {color.name}
               </AppText>
+              <View style={styles.swatchFoot}>
+                <AppText variant="smallStrong" color={inkSoft}>
+                  {color.hex}
+                </AppText>
+                <View style={[styles.copyChip, { backgroundColor: glass }]}>
+                  <Ionicons name="copy-outline" size={12} color={ink} />
+                  <AppText variant="caption" weight="700" color={ink}>
+                    복사
+                  </AppText>
+                </View>
+              </View>
+            </PressableScale>
+            <AppText variant="body">{color.description}</AppText>
+            <View style={styles.metaRow}>
+              {[
+                { label: '색상', value: `${color.hsl.h}°` },
+                { label: '채도', value: `${color.hsl.s}%` },
+                { label: '명도', value: `${color.hsl.l}%` },
+              ].map((m) => (
+                <View key={m.label} style={[styles.meta, { backgroundColor: fill }]}>
+                  <AppText variant="caption" color="textSecondary">
+                    {m.label}
+                  </AppText>
+                  <AppText variant="smallStrong">{m.value}</AppText>
+                </View>
+              ))}
             </View>
-          </HeroCard>
+            <AppText variant="caption" color="textSecondary">
+              답 조합마다 색이 미묘하게 달라요. 560만 가지가 넘는 색 중 나만의 색이에요.
+            </AppText>
+          </Fold>
+
+          <Fold title="연애 궁합" value={best ? `찰떡 ${best.name}` : undefined} last>
+            {best ? <MatchRow label="찰떡궁합" emoji={best.emoji} name={best.name} code={best.code} reason={matchReason(result.code, best.code)} fill={fill} /> : null}
+            {worst ? <MatchRow label="상극 주의" emoji={worst.emoji} name={worst.name} code={worst.code} reason={matchReason(result.code, worst.code)} fill={fill} /> : null}
+          </Fold>
         </FadeUp>
 
         <View style={styles.actions}>
           {mine ? (
             <View style={styles.savedRow}>
-              <Ionicons name="checkmark-circle" size={18} color={theme.success} />
-              <AppText variant="smallStrong" color="success">
+              <Ionicons name="checkmark-circle" size={18} color={theme.textSecondary} />
+              <AppText variant="smallStrong" color="textSecondary">
                 내 프로필에 저장됨
               </AppText>
             </View>
           ) : hydrated && role === 'guest' && !partner && !saved ? (
             // 웹에서 끝낸 내 결과 링크를 앱에서 열었을 때 프로필에 담는 용도. 이미 내 결과가 있으면 숨긴다 (친구 답으로 덮어쓰지 않게)
-            <Button title="내 프로필에 저장" variant="secondary" haptic={false} onPress={save} icon={<Ionicons name="bookmark-outline" size={18} color={theme.text} />} />
+            <Button title="내 프로필에 저장" variant="ghost" haptic={false} onPress={save} icon={<Ionicons name="bookmark-outline" size={18} color={theme.textSecondary} />} />
           ) : null}
-          {role === 'guest' ? <GradientButton title="나도 테스트하고 궁합 보기" haptic={false} onPress={retake} /> : <Button title="다시 하기" variant="ghost" haptic={false} onPress={retake} />}
+          {role === 'guest' ? null : <Button title="다시 하기" variant="ghost" haptic={false} onPress={retake} />}
         </View>
       </ScrollView>
-      <StatusBarScrim height={insets.top} color={pageTint} visible={scrolled} />
+      <StatusBarScrim height={insets.top} color={theme.background} visible={scrolled} />
     </View>
   );
 }
 
-const inkBg = (scheme: 'light' | 'dark') => (scheme === 'dark' ? palette.white : palette.black);
-const inkFg = (scheme: 'light' | 'dark') => (scheme === 'dark' ? palette.black : palette.white);
-
 // ───────────────────────── 조각들 ─────────────────────────
 
-/** 흰 카드 한 칸 — 제목 앞에 작은 아이콘(또는 유형 이모지) */
-function Section({ icon, emoji, title, delay, children }: PropsWithChildren<{ icon?: keyof typeof Ionicons.glyphMap; emoji?: string; title: string; delay: number }>) {
+/** 접어 둔 줄 — 제목 · 오른쪽 값 · ›. 누르면 아래로 내용을 펼친다(흰 바탕 위 줄, 가는 선으로 나눈다) */
+function Fold({ title, value, swatch, last, children }: PropsWithChildren<{ title: string; value?: string; swatch?: string; last?: boolean }>) {
   const theme = useTheme();
+  const [open, setOpen] = useState(false);
   return (
-    <FadeUp delay={delay} style={[styles.section, { backgroundColor: theme.surfaceElevated }, Shadow as ViewStyle]}>
-      <View style={styles.sectionHead}>
-        <View style={[styles.sectionIcon, { backgroundColor: theme.primarySoft }]}>
-          {icon ? <Ionicons name={icon} size={16} color={theme.primary} /> : <AppText style={styles.sectionEmoji}>{emoji}</AppText>}
-        </View>
-        <AppText variant="title3" style={styles.flexShrink} accessibilityRole="header">
+    <View style={[styles.fold, { borderTopColor: theme.separator }, last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.separator }]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        accessibilityLabel={value ? `${title}, ${value}` : title}
+        onPress={() => {
+          haptic.select();
+          setOpen((v) => !v);
+        }}
+        style={styles.foldHead}>
+        <AppText variant="bodyStrong" style={styles.flexShrink}>
           {title}
         </AppText>
-      </View>
-      {children}
-    </FadeUp>
+        <View style={styles.foldRight}>
+          {swatch ? <View style={[styles.foldSwatch, { backgroundColor: swatch }]} /> : null}
+          {value ? (
+            <AppText variant="small" color="textSecondary" numberOfLines={1} style={styles.flexShrink}>
+              {value}
+            </AppText>
+          ) : null}
+          <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={16} color={theme.textTertiary} />
+        </View>
+      </Pressable>
+      {open ? (
+        <Animated.View entering={FadeIn.duration(200)} style={styles.foldBody}>
+          {children}
+        </Animated.View>
+      ) : null}
+    </View>
   );
 }
 
-function Bullet({ icon, color, text }: { icon: keyof typeof Ionicons.glyphMap; color: string; text: string }) {
+function Bullet({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
+  const theme = useTheme();
   return (
     <View style={styles.bullet}>
-      <Ionicons name={icon} size={16} color={color} style={styles.bulletIcon} />
+      <Ionicons name={icon} size={16} color={theme.textSecondary} style={styles.bulletIcon} />
       <AppText variant="small" style={styles.flexShrink}>
         {text}
       </AppText>
@@ -738,23 +735,25 @@ function Bullet({ icon, color, text }: { icon: keyof typeof Ionicons.glyphMap; c
   );
 }
 
-function ShareTile({ icon, label, sub, bg, fg, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; sub: string; bg: string; fg: string; onPress: () => void }) {
+/** 공유 칸 — 회색 동그라미 + 검정 선 아이콘(예전엔 칸마다 색이 달랐다) */
+function ShareTile({ icon, label, sub, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; sub: string; onPress: () => void }) {
+  const theme = useTheme();
+  const fill = useColorScheme() === 'dark' ? theme.surfaceElevated : theme.surface;
   return (
     <PressableScale feedback={false} onPress={onPress} accessibilityLabel={`${label} ${sub}로 공유`} style={styles.shareTile}>
-      <View style={[styles.shareIcon, { backgroundColor: bg }]}>
-        <Ionicons name={icon} size={22} color={fg} />
+      <View style={[styles.shareIcon, { backgroundColor: fill }]}>
+        <Ionicons name={icon} size={21} color={theme.text} />
       </View>
-      <AppText variant="caption" weight="700" align="center" numberOfLines={1}>
+      <AppText variant="caption" weight="600" align="center" numberOfLines={1}>
         {label}
       </AppText>
-      <AppText variant="caption" color="textTertiary" align="center" numberOfLines={1} style={styles.shareSub}>
+      <AppText variant="caption" color="textSecondary" align="center" numberOfLines={1}>
         {sub}
       </AppText>
     </PressableScale>
   );
 }
 
-const FIT_COLOR: Record<KktiFit, 'success' | 'warning' | 'accent'> = { good: 'success', ok: 'warning', care: 'accent' };
 /** 궁합 숫자가 차오르는 시간 */
 const COUNT_MS = 900;
 
@@ -783,6 +782,9 @@ function useCountUp(target: number, delay: number): number {
 /** 둘의 궁합 — 숫자가 차오르고, 잘 맞으면 하트가 터진다. 누가 봐도 같은 내용이라 둘이 같은 화면을 보게 된다 */
 function MatchSection({ match, left, right, role, delay }: { match: KktiMatch; left: KktiResult; right: KktiResult; role: Role; delay: number }) {
   const theme = useTheme();
+  const dark = useColorScheme() === 'dark';
+  const fill = dark ? theme.surfaceElevated : theme.surface;
+  const inner = dark ? theme.border : theme.card;
   const celebrate = useCelebrate();
   const shown = useCountUp(match.percent, delay + 300);
 
@@ -805,7 +807,7 @@ function MatchSection({ match, left, right, role, delay }: { match: KktiMatch; l
   const rightLabel = role === 'mine' ? '친구' : role === 'partner' ? '나' : null;
 
   return (
-    <FadeUp delay={delay} style={[styles.section, styles.matchSection, { backgroundColor: theme.surfaceElevated, borderColor: theme.primary }, Shadow as ViewStyle]}>
+    <FadeUp delay={delay} style={[styles.box, styles.matchSection, { backgroundColor: fill }]}>
       <AppText variant="title3" align="center" accessibilityRole="header">
         {role === 'guest' ? '둘의 카톡 궁합' : '우리 카톡 궁합'}
       </AppText>
@@ -820,23 +822,21 @@ function MatchSection({ match, left, right, role, delay }: { match: KktiMatch; l
         <AppText style={[styles.matchPercent, { color: theme.primary }]}>{shown}</AppText>
         <AppText style={[styles.matchPercentSign, { color: theme.primary }]}>%</AppText>
       </View>
-      <BrandGradient style={styles.matchTier}>
-        <AppText variant="bodyStrong" color={Brand.onBrand}>
-          {match.tier.emoji} {match.tier.label}
-        </AppText>
-      </BrandGradient>
+      <View style={[styles.matchTier, { backgroundColor: inner }]}>
+        <AppText variant="bodyStrong">{match.tier.label}</AppText>
+      </View>
       <AppText variant="body" color="textSecondary" align="center">
         {match.tier.line}
       </AppText>
       <View style={styles.matchAxes}>
         {match.axes.map((axis) => (
-          <MatchAxisRow key={axis.key} axis={axis} />
+          <MatchAxisRow key={axis.key} axis={axis} fill={inner} />
         ))}
       </View>
-      <View style={[styles.quote, { borderLeftColor: theme.primary }]}>
+      <View style={[styles.quote, { borderLeftColor: theme.border }]}>
         <AppText variant="body">{match.tip}</AppText>
       </View>
-      <AppText variant="caption" color="textTertiary" align="center">
+      <AppText variant="caption" color="textSecondary" align="center">
         카톡 습관 12문항으로 본 재미용 궁합이에요
       </AppText>
     </FadeUp>
@@ -845,14 +845,15 @@ function MatchSection({ match, left, right, role, delay }: { match: KktiMatch; l
 
 function MatchPerson({ result, label }: { result: KktiResult; label: string | null }) {
   const theme = useTheme();
+  const inner = useColorScheme() === 'dark' ? theme.border : theme.card;
   return (
     <View style={styles.matchPerson}>
       <View style={[styles.matchCircle, { backgroundColor: mixHex(result.color.hex, '#FFFFFF', 0.45), borderColor: result.color.hex }]}>
         <AppText style={styles.matchPersonEmoji}>{result.type.emoji}</AppText>
       </View>
       {label ? (
-        <View style={[styles.matchWho, { backgroundColor: theme.surfaceSelected }]}>
-          <AppText variant="caption" weight="800" color="textSecondary">
+        <View style={[styles.matchWho, { backgroundColor: inner }]}>
+          <AppText variant="caption" weight="700" color="textSecondary">
             {label}
           </AppText>
         </View>
@@ -860,22 +861,20 @@ function MatchPerson({ result, label }: { result: KktiResult; label: string | nu
       <AppText variant="smallStrong" align="center" numberOfLines={2}>
         {result.type.name}
       </AppText>
-      <AppText variant="caption" color="textTertiary">
+      <AppText variant="caption" color="textSecondary">
         {result.code}
       </AppText>
     </View>
   );
 }
 
-function MatchAxisRow({ axis }: { axis: KktiMatchAxis }) {
-  const theme = useTheme();
+function MatchAxisRow({ axis, fill }: { axis: KktiMatchAxis; fill: string }) {
   return (
-    <View style={[styles.matchAxisRow, { backgroundColor: theme.surface }]}>
-      <AppText style={styles.matchAxisEmoji}>{axis.emoji}</AppText>
+    <View style={[styles.matchAxisRow, { backgroundColor: fill }]}>
       <View style={styles.matchAxisBody}>
         <View style={styles.matchAxisHead}>
           <AppText variant="smallStrong">{axis.label}</AppText>
-          <AppText variant="caption" weight="800" color={FIT_COLOR[axis.fit]}>
+          <AppText variant="caption" weight="600" color="textSecondary">
             {KKTI_FIT_LABEL[axis.fit]}
           </AppText>
         </View>
@@ -888,8 +887,7 @@ function MatchAxisRow({ axis }: { axis: KktiMatchAxis }) {
 }
 
 /** 축 하나 — 고른 쪽에서부터 막대가 차오른다 */
-function AxisBar({ axis, fill, delay }: { axis: KktiAxisResult; fill: string; delay: number }) {
-  const theme = useTheme();
+function AxisBar({ axis, fill, track, delay }: { axis: KktiAxisResult; fill: string; track: string; delay: number }) {
   const plusSide = axis.pole.letter === axis.plus.letter;
   const v = useSharedValue(0);
   useEffect(() => {
@@ -898,36 +896,35 @@ function AxisBar({ axis, fill, delay }: { axis: KktiAxisResult; fill: string; de
   const barStyle = useAnimatedStyle(() => ({ width: `${v.value * 100}%` }));
   return (
     <View style={styles.axis}>
-      <AppText variant="caption" color="textTertiary">
-        {axis.emoji} {axis.label}
+      <AppText variant="caption" color="textSecondary" weight="600">
+        {axis.label}
       </AppText>
       <View style={styles.axisLabels}>
-        <AppText variant={plusSide ? 'smallStrong' : 'small'} color={plusSide ? 'text' : 'textTertiary'} style={styles.flexShrink} numberOfLines={1}>
+        <AppText variant={plusSide ? 'smallStrong' : 'small'} color={plusSide ? 'text' : 'textSecondary'} style={styles.flexShrink} numberOfLines={1}>
           {axis.plus.letter} {axis.plus.label} {axis.plusPercent}%
         </AppText>
-        <AppText variant={plusSide ? 'small' : 'smallStrong'} color={plusSide ? 'textTertiary' : 'text'} style={styles.flexShrink} numberOfLines={1} align="right">
-          {100 - axis.plusPercent}% {axis.minus.label} {axis.minus.letter}
+        <AppText variant={plusSide ? 'small' : 'smallStrong'} color={plusSide ? 'textSecondary' : 'text'} style={styles.flexShrink} numberOfLines={1} align="right">
+          {axis.minus.letter} {axis.minus.label} {100 - axis.plusPercent}%
         </AppText>
       </View>
-      <View style={[styles.axisTrack, { backgroundColor: theme.surfaceSelected, alignItems: plusSide ? 'flex-start' : 'flex-end' }]}>
+      <View style={[styles.axisTrack, { backgroundColor: track, alignItems: plusSide ? 'flex-start' : 'flex-end' }]}>
         <Animated.View style={[styles.axisFill, { backgroundColor: fill }, barStyle]} />
       </View>
     </View>
   );
 }
 
-function MatchRow({ label, good, emoji, name, code, reason }: { label: string; good: boolean; emoji: string; name: string; code: string; reason: string }) {
-  const theme = useTheme();
+function MatchRow({ label, emoji, name, code, reason, fill }: { label: string; emoji: string; name: string; code: string; reason: string; fill: string }) {
   return (
-    <View style={[styles.matchRow, { backgroundColor: theme.surface }]}>
+    <View style={[styles.matchRow, { backgroundColor: fill }]}>
       <AppText style={styles.matchEmoji}>{emoji}</AppText>
       <View style={styles.flexShrink}>
-        <AppText variant="caption" weight="800" color={good ? 'success' : 'danger'}>
+        <AppText variant="caption" weight="600" color="textSecondary">
           {label}
         </AppText>
         <AppText variant="bodyStrong">
           {name}{' '}
-          <AppText variant="small" color="textTertiary">
+          <AppText variant="small" color="textSecondary">
             {code}
           </AppText>
         </AppText>
@@ -943,7 +940,7 @@ function MatchRow({ label, good, emoji, name, code, reason }: { label: string; g
 function PopIn({ delay = 0, from = 0.6, style, children }: PropsWithChildren<{ delay?: number; from?: number; style?: StyleProp<ViewStyle> }>) {
   const v = useSharedValue(0);
   useEffect(() => {
-    v.value = withDelay(delay, withSpring(1, { damping: 10, stiffness: 180, mass: 0.8 }));
+    v.value = withDelay(delay, withSpring(1, { damping: 14, stiffness: 200, mass: 0.8 }));
   }, [delay, v]);
   const animated = useAnimatedStyle(() => ({
     opacity: Math.min(1, Math.max(0, v.value * 1.6)),
@@ -968,13 +965,12 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   flexShrink: { flexShrink: 1 },
   clip: { overflow: 'hidden' },
-  flood: { position: 'absolute' },
   content: { paddingHorizontal: Spacing.lg, gap: Spacing.md, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   iconCircle: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: Spacing.md, height: 36, borderRadius: Radius.pill },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: Spacing.md, height: 40, borderRadius: Radius.pill },
 
-  hero: { borderRadius: Radius.xl, overflow: 'hidden', paddingHorizontal: Spacing.lg, paddingTop: Spacing.xl, paddingBottom: Spacing.lg, alignItems: 'center', gap: Spacing.md },
+  hero: { borderRadius: 24, overflow: 'hidden', paddingHorizontal: Spacing.lg, paddingTop: Spacing.xl, paddingBottom: Spacing.lg, alignItems: 'center', gap: Spacing.md },
   heroFlood: {
     position: 'absolute',
     width: HERO_FLOOD,
@@ -988,14 +984,24 @@ const styles = StyleSheet.create({
   heroEmoji: { fontSize: 52, lineHeight: 64 },
   letters: { flexDirection: 'row', gap: 6, alignSelf: 'stretch', justifyContent: 'center' },
   letterTile: { flex: 1, maxWidth: 84, borderRadius: Radius.md, paddingVertical: Spacing.sm, paddingHorizontal: 2, alignItems: 'center' },
-  letter: { fontSize: 30, lineHeight: 38, fontWeight: '900' },
-  letterLabel: { fontSize: 10, lineHeight: 13, fontWeight: '600' },
+  letter: { fontSize: 30, lineHeight: 38, fontWeight: '700' },
+  letterLabel: { fontSize: 12, lineHeight: 15, fontWeight: '600' },
   heroNameLong: { fontSize: 26, lineHeight: 34 },
   heroChips: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6 },
   heroChip: { paddingHorizontal: Spacing.sm + 2, paddingVertical: 4, borderRadius: Radius.pill },
 
-  friend: { borderRadius: Radius.lg, borderWidth: 1.5, padding: Spacing.lg, gap: Spacing.md },
-  matchSection: { borderWidth: 1.5 },
+  // 회색 면 한 장(테두리·그림자 없이)
+  box: { borderRadius: 24, padding: Spacing.lg + 2, gap: Spacing.md },
+  matchSection: { gap: Spacing.md },
+  share: { gap: Spacing.md, paddingTop: Spacing.xs },
+  coachBtn: { height: 50, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, marginTop: Spacing.xs },
+  about: { gap: Spacing.md, paddingHorizontal: 2, marginTop: Spacing.md },
+  folds: { marginTop: Spacing.sm },
+  fold: { borderTopWidth: StyleSheet.hairlineWidth },
+  foldHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.md, minHeight: 56, paddingHorizontal: 2 },
+  foldRight: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
+  foldSwatch: { width: 14, height: 14, borderRadius: 7 },
+  foldBody: { gap: Spacing.md, paddingBottom: Spacing.lg, paddingHorizontal: 2 },
   matchPeople: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center', gap: Spacing.sm },
   matchTimes: { marginTop: 22 },
   matchPerson: { flex: 1, maxWidth: 150, alignItems: 'center', gap: 4 },
@@ -1003,56 +1009,46 @@ const styles = StyleSheet.create({
   matchPersonEmoji: { fontSize: 38, lineHeight: 48 },
   matchWho: { paddingHorizontal: Spacing.sm, paddingVertical: 2, borderRadius: Radius.pill },
   matchPercentRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center' },
-  matchPercent: { fontSize: 84, lineHeight: 92, fontWeight: '900', letterSpacing: -3, fontVariant: ['tabular-nums'] },
-  matchPercentSign: { fontSize: 36, lineHeight: 60, fontWeight: '900', marginLeft: 2 },
-  matchTier: { alignSelf: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.xs + 2, borderRadius: Radius.pill, overflow: 'hidden' },
+  // 이 묶음의 큰 숫자는 궁합 하나
+  matchPercent: { fontSize: 56, lineHeight: 64, fontWeight: '700', letterSpacing: -2, fontVariant: ['tabular-nums'] },
+  matchPercentSign: { fontSize: 26, lineHeight: 44, fontWeight: '700', marginLeft: 2 },
+  matchTier: { alignSelf: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.xs + 2, borderRadius: Radius.pill },
   matchAxes: { gap: Spacing.sm },
-  matchAxisRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: Radius.md, padding: Spacing.md },
-  matchAxisEmoji: { fontSize: 24, lineHeight: 30 },
+  matchAxisRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: 16, padding: Spacing.md },
   matchAxisBody: { flex: 1, gap: 2 },
   matchAxisHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  section: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.md },
-  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  sectionIcon: { width: 30, height: 30, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  sectionEmoji: { fontSize: 16, lineHeight: 20 },
-  coachHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.md },
-  coachBrand: { flexShrink: 1, gap: Spacing.sm },
-  coachLabel: { marginTop: Spacing.lg, marginBottom: Spacing.xs },
-  coachTone: { marginTop: Spacing.sm },
-  coachActions: { gap: Spacing.sm, marginTop: Spacing.lg },
   list: { gap: Spacing.xs + 2 },
   bullet: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
   bulletIcon: { marginTop: 2 },
 
   shareRow: { flexDirection: 'row', gap: Spacing.sm },
-  shareTile: { flex: 1, alignItems: 'center', gap: 4, paddingVertical: Spacing.xs },
-  shareIcon: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
-  shareSub: { fontSize: 10, lineHeight: 13 },
+  shareTile: { flex: 1, alignItems: 'center', gap: 2, paddingVertical: Spacing.xs },
+  shareIcon: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
 
   axis: { gap: 6 },
   axisLabels: { flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.sm },
-  axisTrack: { height: 12, borderRadius: 6, overflow: 'hidden' },
-  axisFill: { height: '100%', borderRadius: 6 },
+  axisTrack: { height: 8, borderRadius: 4, overflow: 'hidden' },
+  axisFill: { height: '100%', borderRadius: 4 },
 
   mbtiRow: { flexDirection: 'row', gap: Spacing.sm },
-  mbtiCell: { flex: 1, alignItems: 'center', borderRadius: Radius.md, paddingVertical: Spacing.md, gap: 2 },
-  mbtiLetter: { fontSize: 32, lineHeight: 40, fontWeight: '900' },
+  mbtiCell: { flex: 1, alignItems: 'center', borderRadius: 16, paddingVertical: Spacing.md, gap: 2 },
+  mbtiLetter: { fontSize: 26, lineHeight: 32, fontWeight: '700' },
 
   enneaRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  enneaBadge: { width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  enneaNumber: { fontSize: 28, lineHeight: 34, fontWeight: '900' },
+  enneaBadge: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+  enneaNumber: { fontSize: 28, lineHeight: 34, fontWeight: '700' },
 
-  swatch: { height: 132, borderRadius: Radius.lg, padding: Spacing.lg, justifyContent: 'space-between' },
+  swatch: { height: 120, borderRadius: 20, padding: Spacing.lg, justifyContent: 'space-between' },
   swatchFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   copyChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: Spacing.sm, paddingVertical: 3, borderRadius: Radius.pill },
   metaRow: { flexDirection: 'row', gap: Spacing.sm },
-  meta: { flex: 1, borderRadius: Radius.md, paddingVertical: Spacing.sm, alignItems: 'center' },
+  meta: { flex: 1, borderRadius: 14, paddingVertical: Spacing.sm, alignItems: 'center' },
 
-  matchRow: { flexDirection: 'row', gap: Spacing.md, borderRadius: Radius.md, padding: Spacing.md, alignItems: 'flex-start' },
+  matchRow: { flexDirection: 'row', gap: Spacing.md, borderRadius: 16, padding: Spacing.md, alignItems: 'flex-start' },
   matchEmoji: { fontSize: 30, lineHeight: 38 },
 
-  quote: { borderLeftWidth: 4, paddingLeft: Spacing.md, paddingVertical: 2 },
-  actions: { gap: Spacing.sm, marginTop: Spacing.sm },
+  quote: { borderLeftWidth: 3, paddingLeft: Spacing.md, paddingVertical: 2 },
+  actions: { gap: Spacing.xs, marginTop: Spacing.sm },
   savedRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 48 },
 
   invalid: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xl },

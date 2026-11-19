@@ -5,7 +5,6 @@ import { Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } f
 import Animated, { FadeIn, FadeOutLeft, LinearTransition, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Icon3D } from '@/components/brand/brand';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { GlassSurface } from '@/components/ui/glass-surface';
@@ -21,7 +20,7 @@ import { useAppStore } from '@/store/app-store';
 
 const EMPTY: string[] = [];
 /** 기억 띠 높이 (알약 — 모서리는 절반) */
-const CARD_H = 48;
+const CARD_H = 42;
 
 /**
  * 채팅방 위의 작은 띠 「센딧이 기억하는 이야기 N개」 — 누르면 기억 시트를 연다.
@@ -55,8 +54,8 @@ export function MemoryCard({ count, onPress, inline = false }: { count: number; 
         onPress={onPress}
         style={[styles.card, dark ? null : CardShadow]}>
         <GlassSurface radius={CARD_H / 2} floating={false} style={StyleSheet.absoluteFill} />
-        <View style={[styles.cardIcon, { backgroundColor: theme.primarySoft }]}>
-          <Icon3D name="memory" size={26} />
+        <View style={[styles.cardIcon, { backgroundColor: dark ? theme.surfaceElevated : theme.surface }]}>
+          <Ionicons name="bookmark-outline" size={15} color={theme.textSecondary} />
         </View>
         <AppText variant="smallStrong" style={styles.cardText} numberOfLines={1}>
           {APP_NAME}이 기억하는 이야기{' '}
@@ -81,6 +80,8 @@ export function MemoryCard({ count, onPress, inline = false }: { count: number; 
  */
 export function MemorySheet({ crushId, partnerName, visible, onClose }: { crushId: string; partnerName?: string; visible: boolean; onClose: () => void }) {
   const theme = useTheme();
+  // 흰 시트 안 회색 면(다크는 한 단계 밝게)
+  const fill = useColorScheme() === 'dark' ? theme.surfaceElevated : theme.surface;
   const toast = useToast();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
@@ -123,28 +124,35 @@ export function MemorySheet({ crushId, partnerName, visible, onClose }: { crushI
         <View
           accessibilityViewIsModal
           onAccessibilityEscape={onClose}
-          style={[styles.sheet, { backgroundColor: theme.background, paddingBottom: insets.bottom + Spacing.lg, maxHeight: height - insets.top - Spacing.xl }]}>
+          style={[styles.sheet, { backgroundColor: theme.background, paddingBottom: insets.bottom + Spacing.md, maxHeight: height - insets.top - Spacing.xl }]}>
           <View style={[styles.handle, { backgroundColor: theme.border }]} />
-          <ScrollView style={styles.scroll} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-            <View style={styles.head}>
-              <Icon3D name="memory" size={64} float />
-              <AppText variant="title2" align="center" accessibilityRole="header">
+          {/* 1.4 개편: 3D 그림·그라데이션 「확인」 버튼을 걷었다 — 보기만 하는 시트라 닫기는 × · 바깥 누르기 · 뒤로 가기 */}
+          <View style={styles.head}>
+            <View style={styles.flex}>
+              <AppText variant="title2" accessibilityRole="header">
                 {APP_NAME}이 기억하는 이야기
               </AppText>
-              <AppText variant="small" color="textSecondary" align="center">
-                {who} 지난 대화에서 기억해 둔 거예요.{'\n'}다음 답장부터 이어서 써요.
+              <AppText variant="small" color="textSecondary">
+                {who} 지난 대화에서 기억해 둔 거예요. 다음 답장부터 이어서 써요.
               </AppText>
             </View>
-
-            <View style={styles.list}>
+            <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={onClose} hitSlop={6} style={({ pressed }) => [styles.close, { backgroundColor: fill, opacity: pressed ? 0.6 : 1 }]}>
+              <Ionicons name="close" size={18} color={theme.textSecondary} />
+            </Pressable>
+          </View>
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+            {/* 줄마다 회색 알약 카드 → 가는 선으로 나눈 한 목록 */}
+            <View>
               {facts.map((fact, i) => (
-                <Animated.View key={fact} entering={FadeIn.delay(i * 40)} exiting={FadeOutLeft.duration(200)} layout={LinearTransition.springify().damping(18)} style={[styles.row, { backgroundColor: theme.surface }]}>
-                  <View style={styles.rail}>
-                    <View style={[styles.dot, { backgroundColor: i === facts.length - 1 ? theme.primary : theme.textTertiary }]} />
-                  </View>
+                <Animated.View
+                  key={fact}
+                  entering={FadeIn.delay(i * 40)}
+                  exiting={FadeOutLeft.duration(200)}
+                  layout={LinearTransition.springify().damping(18)}
+                  style={[styles.row, i > 0 ? { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.separator } : null]}>
                   <View style={styles.rowTexts}>
                     {i === facts.length - 1 ? (
-                      <AppText variant="caption" color="primary" weight="700">
+                      <AppText variant="caption" color="primary" weight="600">
                         가장 최근
                       </AppText>
                     ) : null}
@@ -158,64 +166,63 @@ export function MemorySheet({ crushId, partnerName, visible, onClose }: { crushI
             </View>
 
             {!facts.length ? (
-              <AppText variant="small" color="textTertiary" align="center">
+              <AppText variant="small" color="textSecondary" align="center">
                 지금 기억하는 이야기는 없어요.
               </AppText>
             ) : null}
 
             {/* 지운 이야기도 숨기지 않고 보여 준다 — 다시 기억하지 않으려고 이 기기에 남겨 두는 목록이라 비울 수 있게 */}
             {forgotten.length ? (
-              <View style={[styles.forgotten, { borderColor: theme.border }]}>
+              <View style={[styles.forgotten, { backgroundColor: fill }]}>
                 <View style={styles.forgottenHead}>
-                  <Ionicons name="eye-off-outline" size={15} color={theme.textSecondary} />
                   <AppText variant="smallStrong" color="textSecondary" style={styles.flex}>
                     다시 기억하지 않을 이야기 {forgotten.length}개
                   </AppText>
-                  <Pressable accessibilityRole="button" accessibilityLabel="다시 기억하지 않을 이야기 목록 비우기" onPress={clearForgottenList} hitSlop={10}>
+                  <Pressable accessibilityRole="button" accessibilityLabel="다시 기억하지 않을 이야기 목록 비우기" onPress={clearForgottenList} hitSlop={10} style={styles.textButton}>
                     <AppText variant="smallStrong" color="primary">
                       비우기
                     </AppText>
                   </Pressable>
                 </View>
                 {forgotten.slice(-3).map((line) => (
-                  <AppText key={line} variant="caption" color="textTertiary" numberOfLines={1}>
+                  <AppText key={line} variant="caption" color="textSecondary" numberOfLines={1}>
                     · {line}
                   </AppText>
                 ))}
                 {forgotten.length > 3 ? (
-                  <AppText variant="caption" color="textTertiary">
+                  <AppText variant="caption" color="textSecondary">
                     외 {forgotten.length - 3}개
                   </AppText>
                 ) : null}
               </View>
             ) : null}
 
-            <View style={[styles.notice, { backgroundColor: theme.primarySoft }]}>
-              <Ionicons name="lock-closed" size={15} color={theme.primary} style={styles.noticeIcon} />
-              <AppText variant="caption" color="textSecondary" style={styles.flex}>
+            {/* 기억이 어디에 저장되고 어디로 가는지 — 상자 없이 작은 글로 (내용은 그대로) */}
+            <View style={styles.notice}>
+              <Ionicons name="lock-closed-outline" size={14} color={theme.textSecondary} style={styles.noticeIcon} />
+              <AppText variant="caption" color="textSecondary" style={[styles.flex, styles.noticeText]}>
                 {MEMORY_NOTICE}
               </AppText>
             </View>
           </ScrollView>
 
-          <View style={styles.actions}>
-            {confirm ? (
-              <Animated.View entering={FadeIn.duration(160)} style={styles.confirm}>
-                <AppText variant="smallStrong" align="center">
-                  기억 {facts.length}개를 모두 지울까요? 되돌릴 수 없어요.
-                </AppText>
-                <View style={styles.confirmRow}>
-                  <Button title="취소" variant="secondary" size="md" onPress={() => setConfirm(false)} style={styles.flex} />
-                  <Button title="모두 지우기" variant="danger" size="md" onPress={clearAll} style={styles.flex} />
-                </View>
-              </Animated.View>
-            ) : (
-              <>
-                <Button title="확인" variant="brand" onPress={onClose} />
-                {facts.length ? <Button title="모두 지우기" variant="ghost" size="md" onPress={() => setConfirm(true)} /> : null}
-              </>
-            )}
-          </View>
+          {facts.length ? (
+            <View style={styles.actions}>
+              {confirm ? (
+                <Animated.View entering={FadeIn.duration(160)} style={styles.confirm}>
+                  <AppText variant="smallStrong" align="center">
+                    기억 {facts.length}개를 모두 지울까요? 되돌릴 수 없어요.
+                  </AppText>
+                  <View style={styles.confirmRow}>
+                    <Button title="취소" variant="secondary" size="md" onPress={() => setConfirm(false)} style={styles.flex} />
+                    <Button title="모두 지우기" variant="danger" size="md" onPress={clearAll} style={styles.flex} />
+                  </View>
+                </Animated.View>
+              ) : (
+                <Button title="모두 지우기" variant="ghost" size="md" onPress={() => setConfirm(true)} />
+              )}
+            </View>
+          ) : null}
         </View>
       </View>
     </Modal>
@@ -227,28 +234,28 @@ const styles = StyleSheet.create({
   cardWrap: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.xs, paddingBottom: Spacing.sm, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   cardInline: { marginTop: Spacing.xl },
   card: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm + 2, minHeight: CARD_H, paddingLeft: 6, paddingRight: Spacing.md, borderRadius: CARD_H / 2 },
-  cardIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  cardIcon: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   cardText: { flex: 1 },
   plus: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: Radius.pill },
-  plusText: { color: Brand.onBrand, fontSize: 12, lineHeight: 16, fontWeight: '800' },
+  plusText: { color: Brand.onBrand, fontSize: 12, lineHeight: 16, fontWeight: '700' },
   root: { flex: 1, justifyContent: 'flex-end' },
   backdrop: { backgroundColor: 'rgba(0,0,0,0.45)' },
   sheet: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', borderTopLeftRadius: Radius.xl, borderTopRightRadius: Radius.xl, paddingTop: Spacing.sm, paddingHorizontal: Spacing.xl },
   handle: { width: 40, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: Spacing.md },
+  head: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md, paddingBottom: Spacing.md },
+  close: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginTop: -2 },
   scroll: { flexGrow: 0, flexShrink: 1 },
   body: { gap: Spacing.lg, paddingBottom: Spacing.md },
-  head: { alignItems: 'center', gap: Spacing.sm },
-  list: { gap: Spacing.sm },
-  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderRadius: Radius.lg, paddingLeft: Spacing.md, paddingVertical: Spacing.sm + 2, paddingRight: 2 },
-  rail: { width: 10, alignItems: 'center', alignSelf: 'stretch', justifyContent: 'center' },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  rowTexts: { flex: 1, gap: 1 },
-  remove: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  notice: { flexDirection: 'row', gap: Spacing.sm, borderRadius: Radius.md, padding: Spacing.md },
-  forgotten: { borderWidth: 1, borderRadius: Radius.md, padding: Spacing.md, gap: 4 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.sm + 2, minHeight: 56 },
+  rowTexts: { flex: 1, gap: 2 },
+  remove: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginRight: -Spacing.md },
+  notice: { flexDirection: 'row', gap: 6 },
+  noticeText: { lineHeight: 18 },
+  noticeIcon: { marginTop: 2 },
+  forgotten: { borderRadius: Radius.md, padding: Spacing.md, gap: 4 },
   forgottenHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
-  noticeIcon: { marginTop: 1 },
-  actions: { gap: Spacing.xs, paddingTop: Spacing.sm },
+  textButton: { minHeight: 32, justifyContent: 'center' },
+  actions: { gap: Spacing.xs, paddingTop: Spacing.xs },
   confirm: { gap: Spacing.md },
   confirmRow: { flexDirection: 'row', gap: Spacing.sm },
 });

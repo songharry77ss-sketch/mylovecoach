@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { Alert, Linking, Platform, StyleSheet, View } from 'react-native';
 
 import { useAccountDeletion } from '@/components/auth/apple-deletion-help';
+import { AppText } from '@/components/ui/app-text';
 import { ListGroup } from '@/components/ui/list-group';
 import { ListRow } from '@/components/ui/list-row';
 import { QuietLink, SubScreen } from '@/components/ui/sub-screen';
@@ -19,7 +20,8 @@ import { useAppStore } from '@/store/app-store';
 
 /**
  * 마이 → 이용권·계정 (11/12 회의 4번 — 예전 마이의 「이용권」·「계정」 묶음 + 맨 아래 「회원 탈퇴」).
- * 이용권 보기(그라데이션 카드)는 마이 첫 화면에 그대로 있다.
+ * 이용권 보기(이용권 상태판)는 마이 첫 화면 맨 위에 있다.
+ * 결제도 가입도 없는 빌드(데모·개인 키)에서 주소로 바로 들어오면 빈 화면 대신 한 줄 안내.
  */
 export default function AccountSettings() {
   const router = useRouter();
@@ -91,11 +93,11 @@ export default function AccountSettings() {
         <ListGroup title="이용권">
           {/* 1년권은 자동 결제가 없어 해지할 것이 없다 — 「해지」 버튼 대신 자동 결제가 없다는 안내만 */}
           {yearPass ? (
-            <ListRow icon="calendar-outline" title="1년권 · 자동 결제 없음" subtitle={`${yearUntil ? `${yearUntil} · ` : ''}따로 해지하지 않아도 돼요`} />
+            <ListRow title="1년권 · 자동 결제 없음" subtitle={`${yearUntil ? `${yearUntil} · ` : ''}따로 해지하지 않아도 돼요`} />
           ) : (
-            <ListRow icon="card-outline" title="구독 관리 · 해지" onPress={() => openSubscriptionManagement().catch(() => toast.show('스토어 구독 관리 화면을 열지 못했어요.', 'error'))} />
+            <ListRow title="구독 관리 · 해지" onPress={() => openSubscriptionManagement().catch(() => toast.show('스토어 구독 관리 화면을 열지 못했어요.', 'error'))} />
           )}
-          {!isPremium ? <ListRow icon="refresh-outline" title="구매 복원" subtitle="주간 구독·1년권 (예전에 산 평생권 포함)" onPress={restore} /> : null}
+          {!isPremium ? <ListRow title="구매 복원" subtitle="주간 구독·1년권 (예전에 산 평생권 포함)" onPress={restore} /> : null}
         </ListGroup>
       ) : null}
 
@@ -110,21 +112,27 @@ export default function AccountSettings() {
         <ListGroup title="계정">
           {member ? (
             <ListRow
-              icon="person-circle-outline"
+             
               title={`${providerLabel(member.provider)}로 가입됨`}
               subtitle={[member.nickname, `${new Date(member.joinedAt).toLocaleDateString('ko-KR')} 가입`].filter(Boolean).join(' · ')}
             />
           ) : (
-            <ListRow icon="gift-outline" title={`가입하고 무료 코칭 ${SIGNUP_BONUS}회 받기`} subtitle="카카오 · Google · Apple로 바로 가입" onPress={() => router.push('/signup')} />
+            <ListRow title={`가입하고 무료 코칭 ${SIGNUP_BONUS}회 받기`} subtitle="카카오 · Google · Apple로 바로 가입" onPress={() => router.push('/signup')} />
           )}
-          {member ? <ListRow icon="log-out-outline" title="로그아웃" onPress={logout} /> : null}
+          {member ? <ListRow title="로그아웃" onPress={logout} /> : null}
           {member && Platform.OS === 'web' ? (
-            <ListRow icon="card-outline" title="App Store 구독 관리" onPress={() => Linking.openURL('https://apps.apple.com/account/subscriptions').catch(() => toast.show('구독 관리 페이지를 열지 못했어요.', 'error'))} />
+            <ListRow title="App Store 구독 관리" onPress={() => Linking.openURL('https://apps.apple.com/account/subscriptions').catch(() => toast.show('구독 관리 페이지를 열지 못했어요.', 'error'))} />
           ) : null}
           {member && Platform.OS === 'web' ? (
-            <ListRow icon="card-outline" title="Google Play 구독 관리" onPress={() => Linking.openURL('https://play.google.com/store/account/subscriptions').catch(() => toast.show('구독 관리 페이지를 열지 못했어요.', 'error'))} />
+            <ListRow title="Google Play 구독 관리" onPress={() => Linking.openURL('https://play.google.com/store/account/subscriptions').catch(() => toast.show('구독 관리 페이지를 열지 못했어요.', 'error'))} />
           ) : null}
         </ListGroup>
+      ) : null}
+
+      {!hasBilling && !authAvailable ? (
+        <AppText variant="small" color="textSecondary" style={styles.empty}>
+          이 버전에서는 따로 관리할 이용권이나 계정이 없어요.
+        </AppText>
       ) : null}
 
       {/* 회원 탈퇴는 맨 아래 작은 글자 버튼 — 마이 → 이용권·계정에서 바로 찾을 수 있게 (스토어 계정 삭제 정책) */}
@@ -140,4 +148,5 @@ export default function AccountSettings() {
 
 const styles = StyleSheet.create({
   footer: { marginTop: Spacing.sm, alignItems: 'center' },
+  empty: { paddingHorizontal: Spacing.xs },
 });

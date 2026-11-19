@@ -116,10 +116,12 @@ afterEach(() => {
 });
 
 describe('탐색 탭 — 연애팁 백서', () => {
-  it('맨 위가 「어떤 고민이 있어요?」이고 고민 카드가 모두 보인다 (예전 「연애 팁」 목록·주제 칩은 없다)', () => {
+  it('제목은 탭 이름과 같은 「탐색」, 첫 묶음이 「어떤 고민이 있어요?」이고 고민 버튼이 모두 보인다 (예전 「연애 팁」 목록·주제 칩은 없다)', () => {
     const t = mount(<ExploreTab />);
     const all = texts(t);
-    expect(all).toContain('연애팁 백서');
+    // 1.4 개편: 파란 작은 라벨 「연애팁 백서」는 걷고(고민 해답 화면의 회색 라벨로), 화면 제목을 탭 이름과 맞췄다
+    expect(all[0]).toBe('탐색');
+    expect(all).not.toContain('연애팁 백서');
     expect(all).toContain('어떤 고민이 있어요?');
     for (const w of WORRIES) expect(all).toContain(w.title);
     expect(all).not.toContain('연애 팁');
@@ -187,6 +189,8 @@ describe('고민 해답 화면', () => {
     expect(all).toContain('같이 보면 좋은 팁');
     // 내가 남자면 여자 속마음
     expect(all).toContain('이럴 때 여자 속마음은?');
+    // 머리의 작은 라벨은 회색 한 줄 — 연애팁 백서 · 찾는 말
+    expect(all).toContain(`연애팁 백서 · ${worry.keywords}`);
   });
 
   it('속마음 상황을 누르면 그 상황으로 속마음 풀이를 연다', () => {

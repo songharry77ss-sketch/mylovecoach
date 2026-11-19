@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Platform, Pressable, StyleSheet, View, type GestureResponderEvent, type TextStyle } from 'react-native';
 import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 
@@ -7,13 +6,14 @@ import { CountUp } from '@/components/coach/count-up';
 import { AppText } from '@/components/ui/app-text';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { Brand, Radius, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { toneLabel } from '@/lib/labels';
 import type { CoachReply } from '@/lib/types';
 
 interface ReplyCardsProps {
   replies: CoachReply[];
-  /** 상대 이름 (예상 반응 옆 동그라미) */
+  /** 상대 이름 (예상 반응 앞) */
   partnerName?: string;
   /** 방금 복사한 답장 */
   copiedIndex?: number | null;
@@ -30,14 +30,15 @@ interface ReplyCardsProps {
 }
 
 /**
- * 답장 3가지를 한눈에 비교하는 카드 목록 (럽코 시안 「이렇게 답장해 봐요」).
- * 카드마다 말투·성공 확률 큰 숫자·답장·상대의 예상 반응·복사 버튼. 첫 카드가 추천이다
+ * 답장 3가지 — 1.4 「깔끔하게」 개편: 회색 결과 말풍선 안의 **흰 카드 3장**(피클 「말풍선 속 흰 카드」 결).
+ * 카드마다 번호·말투·성공 확률(작게) → 답장 문장(주인공) → 예상 반응 한 줄 + 검정 「복사」 알약.
+ * 추천은 색 배지 대신 맨 위 자리와 「추천」 글자 한 마디로. 큰 숫자·그라데이션 배지는 걷었다.
  */
 export function ReplyCards({ replies, partnerName, copiedIndex, selectedIndex, onCopy, onShare, lockedFrom, onUnlock, reveal }: ReplyCardsProps) {
   return (
     <View style={styles.list}>
       {replies.map((reply, i) => (
-        <Animated.View key={i} entering={reveal ? FadeInDown.delay(260 + i * 90).springify().damping(16) : undefined}>
+        <Animated.View key={i} entering={reveal ? FadeInDown.delay(200 + i * 80).duration(320) : undefined}>
           <ReplyCard
             reply={reply}
             index={i}
@@ -81,11 +82,14 @@ interface ReplyCardProps {
 
 function ReplyCard({ reply, index, best, copied, chosen, partnerName, locked, reveal, onCopy, onShare, onUnlock }: ReplyCardProps) {
   const theme = useTheme();
+  const dark = useColorScheme() === 'dark';
   const tone = toneLabel(reply.tone);
   const rate = reply.successRate;
-  const initial = (partnerName?.trim() && partnerName !== '상대' ? partnerName.trim() : '상').slice(0, 1);
+  const who = partnerName?.trim() && partnerName !== '상대' ? partnerName.trim() : '상대';
   // 답장 글을 읽을 때 몇 번째·말투·성공 확률을 같이 읽어 준다 (복사는 바로 옆 「복사」 버튼으로)
   const label = `답장 ${index + 1}, ${tone.label}${rate != null ? `, 성공 확률 ${rate}%` : ''}: ${reply.text}`;
+  // 회색 결과 말풍선 안의 흰 카드 (다크는 한 단계 밝은 면)
+  const fill = dark ? theme.surfaceElevated : theme.card;
   return (
     // 카드 어디를 눌러도 복사 — 화면 읽기에서는 카드를 한 덩어리로 묶지 않는다(accessible={false}).
     // 묶으면 iOS VoiceOver 가 안쪽 「공유」·「복사」 버튼을 따로 고르지 못한다. 글·확률·버튼이 하나씩 읽힌다
@@ -93,19 +97,19 @@ function ReplyCard({ reply, index, best, copied, chosen, partnerName, locked, re
       accessible={false}
       testID={`reply-card-${index}`}
       onPress={(e) => (locked ? onUnlock() : onCopy(e))}
-      style={[
-        styles.card,
-        { backgroundColor: best ? theme.primarySoft : theme.surface, borderColor: copied || chosen ? theme.primary : 'transparent' },
-      ]}>
+      style={[styles.card, { backgroundColor: fill, borderColor: copied || chosen ? theme.primary : 'transparent' }]}>
       <View style={styles.head}>
         <View style={styles.toneRow}>
-          <AppText variant="bodyStrong" color={best ? 'primary' : 'text'}>
+          <View style={[styles.num, { backgroundColor: best ? theme.primary : theme.surface }]}>
+            <AppText style={[styles.numText, { color: best ? Brand.onBrand : theme.textSecondary }]}>{index + 1}</AppText>
+          </View>
+          <AppText variant="smallStrong" numberOfLines={1}>
             {tone.label}
           </AppText>
           {best ? (
-            <LinearGradient colors={Brand.button} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.bestPill}>
-              <AppText style={styles.bestText}>추천</AppText>
-            </LinearGradient>
+            <AppText variant="caption" color="primary" weight="600">
+              추천
+            </AppText>
           ) : null}
         </View>
         {rate != null ? (
@@ -113,7 +117,14 @@ function ReplyCard({ reply, index, best, copied, chosen, partnerName, locked, re
             <AppText variant="caption" color="textSecondary">
               성공 확률
             </AppText>
-            <CountUp value={rate} animate={reveal} delay={420 + index * 120} style={[styles.rateNumber, { color: best ? theme.primary : theme.text }]} suffixStyle={[styles.rateUnit, { color: best ? theme.primary : theme.text }]} suffix="%" />
+            <CountUp
+              value={rate}
+              animate={reveal}
+              delay={360 + index * 100}
+              style={[styles.rateNumber, { color: best ? theme.primary : theme.text }]}
+              suffixStyle={[styles.rateNumber, { color: best ? theme.primary : theme.text }]}
+              suffix="%"
+            />
           </View>
         ) : null}
       </View>
@@ -131,62 +142,50 @@ function ReplyCard({ reply, index, best, copied, chosen, partnerName, locked, re
       <View style={styles.foot}>
         {reply.expectedReaction ? (
           <View style={styles.reaction}>
-            <View style={[styles.reactionAvatar, { backgroundColor: theme.accentSoft }]}>
-              <AppText style={[styles.reactionInitial, { color: theme.accent }]}>{initial}</AppText>
-            </View>
-            <View style={styles.reactionTexts}>
-              <AppText variant="caption" color="textTertiary">
-                예상 반응
+            {locked ? (
+              <AppText variant="caption" color="textSecondary" accessibilityLabel="가려진 예상 반응" style={[styles.veiled, veilShadow(theme.text)]} numberOfLines={2}>
+                {veil(reply.expectedReaction)}
               </AppText>
-              <View style={[styles.reactionBubble, { backgroundColor: theme.bubbleCoach }]}>
-                {locked ? (
-                  <AppText variant="small" accessibilityLabel="가려진 예상 반응" style={[styles.veiled, veilShadow(theme.text)]} numberOfLines={2}>
-                    {veil(reply.expectedReaction)}
-                  </AppText>
-                ) : (
-                  <AppText variant="small" numberOfLines={3}>
-                    {reply.expectedReaction}
-                  </AppText>
-                )}
-              </View>
-            </View>
+            ) : (
+              <AppText variant="caption" color="textSecondary" numberOfLines={2}>
+                <AppText variant="caption" color="textSecondary" weight="600">
+                  {`${who} 예상 반응 `}
+                </AppText>
+                {reply.expectedReaction}
+              </AppText>
+            )}
           </View>
         ) : (
           <View style={styles.flex} />
         )}
 
         {locked ? (
-          <PressableScale accessibilityLabel={`버전 ${index + 1} 가입하고 보기`} feedback="tap" onPress={onUnlock} style={styles.pillShadow}>
-            <LinearGradient colors={Brand.button} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.copyPill}>
-              <Ionicons name="lock-open" size={14} color={Brand.onBrand} />
-              <AppText variant="smallStrong" color={Brand.onBrand}>
-                가입하고 보기
-              </AppText>
-            </LinearGradient>
+          <PressableScale accessibilityLabel={`버전 ${index + 1} 가입하고 보기`} feedback="tap" onPress={onUnlock} style={[styles.copyPill, { backgroundColor: theme.primary }]}>
+            <Ionicons name="lock-open" size={14} color={Brand.onBrand} />
+            <AppText variant="smallStrong" color={Brand.onBrand}>
+              가입하고 보기
+            </AppText>
           </PressableScale>
         ) : (
           <View style={styles.actions}>
             <PressableScale accessibilityLabel={`답장 ${index + 1} 공유하기`} feedback="tap" onPress={onShare} hitSlop={6} style={styles.round}>
-              <Ionicons name="share-outline" size={19} color={theme.textSecondary} />
+              <Ionicons name="share-outline" size={18} color={theme.textSecondary} />
             </PressableScale>
-            <PressableScale accessibilityLabel={copied ? `답장 ${index + 1} 복사했어요` : `답장 ${index + 1} 복사하기`} feedback={false} onPress={(e) => onCopy(e)}>
+            {/* 카드마다 색이 찬 버튼은 「복사」 하나 — 검정 알약, 복사하면 센딧 파랑 */}
+            <PressableScale
+              accessibilityLabel={copied ? `답장 ${index + 1} 복사했어요` : `답장 ${index + 1} 복사하기`}
+              feedback={false}
+              hitSlop={6}
+              onPress={(e) => onCopy(e)}
+              style={[styles.copyPill, { backgroundColor: copied ? theme.primary : theme.text }]}>
               {copied ? (
-                <LinearGradient colors={Brand.button} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.copyPill}>
-                  <Animated.View entering={ZoomIn.springify().damping(10)}>
-                    <Ionicons name="checkmark-circle" size={16} color={Brand.onBrand} />
-                  </Animated.View>
-                  <AppText variant="smallStrong" color={Brand.onBrand}>
-                    복사했어요
-                  </AppText>
-                </LinearGradient>
-              ) : (
-                <View style={[styles.copyPill, { backgroundColor: theme.bubbleCoach }]}>
-                  <Ionicons name="copy-outline" size={15} color={best ? theme.primary : theme.text} />
-                  <AppText variant="smallStrong" color={best ? 'primary' : 'text'}>
-                    복사
-                  </AppText>
-                </View>
-              )}
+                <Animated.View entering={ZoomIn.duration(180)}>
+                  <Ionicons name="checkmark" size={15} color={Brand.onBrand} />
+                </Animated.View>
+              ) : null}
+              <AppText variant="smallStrong" color={copied ? Brand.onBrand : theme.background}>
+                {copied ? '복사했어요' : '복사'}
+              </AppText>
             </PressableScale>
           </View>
         )}
@@ -196,27 +195,21 @@ function ReplyCard({ reply, index, best, copied, chosen, partnerName, locked, re
 }
 
 const styles = StyleSheet.create({
-  list: { gap: Spacing.sm + 2 },
+  list: { gap: Spacing.sm },
   flex: { flex: 1 },
-  card: { borderRadius: Radius.lg + 2, borderWidth: 1.5, paddingHorizontal: Spacing.md + 2, paddingTop: Spacing.md + 2, paddingBottom: Spacing.md, gap: Spacing.sm },
+  card: { borderRadius: 20, borderWidth: 1.5, paddingHorizontal: Spacing.md + 2, paddingTop: Spacing.md, paddingBottom: Spacing.md, gap: Spacing.sm },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
-  toneRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs + 2, flexShrink: 1 },
-  bestPill: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: Radius.pill },
-  bestText: { color: Brand.onBrand, fontSize: 12, lineHeight: 16, fontWeight: '800' },
-  rate: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
-  rateNumber: { fontSize: 30, lineHeight: 34, fontWeight: '900', letterSpacing: -1 },
-  rateUnit: { fontSize: 16, fontWeight: '800' },
+  toneRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
+  num: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  numText: { fontSize: 12, lineHeight: 16, fontWeight: '700' },
+  rate: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
+  rateNumber: { fontSize: 15, lineHeight: 20, fontWeight: '700', letterSpacing: -0.3 },
   replyText: { fontSize: 16, lineHeight: 24, fontWeight: '500', letterSpacing: -0.2 },
-  foot: { flexDirection: 'row', alignItems: 'flex-end', gap: Spacing.sm, marginTop: 2 },
-  reaction: { flex: 1, flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
-  reactionAvatar: { width: 24, height: 24, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  reactionInitial: { fontSize: 12, lineHeight: 16, fontWeight: '800' },
-  reactionTexts: { flex: 1, gap: 2 },
-  reactionBubble: { alignSelf: 'flex-start', borderRadius: Radius.md, borderBottomLeftRadius: 4, paddingHorizontal: Spacing.sm + 2, paddingVertical: 6 },
+  foot: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  reaction: { flex: 1 },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  round: { width: 34, height: 44, alignItems: 'center', justifyContent: 'center' },
-  copyPill: { height: 44, minWidth: 68, paddingHorizontal: 14, borderRadius: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
-  pillShadow: { borderRadius: 22 },
+  round: { width: 36, height: 40, alignItems: 'center', justifyContent: 'center' },
+  copyPill: { height: 36, minWidth: 60, paddingHorizontal: 14, borderRadius: Radius.pill, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
   // 글자 색을 투명하게 하고 그림자만 퍼뜨려 흐린 글씨처럼 보이게 (그림자는 veilShadow)
   veiled: { color: 'transparent' },
 });

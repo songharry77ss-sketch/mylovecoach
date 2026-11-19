@@ -19,7 +19,7 @@ import { useAppStore } from '@/store/app-store';
 
 /**
  * 마이 → 도움말·정보 (11/12 회의 4번 — 예전 마이의 「정보」 묶음 + AI 답변 신고).
- * 도움말(사용법 다시 보기 · 문의하기 · AI 답변 신고) / 앱 정보(앱 버전 · 내 기기 ID · 이용약관 · 처리방침).
+ * 도움말(사용법 다시 보기 · 문의하기 · AI 답변 신고) / 앱 정보(앱 버전 · 이용약관 · 처리방침 · 내 기기 ID).
  */
 export default function HelpSettings() {
   const theme = useTheme();
@@ -53,35 +53,33 @@ export default function HelpSettings() {
   return (
     <SubScreen title="도움말·정보">
       <ListGroup title="도움말">
-        <ListRow icon="book-outline" title="사용법 다시 보기" subtitle="캡처 올리기 · 답장 고르기 · 마음 읽기 · 기억" onPress={() => router.push({ pathname: '/welcome', params: { from: 'my' } })} />
-        <ListRow icon="mail-outline" title="문의하기" subtitle={APP_CONFIG.supportEmail} onPress={() => Linking.openURL(`mailto:${APP_CONFIG.supportEmail}`)} />
+        <ListRow title="사용법 다시 보기" subtitle="캡처 올리기 · 답장 고르기 · 마음 읽기 · 기억" onPress={() => router.push({ pathname: '/welcome', params: { from: 'my' } })} />
+        <ListRow title="문의하기" subtitle={APP_CONFIG.supportEmail} onPress={() => Linking.openURL(`mailto:${APP_CONFIG.supportEmail}`)} />
         {aiReport.available ? (
-          <ListRow icon="flag-outline" title="AI 답변 신고하기" subtitle="불쾌하거나 부적절한 AI 답변을 운영자에게 알려요" onPress={() => aiReport.open()} />
+          <ListRow title="AI 답변 신고하기" subtitle="불쾌하거나 부적절한 AI 답변을 운영자에게 알려요" onPress={() => aiReport.open()} />
         ) : null}
       </ListGroup>
 
       <ListGroup title="앱 정보">
         {appUpdate ? (
           <ListRow
-            icon="arrow-up-circle-outline"
             title="앱 버전"
             subtitle="새 버전이 나왔어요 · 눌러서 업데이트"
             value={`${version} → ${appUpdate.latest}`}
             onPress={() => openStore().catch(() => toast.show(`스토어를 열지 못했어요. 스토어에서 「${APP_NAME}」이나 「${APP_SUBTITLE}」를 검색해 주세요.`, 'error'))}
           />
         ) : (
-          <ListRow icon="information-circle-outline" title="앱 버전" value={version} />
+          <ListRow title="앱 버전" value={version} />
         )}
-        {/* 기기 ID 는 길어서 오른쪽 값 대신 설명 줄에 — 오른쪽은 복사 표시 */}
+        <ListRow title="이용약관" onPress={() => Linking.openURL(APP_CONFIG.termsUrl)} />
+        <ListRow title="개인정보 처리방침" onPress={() => Linking.openURL(APP_CONFIG.privacyUrl)} />
+        {/* 기기 ID 는 문의·삭제 요청·팀원 등록 때만 쓰여 맨 아래에 — 길어서 오른쪽 값 대신 설명 줄에, 오른쪽은 복사 표시 */}
         <ListRow
-          icon="finger-print-outline"
           title="내 기기 ID"
           subtitle={`${deviceId} · 문의·팀원 등록용`}
           onPress={copyDeviceId}
           right={<Ionicons name="copy-outline" size={18} color={theme.textTertiary} accessibilityLabel="눌러서 복사" />}
         />
-        <ListRow icon="document-text-outline" title="이용약관" onPress={() => Linking.openURL(APP_CONFIG.termsUrl)} />
-        <ListRow icon="shield-checkmark-outline" title="개인정보 처리방침" onPress={() => Linking.openURL(APP_CONFIG.privacyUrl)} />
       </ListGroup>
       {aiReport.sheet}
     </SubScreen>

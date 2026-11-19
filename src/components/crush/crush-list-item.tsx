@@ -30,12 +30,10 @@ export function RoomAvatar({ crush, size = 48 }: { crush: Pick<Crush, 'id' | 'na
   if (crush.photoUri) {
     return <Image source={{ uri: crush.photoUri }} style={{ width: size, height: size, borderRadius: size / 2 }} contentFit="cover" transition={150} />;
   }
-  let hash = 0;
-  for (let i = 0; i < crush.id.length; i++) hash = (hash * 31 + crush.id.charCodeAt(i)) >>> 0;
-  const violet = hash % 2 === 1;
+  // 1.4 개편: 파랑·보라 두 색을 번갈아 쓰던 것을 한 가지 옅은 색으로 — 사람마다 색이 달라 화면이 어수선했다
   return (
-    <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2, backgroundColor: violet ? theme.accentSoft : theme.primarySoft }]}>
-      <Text style={[styles.avatarText, { fontSize: size * 0.4, lineHeight: size * 0.5, color: violet ? theme.accent : theme.primary }]}>{crush.name.trim().slice(0, 1) || '?'}</Text>
+    <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2, backgroundColor: theme.primarySoft }]}>
+      <Text style={[styles.avatarText, { fontSize: size * 0.4, lineHeight: size * 0.5, color: theme.primary }]}>{crush.name.trim().slice(0, 1) || '?'}</Text>
     </View>
   );
 }
@@ -68,7 +66,7 @@ export function CrushListItem({ crush, lastPreview, hidePreview, divider = false
       <RoomAvatar crush={crush} size={AVATAR} />
       <View style={styles.texts}>
         <View style={styles.nameRow}>
-          <AppText variant="bodyStrong" weight="700" numberOfLines={1} style={styles.name}>
+          <AppText variant="bodyStrong" numberOfLines={1} style={styles.name}>
             {crush.name}
           </AppText>
           <AppText variant="caption" color="textTertiary">
@@ -80,9 +78,9 @@ export function CrushListItem({ crush, lastPreview, hidePreview, divider = false
         </AppText>
       </View>
       <View style={styles.heat}>
-        <AnimatedNumber value={heat} suffix="°" ticks={false} duration={900} style={[styles.heatNum, { color: heat >= 50 ? theme.accent : theme.primary }]} />
+        <AnimatedNumber value={heat} suffix="°" ticks={false} duration={900} style={[styles.heatNum, { color: theme.primary }]} />
         {last && last.delta !== 0 ? (
-          <AppText variant="caption" weight="800" color={last.delta > 0 ? theme.accent : theme.textTertiary}>
+          <AppText variant="caption" weight="600" color={last.delta > 0 ? theme.primary : theme.textTertiary}>
             {last.delta > 0 ? `▲ ${last.delta}°` : `▼ ${Math.abs(last.delta)}°`}
           </AppText>
         ) : (
@@ -97,14 +95,14 @@ export function CrushListItem({ crush, lastPreview, hidePreview, divider = false
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.md + 2, paddingHorizontal: Spacing.lg, minHeight: 80 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, minHeight: 72 },
   avatar: { alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontWeight: '800' },
+  avatarText: { fontWeight: '700' },
   texts: { flex: 1, gap: 3 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   name: { flexShrink: 1 },
   heat: { alignItems: 'flex-end', minWidth: 64 },
-  heatNum: { fontSize: 30, lineHeight: 34, fontWeight: '900', letterSpacing: -1.2 },
+  heatNum: { fontSize: 24, lineHeight: 30, fontWeight: '700', letterSpacing: -0.8 },
   // 줄 사이 가는 선 — 이름 글자 아래에서 시작한다 (안쪽 여백 + 동그라미 + 간격)
   divider: { position: 'absolute', bottom: 0, right: Spacing.lg, left: Spacing.lg + AVATAR + Spacing.md, height: StyleSheet.hairlineWidth },
 });

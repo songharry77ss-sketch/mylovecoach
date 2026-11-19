@@ -110,6 +110,9 @@ beforeAll(async () => {
   // 저장소를 다 읽은 뒤에 연습 상태를 넣는다 (늦게 읽힌 빈 저장값이 덮지 않게)
   for (let i = 0; i < 50 && !useAppStore.persist.hasHydrated(); i += 1) await act(flush);
   useAppStore.setState({
+    // 「처음 5분 무제한」 A/B 는 처음 설치 때 무작위 — 고정하지 않으면 가끔 무제한(Infinity)으로 판정돼 횟수 검사가 흔들린다
+    introArm: 'off',
+    introStartedAt: null,
     user: { name: '지훈', gender: 'male', style: [], defaultTone: 'natural', createdAt: 0 },
     // AI 분석 동의는 받은 상태 (동의 시트는 따로 시험한다). 연습 1회 차감도 이미 한 상태
     aiConsent: true,
@@ -214,6 +217,9 @@ describe('연애 연습 화면 — 말풍선 상한과 AI 답변 신고', () => 
     const screen = tree as unknown as ReactTestRenderer;
     let unmounted = false;
     try {
+      // 아직 차감 전이고 횟수가 남았으면 입력창 위에 「첫 답장을 받으면 1회를 써요 · 12마디까지 · N회 남았어요」
+      const costLine = `첫 답장을 받으면 코칭 1회를 써요 · ${PRACTICE_MAX_TURNS}마디까지 · `;
+      expect(texts(screen).some((n) => n.startsWith(costLine) && /^[0-9]+회 남았어요$/.test(n.slice(costLine.length)))).toBe(true);
       act(() => screen.root.findByType(TextInput).props.onChangeText('이번 주말 어때요?'));
       await act(async () => {
         const send = byLabel(screen, '보내기');

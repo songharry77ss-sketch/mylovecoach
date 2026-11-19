@@ -1,19 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SignupCard } from '@/components/auth/signup-card';
-import { BrandGradient, BrandPill, GradientButton, Icon3D, ResearchBadge, SenditLogo, WashBackground, formatClock, useRemaining } from '@/components/brand/brand';
+import { GradientButton, formatClock, useRemaining } from '@/components/brand/brand';
 import { useCelebrate } from '@/components/fx/celebration';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { Screen, useScreenTopInset } from '@/components/ui/screen';
 import { useToast } from '@/components/ui/toast';
-import { Brand, BrandShadow, Radius, Spacing } from '@/constants/theme';
+import { Brand, Radius, Spacing } from '@/constants/theme';
+import { RESEARCH_SHORT } from '@/constants/brand';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
 import { paywallClosed } from '@/hooks/use-resume-after-paywall';
 import { useTheme } from '@/hooks/use-theme';
@@ -23,7 +24,7 @@ import { couponSupported } from '@/lib/billing/coupon';
 import { billingSupported, lastStoreProblem, purchasePlan, restorePremium, type PlanProduct } from '@/lib/billing/iap';
 import { CREDITS_PER_PACK, FALLBACK_PRICES, PRODUCT_IDS, SELLING_PLANS, SIGNUP_BONUS, freeRules, isConsumablePlan, yearPassEnd, type PlanKey } from '@/lib/billing/plans';
 import { PREMIUM_PLAN_NAMES, formatDateKo, formatPassEnd, isPremiumActive, passEndIfBoughtNow, premiumUntilSentence, quotaLabel, quotaStatus } from '@/lib/billing/quota';
-import { isSaleActive, priceNumber, SALE_WINDOW_MS, saleAudience, saleOffer, saleWindow, shouldStartSale } from '@/lib/billing/sale';
+import { isSaleActive, priceNumber, SALE_WINDOW_MS, saleAnchorAllowed, saleAudience, saleOffer, saleWindow, shouldStartSale } from '@/lib/billing/sale';
 import { APP_CONFIG } from '@/lib/config';
 import { haptic } from '@/lib/haptics';
 import { authAvailable } from '@/lib/supabase';
@@ -31,36 +32,45 @@ import { introUntil, useAppStore } from '@/store/app-store';
 
 type Reason = 'quota' | 'regenerate' | 'my' | 'banner' | 'upsell' | 'report' | 'practice' | 'mind' | 'renew';
 
-/** 들어온 곳마다 맨 위 큰 제목 — *…* 는 파란 강조 */
+/**
+ * 들어온 곳마다 맨 위 제목 — 1.4 「깔끔하게」 개편: 한 줄 사실 문장(파란 강조·두 줄 큰 제목을 걷었다). 결제 화면 조사 R3.
+ */
 const HEADLINES: Record<Reason, { title: string; subtitle: string }> = {
-  // 하루 이용권이 스토어에 있으면 화면에서 가격을 넣은 문구로 바꾼다
-  quota: { title: '오늘의 무료 코칭을\n*다 썼어요*', subtitle: '이용권이면 횟수 제한 없이 지금 바로 이어서 코칭받을 수 있어요.' },
-  regenerate: { title: '마음에 드는 답장이\n*나올 때까지*', subtitle: '이용권이면 다른 버전도 횟수 제한 없이 넘겨 볼 수 있어요.' },
-  my: { title: '필요한 만큼,\n*편하게* 물어봐요', subtitle: '답장이 막힐 때마다 횟수 걱정 없이 불러요.' },
-  banner: { title: '필요한 만큼,\n*편하게* 물어봐요', subtitle: '답장이 막힐 때마다 횟수 걱정 없이 불러요.' },
+  // 하루 이용권이 스토어에 있으면 화면에서 가격·충전 안내를 넣은 문구로 바꾼다
+  quota: { title: '오늘 무료 코칭을 다 썼어요', subtitle: '이용권이면 횟수 제한 없이 지금 바로 이어서 코칭받을 수 있어요.' },
+  regenerate: { title: '다른 답장도 더 볼까요?', subtitle: '이용권이면 마음에 드는 답장이 나올 때까지 넘겨 볼 수 있어요.' },
+  my: { title: '횟수 걱정 없이 물어봐요', subtitle: '답장이 막힐 때마다 바로 불러요.' },
+  banner: { title: '횟수 걱정 없이 물어봐요', subtitle: '답장이 막힐 때마다 바로 불러요.' },
   // 채팅 속 「답장이 도움이 됐나요?」 카드 — 결과를 받아 본 뒤
-  upsell: { title: '마음에 드는 답장이\n*나올 때까지*', subtitle: '이용권이면 횟수 걱정 없이 답장을 계속 받아볼 수 있어요.' },
-  report: { title: '그 사람 *분석 보고서*,\n지금 열어볼까요?', subtitle: '성향·호감 신호·공략법·궁합까지 한 번에 정리해 드려요.' },
-  practice: { title: '연애 연습,\n*실전처럼* 계속해요', subtitle: '이용권이면 AI 상대와 마음껏 리허설할 수 있어요.' },
-  mind: { title: '그 사람 *속마음*,\n더 들여다볼까요?', subtitle: '이용권이면 궁금한 상황을 횟수 걱정 없이 물어볼 수 있어요.' },
+  upsell: { title: '마음에 드는 답장이 나올 때까지', subtitle: '이용권이면 횟수 걱정 없이 답장을 계속 받아볼 수 있어요.' },
+  report: { title: '그 사람 분석 보고서, 지금 열어볼까요?', subtitle: '성향·호감 신호·공략법·궁합까지 한 번에 정리해 드려요.' },
+  practice: { title: '연애 연습, 실전처럼 계속해요', subtitle: '이용권이면 AI 상대와 마음껏 리허설할 수 있어요.' },
+  mind: { title: '그 사람 속마음, 더 들여다볼까요?', subtitle: '이용권이면 궁금한 상황을 횟수 걱정 없이 물어볼 수 있어요.' },
   // 하루 이용권이 곧 끝날 때 채팅방 안내 줄에서 — 1년권을 먼저 고른다 (결제 루프, lib/billing/paywall-route)
-  renew: { title: '하루 무제한이\n*곧 끝나요*', subtitle: '자주 쓴다면 1년권이 훨씬 싸요. 자동 결제도 없어요.' },
+  renew: { title: '하루 무제한이 곧 끝나요', subtitle: '자주 쓴다면 1년권이 훨씬 싸요. 자동 결제도 없어요.' },
 };
 
-const BENEFITS: { icon: keyof typeof Ionicons.glyphMap; title: string; body: string }[] = [
-  { icon: 'infinite-outline', title: '코칭 무제한', body: '캡처마다 답장 여러 버전과 호감 온도를 받아요' },
-  { icon: 'sparkles-outline', title: '속마음 풀이 · 다른 답장 더 보기', body: '그 사람 속마음도, 마음에 드는 답장이 나올 때까지도' },
-  { icon: 'analytics-outline', title: '상대 분석 보고서', body: '성향·호감 신호·공략법·궁합을 언제든 새로 분석해요' },
-];
+/** 이용권으로 얻는 것 — 아이콘 타일 없이 체크 한 줄씩 (조사: 아이콘 타일 반복이 「AI 티」) */
+const BENEFITS = ['코칭 무제한 — 캡처마다 답장 3가지와 호감 온도', '속마음 풀이 · 다른 답장 더 보기', '상대 분석 보고서'];
 
-const PLAN_TEXT: Record<PlanKey, { title: string; caption: string; badge?: string }> = {
-  day: { title: '하루 이용권', caption: '지금부터 24시간 무제한 · 자동 결제 없음', badge: '부담 없이' },
-  weekly: { title: '주간 구독', caption: '매주 자동 갱신 · 언제든 해지', badge: '인기' },
-  year: { title: '1년권', caption: '결제한 날부터 1년 · 자동 결제 없음', badge: '주간 구독 3주 가격' },
+/**
+ * 이용권 줄 글 — 배지는 사실만(1.4 개편): 근거 없는 「인기」와 계산이 100원 틀린 「주간 구독 3주 가격」(29,800 ≠ 9,900×3)을 뺐다.
+ */
+const PLAN_TEXT: Record<PlanKey, { title: string; caption: string }> = {
+  day: { title: '하루 이용권', caption: '지금부터 24시간 무제한 · 자동 결제 없음' },
+  weekly: { title: '주간 구독', caption: '매주 자동 결제 · 언제든 해지할 수 있어요' },
+  year: { title: '1년권', caption: '결제한 날부터 1년 · 자동 결제 없음' },
   // 평생권은 2026-11-07 부터 팔지 않아 목록에 나오지 않는다 (SELLING_PLANS). 이미 산 사람은 「이용 중」 화면만 본다
   lifetime: { title: '평생권', caption: '판매 종료' },
   credits: { title: `횟수권 ${CREDITS_PER_PACK}회`, caption: '필요할 때만 한 번씩 · 기간 제한 없음' },
 };
+
+/** 1년권이 하루에 얼마꼴인지 — 원화 스토어 가격 ÷ 365, 「약 82원」. 원화가 아니거나 모르면 null */
+export function perDayWon(display: string, price?: number | null): string | null {
+  const n = typeof price === 'number' && price > 0 ? price : Number((/^\s*₩\s?([\d,]+)\s*$/.exec(display)?.[1] ?? '').replace(/,/g, ''));
+  if (!n || !Number.isFinite(n) || !/₩/.test(display)) return null;
+  return `하루 약 ${Math.round(n / 365).toLocaleString('ko-KR')}원`;
+}
 
 /** 웹에서 결제 화면 모양을 확인·캡처하기 위한 개발용 플래그: ios | android (실제 결제는 되지 않음) */
 const previewStore = process.env.EXPO_PUBLIC_PAYWALL_PREVIEW;
@@ -137,6 +147,8 @@ export default function Paywall() {
   // 하루 이용권이 곧 끝나서 온 사람(renew)에게는 1년권을 먼저 고른다
   const [selected, setSelected] = useState<PlanKey>(reason === 'renew' ? 'year' : 'day');
   const [busy, setBusy] = useState<'purchase' | 'restore' | null>(null);
+  // 「다른 이용권 보기」를 펼쳤는지
+  const [moreOpen, setMoreOpen] = useState(false);
   const [done, setDone] = useState<Done | null>(null);
   // 이 화면은 iOS 네이티브 모달이라 앱 전체 토스트가 모달 뒤에 가려진다.
   // 그래서 결제·복원 결과는 버튼 바로 위에 직접 보여 준다.
@@ -203,14 +215,18 @@ export default function Paywall() {
     const times = Math.ceil(y / d);
     return times * d > y ? `1년권은 하루 이용권 ${times}번 값보다 싸게 1년 내내 무제한이에요. 자동 결제도 없어요.` : null;
   })();
+  // 회원은 매일 무료가 다시 채워진다 — 무료로 기다리는 길을 돈 내는 길보다 먼저 적는다(피클 「사실 → 무료 길 → 유료 길」)
+  const refills = (status.daily ?? 0) > 0;
   const subtitle =
     reason === 'renew' && yearAnchor
       ? yearAnchor
-      : reason === 'quota' && saleOn
-      ? '지금은 특가로 바로 이어서 코칭받을 수 있어요.'
-      : reason === 'quota' && dayPrice
-        ? `하루 이용권 ${priceText(dayPrice)}이면 바로 이어서 코칭받아요.`
-        : HEADLINES[reason].subtitle;
+      : reason === 'quota' && refills
+        ? '무료 코칭은 내일 다시 채워져요. 지금 바로 이어서 하려면 이용권을 골라 주세요.'
+        : reason === 'quota' && saleOn
+          ? '지금은 특가로 바로 이어서 코칭받을 수 있어요.'
+          : reason === 'quota' && dayPrice
+            ? `하루 이용권 ${priceText(dayPrice)}이면 바로 이어서 코칭받아요.`
+            : HEADLINES[reason].subtitle;
   useEffect(() => {
     if (!saleOn || visit.current.sale) return;
     visit.current.sale = true;
@@ -298,36 +314,88 @@ export default function Paywall() {
   // 1년권이면 언제까지인지 붙인다 (Android 는 어림한 날짜라 「끝날 예정」)
   const until = premiumUntilSentence(premium);
   const headline = active
-    ? { title: '프리미엄 *이용 중*이에요', subtitle: `${PREMIUM_PLAN_NAMES[premium?.plan ?? 'weekly']}으로 모든 기능을 무제한으로 쓰고 있어요.${until ? ` ${until}` : ''}` }
+    ? { title: '프리미엄 이용 중이에요', subtitle: `${PREMIUM_PLAN_NAMES[premium?.plan ?? 'weekly']}으로 모든 기능을 무제한으로 쓰고 있어요.${until ? ` ${until}` : ''}` }
     : offerSignup && status.kind === 'exhausted'
-      ? { title: '무료 맛보기를\n*다 썼어요*', subtitle: `가입하면 무료 코칭 ${SIGNUP_BONUS}회를 더 드려요. 이용권으로 바로 이어서 할 수도 있어요.` }
-      : { title: HEADLINES[reason].title, subtitle };
+      ? { title: '무료 맛보기를 다 썼어요', subtitle: `가입하면 무료 코칭 ${SIGNUP_BONUS}회를 더 드려요. 이용권으로 바로 이어서 할 수도 있어요.` }
+      : reason === 'renew' && wallet.passUntil > minuteNow
+        ? { title: `하루 무제한이 ${formatPassEnd(wallet.passUntil, minuteNow)}에 끝나요`, subtitle }
+        : { title: HEADLINES[reason].title, subtitle };
 
   const ready = showPlans && products != null && !active;
-  const day = ready ? visible.find((p) => p.plan === 'day') : undefined;
-  const others = ready ? visible.filter((p) => p.plan !== 'day') : [];
+  // 처음 보이는 줄은 두 개 — 하루 이용권·1년권(곧 끝나요 화면은 1년권이 위). 주간 구독·횟수권은 「다른 이용권 보기」로 그 자리에서 펼친다(조사 R2: 상위 결제 화면 62%가 요금제 2개)
+  const MAIN: PlanKey[] = reason === 'renew' ? ['year', 'day'] : ['day', 'year'];
+  const mainRows = ready ? MAIN.map((k) => visible.find((p) => p.plan === k)).filter((p): p is PlanProduct => Boolean(p)) : [];
+  const extraRows = ready ? visible.filter((p) => !MAIN.includes(p.plan)) : [];
+  // 두 줄이 모두 없으면(스토어가 소모성 상품을 확인하지 못함) 남은 것을 바로 보여 준다
+  const showExtras = moreOpen || mainRows.length === 0 || extraRows.some((p) => p.plan === chosen);
   const chosenPrice = chosen === 'day' && salePrice ? salePrice : priceOf(chosen);
   const footer = active || (ready && visible.length > 0);
+  // 특가 취소선·할인율은 2026-11-27 20:45 부터 (lib/billing/sale SALE_ANCHOR_FROM)
+  const anchorOk = saleAnchorAllowed(minuteNow);
+  const blocked = reason === 'quota' || reason === 'regenerate' || reason === 'report' || reason === 'practice' || reason === 'mind';
+  const rowFor = (p: PlanProduct) => {
+    if (p.plan === 'day') {
+      const dayTitle = name ? `${shortName(name)}님을 위한 하루 이용권` : PLAN_TEXT.day.title;
+      return (
+        <PlanRow
+          key={p.plan}
+          selected={chosen === 'day'}
+          onPress={() => pick('day')}
+          title={dayTitle}
+          caption={`${wallet.passUntil > minuteNow ? '지금 연장하면' : '지금 시작하면'} ${formatPassEnd(passEnd, minuteNow)}까지 무제한 · 자동 결제 없음`}
+          price={p.displayPrice}
+          sale={saleOn && offer ? { price: offer.sale.displayPrice, regular: offer.regular.displayPrice, percent: offer.percent, left: sale.remainingMs, anchor: anchorOk } : null}
+        />
+      );
+    }
+    if (p.plan === 'year') {
+      return (
+        <PlanRow
+          key={p.plan}
+          selected={chosen === 'year'}
+          onPress={() => pick('year')}
+          title={PLAN_TEXT.year.title}
+          caption={`${formatDateKo(yearPassEnd(minuteNow))}까지 무제한 · 자동 결제 없음`}
+          note={perDayWon(priceOf('year'), p.price) ?? undefined}
+          price={priceOf('year')}
+        />
+      );
+    }
+    return (
+      <PlanRow
+        key={p.plan}
+        selected={chosen === p.plan}
+        onPress={() => pick(p.plan)}
+        title={PLAN_TEXT[p.plan].title}
+        caption={PLAN_TEXT[p.plan].caption}
+        price={priceOf(p.plan)}
+        per={p.plan === 'weekly' ? '/주' : undefined}
+      />
+    );
+  };
 
   return (
     <View style={[styles.flex, { backgroundColor: theme.background }]}>
       <Screen sheet safeTop safeBottom={!footer} contentStyle={styles.content}>
         <View style={styles.topBar}>
-          <SenditLogo size="sm" />
           <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={close} hitSlop={8} style={[styles.close, { backgroundColor: theme.surface }]}>
             <Ionicons name="close" size={20} color={theme.textSecondary} />
           </Pressable>
         </View>
 
-        <Animated.View entering={FadeInDown.duration(320)} style={styles.head}>
-          <Headline text={headline.title} />
+        {/* 제목 한 줄 + 사실 한 줄 (1.4 개편 — 큰 그라데이션 카드·3D 티켓·연구진 배지를 걷었다) */}
+        <Animated.View entering={FadeInDown.duration(280)} style={styles.head}>
+          <Text accessibilityRole="header" style={[styles.headline, { color: theme.text }]}>
+            {headline.title}
+          </Text>
           <AppText variant="body" color="textSecondary">
             {headline.subtitle}
           </AppText>
-          <View style={styles.headChips}>
-            <ResearchBadge />
-            {!active && (status.kind === 'team' || status.kind === 'pass' || (status.credits ?? 0) > 0) ? <BrandPill icon="checkmark-circle" label={`지금: ${quotaLabel(status)}`} /> : null}
-          </View>
+          {!active && (status.kind === 'team' || status.kind === 'pass' || (status.credits ?? 0) > 0) ? (
+            <AppText variant="caption" color="textSecondary" weight="600">
+              지금: {quotaLabel(status)}
+            </AppText>
+          ) : null}
         </Animated.View>
 
         {offerSignup ? (
@@ -338,10 +406,13 @@ export default function Paywall() {
               haptic.celebrate();
               celebrate({ kind: 'sparkles', count: 22, haptic: false });
               close();
-              toast.show(result.bonus ? `가입 완료! 무료 코칭 ${SIGNUP_BONUS}회를 받았어요 🎁` : '로그인했어요.', 'success');
+              toast.show(result.bonus ? `가입 완료! 무료 코칭 ${SIGNUP_BONUS}회를 받았어요` : '로그인했어요.', 'success');
             }}
           />
         ) : null}
+
+        {/* 얻는 것 — 체크 세 줄 (막혀서 온 사람은 이미 알고 있어 이용권 줄 아래로) */}
+        {!active && !blocked ? <Benefits /> : null}
 
         {showPlans && !products && !active ? (
           <View style={styles.loading}>
@@ -352,39 +423,29 @@ export default function Paywall() {
           </View>
         ) : null}
 
-        {day ? (
-          <Animated.View entering={FadeInDown.delay(60).duration(320)}>
-            <DayPassHero
-              name={name ? shortName(name) : ''}
-              selected={chosen === 'day'}
-              onPress={() => pick('day')}
-              price={day.displayPrice}
-              passEnd={formatPassEnd(passEnd, minuteNow)}
-              extending={wallet.passUntil > minuteNow}
-              sale={saleOn && offer ? { price: offer.sale.displayPrice, regular: offer.regular.displayPrice, percent: offer.percent, left: sale.remainingMs } : null}
-            />
+        {mainRows.length || extraRows.length ? (
+          <Animated.View entering={FadeInDown.delay(60).duration(280)} style={styles.plans} accessibilityRole="radiogroup">
+            {mainRows.map(rowFor)}
+            {extraRows.length && showExtras ? extraRows.map(rowFor) : null}
+            {extraRows.length && !showExtras ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="다른 이용권 보기"
+                onPress={() => {
+                  haptic.select();
+                  track('paywall_more', { reason });
+                  setMoreOpen(true);
+                }}
+                hitSlop={6}
+                style={styles.moreRow}>
+                <AppText variant="small" color="textSecondary" style={styles.flex} numberOfLines={2}>
+                  다른 이용권 보기 ·{' '}
+                  {extraRows.map((p) => `${PLAN_TEXT[p.plan].title} ${priceText(priceOf(p.plan))}${p.plan === 'weekly' ? '/주' : ''}`).join(' · ')}
+                </AppText>
+                <Ionicons name="chevron-down" size={16} color={theme.textTertiary} />
+              </Pressable>
+            ) : null}
           </Animated.View>
-        ) : null}
-
-        {others.length ? (
-          <View style={styles.plans}>
-            <AppText variant="smallStrong" color="textSecondary">
-              {day ? '다른 이용권도 있어요' : '이용권 고르기'}
-            </AppText>
-            {others.map((p, i) => (
-              <Animated.View key={p.plan} entering={FadeInDown.delay(120 + 60 * i).duration(300)}>
-                <PlanCard
-                  selected={chosen === p.plan}
-                  onPress={() => pick(p.plan)}
-                  title={PLAN_TEXT[p.plan].title}
-                  price={priceOf(p.plan)}
-                  per={p.plan === 'weekly' ? '/ 주' : p.plan === 'year' ? '/ 1년' : undefined}
-                  caption={PLAN_TEXT[p.plan].caption}
-                  badge={PLAN_TEXT[p.plan].badge}
-                />
-              </Animated.View>
-            ))}
-          </View>
         ) : null}
 
         {ready && storeUnreachable ? (
@@ -400,24 +461,7 @@ export default function Paywall() {
 
         {ready && chosen === 'year' ? <YearPassNote price={priceOf('year')} until={formatDateKo(yearPassEnd(minuteNow))} storeName={storeName} /> : null}
 
-        <View style={[styles.benefits, { backgroundColor: theme.surface }]}>
-          <AppText variant="smallStrong" color="textSecondary">
-            이용권이면 이렇게 돼요
-          </AppText>
-          {BENEFITS.map((b) => (
-            <View key={b.title} style={styles.benefit}>
-              <View style={[styles.benefitIcon, { backgroundColor: theme.primarySoft }]}>
-                <Ionicons name={b.icon} size={18} color={theme.primary} />
-              </View>
-              <View style={styles.flex}>
-                <AppText variant="smallStrong">{b.title}</AppText>
-                <AppText variant="caption" color="textSecondary">
-                  {b.body}
-                </AppText>
-              </View>
-            </View>
-          ))}
-        </View>
+        {!active && blocked ? <Benefits /> : null}
 
         {ready && visible.length ? (
           <AppText variant="caption" color="textSecondary" style={styles.fine}>
@@ -453,12 +497,15 @@ export default function Paywall() {
             </AppText>
           </Pressable>
         </View>
+        <AppText variant="caption" color="textTertiary" align="center" style={styles.research}>
+          {RESEARCH_SHORT}
+        </AppText>
       </Screen>
 
       {footer ? (
-        <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.md, backgroundColor: theme.background, borderTopColor: theme.border }]}>
+        <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.md, backgroundColor: theme.background, borderTopColor: theme.separator }]}>
           {notice ? (
-            <View accessibilityLiveRegion="polite" style={[styles.notice, { backgroundColor: notice.kind === 'error' ? theme.accentSoft : theme.primarySoft }]}>
+            <View accessibilityLiveRegion="polite" style={[styles.notice, { backgroundColor: notice.kind === 'error' ? theme.accentSoft : theme.surface }]}>
               <AppText variant="small" color={notice.kind === 'error' ? 'danger' : 'textSecondary'} align="center">
                 {notice.text}
               </AppText>
@@ -468,11 +515,11 @@ export default function Paywall() {
             <Button variant="brand" title="확인" onPress={close} />
           ) : (
             <>
+              {/* 화면에서 색이 찬 버튼은 이것 하나 — 무엇을 얼마에 사는지 버튼이 말한다(조사 R3) */}
               <GradientButton
-                shine
                 haptic
-                title={buyTitle(chosen, chosen === 'day' && salePrice != null)}
-                accessibilityLabel={`${buyTitle(chosen, chosen === 'day' && salePrice != null)}, ${priceText(chosenPrice)} 결제`}
+                title={buyTitle(chosen, chosenPrice, chosen === 'day' && salePrice != null)}
+                accessibilityLabel={`${buyTitle(chosen, chosenPrice, chosen === 'day' && salePrice != null)}, ${priceText(chosenPrice)} 결제`}
                 onPress={buy}
                 loading={busy === 'purchase'}
                 disabled={busy != null}
@@ -488,18 +535,20 @@ export default function Paywall() {
   );
 }
 
-function buyTitle(plan: PlanKey, sale: boolean): string {
+/** 결제 버튼 — 금액을 넣어 무엇을 얼마에 사는지 말한다 */
+function buyTitle(plan: PlanKey, price: string, sale: boolean): string {
+  const won = priceText(price);
   switch (plan) {
     case 'day':
-      return sale ? '특가로 하루 무제한 시작하기' : '하루 무제한 시작하기';
+      return sale ? `특가 ${won}으로 시작하기` : `${won}으로 하루 무제한 시작하기`;
     case 'weekly':
-      return '주간 구독 시작하기';
+      return `주 ${won}으로 구독 시작하기`;
     case 'year':
-      return '1년권 시작하기';
+      return `${won}으로 1년 무제한 시작하기`;
     case 'lifetime': // 판매 중지 — 고를 수 없다
       return '평생권 시작하기';
     case 'credits':
-      return `횟수권 ${CREDITS_PER_PACK}회 충전하기`;
+      return `${won}으로 ${CREDITS_PER_PACK}회 충전하기`;
   }
 }
 
@@ -508,15 +557,15 @@ function footCaption(plan: PlanKey, price: string, sale: boolean): string {
   const won = priceText(price);
   switch (plan) {
     case 'day':
-      return `${sale ? '특가 ' : ''}${won} · 24시간 무제한 · 자동 결제 없음`;
+      return `${sale ? '특가 · ' : ''}한 번만 결제돼요 · 24시간 뒤 저절로 끝나요 · 자동 결제 없음`;
     case 'weekly':
-      return `매주 ${won} 자동 결제 · 언제든 해지할 수 있어요`;
+      return `해지하지 않으면 매주 ${won}이 결제돼요 · 언제든 해지할 수 있어요`;
     case 'year':
-      return `${won} 한 번 결제 · 1년 무제한 · 자동 결제 없음`;
+      return '한 번만 결제돼요 · 1년 뒤 저절로 끝나요 · 자동 결제 없음';
     case 'lifetime': // 판매 중지 — 고를 수 없다
       return `${won} 한 번 결제 · 자동 결제 없음`;
     case 'credits':
-      return `${won} · 코칭 ${CREDITS_PER_PACK}회 · 기간 제한 없음`;
+      return `한 번만 결제돼요 · 코칭 ${CREDITS_PER_PACK}회 · 기간 제한 없음`;
   }
 }
 
@@ -533,145 +582,89 @@ function fineText(plan: PlanKey, display: string, storeName: string, sale = fals
   return `횟수권은 ${price} 1회 결제로 코칭 ${CREDITS_PER_PACK}회가 충전되고 기간 제한이 없어요. 무료 횟수를 먼저 쓰고 그다음 횟수권이 차감돼요. ${common}`;
 }
 
-/** 큰 제목 — *…* 부분만 파란색 */
-function Headline({ text }: { text: string }) {
+/** 이용권으로 얻는 것 — 체크 세 줄 */
+function Benefits() {
   const theme = useTheme();
-  const parts = text.split('*');
   return (
-    <Text accessibilityRole="header" style={[styles.headline, { color: theme.text }]}>
-      {parts.map((part, i) =>
-        i % 2 === 1 ? (
-          <Text key={i} style={{ color: theme.primary }}>
-            {part}
-          </Text>
-        ) : (
-          part
-        ),
-      )}
-    </Text>
+    <View style={styles.benefits} accessibilityLabel={`이용권이면 ${BENEFITS.join(', ')}`}>
+      {BENEFITS.map((b) => (
+        <View key={b} style={styles.benefit}>
+          <Ionicons name="checkmark" size={17} color={theme.text} />
+          <AppText variant="small" style={styles.flex}>
+            {b}
+          </AppText>
+        </View>
+      ))}
+    </View>
   );
 }
 
-interface HeroSale {
+interface RowSale {
   price: string;
   regular: string;
   percent: number;
   left: number;
+  /** 취소선 정가·할인율을 보여도 되는지 (lib/billing/sale SALE_ANCHOR_FROM) */
+  anchor: boolean;
 }
 
 /**
- * 맨 위 주인공 카드 — 「{이름}님을 위한 하루 무제한 이용권」.
- * 시계는 실제로 흐른다: 지금 사면 24시간이 끝나는 시각(1분마다 갱신)과, 타임 세일 중이면 특가 마감까지 남은 시간(1초마다).
+ * 이용권 한 줄 — 1.4 개편: 모든 이용권이 같은 모양(회색 면 + 왼쪽 동그라미 + 이름·설명 + 오른쪽 값).
+ * 고르면 검정 테두리와 검정 체크. 값은 모두 같은 크기(17pt) — 예전의 40pt 흰 숫자·그라데이션 테두리·배지를 걷었다.
+ * 특가 중이면 값이 특가로 바뀌고 「특가 마감까지 09:41」(1초마다, 실제 시각 기준)이 붙는다.
  */
-function DayPassHero({ name, selected, onPress, price, passEnd, extending, sale }: { name: string; selected: boolean; onPress: () => void; price: string; passEnd: string; extending: boolean; sale: HeroSale | null }) {
-  const big = splitPrice(sale ? sale.price : price);
-  // 폭이 좁은 휴대폰(아이폰 SE·갤럭시 A 360dp)에서는 「하루 무제한 이용권」이 한 줄에 들어가게 조금 작게
-  const compact = useWindowDimensions().width < 380;
-  // 「{이름}님을 위한」 / 「하루 무제한 이용권」 (이름이 없으면 「오늘 하루」 / 「무제한 이용권」)
-  const [eyebrow, title] = name ? [`${name}님을 위한`, '하루 무제한 이용권'] : ['오늘 하루', '무제한 이용권'];
+function PlanRow({ selected, onPress, title, caption, note, price, per, sale }: { selected: boolean; onPress: () => void; title: string; caption: string; note?: string; price: string; per?: string; sale?: RowSale | null }) {
+  const theme = useTheme();
+  const dark = useColorScheme() === 'dark';
+  const shown = sale ? sale.price : price;
+  const spoken = sale ? `특가 ${priceText(sale.price)}${sale.anchor ? `, 정가 ${priceText(sale.regular)}` : ''}, 특가 마감까지 ${formatClock(sale.left)}` : `${priceText(price)}${per ? ` ${per}` : ''}`;
   return (
     <Pressable
       accessibilityRole="radio"
       accessibilityState={{ selected }}
-      accessibilityLabel={`${eyebrow} ${title}, ${sale ? `특가 ${priceText(sale.price)}, 정가 ${priceText(sale.regular)}, 특가 마감까지 ${formatClock(sale.left)}` : priceText(price)}, ${extending ? '지금 연장하면' : '지금 시작하면'} ${passEnd}까지 무제한`}
+      accessibilityLabel={`${title}, ${spoken}, ${caption}${note ? `, ${note}` : ''}`}
       onPress={onPress}
-      style={[styles.heroOuter, BrandShadow]}>
-      <BrandGradient colors={[Brand.blue, Brand.violet]} style={styles.hero}>
-        <View pointerEvents="none" style={styles.heroGlow} />
-        <View pointerEvents="none" style={styles.heroOrb} />
-        <View style={styles.heroTop}>
-          <BrandPill tone="glass" icon={sale ? 'flash' : 'ticket-outline'} label={sale ? '타임 세일' : '자동 결제 없음'} />
-          <View style={[styles.heroRadio, selected ? styles.heroRadioOn : null]}>{selected ? <Ionicons name="checkmark" size={16} color={Brand.blue} /> : null}</View>
-        </View>
-        <Icon3D name="ticket" size={compact ? 80 : 96} float style={styles.heroIcon} />
-        <View style={[styles.heroTitles, compact && styles.heroTitlesCompact]}>
-          <Text style={styles.heroEyebrow} numberOfLines={1}>
-            {eyebrow}
-          </Text>
-          <Text style={[styles.heroTitle, compact && styles.heroTitleCompact]}>{title}</Text>
-        </View>
-        <View style={styles.heroClock}>
-          <Ionicons name="time-outline" size={16} color={Brand.onBrand} />
-          <Text style={styles.heroClockText}>
-            {extending ? '지금 연장하면' : '지금 시작하면'} <Text style={styles.heroClockStrong}>{passEnd}</Text>까지 무제한
-          </Text>
-        </View>
-        {sale ? (
-          <View style={styles.saleBox}>
-            <Text style={styles.saleLabel}>특가 마감까지</Text>
-            <Text style={styles.saleClock} accessibilityLiveRegion="none">
-              {formatClock(sale.left)}
-            </Text>
-          </View>
-        ) : null}
-        <View style={styles.heroPriceRow}>
-          {sale ? <Text style={styles.heroRegular}>{priceText(sale.regular)}</Text> : null}
-          <Text style={styles.heroPrice}>
-            {big.value}
-            {big.unit ? <Text style={styles.heroUnit}>{big.unit}</Text> : null}
-          </Text>
-          {sale ? (
-            <View style={styles.heroPercent}>
-              <Text style={styles.heroPercentText}>{sale.percent}%</Text>
-            </View>
-          ) : (
-            <Text style={styles.heroPer}>/ 24시간</Text>
-          )}
-        </View>
-      </BrandGradient>
-    </Pressable>
-  );
-}
-
-interface PlanCardProps {
-  selected: boolean;
-  onPress: () => void;
-  title: string;
-  price: string;
-  per?: string;
-  caption: string;
-  badge?: string;
-}
-
-/** 이용권 카드 — 연회색 카드 + 큰 가격, 고르면 그라데이션 테두리와 체크 (「럽코」 결제 시안) */
-function PlanCard({ selected, onPress, title, price, per, caption, badge }: PlanCardProps) {
-  const theme = useTheme();
-  const p = splitPrice(price);
-  const inner = (
-    <View style={[styles.planInner, { backgroundColor: selected ? theme.surfaceSelected : theme.surface }]}>
-      <View style={styles.planTitleRow}>
-        <AppText variant="bodyStrong" style={styles.planTitle}>
+      style={({ pressed }) => [
+        styles.row,
+        { backgroundColor: dark ? theme.surfaceElevated : theme.surface, borderColor: selected ? theme.text : 'transparent', opacity: pressed ? 0.85 : 1 },
+      ]}>
+      <View style={[styles.radio, selected ? { backgroundColor: theme.text, borderColor: theme.text } : { borderColor: theme.textTertiary }]}>
+        {selected ? <Ionicons name="checkmark" size={14} color={theme.background} /> : null}
+      </View>
+      <View style={styles.rowTexts}>
+        <AppText variant="bodyStrong" numberOfLines={2}>
           {title}
         </AppText>
-        {badge ? <BrandPill label={badge} style={styles.planBadge} /> : null}
-        <View style={styles.flex} />
-        {selected ? (
-          <BrandGradient colors={Brand.button} style={styles.check}>
-            <Ionicons name="checkmark" size={15} color={Brand.onBrand} />
-          </BrandGradient>
-        ) : (
-          <View style={[styles.check, styles.checkOff, { borderColor: theme.textTertiary }]} />
-        )}
+        <AppText variant="caption" color="textSecondary">
+          {caption}
+        </AppText>
+        {note ? (
+          <AppText variant="caption" color="textSecondary" weight="600">
+            {note}
+          </AppText>
+        ) : null}
+        {sale ? (
+          <AppText variant="caption" color="primary" weight="700" style={styles.saleClock}>
+            특가 마감까지 {formatClock(sale.left)}
+          </AppText>
+        ) : null}
       </View>
-      <Text style={[styles.planPrice, { color: selected ? theme.primary : theme.text }]}>
-        {p.value}
-        {p.unit ? <Text style={styles.planUnit}>{p.unit}</Text> : null}
-        {per ? <Text style={[styles.planPer, { color: theme.textSecondary }]}> {per}</Text> : null}
-      </Text>
-      <AppText variant="caption" color="textSecondary">
-        {caption}
-      </AppText>
-    </View>
-  );
-  return (
-    <Pressable accessibilityRole="radio" accessibilityState={{ selected }} accessibilityLabel={`${title}, ${priceText(price)}${per ? ` ${per}` : ''}`} onPress={onPress}>
-      {selected ? (
-        <LinearGradient colors={Brand.button} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.planRing}>
-          {inner}
-        </LinearGradient>
-      ) : (
-        <View style={styles.planRing}>{inner}</View>
-      )}
+      <View style={styles.rowPrice}>
+        {sale && sale.anchor ? <Text style={[styles.regular, { color: theme.textTertiary }]}>{priceText(sale.regular)}</Text> : null}
+        <Text style={[styles.price, { color: sale ? theme.primary : theme.text }]}>
+          {priceText(shown)}
+          {per ? <Text style={[styles.per, { color: theme.textSecondary }]}>{per}</Text> : null}
+        </Text>
+        {sale && sale.anchor ? (
+          <AppText variant="caption" color="primary" weight="700">
+            {sale.percent}% 할인
+          </AppText>
+        ) : sale ? (
+          <AppText variant="caption" color="primary" weight="700">
+            특가
+          </AppText>
+        ) : null}
+      </View>
     </Pressable>
   );
 }
@@ -689,14 +682,11 @@ function YearPassNote({ price, until, storeName }: { price: string; until: strin
     `같은 ${storeName} 계정이면 기기를 바꿔도 「구매 복원」으로 다시 쓸 수 있어요`,
   ];
   return (
-    <View style={[styles.promise, { backgroundColor: theme.primarySoft }]} accessibilityLabel="1년권 안내">
-      <View style={styles.promiseHead}>
-        <Ionicons name="calendar-outline" size={18} color={theme.primary} />
-        <AppText variant="smallStrong">1년권 안내</AppText>
-      </View>
+    <View style={[styles.promise, { borderColor: theme.separator }]} accessibilityLabel="1년권 안내">
+      <AppText variant="smallStrong">1년권 안내</AppText>
       {items.map((t) => (
         <View key={t} style={styles.promiseRow}>
-          <Ionicons name="checkmark-circle" size={16} color={theme.primary} />
+          <Ionicons name="checkmark" size={15} color={theme.textSecondary} />
           <AppText variant="caption" color="textSecondary" style={styles.flex}>
             {t}
           </AppText>
@@ -724,14 +714,16 @@ function PurchaseDone({ plan, onClose }: { plan: PlanKey; onClose: () => void })
     credits: { title: `횟수권 ${CREDITS_PER_PACK}회 충전!`, body: '필요할 때 한 번씩 꺼내 써요.' },
   };
   return (
-    <WashBackground style={{ paddingTop: top + Spacing.xxl, paddingBottom: insets.bottom + Spacing.lg }}>
+    <View style={[styles.flex, { backgroundColor: theme.background, paddingTop: top + Spacing.xxl, paddingBottom: insets.bottom + Spacing.lg }]}>
       <View style={styles.doneBody} accessibilityLiveRegion="polite">
-        <Animated.View entering={ZoomIn.springify().damping(12)} style={styles.doneIcon}>
-          <BrandGradient style={styles.doneHalo} />
-          <Icon3D name="ticket" size={156} float />
+        {/* 1.4 개편: 3D 티켓·빛 번짐 대신 파란 체크 원 하나 — 축하(색종이)는 결제 순간 한 번만 */}
+        <Animated.View entering={ZoomIn.duration(260)} style={[styles.doneIcon, { backgroundColor: theme.primary }]}>
+          <Ionicons name="checkmark" size={40} color={Brand.onBrand} />
         </Animated.View>
-        <Animated.View entering={FadeInDown.delay(140).duration(320)} style={styles.doneTexts}>
-          <BrandPill icon="checkmark-circle" label="결제 완료" style={styles.doneChip} />
+        <Animated.View entering={FadeInDown.delay(120).duration(280)} style={styles.doneTexts}>
+          <AppText variant="smallStrong" color="primary" align="center">
+            결제 완료
+          </AppText>
           <Text accessibilityRole="header" style={[styles.doneTitle, { color: theme.text }]}>
             {text[plan].title}
           </Text>
@@ -740,10 +732,10 @@ function PurchaseDone({ plan, onClose }: { plan: PlanKey; onClose: () => void })
           </AppText>
         </Animated.View>
       </View>
-      <Animated.View entering={FadeInDown.delay(260).duration(320)} style={styles.doneFoot}>
-        <GradientButton shine title="바로 이어서 하기" onPress={onClose} />
+      <Animated.View entering={FadeInDown.delay(200).duration(280)} style={styles.doneFoot}>
+        <GradientButton title="바로 이어서 하기" onPress={onClose} />
       </Animated.View>
-    </WashBackground>
+    </View>
   );
 }
 
@@ -765,7 +757,7 @@ function AppDownload({ reason }: { reason: Reason }) {
 
   return (
     <View style={styles.download}>
-      <View style={[styles.webNotice, { backgroundColor: theme.primarySoft }]}>
+      <View style={[styles.webNotice, { backgroundColor: theme.surface }]}>
         <AppText variant="smallStrong" align="center">
           이용권은 앱에서 결제할 수 있어요
         </AppText>
@@ -801,72 +793,41 @@ function AppDownload({ reason }: { reason: Reason }) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  content: { gap: Spacing.xl, paddingBottom: Spacing.xl },
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: -Spacing.sm },
+  content: { gap: Spacing.lg + 4, paddingBottom: Spacing.xl },
+  topBar: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginBottom: -Spacing.md },
   close: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   head: { gap: Spacing.sm },
-  headline: { fontSize: 28, lineHeight: 37, fontWeight: '900', letterSpacing: -0.9 },
-  headChips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, marginTop: Spacing.xs },
+  // 1.4 개편: 28pt 두 줄 + 파란 강조 → 24pt 한 문장
+  headline: { fontSize: 24, lineHeight: 32, fontWeight: '700', letterSpacing: -0.6 },
   loading: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.xl },
 
-  heroOuter: { borderRadius: Radius.xl },
-  hero: { borderRadius: Radius.xl, overflow: 'hidden', padding: Spacing.xl, gap: Spacing.md },
-  heroGlow: { position: 'absolute', width: 240, height: 240, borderRadius: 120, top: -110, right: -70, backgroundColor: 'rgba(138,216,255,0.26)' },
-  heroOrb: { position: 'absolute', width: 160, height: 160, borderRadius: 80, bottom: -80, left: -50, backgroundColor: 'rgba(255,255,255,0.08)' },
-  heroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  heroRadio: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: Brand.onBrandDim, alignItems: 'center', justifyContent: 'center' },
-  heroRadioOn: { backgroundColor: Brand.onBrand, borderColor: Brand.onBrand },
-  heroIcon: { position: 'absolute', right: Spacing.md, top: 50 },
-  heroTitles: { paddingRight: 92, gap: 2 },
-  heroEyebrow: { color: Brand.onBrand, fontSize: 19, lineHeight: 26, fontWeight: '800', letterSpacing: -0.5 },
-  heroTitle: { color: Brand.onBrand, fontSize: 28, lineHeight: 36, fontWeight: '900', letterSpacing: -1 },
-  heroTitlesCompact: { paddingRight: 72 },
-  heroTitleCompact: { fontSize: 24, lineHeight: 32 },
-  heroClock: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  heroClockText: { flex: 1, color: Brand.onBrand, fontSize: 14, lineHeight: 20, fontWeight: '600', letterSpacing: -0.2 },
-  heroClockStrong: { fontWeight: '800' },
-  saleBox: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: Brand.onBrand, borderRadius: Radius.md, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm },
-  saleLabel: { color: Brand.blue, fontSize: 15, fontWeight: '800', letterSpacing: -0.3 },
-  saleClock: { color: Brand.blue, fontSize: 30, lineHeight: 36, fontWeight: '900', letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
-  heroPriceRow: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: Spacing.sm },
-  heroRegular: { color: Brand.onBrand, fontSize: 17, fontWeight: '600', textDecorationLine: 'line-through' },
-  heroPrice: { color: Brand.onBrand, fontSize: 40, lineHeight: 46, fontWeight: '900', letterSpacing: -1.4 },
-  heroUnit: { fontSize: 20, fontWeight: '800', letterSpacing: -0.3 },
-  heroPer: { color: Brand.onBrand, fontSize: 15, fontWeight: '700' },
-  heroPercent: { backgroundColor: Brand.onBrand, borderRadius: Radius.pill, paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'center' },
-  heroPercentText: { color: Brand.violet, fontSize: 15, fontWeight: '900' },
-
   plans: { gap: Spacing.sm },
-  planRing: { borderRadius: Radius.lg + 2, padding: 2 },
-  planInner: { borderRadius: Radius.lg, paddingHorizontal: Spacing.lg + 2, paddingVertical: Spacing.lg, gap: 2 },
-  planTitleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: 2 },
-  planTitle: { fontSize: 17, fontWeight: '800', letterSpacing: -0.3 },
-  planBadge: { paddingVertical: 3, paddingHorizontal: 8 },
-  check: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  checkOff: { borderWidth: 2 },
-  planPrice: { fontSize: 30, lineHeight: 38, fontWeight: '900', letterSpacing: -1 },
-  planUnit: { fontSize: 17, fontWeight: '800', letterSpacing: -0.3 },
-  planPer: { fontSize: 15, fontWeight: '700' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: 20, borderWidth: 2, paddingHorizontal: Spacing.md + 2, paddingVertical: Spacing.md + 2, minHeight: 72 },
+  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  rowTexts: { flex: 1, gap: 2 },
+  rowPrice: { alignItems: 'flex-end', gap: 1 },
+  price: { fontSize: 17, lineHeight: 22, fontWeight: '700', letterSpacing: -0.3 },
+  per: { fontSize: 13, fontWeight: '600' },
+  regular: { fontSize: 13, lineHeight: 16, fontWeight: '500', textDecorationLine: 'line-through' },
+  saleClock: { fontVariant: ['tabular-nums'], marginTop: 2 },
+  moreRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, minHeight: 44, paddingHorizontal: Spacing.xs },
 
   reload: { marginTop: -Spacing.sm },
-  promise: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.sm },
-  promiseHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  promise: { borderRadius: 20, borderWidth: 1, padding: Spacing.lg, gap: Spacing.sm },
   promiseRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
-  benefits: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.md },
-  benefit: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  benefitIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  benefits: { gap: Spacing.sm, paddingHorizontal: 2 },
+  benefit: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   fine: { marginTop: -Spacing.sm, lineHeight: 18 },
   links: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.lg, flexWrap: 'wrap' },
+  research: { marginTop: -Spacing.md },
 
   footer: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, gap: Spacing.sm, borderTopWidth: StyleSheet.hairlineWidth },
   notice: { borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
 
-  doneIcon: { alignItems: 'center', justifyContent: 'center' },
-  doneHalo: { position: 'absolute', width: 210, height: 210, borderRadius: 105, opacity: 0.14 },
+  doneIcon: { width: 84, height: 84, borderRadius: 42, alignItems: 'center', justifyContent: 'center' },
   doneBody: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.lg, paddingHorizontal: Spacing.xl },
   doneTexts: { alignItems: 'center', gap: Spacing.sm },
-  doneChip: { alignSelf: 'center' },
-  doneTitle: { fontSize: 32, lineHeight: 40, fontWeight: '900', letterSpacing: -1.1, textAlign: 'center' },
+  doneTitle: { fontSize: 26, lineHeight: 34, fontWeight: '700', letterSpacing: -0.6, textAlign: 'center' },
   doneFoot: { paddingHorizontal: Spacing.lg },
 
   download: { gap: Spacing.md },

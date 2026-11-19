@@ -4,7 +4,7 @@ import { Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, View, useW
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FullWindowOverlay } from 'react-native-screens';
 
-import { BrandGradient, GradientButton } from '@/components/brand/brand';
+import { GradientButton } from '@/components/brand/brand';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { Brand, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
@@ -116,12 +116,12 @@ function Sheet({ onAgree, onClose }: Omit<Props, 'visible'>) {
           <AppText variant="small" color="textSecondary">
             필수 항목에 동의하면 바로 시작할 수 있어요. 선택 항목은 동의하지 않아도 모든 기능을 쓸 수 있어요.
           </AppText>
-          <View style={[styles.items, { backgroundColor: theme.surface }]}>
-            {ITEMS.map((item) => {
+          <View style={styles.items}>
+            {ITEMS.map((item, i) => {
               const on = checked[item.key];
               const label = `(${item.required ? '필수' : '선택'}) ${item.title}`;
               return (
-                <View key={item.key} style={styles.item}>
+                <View key={item.key} style={[styles.item, i > 0 ? { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.separator } : null]}>
                   <View style={styles.itemHead}>
                     <Pressable
                       accessibilityRole="checkbox"
@@ -130,9 +130,9 @@ function Sheet({ onAgree, onClose }: Omit<Props, 'visible'>) {
                       onPress={() => toggle(item.key)}
                       hitSlop={6}
                       style={styles.check}>
-                      <View style={[styles.box, on ? styles.boxOn : { borderColor: theme.textTertiary }]}>
-                        {on ? <BrandGradient style={StyleSheet.absoluteFill} /> : null}
-                        {on ? <Ionicons name="checkmark" size={13} color={Brand.onBrand} /> : null}
+                      {/* 체크한 칸은 센딧 파랑 단색 (1.4 — 그라데이션을 걷었다) */}
+                      <View style={[styles.box, on ? { backgroundColor: theme.primary, borderColor: theme.primary } : { borderColor: theme.textTertiary }]}>
+                        {on ? <Ionicons name="checkmark" size={14} color={Brand.onBrand} /> : null}
                       </View>
                       <AppText variant="smallStrong" style={styles.checkText}>
                         <AppText variant="smallStrong" color={item.required ? 'primary' : 'textSecondary'}>
@@ -152,8 +152,9 @@ function Sheet({ onAgree, onClose }: Omit<Props, 'visible'>) {
                       {item.link.label} ›
                     </AppText>
                   </View>
+                  {/* 고지 글은 줄이지 않고 읽기 쉽게 — 12pt → 13pt, 줄 간격을 넓혔다 */}
                   {item.body ? (
-                    <AppText variant="caption" color="textSecondary" style={styles.itemBody}>
+                    <AppText variant="small" color="textSecondary" style={styles.itemBody}>
                       {item.body}
                     </AppText>
                   ) : null}
@@ -185,18 +186,17 @@ const styles = StyleSheet.create({
   },
   head: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginBottom: Spacing.sm },
   headTitle: { flex: 1 },
-  close: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  close: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   scroll: { flexGrow: 0, flexShrink: 1 },
   body: { gap: Spacing.md, paddingBottom: Spacing.lg },
-  items: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.lg },
-  item: { gap: Spacing.xs },
+  items: { marginTop: Spacing.xs },
+  item: { gap: Spacing.xs + 2, paddingVertical: Spacing.md },
   itemHead: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
   check: { flex: 1, flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
-  box: { width: 20, height: 20, borderRadius: 6, borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginTop: 1, overflow: 'hidden' },
-  boxOn: { borderWidth: 0 },
+  box: { width: 20, height: 20, borderRadius: 6, borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
   checkText: { flex: 1 },
   link: { paddingTop: 2 },
   // 체크박스(20) + 간격만큼 들여 안내 글과 줄을 맞춘다
-  itemBody: { marginLeft: 20 + Spacing.sm },
+  itemBody: { marginLeft: 20 + Spacing.sm, fontSize: 13, lineHeight: 20 },
   actions: { gap: Spacing.xs, paddingTop: Spacing.sm },
 });

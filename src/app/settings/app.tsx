@@ -18,6 +18,8 @@ import { useAppStore } from '@/store/app-store';
 /**
  * 마이 → 앱 설정 (11/12 회의 4번 — 예전 마이의 「AI 코치」·「기능」 묶음).
  * 코칭(내 프로필 · AI 코치 연결) / 기능(연애 연습 · 플로팅 버블 · 진동 효과).
+ * 「AI 코치 연결」(개인 API 키 입력)은 데모·개인 키 빌드에서만 보인다 — 코치 서버에 연결된 스토어 빌드는 개인 키를 쓰지 않아
+ * 손님에게 개발자 화면(키 입력칸·발급 링크)이 열리지 않게 줄을 숨긴다(1.4 점검 4.11).
  */
 export default function AppSettings() {
   const router = useRouter();
@@ -80,32 +82,31 @@ export default function AppSettings() {
     }
   };
 
-  const connection = isDemoMode ? '데모 모드 · 샘플 결과' : APP_CONFIG.apiUrl || APP_CONFIG.apiSameOrigin ? '연결됨 · 코치 서버' : hasApiKey ? '연결됨 · 내 API 키' : '연결 필요';
+  const serverConnected = Boolean(APP_CONFIG.apiUrl || APP_CONFIG.apiSameOrigin);
+  const showConnection = isDemoMode || !serverConnected;
+  const connection = isDemoMode ? '데모 모드 · 샘플 결과' : hasApiKey ? '연결됨 · 내 API 키' : '연결 필요';
 
   return (
     <SubScreen title="앱 설정">
       <ListGroup title="코칭">
-        <ListRow icon="person-outline" title="내 프로필 · 추구미 · 목표" onPress={() => router.push('/settings/profile')} />
-        <ListRow icon="sparkles-outline" title="AI 코치 연결" value={connection} onPress={() => router.push('/settings/api-key')} />
+        <ListRow title="내 프로필 · 추구미 · 목표" onPress={() => router.push('/settings/profile')} />
+        {showConnection ? <ListRow title="AI 코치 연결" value={connection} onPress={() => router.push('/settings/api-key')} /> : null}
       </ListGroup>
 
       <ListGroup title="기능">
         <ListRow
-          icon="game-controller-outline"
           title="연애 연습 (베타)"
           subtitle="AI 상대와 카톡 리허설 · 켜면 탭에 생겨요"
           right={<Switch accessibilityLabel="연애 연습 켜기" value={practiceEnabled} onValueChange={togglePractice} />}
         />
         {Floating.floatingSupported ? (
           <ListRow
-            icon="radio-button-on-outline"
             title="플로팅 버블"
             subtitle="카톡을 보다가 화면 위 버블을 누르면 바로 코칭"
             right={<Switch accessibilityLabel="플로팅 버블" value={bubbleOn} onValueChange={toggleBubble} />}
           />
         ) : null}
         <ListRow
-          icon="phone-portrait-outline"
           title="진동 효과"
           subtitle="온도가 오를 때 두근두근, 넘길 때 톡톡"
           right={

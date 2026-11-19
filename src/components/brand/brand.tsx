@@ -1,5 +1,5 @@
 /**
- * 센딧 공통 부품 — 앱 아이콘과 같은 하늘색 → 파랑 → 보라 그라데이션.
+ * 센딧 공통 부품. 1.4 개편부터 색 면·버튼은 센딧 파랑 단색(Brand.* 값이 단색) — 그라데이션·빛 스침·빛 그림자 없이.
  * 화면마다 따로 만들지 말고 여기 것을 쓴다 (모양이 한 앱처럼 맞도록).
  */
 import { Ionicons } from '@expo/vector-icons';
@@ -7,10 +7,10 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 
 import { APP_NAME, APP_SUBTITLE, RESEARCH_SHORT } from '@/constants/brand';
-import { Brand, BrandShadow, Radius, Spacing } from '@/constants/theme';
+import { Brand, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { haptic as feedback } from '@/lib/haptics';
@@ -37,8 +37,8 @@ export function WashBackground({ children, style }: { children?: ReactNode; styl
 }
 
 /**
- * 그라데이션 주요 버튼. shine 을 켜면 나타난 뒤 빛이 한 번 스쳐 지나간다(가장 중요한 버튼 하나에만).
- * 예전엔 2.7초마다 끝없이 되풀이했는데 11/12 회의 7번 「AI 티」로 한 번만 — 눈길만 한 번 끌고 조용히 둔다.
+ * 화면의 주요 버튼 — 센딧 파랑 단색 알약(이름은 예전 그대로).
+ * shine(빛 스침)은 1.4 개편에서 걷었다(「AI 티」) — 받기는 하지만 아무것도 하지 않는다.
  */
 export function GradientButton({
   title,
@@ -63,40 +63,27 @@ export function GradientButton({
   accessibilityLabel?: string;
   haptic?: boolean;
 }) {
+  void shine;
   const scale = useSharedValue(1);
-  const sweep = useSharedValue(-1);
-  const [width, setWidth] = useState(0);
-  useEffect(() => {
-    if (!shine) return;
-    sweep.value = withDelay(1000, withTiming(1, { duration: 900, easing: Easing.inOut(Easing.quad) }));
-  }, [shine, sweep]);
   const pressed = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const shineStyle = useAnimatedStyle(() => ({ transform: [{ translateX: sweep.value * (width || 300) }, { rotate: '18deg' }] }));
-  const height = size === 'lg' ? 58 : 48;
+  const height = size === 'lg' ? 54 : 46;
   return (
     <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? title}
       accessibilityState={{ disabled: disabled || loading }}
       disabled={disabled || loading}
-      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
       onPressIn={() => {
-        scale.value = withSpring(0.96, { damping: 18, stiffness: 380 });
+        scale.value = withSpring(0.97, { damping: 20, stiffness: 420 });
       }}
       onPressOut={() => {
-        scale.value = withSpring(1, { damping: 11, stiffness: 260 });
+        scale.value = withSpring(1, { damping: 18, stiffness: 320 });
       }}
       onPress={() => {
         if (haptic) feedback.thud();
         onPress?.();
       }}
-      style={[styles.gbOuter, BrandShadow, { height, opacity: disabled ? 0.5 : 1 }, pressed, style]}>
-      <LinearGradient colors={Brand.button} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, styles.gbFill]} />
-      {shine ? (
-        <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.gbFill]}>
-          <Animated.View style={[styles.shine, shineStyle]} />
-        </View>
-      ) : null}
+      style={[styles.gbOuter, { height, backgroundColor: Brand.blue, opacity: disabled ? 0.4 : 1 }, pressed, style]}>
       {loading ? (
         <ActivityIndicator color={Brand.onBrand} />
       ) : (
@@ -112,34 +99,28 @@ export function GradientButton({
 }
 
 /**
- * 그라데이션 큰 카드 — 흰 글자. decor 를 켜면 뒤에 옅은 동그라미 두 개.
- * 동그라미 장식은 「AI 가 만든 화면」 티가 나서(11/12 회의 7번) 기본은 끈다 — 그라데이션 면만으로 충분하다.
+ * 색 면 큰 카드(센딧 파랑 단색) — 흰 글자. 1.4 개편부터 장식 동그라미·빛 그림자 없이.
+ * 화면의 큰 색 면은 「AI 티」라서 새 화면에서는 쓰지 말고 회색 면(theme.surface) 카드를 쓴다.
  */
 export function HeroCard({
   children,
   style,
   contentStyle,
-  decor = false,
   colors = Brand.gradient,
 }: {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   /** 그라데이션 안쪽(여백·간격) — 작은 카드는 padding 을 줄인다 */
   contentStyle?: StyleProp<ViewStyle>;
+  /** 1.4 개편에서 장식을 걷어 쓰이지 않는다(예전 호출 호환) */
   decor?: boolean;
   colors?: readonly [string, string, ...string[]];
 }) {
   return (
-    <View style={[styles.heroOuter, BrandShadow, style]}>
-      <BrandGradient colors={colors} style={[styles.heroFill, contentStyle]}>
-        {decor ? (
-          <>
-            <View pointerEvents="none" style={[styles.orb, styles.orbA]} />
-            <View pointerEvents="none" style={[styles.orb, styles.orbB]} />
-          </>
-        ) : null}
+    <View style={[styles.heroOuter, style]}>
+      <View style={[styles.heroFill, { backgroundColor: colors[0] }, contentStyle]}>
         {children}
-      </BrandGradient>
+      </View>
     </View>
   );
 }
@@ -185,7 +166,7 @@ export function BrandPill({ label, icon, tone = 'soft', style }: { label: string
   );
 }
 
-/** 화면마다 하나씩 두는 3D 아이콘 (Codex 로 만든 그림 — assets/images/sendit/3d-*.png) */
+/** 3D 아이콘 (Codex 로 만든 그림 — assets/images/sendit/3d-*.png). 1.4 개편: 화면마다 두지 않는다 — 빈 화면·결제 완료처럼 꼭 필요한 곳에만 */
 const ICONS_3D = {
   send: require('../../../assets/images/sendit/3d-send.png'),
   heart: require('../../../assets/images/sendit/3d-heart.png'),
@@ -194,14 +175,13 @@ const ICONS_3D = {
 } as const;
 export type Icon3DName = keyof typeof ICONS_3D;
 
-/** 3D 아이콘. float 를 켜면 천천히 위아래로 떠 있다 */
+/** 3D 아이콘. float(위아래로 떠다니기)는 1.4 개편에서 걷었다 — 받기만 하고 늘 가만히 있다 */
 export function Icon3D({ name, size = 72, float = false, style }: { name: Icon3DName; size?: number; float?: boolean; style?: StyleProp<ViewStyle> }) {
-  const image = <Image source={ICONS_3D[name]} style={{ width: size, height: size }} contentFit="contain" accessibilityIgnoresInvertColors />;
-  if (!float) return <View style={style}>{image}</View>;
+  void float;
   return (
-    <Floating amplitude={Math.max(3, size * 0.06)} style={style}>
-      {image}
-    </Floating>
+    <View style={style}>
+      <Image source={ICONS_3D[name]} style={{ width: size, height: size }} contentFit="contain" accessibilityIgnoresInvertColors />
+    </View>
   );
 }
 
@@ -250,24 +230,18 @@ export function formatClock(ms: number): string {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  gbOuter: { borderRadius: Radius.lg, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.lg, alignSelf: 'stretch' },
-  gbFill: { borderRadius: Radius.lg, overflow: 'hidden' },
+  gbOuter: { borderRadius: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.lg, alignSelf: 'stretch', overflow: 'hidden' },
   gbRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  gbText: { color: Brand.onBrand, fontSize: 17, fontWeight: '800', letterSpacing: -0.3 },
+  gbText: { color: Brand.onBrand, fontSize: 17, fontWeight: '600', letterSpacing: -0.3 },
   gbTextMd: { fontSize: 15 },
-  shine: { position: 'absolute', top: -20, bottom: -20, width: 56, left: '45%', backgroundColor: 'rgba(255,255,255,0.22)' },
   heroOuter: { borderRadius: Radius.xl },
   heroFill: { borderRadius: Radius.xl, overflow: 'hidden', padding: Spacing.xl },
-  orb: { position: 'absolute', borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.12)' },
-  // 오른쪽 위 하늘색 빛 — 아이콘의 하늘색을 글자 없는 자리에서 낸다
-  orbA: { width: 220, height: 220, top: -90, right: -60, backgroundColor: 'rgba(140,220,255,0.30)' },
-  orbB: { width: 140, height: 140, bottom: -70, left: -40, backgroundColor: 'rgba(255,255,255,0.08)' },
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  logoText: { fontWeight: '900', letterSpacing: -0.8 },
+  logoText: { fontWeight: '700', letterSpacing: -0.8 },
   logoSub: { fontSize: 12, fontWeight: '600', marginTop: -1 },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: Radius.pill },
   badgeGlass: { backgroundColor: Brand.glass, borderWidth: 1, borderColor: Brand.glassBorder },
   badgeText: { fontSize: 12, fontWeight: '700', letterSpacing: -0.2 },
-  bigNum: { fontSize: 40, lineHeight: 46, fontWeight: '900', letterSpacing: -1.2 },
-  bigUnit: { fontSize: 18, fontWeight: '800' },
+  bigNum: { fontSize: 40, lineHeight: 46, fontWeight: '700', letterSpacing: -1.2 },
+  bigUnit: { fontSize: 18, fontWeight: '700' },
 });

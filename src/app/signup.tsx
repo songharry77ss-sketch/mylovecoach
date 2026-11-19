@@ -5,12 +5,12 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SignupCard } from '@/components/auth/signup-card';
-import { BigNumber, BrandGradient, BrandPill, Icon3D, ResearchBadge, SenditLogo } from '@/components/brand/brand';
+import { SenditLogo } from '@/components/brand/brand';
 import { useCelebrate } from '@/components/fx/celebration';
 import { AppText } from '@/components/ui/app-text';
 import { Screen } from '@/components/ui/screen';
 import { useToast } from '@/components/ui/toast';
-import { Brand, BrandShadow, Radius, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { FREE_DAILY, SIGNUP_BONUS } from '@/lib/billing/plans';
@@ -57,36 +57,20 @@ export default function Signup() {
       </View>
 
       <Animated.View entering={FadeInDown.duration(320)} style={styles.head}>
+        {/* 1.4 개편: 「+3회」 큰 그라데이션 카드·3D 하트·연구진 배지를 걷고 제목 한 문장에 담았다 (제목과 같은 말을 되풀이하던 카드) */}
         <Text accessibilityRole="header" style={[styles.headline, { color: theme.text }]}>
-          {forReplies ? '가입하면\n' : '가입하고\n'}
-          <Text style={{ color: theme.primary }}>{forReplies ? '나머지 답장이 열려요' : `무료 코칭 ${SIGNUP_BONUS}회 더`}</Text>
+          {forReplies ? '가입하면 ' : '가입하고 '}
+          <Text style={{ color: theme.primary }}>{forReplies ? '나머지 답장이 열려요' : `무료 코칭 ${SIGNUP_BONUS}회 더 받기`}</Text>
         </Text>
         <AppText variant="body" color="textSecondary">
-          쓰던 계정으로 간편하게 가입해요.
+          {forReplies ? `가입하자마자 무료 코칭 ${SIGNUP_BONUS}회도 더 드려요. ` : '가입하자마자 바로 받아요. '}쓰던 계정으로 간편하게 가입해요.
         </AppText>
-        <ResearchBadge style={styles.badge} />
       </Animated.View>
 
-      <Animated.View entering={FadeInDown.delay(60).duration(320)} style={[styles.heroOuter, BrandShadow]}>
-        <BrandGradient colors={[Brand.blue, Brand.violet]} style={styles.hero}>
-          <View pointerEvents="none" style={styles.heroGlow} />
-          <BrandPill tone="glass" icon="gift-outline" label="가입 보너스" />
-          <View style={styles.heroRow}>
-            <View style={styles.flex}>
-              <BigNumber tone="white" value={`+${SIGNUP_BONUS}`} unit="회" style={styles.heroNumber} />
-              <Text style={styles.heroText}>가입하자마자 바로 받아요</Text>
-            </View>
-            <Icon3D name="heart" size={88} float />
-          </View>
-        </BrandGradient>
-      </Animated.View>
-
-      <View style={[styles.perks, { backgroundColor: theme.surface }]}>
+      <View style={styles.perks}>
         {[...(forReplies ? [REPLIES_PERK] : []), ...PERKS, storagePerk(contentOn)].map((p) => (
           <View key={p.title} style={styles.perk}>
-            <View style={[styles.perkIcon, { backgroundColor: theme.primarySoft }]}>
-              <Ionicons name={p.icon} size={18} color={theme.primary} />
-            </View>
+            <Ionicons name="checkmark" size={18} color={theme.text} style={styles.perkIcon} />
             <View style={styles.flex}>
               <AppText variant="smallStrong">{p.title}</AppText>
               <AppText variant="caption" color="textSecondary">
@@ -104,7 +88,7 @@ export default function Signup() {
           celebrate({ kind: 'sparkles', count: 22, haptic: false });
           close();
           // 모달을 닫은 뒤라 이 토스트는 보인다
-          toast.show(result.bonus ? `가입 완료! 무료 코칭 ${SIGNUP_BONUS}회를 받았어요 🎁` : '로그인했어요.', 'success');
+          toast.show(result.bonus ? `가입 완료! 무료 코칭 ${SIGNUP_BONUS}회를 받았어요` : '로그인했어요.', 'success');
         }}
       />
 
@@ -123,16 +107,9 @@ const styles = StyleSheet.create({
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: -Spacing.sm },
   close: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   head: { gap: Spacing.sm },
-  headline: { fontSize: 28, lineHeight: 37, fontWeight: '900', letterSpacing: -0.9 },
-  badge: { marginTop: Spacing.xs },
-  heroOuter: { borderRadius: Radius.xl },
-  hero: { borderRadius: Radius.xl, overflow: 'hidden', padding: Spacing.xl, gap: Spacing.md },
-  heroGlow: { position: 'absolute', width: 220, height: 220, borderRadius: 110, top: -100, right: -60, backgroundColor: 'rgba(138,216,255,0.32)' },
-  heroRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  heroNumber: { fontSize: 48, lineHeight: 54 },
-  heroText: { color: Brand.onBrand, fontSize: 15, lineHeight: 21, fontWeight: '700', letterSpacing: -0.2 },
-  perks: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.lg },
-  perk: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  perkIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  headline: { fontSize: 24, lineHeight: 32, fontWeight: '700', letterSpacing: -0.6 },
+  perks: { gap: Spacing.md, paddingHorizontal: 2 },
+  perk: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm + 2 },
+  perkIcon: { marginTop: 1 },
   later: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.lg },
 });

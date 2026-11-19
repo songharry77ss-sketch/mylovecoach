@@ -11,22 +11,18 @@ interface AvatarProps {
   seed?: string;
 }
 
-/** 사진이 없을 때 첫 글자 바탕 — 센딧 색(하늘색·파랑·보라) 위주에 민트·살구로 구분만 (분홍은 쓰지 않는다) */
-const AVATAR_COLORS = [
-  [palette.sky100, palette.sky600],
-  [palette.sendMist, palette.sendBlue600],
-  [palette.lavender100, palette.sendViolet600],
-  [palette.mint100, '#1E9E6E'],
-  [palette.sendSky50, palette.sendBlue700],
-  [palette.peach100, '#D2712E'],
-];
+/**
+ * 사진이 없을 때 첫 글자 바탕 — 1.4 개편: 사람마다 다른 여섯 가지 색(하늘·파랑·보라·민트·살구)을 걷고
+ * 홈 목록(RoomAvatar)과 같은 옅은 파랑 한 가지로 — 같은 상대가 화면마다 다른 색으로 보였다.
+ */
+const AVATAR_COLORS = [[palette.sendMist, palette.sendBlue500]];
 
 export function Avatar({ name, uri, size = 48, seed }: AvatarProps) {
   const key = seed ?? name;
   let hash = 0;
   for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
   const [bg, fg] = AVATAR_COLORS[hash % AVATAR_COLORS.length];
-  const radius = size * 0.38;
+  const radius = size / 2;
   if (uri) {
     return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: radius }} contentFit="cover" transition={150} />;
   }

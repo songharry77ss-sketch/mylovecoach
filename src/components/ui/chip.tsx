@@ -18,12 +18,18 @@ interface ChipProps {
   on?: 'background' | 'canvas';
 }
 
-export function Chip({ label, selected, onPress, emoji, style, size = 'md', tone = 'primary', on = 'background' }: ChipProps) {
+/**
+ * 칩 — 1.4 「깔끔하게」 개편: 고른 칩은 **검정 채움 + 흰 글자**(피클·범블 결), 안 고른 칩은 회색 면. 색 테두리·파랑/보라 두 가지 선택 색을 걷었다.
+ * 칩 앞 이모지(😊 🔥 🤣)도 그리지 않는다(「AI 티」) — emoji 는 예전 호출 호환으로 받기만 한다.
+ */
+export function Chip({ label, selected, onPress, emoji, style, size = 'md', tone, on = 'background' }: ChipProps) {
+  void emoji;
+  void tone;
   const theme = useTheme();
   // 다크는 흰 카드(card)와 연회색(surface)이 같은 색이라 카드 안 칩이 묻힌다 — 한 단계 밝은 면으로
   const idleFill = useColorScheme() === 'dark' ? theme.surfaceElevated : theme.surface;
-  const selectedBg = tone === 'primary' ? theme.primarySoft : theme.accentSoft;
-  const selectedText = tone === 'primary' ? theme.primary : theme.accent;
+  const selectedBg = theme.text;
+  const selectedText = theme.background;
   return (
     <Pressable
       accessibilityRole={onPress ? 'button' : undefined}
@@ -44,13 +50,13 @@ export function Chip({ label, selected, onPress, emoji, style, size = 'md', tone
         size === 'sm' ? styles.sm : null,
         {
           backgroundColor: selected ? selectedBg : on === 'canvas' ? theme.card : idleFill,
-          borderColor: selected ? selectedText : on === 'canvas' ? theme.separator : 'transparent',
+          borderColor: selected ? selectedBg : on === 'canvas' ? theme.separator : 'transparent',
           opacity: pressed ? 0.7 : 1,
         },
         style,
       ]}>
-      <AppText variant={size === 'sm' ? 'caption' : 'smallStrong'} color={selected ? selectedText : 'textSecondary'}>
-        {emoji ? `${emoji} ${label}` : label}
+      <AppText variant={size === 'sm' ? 'caption' : 'smallStrong'} weight="600" color={selected ? selectedText : 'textSecondary'}>
+        {label}
       </AppText>
     </Pressable>
   );

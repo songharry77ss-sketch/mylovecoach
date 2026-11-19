@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, Share, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
@@ -8,14 +7,15 @@ import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withDel
 import { CountUp } from '@/components/coach/count-up';
 import { HeatGauge } from '@/components/coach/heat-gauge';
 import { ReplyCards } from '@/components/coach/reply-cards';
-import { Icon3D } from '@/components/brand/brand';
 import { useCelebrate } from '@/components/fx/celebration';
 import { AppText } from '@/components/ui/app-text';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { useToast } from '@/components/ui/toast';
-import { Brand, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { coachReportContent } from '@/lib/ai-report';
+import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { haptic } from '@/lib/haptics';
 import { TEMPERATURES } from '@/lib/labels';
 import { noteWinAndMaybeAskReview } from '@/lib/store-review';
@@ -53,13 +53,18 @@ const revealedCards = new Set<string>();
 const REPORT_MAX = 4000;
 
 /**
- * 코칭 결과 카드 (럽코 시안 결과 화면을 채팅 안에) — 코치 한마디 → 관심 있을 가능성 큰 숫자·막대 →
- * 답장 3가지(성공 확률·복사) → 호감 온도와 변화 → 다음 단계. 처음 도착하면 숫자가 세어 올라가고 가볍게 축하한다
+ * 코칭 결과 카드 — 1.4 「깔끔하게」 개편(11/12 회의 7·13번): 테두리 카드 → **회색 말풍선 하나**(피클 「대화 속 카드」 결).
+ * 코치 한마디 → **답장 3가지(주인공, 흰 카드)** → 숫자(관심 있을 가능성·호감 온도)를 흰 카드 하나에 키-값 줄로 → 다음 단계 → 접은 설명.
+ * 예전에는 큰 숫자 5개가 답장보다 위에 있어 카드가 약 1,200pt 였고 답장이 화면 밖에 있었다. 큰 숫자는 관심도 하나만.
  */
 export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedReplyIndex, onSelectReply, onRegenerate, regenerating, onReport, lockedFrom, onUnlock, latest }: AnalysisCardProps) {
   const theme = useTheme();
+  const dark = useColorScheme() === 'dark';
   const toast = useToast();
   const celebrate = useCelebrate();
+  const quota = useQuota();
+  // 「다른 답장 더 보기」가 무료 1회를 쓰는지 — 무제한이 아니고 횟수 제한이 있을 때만 「1회」를 적는다
+  const regenCosts = quota.enforced && !isUnlimited(quota);
   const [copied, setCopied] = useState<number | null>(null);
   const [open, setOpen] = useState(false);
   // 처음 그릴 때 한 번만 정한다 (목록이 다시 그려도 숫자를 다시 세지 않게)
@@ -74,6 +79,10 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
   const isLocked = (i: number) => lockedFrom != null && i >= lockedFrom && Boolean(onUnlock);
   const vibe = TEMPERATURES[analysis.temperature];
   const speechChip = analysis.speechLevel ? SPEECH_CHIP[analysis.speechLevel] : null;
+  // 알아챈 호칭·말투 — 색 칩 대신 회색 한 줄
+  const detected = [analysis.callName ? `호칭 「${analysis.callName}」 그대로` : null, speechChip].filter(Boolean).join(' · ');
+  // 회색 말풍선 안의 흰 카드 (다크는 한 단계 밝은 면)
+  const innerFill = dark ? theme.surfaceElevated : theme.card;
   const score = analysis.temperature === 'unknown' ? null : analysis.interestScore;
   const named = partnerName && partnerName !== '상대' ? partnerName : null;
   const why = replies.map((r, i) => (r.why?.trim() && !isLocked(i) ? { i, text: r.why.trim() } : null)).filter((x): x is { i: number; text: string } => Boolean(x));
@@ -130,75 +139,23 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
   const enter = () => (reveal ? FadeInDown.delay(80 + step++ * 70).duration(320) : undefined);
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.bubbleCoach, borderColor: theme.border }]}>
+    <View style={[styles.card, { backgroundColor: dark ? theme.surface : theme.bubbleCoach }]}>
       {/* 코치 한마디 + 알아챈 호칭·말투 (「언니면 언니」 그대로 쓴다는 걸 보여 준다) */}
       <Animated.View entering={enter()} style={styles.block}>
-        {analysis.callName || speechChip ? (
-          <View style={styles.detected}>
-            {analysis.callName ? (
-              <View style={[styles.chip, { backgroundColor: theme.accentSoft }]}>
-                <AppText variant="caption" color="accent" weight="700">
-                  호칭 「{analysis.callName}」 그대로
-                </AppText>
-              </View>
-            ) : null}
-            {speechChip ? (
-              <View style={[styles.chip, { backgroundColor: theme.primarySoft }]}>
-                <AppText variant="caption" color="primary" weight="700">
-                  {speechChip}
-                </AppText>
-              </View>
-            ) : null}
-          </View>
+        {detected ? (
+          <AppText variant="caption" color="textSecondary" weight="600">
+            {detected}
+          </AppText>
         ) : null}
         <AppText variant="body">{analysis.summary}</AppText>
       </Animated.View>
 
-      {/* 관심 있을 가능성 — 큰 숫자 + 그라데이션 막대 */}
-      {score != null ? (
-        <Animated.View entering={enter()} style={styles.block}>
-          <View ref={anchor} style={styles.rowBetween}>
-            <View style={styles.flexShrink}>
-              <AppText variant="title3">관심 있을 가능성</AppText>
-              <AppText variant="caption" color="textSecondary">
-                이번 대화 분위기 · {vibe.label}
-              </AppText>
-            </View>
-            <CountUp value={score} animate={reveal} delay={250} duration={1100} ticks suffix="%" style={[styles.bigNumber, { color: theme.primary }]} suffixStyle={[styles.bigUnit, { color: theme.primary }]} onDone={sparkle} />
-          </View>
-          <InterestBar value={score} animate={reveal} />
-          <AppText variant="caption" color="textSecondary">
-            {vibe.description}
-          </AppText>
-        </Animated.View>
-      ) : analysis.temperature !== 'unknown' ? (
-        // 관심도 점수가 없는 예전 결과 — 예전처럼 이번 대화의 호감 온도(분위기)는 보여 준다
-        <Animated.View entering={enter()} style={styles.block}>
-          <View style={styles.rowBetween}>
-            <View style={styles.flexShrink}>
-              <AppText variant="title3">이번 대화 호감 온도</AppText>
-              <AppText variant="caption" color="textSecondary">
-                {vibe.description}
-              </AppText>
-            </View>
-            <View style={[styles.vibePill, { backgroundColor: theme.primarySoft }]}>
-              <AppText variant="title3" color="primary">
-                {vibe.label}
-              </AppText>
-            </View>
-          </View>
-        </Animated.View>
-      ) : null}
-
-      {/* 답장 3가지 */}
+      {/* 답장 3가지 — 결과의 주인공이라 맨 위에 */}
       {replies.length ? (
         <Animated.View entering={enter()} style={styles.block}>
-          <View style={styles.rowBetween}>
-            <AppText variant="title3">이렇게 답장해 봐요</AppText>
-            {latest ? <Icon3D name="heart" size={38} float /> : null}
-          </View>
+          <AppText variant="bodyStrong">이렇게 답장해 봐요</AppText>
           {lockedFrom != null && onUnlock && replies.length > lockedFrom ? (
-            <AppText variant="caption" color="primary" weight="700">
+            <AppText variant="caption" color="primary" weight="600">
               답장 {replies.length - lockedFrom}개가 더 있어요 · 가입하면 바로 보여요
             </AppText>
           ) : null}
@@ -216,27 +173,55 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
         </Animated.View>
       ) : null}
 
-      {/* 누적 호감 온도와 이번 변화 */}
-      {heat ? (
-        <Animated.View entering={enter()} style={[styles.heatBox, { borderTopColor: theme.border }]}>
-          <HeatGauge value={heat.after} from={heat.before} delta={heat.delta} revealKey={revealKey} compact title={named ? `${named}님과의 호감 온도` : '호감 온도'} caption={heatCaption} />
+      {/* 숫자 — 흰 카드 하나에 키-값 줄: 관심 있을 가능성(가는 막대) · 호감 온도 */}
+      {score != null || analysis.temperature !== 'unknown' || heat ? (
+        <Animated.View entering={enter()} style={[styles.inner, { backgroundColor: innerFill }]}>
+          {score != null ? (
+            <View ref={anchor} style={styles.metric}>
+              <View style={styles.rowBetween}>
+                <View style={styles.flexShrink}>
+                  <AppText variant="bodyStrong">관심 있을 가능성</AppText>
+                  <AppText variant="caption" color="textSecondary">
+                    이번 대화 분위기 · {vibe.label}
+                  </AppText>
+                </View>
+                <CountUp value={score} animate={reveal} delay={250} duration={1000} ticks suffix="%" style={[styles.bigNumber, { color: theme.primary }]} suffixStyle={[styles.bigUnit, { color: theme.primary }]} onDone={sparkle} />
+              </View>
+              <InterestBar value={score} animate={reveal} />
+              <AppText variant="caption" color="textSecondary">
+                {vibe.description}
+              </AppText>
+            </View>
+          ) : analysis.temperature !== 'unknown' ? (
+            // 관심도 점수가 없는 예전 결과 — 예전처럼 이번 대화의 호감 온도(분위기)는 보여 준다
+            <View style={styles.rowBetween}>
+              <View style={styles.flexShrink}>
+                <AppText variant="bodyStrong">이번 대화 호감 온도</AppText>
+                <AppText variant="caption" color="textSecondary">
+                  {vibe.description}
+                </AppText>
+              </View>
+              <AppText variant="bodyStrong" color="primary">
+                {vibe.label}
+              </AppText>
+            </View>
+          ) : null}
+          {heat ? (
+            <View style={score != null || analysis.temperature !== 'unknown' ? [styles.heatBox, { borderTopColor: theme.separator }] : null}>
+              <HeatGauge value={heat.after} from={heat.before} delta={heat.delta} revealKey={revealKey} compact title={named ? `${named}님과의 호감 온도` : '호감 온도'} caption={heatCaption} />
+            </View>
+          ) : null}
         </Animated.View>
       ) : null}
 
-      {/* 다음 단계 · 주의할 점 */}
+      {/* 다음 단계 */}
       {analysis.nextStep ? (
-        <Animated.View entering={enter()} style={[styles.next, { backgroundColor: theme.surface }]}>
-          {analysis.nextStep ? (
-            <View style={styles.nextRow}>
-              <Ionicons name="arrow-forward-circle" size={20} color={theme.primary} style={styles.nextIcon} />
-              <View style={styles.flexShrink}>
-                <AppText variant="smallStrong" color="primary">
-                  다음 단계
-                </AppText>
-                <AppText variant="small">{analysis.nextStep}</AppText>
-              </View>
-            </View>
-          ) : null}
+        <Animated.View entering={enter()} style={styles.nextRow}>
+          <Ionicons name="arrow-forward-circle-outline" size={18} color={theme.textSecondary} style={styles.nextIcon} />
+          <AppText variant="small" style={styles.flexShrink}>
+            <AppText variant="smallStrong">다음 단계 </AppText>
+            {analysis.nextStep}
+          </AppText>
         </Animated.View>
       ) : null}
 
@@ -273,13 +258,20 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
           {onRegenerate ? (
             <PressableScale
               accessibilityLabel="다른 답장 더 보기"
+              accessibilityHint={regenCosts ? '무료 코칭 1회를 써요' : undefined}
               accessibilityState={{ disabled: regenerating }}
               feedback="tap"
               onPress={() => onRegenerate()}
               disabled={regenerating}
-              style={[styles.again, { backgroundColor: theme.surface, opacity: regenerating ? 0.6 : 1 }]}>
-              <Ionicons name="refresh" size={16} color={theme.text} />
+              style={[styles.again, { backgroundColor: innerFill, opacity: regenerating ? 0.6 : 1 }]}>
+              <Ionicons name="refresh" size={15} color={theme.text} />
               <AppText variant="smallStrong">{regenerating ? '새로 만드는 중…' : '다른 답장 더 보기'}</AppText>
+              {/* 무료 1회를 쓰는 버튼은 누르기 전에 알린다 (「모르는 새 닳았다」 방지) */}
+              {regenCosts && !regenerating ? (
+                <AppText variant="caption" color="textTertiary">
+                  · 1회
+                </AppText>
+              ) : null}
             </PressableScale>
           ) : (
             <View />
@@ -298,7 +290,7 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
   );
 }
 
-/** 관심 있을 가능성 막대 — 처음 도착한 결과면 0 에서 차오른다 */
+/** 관심 있을 가능성 막대 — 가는 단색 막대(1.4 개편), 처음 도착한 결과면 0 에서 차오른다 */
 function InterestBar({ value, animate }: { value: number; animate: boolean }) {
   const theme = useTheme();
   const [width, setWidth] = useState(0);
@@ -309,11 +301,9 @@ function InterestBar({ value, animate }: { value: number; animate: boolean }) {
   }, [animate, value, p]);
   const fill = useAnimatedStyle(() => ({ width: Math.max(10, p.value * width) }));
   return (
-    <View onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)} style={[styles.track, { backgroundColor: theme.surfaceSelected }]}>
+    <View onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)} style={[styles.track, { backgroundColor: theme.surface }]}>
       {width > 0 ? (
-        <Animated.View style={[styles.fill, fill]}>
-          <LinearGradient colors={Brand.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
-        </Animated.View>
+        <Animated.View style={[styles.fill, { backgroundColor: theme.primary }, fill]} />
       ) : null}
     </View>
   );
@@ -335,25 +325,25 @@ function Detail({ title, lines }: { title: string; lines: string[] }) {
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: Radius.xl, borderTopLeftRadius: 6, borderWidth: 1, padding: Spacing.lg, gap: Spacing.xl, alignSelf: 'stretch' },
-  block: { gap: Spacing.sm + 2 },
+  // 회색 결과 말풍선 — 테두리·그림자 없이 면 하나(피클 결). 코치 쪽 첫 모서리만 작게
+  card: { borderRadius: 24, borderTopLeftRadius: 6, padding: Spacing.md + 2, gap: Spacing.lg, alignSelf: 'stretch' },
+  block: { gap: Spacing.sm },
+  inner: { borderRadius: 20, padding: Spacing.md + 2, gap: Spacing.md },
+  metric: { gap: Spacing.sm },
   flexShrink: { flexShrink: 1 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
-  detected: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
-  chip: { paddingHorizontal: Spacing.sm + 2, paddingVertical: 4, borderRadius: Radius.pill },
-  bigNumber: { fontSize: 44, lineHeight: 50, fontWeight: '900', letterSpacing: -1.6 },
-  bigUnit: { fontSize: 22, fontWeight: '800' },
-  vibePill: { paddingHorizontal: Spacing.md + 2, paddingVertical: Spacing.sm, borderRadius: Radius.pill },
-  track: { height: 10, borderRadius: Radius.pill, overflow: 'hidden' },
-  fill: { height: '100%', borderRadius: Radius.pill, overflow: 'hidden' },
-  heatBox: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: Spacing.lg },
-  next: { borderRadius: Radius.lg, padding: Spacing.md + 2, gap: Spacing.md },
-  nextRow: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'flex-start' },
+  // 카드의 큰 숫자는 이것 하나 (예전 44pt → 28pt)
+  bigNumber: { fontSize: 28, lineHeight: 34, fontWeight: '700', letterSpacing: -0.8 },
+  bigUnit: { fontSize: 17, fontWeight: '700' },
+  track: { height: 6, borderRadius: Radius.pill, overflow: 'hidden' },
+  fill: { height: '100%', borderRadius: Radius.pill },
+  heatBox: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: Spacing.md },
+  nextRow: { flexDirection: 'row', gap: 6, alignItems: 'flex-start', paddingHorizontal: 2 },
   nextIcon: { marginTop: 1 },
-  moreRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, alignSelf: 'flex-start', minHeight: 24 },
-  details: { gap: Spacing.md },
+  moreRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, alignSelf: 'flex-start', minHeight: 24, paddingHorizontal: 2 },
+  details: { gap: Spacing.md, paddingHorizontal: 2 },
   detail: { gap: 3 },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: -Spacing.xs },
-  again: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: Spacing.lg, height: 44, borderRadius: Radius.pill },
+  again: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: Spacing.lg, height: 40, borderRadius: Radius.pill },
   report: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingVertical: Spacing.sm, paddingHorizontal: Spacing.xs },
 });
