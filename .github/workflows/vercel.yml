@@ -20,6 +20,9 @@ jobs:
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      # 예비 AI (선택 — 없으면 그 회사는 건너뜀). Gemini 가 막혔을 때 세 회사에 동의한 앱의 요청만 Claude → GPT 로 (src/lib/ai-backup.ts)
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       COACH_APP_TOKEN: ${{ secrets.EXPO_PUBLIC_API_TOKEN }}
       # 웹 회원가입용 공개 값 (저장소 변수)
       EXPO_PUBLIC_SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
@@ -61,6 +64,9 @@ jobs:
             echo "env 등록: $1 (${3:-secret})"
           }
           add_env GEMINI_API_KEY "$GEMINI_API_KEY"
+          add_env ANTHROPIC_API_KEY "$ANTHROPIC_API_KEY"
+          add_env OPENAI_API_KEY "$OPENAI_API_KEY"
+          [ -n "$ANTHROPIC_API_KEY$OPENAI_API_KEY" ] || echo "::notice::예비 AI 키(ANTHROPIC_API_KEY·OPENAI_API_KEY)가 없어 Gemini 로만 보냅니다"
           # 지금 서버는 이 값을 읽지 않고 Gemini 로만 보낸다. 예전 서버 코드를 다시 배포해도 Gemini 를 고르도록 고정해 둔다
           add_env AI_PROVIDER gemini
           add_env COACH_APP_TOKEN "$COACH_APP_TOKEN"

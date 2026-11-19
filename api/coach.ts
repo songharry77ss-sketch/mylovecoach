@@ -3,10 +3,13 @@
  * 앱에서 받은 대화 캡처 + 프로필을 Gemini 에 전달하고 구조화된 코칭 결과를 돌려줍니다.
  * 요청 본문의 mode 로 다른 기능도 처리합니다 (없으면 예전 앱의 코칭 요청):
  *   coach(코칭) · report(상대 분석 보고서) · mind(속마음 풀이) · practice(연애 연습 상대역)
- * 중계 요청은 Google(Gemini)로만 보냅니다. 앱의 AI 분석 동의 시트(src/lib/coach-client.ts 의 RELAY_ROUTE)와
- * 개인정보 처리방침 2번이 받는 곳을 Google 로 안내하기 때문입니다 — 다른 회사로 바꾸려면 셋을 같이 고칠 것.
+ * 중계 요청은 먼저 Google(Gemini)로 보냅니다. Gemini 가 한도·혼잡·오류로 답하지 못하면, 앱이 x-ai-consent 로
+ * 「Google·Anthropic·OpenAI 로 보내는 데 동의함」(google,anthropic,openai)을 알려 준 요청에 한해 Anthropic(Claude) → OpenAI(GPT) 순으로
+ * 다시 보냅니다(src/lib/ai-backup.ts, 2026-11-20). Google 에만 동의한 예전 앱(헤더 google)은 예전처럼 Gemini 로만 갑니다.
+ * 받는 곳은 앱의 AI 분석 동의 시트(src/components/coach/ai-consent-sheet.tsx)와 개인정보 처리방침 2번이 안내합니다 — 바꾸려면 셋을 같이 고칠 것.
  * 환경변수:
- *   GEMINI_API_KEY (필수 — 없으면 500. 다른 회사 키가 있어도 그쪽으로 보내지 않음), GEMINI_MODEL (선택, 기본 gemini-3.5-flash)
+ *   GEMINI_API_KEY (필수 — 없으면 500), GEMINI_MODEL (선택, 기본 gemini-3.5-flash)
+ *   ANTHROPIC_API_KEY · OPENAI_API_KEY (선택, 예비 — 없으면 그 회사는 건너뜀), ANTHROPIC_MODEL · OPENAI_MODEL · ANTHROPIC_EFFORT (선택)
  *   COACH_APP_TOKEN (선택, 앱 토큰 검사)
  *   비용 스위치 GEMINI_MODEL_LIGHT · GEMINI_THINKING_* · GEMINI_OMIT_TEMPERATURE (선택, 비우면 지금 동작 그대로 — api/_ai-flags.ts)
  * 요청마다 로그 한 줄(JSON)을 남깁니다: 모드·모델·토큰 수·종료 이유·시도 횟수·걸린 시간. Gemini 를 부르기 직전마다 시작 줄도 남깁니다.
@@ -17,6 +20,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { APP_NAME, APP_SUBTITLE } from '../src/constants/brand';
 import { buildTask, parseAiRequest, type AiMode, type AiTask } from '../src/lib/ai-tasks';
 import { IMAGE_TOO_LARGE_MESSAGE, MAX_IMAGE_BASE64_LENGTH, isImageTooLarge, salvageTruncatedCoach } from '../src/lib/coach-schema';
+import { backupOrder, callAnthropicTask, callOpenAITask, consentedCompanies, shouldFallBack, type BackupResult } from '../src/lib/ai-backup';
 import { callGeminiTask, type GeminiUsage } from '../src/lib/gemini';
 import { aiFlagsFor } from './_ai-flags';
 import { clientIp, rateLimited, storedKb } from './_limits';
@@ -164,6 +168,8 @@ export interface UsageLine {
   flexMs?: number;
   /** 출력 상한에 걸려 잘린 코칭 응답을 살렸을 때 'memory' (맨 끝의 기억 칸에서 끊겨 기억만 비우고 돌려줌) */
   salvaged?: 'memory';
+  /** Gemini 가 실패해 예비 AI 로 넘어갔을 때: 부른 순서와 결과 (예: anthropic:claude-opus-5-5:ok · openai:gpt-6.2-astra:429) */
+  backup?: string[];
 }
 
 /** 본문의 mode — 아는 값만 (모르는 글자를 로그에 그대로 남기지 않는다) */
@@ -257,7 +263,7 @@ async function handle(req: VercelRequest, res: VercelResponse, send: (status: nu
     send(500, { error: '서버에 GEMINI_API_KEY가 설정되지 않았어요.' }, 'no_key');
     return;
   }
-  const provider = 'gemini';
+  let provider: 'gemini' | 'anthropic' | 'openai' = 'gemini';
   const expectedToken = process.env.COACH_APP_TOKEN;
   if (expectedToken && req.headers['x-app-token'] !== expectedToken) {
     send(401, { error: '앱 인증에 실패했어요.' }, 'app_token');
@@ -272,8 +278,8 @@ async function handle(req: VercelRequest, res: VercelResponse, send: (status: nu
   }
   // 스위치가 꺼져 있을 때 헤더 없는 예전 앱은 그 판 처리방침이 안내한 Google 로 본다 — 지금은 그대로 받고,
   // 나중에 보낼 회사(RELAY_COMPANY)를 바꾸면 예전 앱도 새 회사로 조용히 보내지 않고 같이 거절된다
-  const consented = consentHeader ?? LEGACY_APP_COMPANY;
-  if (consented !== RELAY_COMPANY) {
+  const consented = consentedCompanies(consentHeader ?? LEGACY_APP_COMPANY);
+  if (!consented.has(RELAY_COMPANY)) {
     send(503, { error: '지금은 AI 연결을 점검 중이에요. 잠시 후 다시 시도해주세요.' }, 'consent');
     return;
   }
@@ -328,24 +334,48 @@ async function handle(req: VercelRequest, res: VercelResponse, send: (status: nu
       },
     });
     Object.assign(line, usageFields(result.usage), { finishReason: result.finishReason });
-    if (!result.ok) {
-      Object.assign(line, { upstreamStatus: result.upstreamStatus, upstreamError: result.upstreamError });
-      await log({ provider, error: result.code });
+    // Gemini 가 한도·혼잡·오류로 실패했으면, 사용자가 동의한 예비 회사(키가 있는 것)로 차례로 다시 보낸다
+    let backup: Extract<BackupResult, { ok: true }> | null = null;
+    if (!result.ok && shouldFallBack(result.code)) {
+      for (const next of backupOrder(consented)) {
+        if (watch.signal.aborted) break;
+        const tried =
+          next.provider === 'anthropic'
+            ? await callAnthropicTask(task, next.key, { model: process.env.ANTHROPIC_MODEL, effort: process.env.ANTHROPIC_EFFORT, signal: watch.signal })
+            : await callOpenAITask(task, next.key, { model: process.env.OPENAI_MODEL, signal: watch.signal });
+        console.log(JSON.stringify({ log: 'coach_api_backup', mode: parsed.mode, provider: tried.provider, model: tried.model, ok: tried.ok, status: tried.ok ? 200 : tried.status }));
+        (line.backup ??= []).push(`${tried.provider}:${tried.model}:${tried.ok ? 'ok' : (tried.status ?? tried.code)}`);
+        if (tried.ok) {
+          backup = tried;
+          break;
+        }
+        // 내용 거절은 다른 회사로 또 보내지 않는다
+        if (tried.code === 'refused') break;
+      }
+    }
+    if (backup) {
+      provider = backup.provider;
+      Object.assign(line, { model: backup.model, finishReason: backup.finishReason, promptTokens: backup.usage?.input, candidatesTokens: backup.usage?.output, cachedTokens: backup.usage?.cached, totalTokens: backup.usage?.total, thoughtsTokens: undefined });
+    }
+    const answer = backup ?? result;
+    if (!answer.ok) {
+      Object.assign(line, { upstreamStatus: answer.upstreamStatus, upstreamError: answer.upstreamError });
+      await log({ provider, error: answer.code });
       // Google 원문 오류(예: 없는 모델 404 의 영어 안내)는 화면에 그대로 보이지 않게 고정 안내로 바꾼다. 혼잡(503)·한도·키·거절은 원래 우리 문구
-      const message = result.code === 'server' && result.status !== 503 ? UPSTREAM_ERROR_MESSAGE : result.message;
-      send(result.code === 'auth' ? 500 : result.code === 'rate_limit' ? 429 : result.code === 'refused' ? 422 : 502, { error: message }, result.code);
+      const message = answer.code === 'server' && answer.status !== 503 ? UPSTREAM_ERROR_MESSAGE : answer.message;
+      send(answer.code === 'auth' ? 500 : answer.code === 'rate_limit' ? 429 : answer.code === 'refused' ? 422 : 502, { error: message }, answer.code);
       return;
     }
     // 출력 상한(MAX_TOKENS)에 걸려 잘린 JSON 도 여기서 걸러진다 (로그의 finishReason 으로 구분)
     let raw: unknown;
     try {
-      raw = JSON.parse(result.text);
+      raw = JSON.parse(answer.text);
     } catch {
       raw = undefined;
     }
     // 코칭 응답은 맨 끝이 기억(memory) 칸이다 — 그 안에서 잘렸으면 답장까지는 다 나온 것이니 기억만 비우고 살린다
-    if (raw === undefined && parsed.mode === 'coach' && result.finishReason === 'MAX_TOKENS') {
-      raw = salvageTruncatedCoach(result.text);
+    if (raw === undefined && parsed.mode === 'coach' && answer.finishReason === 'MAX_TOKENS') {
+      raw = salvageTruncatedCoach(answer.text);
       if (raw !== undefined) line.salvaged = 'memory';
     }
     const json = raw === undefined ? null : task.schema.safeParse(raw);
@@ -356,7 +386,7 @@ async function handle(req: VercelRequest, res: VercelResponse, send: (status: nu
     }
     const output = task.normalize(json.data);
     await log({ analysis: output as Record<string, unknown>, provider });
-    reply(output, result.usage);
+    reply(output, backup ? backup.usage : result.usage);
   } catch {
     const why = watch.reason();
     if (why === 'client') {

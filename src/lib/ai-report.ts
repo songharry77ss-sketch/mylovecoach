@@ -35,7 +35,7 @@ export async function sendAiReport(input: AiReportRequest): Promise<void> {
     reason: input.reason,
     note: input.note?.trim().slice(0, AI_REPORT_NOTE_MAX) || undefined,
     content: clip(input.content ?? '') || undefined,
-    // 서버를 거치는 빌드에서만 신고할 수 있어 답변은 늘 중계 서버의 AI 에서 나온다 (예: google/relay)
+    // 서버를 거치는 빌드에서만 신고할 수 있어 답변은 늘 중계 서버의 AI 에서 나온다 (예: relay/relay — 기본 Google, 막힐 때만 Anthropic·OpenAI)
     model: route ? `${route.provider}/${route.via}` : undefined,
     platform: Platform.OS,
     appVersion: Constants.expoConfig?.version?.slice(0, 32) || undefined,
