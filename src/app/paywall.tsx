@@ -21,6 +21,7 @@ import { track } from '@/lib/analytics';
 import { STORE_LABEL, STORE_URL, downloadDevice, type DownloadStore } from '@/lib/app-download';
 import { couponSupported } from '@/lib/billing/coupon';
 import { billingSupported, lastStoreProblem, purchasePlan, restorePremium, type PlanProduct } from '@/lib/billing/iap';
+import { storeFixHint } from '@/lib/billing/store-hint';
 import { CREDITS_PER_PACK, FALLBACK_PRICES, PRODUCT_IDS, SELLING_PLANS, SIGNUP_BONUS, freeRules, isConsumablePlan, yearPassEnd, type PlanKey } from '@/lib/billing/plans';
 import { PREMIUM_PLAN_NAMES, formatDateKo, formatPassEnd, isPremiumActive, passEndIfBoughtNow, premiumUntilSentence, quotaLabel, quotaStatus } from '@/lib/billing/quota';
 import { isSaleActive, priceNumber, SALE_WINDOW_MS, saleAudience, saleOffer, saleWindow, shouldStartSale } from '@/lib/billing/sale';
@@ -163,6 +164,8 @@ export default function Paywall() {
   const chosen = visible.some((p) => p.plan === selected) ? selected : (visible.find((p) => p.plan !== 'weekly')?.plan ?? visible[0]?.plan ?? 'year');
   // 앱에서 스토어 상품을 하나도 확인하지 못했으면 다시 불러오기를 권한다
   const storeUnreachable = billingSupported && !previewStore && products != null && !confirmed;
+  // 다시 불러와도 안 풀리는 상태(스토어 앱이 오래됨 -2·결제 사용 불가 3)면 할 일을 알려 준다
+  const fixHint = storeUnreachable ? storeFixHint(lastStoreProblem()) : null;
   // 스토어에 닿지 못했으면 두 번까지 저절로 다시 묻는다 (Play 네트워크 오류 12·연결 끊김 -1 은 잠깐 뒤 대부분 풀린다 —
   // 예전에는 「다시 불러오기」를 눌러야 해서 하루 이용권이 빠진 채 1년권만 보고 닫는 경우가 많았다, 11-19 데이터)
   useEffect(() => {
@@ -402,7 +405,7 @@ export default function Paywall() {
         {ready && storeUnreachable ? (
           <Pressable accessibilityRole="button" onPress={() => setLoadAttempt((n) => n + 1)} hitSlop={8} style={styles.reload}>
             <AppText variant="caption" color="textSecondary" align="center">
-              스토어 정보를 다 불러오지 못했어요 ·{' '}
+              {fixHint ?? '스토어 정보를 다 불러오지 못했어요'} ·{' '}
               <AppText variant="caption" color="primary" weight="700">
                 다시 불러오기
               </AppText>

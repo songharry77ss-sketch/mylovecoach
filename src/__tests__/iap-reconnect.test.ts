@@ -87,6 +87,19 @@ describe('스토어 상품 조회 실패', () => {
     expect(mockIap.requestPurchase).not.toHaveBeenCalled();
   });
 
+  it('결제 직전 조회가 「기능 미지원(-2)」이면 기다리지 않고 스토어 앱 업데이트를 안내한다 (2026-11-20 04시)', async () => {
+    mockIap.fetchProducts.mockRejectedValue(playError(-2));
+
+    const outcome = await iap.purchasePlan({ plan: 'credits', productId: 'mylovecoach.credits.10', displayPrice: '₩4,900' });
+
+    expect(outcome.status).toBe('error');
+    if (outcome.status !== 'error') return;
+    expect(outcome.message).toContain('스토어 앱이 오래돼서');
+    expect(outcome.message).toContain('(query-product · -2)');
+    expect(mockIap.fetchProducts).toHaveBeenCalledTimes(2);
+    expect(mockIap.requestPurchase).not.toHaveBeenCalled();
+  });
+
   it('결제 직전 조회가 한 번 실패해도 다시 연결해 찾으면 결제 시트를 띄운다', async () => {
     mockIap.fetchProducts.mockRejectedValueOnce(playError(-1)).mockResolvedValueOnce([product('mylovecoach.credits.10')]);
 
