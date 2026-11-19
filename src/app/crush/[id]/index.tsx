@@ -370,7 +370,7 @@ export default function CrushChat() {
     quota.enforced && quota.kind === 'intro' && quota.until
       ? { text: '⏱ 처음 5분은 무제한이에요', countdownUntil: quota.until }
       : quota.enforced && passEndsSoon && quota.until
-        ? { text: `⏳ 하루 무제한이 ${passEndClock(quota.until)}에 끝나요`, actionLabel: '1년권 보기', onAction: () => openPaywall('renew') }
+        ? { text: `⏳ 무제한이 ${passEndClock(quota.until)}에 끝나요`, actionLabel: '1년권 보기', onAction: () => openPaywall('renew') }
         : quota.enforced && !isUnlimited(quota)
       ? {
           text: `${quota.kind === 'exhausted' ? '⏳' : '🎁'} ${quotaLabel(quota)}`,

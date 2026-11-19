@@ -280,6 +280,7 @@ export default function RootLayout() {
               <Stack.Screen name="settings/app" options={{ title: '앱 설정', headerShown: false }} />
               <Stack.Screen name="settings/data" options={{ title: '개인정보', headerShown: false }} />
               <Stack.Screen name="settings/help" options={{ title: '도움말·정보', headerShown: false }} />
+              <Stack.Screen name="coupon" options={{ title: '쿠폰 코드', headerShown: false }} />
               <Stack.Screen name="paywall" options={{ headerShown: false, presentation: 'modal', ...ANDROID_MODAL }} />
               {/* 무료를 다 써서 막힌 순간 아래에서 올라오는 타임어택 특가 시트 (lib/billing/paywall-route) */}
               <Stack.Screen name="sale" options={{ headerShown: false, presentation: 'transparentModal', animation: 'fade', contentStyle: { backgroundColor: 'transparent' } }} />

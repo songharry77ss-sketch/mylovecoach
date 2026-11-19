@@ -19,7 +19,7 @@ import { track } from '@/lib/analytics';
 import { providerLabel } from '@/lib/auth';
 import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { billingSupported } from '@/lib/billing/iap';
-import { PREMIUM_PLAN_NAMES, premiumUntilLabel, quotaLabel } from '@/lib/billing/quota';
+import { dateClock, PREMIUM_PLAN_NAMES, premiumUntilLabel, quotaLabel } from '@/lib/billing/quota';
 import { refreshTeam } from '@/lib/billing/team';
 import { isDemoMode } from '@/lib/demo';
 import { haptic } from '@/lib/haptics';
@@ -71,7 +71,7 @@ export default function MyScreen() {
 
   // 프리미엄이 실제로 이용 중일 때만 그 이름을 쓴다 (끝난 1년권·주간 구독이 저장돼 있어도 팀원·하루 이용권 이름이 가려지지 않게)
   const premiumOn = quota.kind === 'premium' && premium != null;
-  const planValue = premiumOn ? PREMIUM_PLAN_NAMES[premium.plan] : quota.kind === 'team' ? '팀원 무제한' : quota.kind === 'pass' ? '하루 이용권' : '';
+  const planValue = premiumOn ? PREMIUM_PLAN_NAMES[premium.plan] : quota.kind === 'team' ? '팀원 무제한' : quota.kind === 'pass' ? (quota.long ? '무제한 이용권' : '하루 이용권') : '';
   // 1년권: 「2027년 11월 7일까지」 (Android 는 어림한 날짜라 「… 끝날 예정」)
   const yearUntil = premiumOn ? premiumUntilLabel(premium) : null;
   const walletNote = wallet.credits > 0 ? `횟수권 ${wallet.credits}회` : '';
@@ -154,7 +154,13 @@ export default function MyScreen() {
               <View style={styles.passTexts}>
                 <Text style={styles.passTitle}>{owned ? `${planValue || '프리미엄'} 이용 중` : '이용권 보기'}</Text>
                 <Text style={styles.passBody} numberOfLines={2}>
-                  {quota.kind === 'team' ? `관리자가 허용한 팀원 기기 · ${team?.label ?? '팀원'}` : yearUntil ? `${yearUntil} · 무제한` : quotaLabel(quota)}
+                  {quota.kind === 'team'
+                    ? `관리자가 허용한 팀원 기기 · ${team?.label ?? '팀원'}`
+                    : yearUntil
+                      ? `${yearUntil} · 무제한`
+                      : quota.kind === 'pass' && quota.long && quota.until
+                        ? `${dateClock(quota.until)}까지 · 무제한`
+                        : quotaLabel(quota)}
                   {owned && walletNote ? ` · ${walletNote}` : ''}
                 </Text>
                 {!owned && fromPrice ? (
