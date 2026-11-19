@@ -131,9 +131,10 @@ const HOME = {
 <p>센딧(Sendit)은 「나만의 연애코치」의 새 이름이에요. App Store·Google Play에서 「센딧」이나 「연애코치」로 찾을 수 있어요.</p>
 <h2>이런 고민에 써요</h2>
 <ul>
-<li><b>카톡 답장 추천</b> — 썸남·썸녀가 「뭐해?」라고 보냈을 때, 톤별 답장 3개를 바로 복사</li>
+<li><b><a href="/guide/ai-love-counseling">AI 연애 상담</a></b> — 썸·연애·다툼·재회·이별 고민을 캡처 한 장이나 상황 한 줄로</li>
+<li><b><a href="/guide/reply-recommend">카톡 답장 추천</a></b> — 썸남·썸녀가 「뭐해?」라고 보냈을 때, 톤별 답장 3개를 바로 복사</li>
 <li><b>호감도 분석</b> — 답장 속도·질문·이모티콘으로 상대 호감 온도를 숫자로</li>
-<li><b>속마음 풀이</b> — 애매한 한마디에 숨은 뜻 해석</li>
+<li><b>속마음 풀이</b> — 애매한 한마디에 숨은 <a href="/guide/his-mind">남자 속마음</a>·<a href="/guide/her-mind">여자 속마음</a> 해석</li>
 <li><b>연애 연습</b> — AI 상대와 소개팅·썸 대화를 미리 연습</li>
 <li><b><a href="/kkti">KKTI 연애 MBTI 테스트</a></b> — 카톡 습관 12문항으로 보는 16가지 연애 유형</li>
 </ul>
