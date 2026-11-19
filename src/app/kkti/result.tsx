@@ -852,7 +852,7 @@ function MatchPerson({ result, label }: { result: KktiResult; label: string | nu
       </View>
       {label ? (
         <View style={[styles.matchWho, { backgroundColor: theme.surfaceSelected }]}>
-          <AppText variant="caption" weight="800" color="textSecondary">
+          <AppText variant="caption" weight="700" color="textSecondary">
             {label}
           </AppText>
         </View>
@@ -875,7 +875,7 @@ function MatchAxisRow({ axis }: { axis: KktiMatchAxis }) {
       <View style={styles.matchAxisBody}>
         <View style={styles.matchAxisHead}>
           <AppText variant="smallStrong">{axis.label}</AppText>
-          <AppText variant="caption" weight="800" color={FIT_COLOR[axis.fit]}>
+          <AppText variant="caption" weight="700" color={FIT_COLOR[axis.fit]}>
             {KKTI_FIT_LABEL[axis.fit]}
           </AppText>
         </View>
@@ -922,7 +922,7 @@ function MatchRow({ label, good, emoji, name, code, reason }: { label: string; g
     <View style={[styles.matchRow, { backgroundColor: theme.surface }]}>
       <AppText style={styles.matchEmoji}>{emoji}</AppText>
       <View style={styles.flexShrink}>
-        <AppText variant="caption" weight="800" color={good ? 'success' : 'danger'}>
+        <AppText variant="caption" weight="700" color={good ? 'success' : 'danger'}>
           {label}
         </AppText>
         <AppText variant="bodyStrong">
@@ -988,7 +988,7 @@ const styles = StyleSheet.create({
   heroEmoji: { fontSize: 52, lineHeight: 64 },
   letters: { flexDirection: 'row', gap: 6, alignSelf: 'stretch', justifyContent: 'center' },
   letterTile: { flex: 1, maxWidth: 84, borderRadius: Radius.md, paddingVertical: Spacing.sm, paddingHorizontal: 2, alignItems: 'center' },
-  letter: { fontSize: 30, lineHeight: 38, fontWeight: '900' },
+  letter: { fontSize: 30, lineHeight: 38, fontWeight: '700' },
   letterLabel: { fontSize: 10, lineHeight: 13, fontWeight: '600' },
   heroNameLong: { fontSize: 26, lineHeight: 34 },
   heroChips: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6 },
@@ -1003,8 +1003,8 @@ const styles = StyleSheet.create({
   matchPersonEmoji: { fontSize: 38, lineHeight: 48 },
   matchWho: { paddingHorizontal: Spacing.sm, paddingVertical: 2, borderRadius: Radius.pill },
   matchPercentRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center' },
-  matchPercent: { fontSize: 84, lineHeight: 92, fontWeight: '900', letterSpacing: -3, fontVariant: ['tabular-nums'] },
-  matchPercentSign: { fontSize: 36, lineHeight: 60, fontWeight: '900', marginLeft: 2 },
+  matchPercent: { fontSize: 84, lineHeight: 92, fontWeight: '700', letterSpacing: -3, fontVariant: ['tabular-nums'] },
+  matchPercentSign: { fontSize: 36, lineHeight: 60, fontWeight: '700', marginLeft: 2 },
   matchTier: { alignSelf: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.xs + 2, borderRadius: Radius.pill, overflow: 'hidden' },
   matchAxes: { gap: Spacing.sm },
   matchAxisRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: Radius.md, padding: Spacing.md },
@@ -1036,11 +1036,11 @@ const styles = StyleSheet.create({
 
   mbtiRow: { flexDirection: 'row', gap: Spacing.sm },
   mbtiCell: { flex: 1, alignItems: 'center', borderRadius: Radius.md, paddingVertical: Spacing.md, gap: 2 },
-  mbtiLetter: { fontSize: 32, lineHeight: 40, fontWeight: '900' },
+  mbtiLetter: { fontSize: 32, lineHeight: 40, fontWeight: '700' },
 
   enneaRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   enneaBadge: { width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  enneaNumber: { fontSize: 28, lineHeight: 34, fontWeight: '900' },
+  enneaNumber: { fontSize: 28, lineHeight: 34, fontWeight: '700' },
 
   swatch: { height: 132, borderRadius: Radius.lg, padding: Spacing.lg, justifyContent: 'space-between' },
   swatchFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

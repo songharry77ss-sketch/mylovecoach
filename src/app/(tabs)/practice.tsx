@@ -161,12 +161,12 @@ export default function PracticeTab() {
                   <Text style={styles.personaEmoji}>{p.emoji}</Text>
                 </View>
                 <View style={[styles.level, { backgroundColor: p.difficulty >= 3 ? theme.accentSoft : theme.primarySoft }]}>
-                  <AppText variant="caption" weight="800" color={p.difficulty >= 3 ? 'accent' : 'primary'}>
+                  <AppText variant="caption" weight="700" color={p.difficulty >= 3 ? 'accent' : 'primary'}>
                     {LEVEL[p.difficulty] ?? ''}
                   </AppText>
                 </View>
               </View>
-              <AppText variant="bodyStrong" weight="800" numberOfLines={1}>
+              <AppText variant="bodyStrong" weight="700" numberOfLines={1}>
                 {p.name} · {p.age}
               </AppText>
               <AppText variant="caption" color="textSecondary" numberOfLines={1}>
@@ -183,7 +183,7 @@ export default function PracticeTab() {
             <View style={[styles.customIcon, { backgroundColor: theme.primarySoft }]}>
               <Ionicons name="add" size={26} color={theme.primary} />
             </View>
-            <AppText variant="bodyStrong" weight="800" align="center">
+            <AppText variant="bodyStrong" weight="700" align="center">
               직접 만들기
             </AppText>
             <AppText variant="caption" color="textSecondary" align="center">
@@ -213,13 +213,13 @@ const styles = StyleSheet.create({
   sessionFill: { flex: 1, borderRadius: CARD_RADIUS, padding: Spacing.md + 2, gap: 4, overflow: 'hidden' },
   sessionTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },
   sessionEmoji: { fontSize: 28, lineHeight: 34 },
-  sessionHeat: { fontSize: 24, lineHeight: 28, fontWeight: '900', letterSpacing: -0.8 },
+  sessionHeat: { fontSize: 24, lineHeight: 28, fontWeight: '700', letterSpacing: -0.8 },
   sessionLast: { minHeight: 32 },
-  heroTitle: { color: Brand.onBrand, fontSize: 22, lineHeight: 28, fontWeight: '900', letterSpacing: -0.5 },
+  heroTitle: { color: Brand.onBrand, fontSize: 22, lineHeight: 28, fontWeight: '700', letterSpacing: -0.5 },
   steps: { gap: Spacing.md, marginTop: Spacing.lg },
   step: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   stepNum: { width: 28, height: 28, borderRadius: 14, backgroundColor: Brand.glass, borderWidth: 1, borderColor: Brand.glassBorder, alignItems: 'center', justifyContent: 'center' },
-  stepNumText: { color: Brand.onBrand, fontSize: 13, lineHeight: 16, fontWeight: '900' },
+  stepNumText: { color: Brand.onBrand, fontSize: 13, lineHeight: 16, fontWeight: '700' },
   stepText: { flex: 1, color: Brand.onBrand, opacity: 0.94, fontSize: 15, lineHeight: 21, fontWeight: '700' },
   crushChip: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderRadius: CARD_RADIUS, paddingVertical: Spacing.sm + 2, paddingLeft: Spacing.md, paddingRight: Spacing.lg },
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -Spacing.xs - 1 },

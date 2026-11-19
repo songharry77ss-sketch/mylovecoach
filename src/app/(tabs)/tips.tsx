@@ -129,7 +129,7 @@ export default function MindTab() {
     <Screen safeTop tab keyboard title="탐색" contentStyle={styles.content}>
       {/* 연애팁 백서 — 이 탭의 주인공 */}
       <Animated.View entering={enter(0)} style={styles.head}>
-        <AppText variant="smallStrong" color="primary" weight="800">
+        <AppText variant="smallStrong" color="primary" weight="700">
           연애팁 백서
         </AppText>
         <Text style={[styles.title, { color: theme.text }]} accessibilityRole="header">
@@ -181,10 +181,10 @@ export default function MindTab() {
       </Animated.View>
 
       <Animated.View entering={enter(4)} style={[styles.card, cardBg, flipStyle]}>
-        <AppText variant="caption" color="primary" weight="800">
+        <AppText variant="caption" color="primary" weight="700">
           오늘의 속마음 질문 · {card.category}
         </AppText>
-        <AppText variant="title2" weight="800" style={styles.situation} lineBreakStrategyIOS="hangul-word">
+        <AppText variant="title2" weight="700" style={styles.situation} lineBreakStrategyIOS="hangul-word">
           {situation}
         </AppText>
         <AppText variant="small" color="textSecondary">
@@ -264,7 +264,7 @@ export default function MindTab() {
                       router.push({ pathname: '/mind', params: { history: String(i) } });
                     }}
                     style={({ pressed }) => [styles.historyRow, { backgroundColor: pressed ? inset : 'transparent' }]}>
-                    <AppText variant="caption" color="accent" weight="800">
+                    <AppText variant="caption" color="accent" weight="700">
                       {themLabel(h.perspective)} 속마음
                     </AppText>
                     <AppText variant="smallStrong" numberOfLines={1}>
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   shuffle: { flex: 1, height: 50, borderRadius: Radius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   reveal: { flex: 1.3, height: 50, borderRadius: Radius.md },
   revealFill: { flex: 1, borderRadius: Radius.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, overflow: 'hidden' },
-  revealText: { color: Brand.onBrand, fontSize: 15, lineHeight: 20, fontWeight: '800' },
+  revealText: { color: Brand.onBrand, fontSize: 15, lineHeight: 20, fontWeight: '700' },
   own: { borderRadius: TIP_CARD_RADIUS },
   ownHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.lg + 2, minHeight: 56 },
   ownBody: { gap: Spacing.md, paddingHorizontal: Spacing.lg + 2, paddingBottom: Spacing.lg + 2 },

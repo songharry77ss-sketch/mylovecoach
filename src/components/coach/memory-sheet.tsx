@@ -21,7 +21,7 @@ import { useAppStore } from '@/store/app-store';
 
 const EMPTY: string[] = [];
 /** 기억 띠 높이 (알약 — 모서리는 절반) */
-const CARD_H = 48;
+const CARD_H = 42;
 
 /**
  * 채팅방 위의 작은 띠 「센딧이 기억하는 이야기 N개」 — 누르면 기억 시트를 연다.
@@ -55,8 +55,8 @@ export function MemoryCard({ count, onPress, inline = false }: { count: number; 
         onPress={onPress}
         style={[styles.card, dark ? null : CardShadow]}>
         <GlassSurface radius={CARD_H / 2} floating={false} style={StyleSheet.absoluteFill} />
-        <View style={[styles.cardIcon, { backgroundColor: theme.primarySoft }]}>
-          <Icon3D name="memory" size={26} />
+        <View style={[styles.cardIcon, { backgroundColor: dark ? theme.surfaceElevated : theme.surface }]}>
+          <Ionicons name="bookmark-outline" size={15} color={theme.textSecondary} />
         </View>
         <AppText variant="smallStrong" style={styles.cardText} numberOfLines={1}>
           {APP_NAME}이 기억하는 이야기{' '}
@@ -227,10 +227,10 @@ const styles = StyleSheet.create({
   cardWrap: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.xs, paddingBottom: Spacing.sm, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   cardInline: { marginTop: Spacing.xl },
   card: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm + 2, minHeight: CARD_H, paddingLeft: 6, paddingRight: Spacing.md, borderRadius: CARD_H / 2 },
-  cardIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  cardIcon: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   cardText: { flex: 1 },
   plus: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: Radius.pill },
-  plusText: { color: Brand.onBrand, fontSize: 12, lineHeight: 16, fontWeight: '800' },
+  plusText: { color: Brand.onBrand, fontSize: 12, lineHeight: 16, fontWeight: '700' },
   root: { flex: 1, justifyContent: 'flex-end' },
   backdrop: { backgroundColor: 'rgba(0,0,0,0.45)' },
   sheet: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', borderTopLeftRadius: Radius.xl, borderTopRightRadius: Radius.xl, paddingTop: Spacing.sm, paddingHorizontal: Spacing.xl },

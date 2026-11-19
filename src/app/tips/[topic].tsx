@@ -93,7 +93,7 @@ export default function WorryScreen() {
           <View style={[styles.headIcon, { backgroundColor: theme.primarySoft }]}>
             <Ionicons name={WORRY_ICON[worry.id]} size={22} color={theme.primary} />
           </View>
-          <AppText variant="smallStrong" color="primary" weight="800">
+          <AppText variant="smallStrong" color="primary" weight="700">
             연애팁 백서 · {worry.keywords}
           </AppText>
           <Text style={[styles.title, { color: theme.text }]} accessibilityRole="header">
@@ -105,7 +105,7 @@ export default function WorryScreen() {
         <Animated.View entering={enter(1)} style={[styles.answer, { backgroundColor: theme.primarySoft }]}>
           <View style={styles.answerLabel}>
             <Ionicons name="bulb" size={15} color={theme.primary} />
-            <AppText variant="caption" color="primary" weight="800">
+            <AppText variant="caption" color="primary" weight="700">
               한 줄 정리
             </AppText>
           </View>
@@ -178,7 +178,7 @@ export default function WorryScreen() {
                       {situation}
                     </AppText>
                     <View style={styles.mindGo}>
-                      <AppText variant="caption" color="primary" weight="800">
+                      <AppText variant="caption" color="primary" weight="700">
                         속마음 보기
                       </AppText>
                       <Ionicons name="arrow-forward" size={13} color={theme.primary} />
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
   step: { flexDirection: 'row', gap: Spacing.md },
   stepRail: { width: 26, alignItems: 'center' },
   stepNum: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  stepNumText: { color: Brand.onBrand, fontSize: 13, lineHeight: 16, fontWeight: '900' },
+  stepNumText: { color: Brand.onBrand, fontSize: 13, lineHeight: 16, fontWeight: '700' },
   stepLine: { flex: 1, width: 2, borderRadius: 1, marginVertical: 4 },
   stepTexts: { flex: 1, gap: 3, paddingTop: 1 },
   stepTextsGap: { paddingBottom: Spacing.lg + 2 },

@@ -235,7 +235,7 @@ function Possibility({ label, percent, reason, index }: { label: string; percent
         <View style={[styles.flex, styles.labelRow]}>
           {top ? (
             <View style={[styles.topBadge, { backgroundColor: theme.primary }]}>
-              <AppText variant="caption" weight="800" color={Brand.onBrand}>
+              <AppText variant="caption" weight="700" color={Brand.onBrand}>
                 1위
               </AppText>
             </View>

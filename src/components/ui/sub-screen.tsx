@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
   title: { ...Typography.hero, fontSize: 30, lineHeight: 38, marginTop: Spacing.xs, marginBottom: -Spacing.sm, paddingHorizontal: Spacing.xs },
   header: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
   smallTitle: { position: 'absolute', left: 56, right: 56, height: GLASS_HEADER_BAR, alignItems: 'center', justifyContent: 'center' },
-  smallTitleText: { fontSize: 16, lineHeight: 22, fontWeight: '800', letterSpacing: -0.3 },
+  smallTitleText: { fontSize: 16, lineHeight: 22, fontWeight: '700', letterSpacing: -0.3 },
   back: { position: 'absolute', left: Spacing.sm, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   quiet: { minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.xs },
   quietText: { textDecorationLine: 'underline' },

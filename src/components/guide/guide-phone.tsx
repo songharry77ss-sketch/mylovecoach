@@ -172,5 +172,5 @@ const styles = StyleSheet.create({
   dot: { width: 14, height: 14, borderRadius: 7, backgroundColor: palette.white, borderWidth: 3.5, borderColor: Brand.blue },
   labelWrap: { position: 'absolute' },
   label: { backgroundColor: palette.sendInk, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
-  labelText: { color: palette.white, fontSize: 12, fontWeight: '800', letterSpacing: -0.2 },
+  labelText: { color: palette.white, fontSize: 12, fontWeight: '700', letterSpacing: -0.2 },
 });

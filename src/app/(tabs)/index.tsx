@@ -5,13 +5,12 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandPill, HeroCard, SenditLogo } from '@/components/brand/brand';
+import { SenditLogo } from '@/components/brand/brand';
 import { WhoSheet, type WhoTarget } from '@/components/coach/who-sheet';
 import { CrushListItem } from '@/components/crush/crush-list-item';
 import { DemoReel } from '@/components/fx/demo-reel';
 import { AppText } from '@/components/ui/app-text';
 import { GlassHeader } from '@/components/ui/glass-header';
-import { useCardStyle } from '@/components/ui/list-group';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { SectionHeader } from '@/components/ui/section-header';
 import { StatusBarScrim, useScrolledPast } from '@/components/ui/system-bars';
@@ -19,6 +18,7 @@ import { useTabBarSpace } from '@/components/ui/tab-bar-space';
 import { useToast } from '@/components/ui/toast';
 import { APP_NAME } from '@/constants/brand';
 import { Brand, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { useQuota } from '@/lib/billing/gate';
@@ -33,8 +33,9 @@ import { PRIVACY_NOTICE_VERSION, sortCrushes, useAppStore } from '@/store/app-st
 const enter = (step: number) => FadeInDown.delay(step * 50).springify().damping(18);
 
 /**
- * 홈 — 「럽코」 시안 배치: 로고 → 인사·큰 제목(+3D 아이콘) → 그라데이션 카드 하나(캡처 올리기) → 캡처 없이 적기 → 최근 상담.
- * 1.2 개편: 옅은 회색 바탕(canvas) 위 흰 카드 결 — 적기 칸은 흰 알약, 최근 상담은 흰 카드 하나에 줄들. 로고가 사라질 만큼 내리면 유리 머리말.
+ * 홈 — 로고(+ 오른쪽 위 남은 무료 알약) → 인사·제목 → 회색 카드 하나(캡처 올리기) → 캡처 없이 적기 → 최근 상담.
+ * 1.4 「깔끔하게」 개편(11/12 회의 6·7·10번): 흰 바탕 + 무채색 회색 면, 색은 「캡처 올리기」 버튼 하나. 큰 파란 카드는 작은 회색 카드로,
+ * 남은 무료 횟수는 토스 잔액 알약처럼 오른쪽 위에 — 누르면 이용권 화면(「구매 입구가 안 보인다」). 로고가 사라질 만큼 내리면 유리 머리말.
  * 새 채팅방은 탭 바 옆 「새 채팅」 구슬이 맡는다(같은 곳으로 간다) — 목록 머리의 글자 버튼은 겹쳐서 뺐다.
  * 캡처나 상황 적기를 고르면 채팅방이 있을 때 「누구와의 대화예요?」 시트로 보낼 곳만 고르고(최근 대화가 맨 위), 없으면 바로 첫 채팅방을 연다.
  * 속마음 카드·KKTI·비밀 상담·(켰으면) 연애 연습 같은 부가 기능은 「탐색」 탭에 따로 둔다.
@@ -45,7 +46,9 @@ export default function HomeScreen() {
   const toast = useToast();
   const insets = useSafeAreaInsets();
   const tabSpace = useTabBarSpace();
-  const card = useCardStyle();
+  const dark = useColorScheme() === 'dark';
+  // 흰 바탕 위 회색 면(다크는 한 단계 밝은 면)
+  const fill = { backgroundColor: dark ? theme.surfaceElevated : theme.surface };
   // 맨 위 로고가 가려질 만큼 내리면 「센딧」 유리 머리말이 내려온다
   const { scrolled: pastTop, onScroll } = useScrolledPast(64);
   const user = useAppStore((s) => s.user);
@@ -136,7 +139,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={[styles.root, { backgroundColor: theme.canvas }]}>
+    <View style={[styles.root, { backgroundColor: theme.background }]}>
       {/* 떠 있는 유리 탭 바에 마지막 내용이 가리지 않게 그만큼 아래를 비운다 */}
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -146,6 +149,7 @@ export default function HomeScreen() {
         {/* 새 채팅방 + 는 탭 바 옆 「새 채팅」 구슬로 옮겼다 (2026-11-07 팀 제안 — 엄지가 닿는 자리) */}
         <Animated.View entering={enter(0)} style={styles.topRow}>
           <SenditLogo size="sm" />
+          <QuotaPill onPress={() => router.push({ pathname: '/paywall', params: { reason: 'banner' } })} />
         </Animated.View>
 
         {/* 11/12 회의 7번 「AI 티」: 제목 옆 떠다니는 3D 아이콘을 빼고 인사·제목만 */}
@@ -158,36 +162,33 @@ export default function HomeScreen() {
           </Text>
         </Animated.View>
 
-        {/* 주인공 — 캡처 올리기. 11/12 회의 6번: 예전의 절반 남짓 높이로 (연구진 배지·두 줄 설명·동그라미 장식·버튼 반짝임을 뺐다) */}
-        <Animated.View entering={enter(2)} style={styles.heroBlock}>
-          <HeroCard contentStyle={styles.heroFill}>
-            <Text style={styles.heroTitle}>카톡 캡처 한 장이면 돼요</Text>
-            <Text style={styles.heroBody}>답장 3가지와 호감 온도를 바로 알려 줘요</Text>
-            <CaptureButton busy={busy} onPress={capture} />
-          </HeroCard>
-          <Remaining />
+        {/* 주인공 — 캡처 올리기. 11/12 회의 6번 「너무 크다」: 큰 파란 카드(약 300pt) → 회색 카드 + 파란 버튼 하나 */}
+        <Animated.View entering={enter(2)} style={[styles.captureCard, fill]}>
+          <View style={styles.captureTexts}>
+            <AppText variant="title3" weight="700">
+              카톡 캡처 한 장이면 돼요
+            </AppText>
+            <AppText variant="small" color="textSecondary">
+              답장 3가지와 호감 온도를 바로 알려 줘요
+            </AppText>
+          </View>
+          <CaptureButton busy={busy} onPress={capture} />
         </Animated.View>
 
-        {/* 캡처 없이 상황만 적기 */}
-        <Animated.View entering={enter(3)} style={styles.section}>
-          <SectionHeader title="캡처 없이도 괜찮아요" style={styles.sectionHeader} />
-          {/* 흰 알약 입력칸 — 누르면 보낼 채팅방을 고른 뒤 그 방 입력창에서 바로 적는다 */}
-          <PressableScale onPress={write} feedback={false} pressedScale={0.98} accessibilityLabel="캡처 없이 상황만 적기" style={[styles.writeRow, card]}>
-            <Ionicons name="create-outline" size={20} color={theme.textTertiary} />
+        {/* 캡처 없이 상황만 적기 — 회색 알약 입력칸. 누르면 보낼 채팅방을 고른 뒤 그 방 입력창에서 바로 적는다 */}
+        <Animated.View entering={enter(3)}>
+          <PressableScale onPress={write} feedback={false} pressedScale={0.98} accessibilityLabel="캡처 없이 상황만 적기" style={[styles.writeRow, fill]}>
             <AppText variant="body" color="textTertiary" style={styles.flex} numberOfLines={1}>
-              지금 어떤 상황인지 적어 주세요
+              캡처 없이도 괜찮아요 · 상황 적기
             </AppText>
-            <View style={[styles.writeArrow, { backgroundColor: theme.primarySoft }]}>
-              <Ionicons name="arrow-up" size={20} color={theme.primary} />
+            <View style={[styles.writeArrow, { backgroundColor: theme.text }]}>
+              <Ionicons name="arrow-up" size={18} color={theme.background} />
             </View>
           </PressableScale>
         </Animated.View>
 
         {privacyNoticeDue ? (
-          <Animated.View entering={enter(4)} style={[styles.notice, card]}>
-            <View style={[styles.noticeIcon, { backgroundColor: theme.primarySoft }]}>
-              <Ionicons name="shield-checkmark" size={18} color={theme.primary} />
-            </View>
+          <Animated.View entering={enter(4)} style={[styles.notice, fill]}>
             <View style={styles.flex}>
               <AppText variant="smallStrong">개인정보 처리방침이 바뀌었어요</AppText>
               <AppText variant="caption" color="textSecondary" style={styles.noticeBody}>
@@ -218,8 +219,8 @@ export default function HomeScreen() {
           <Animated.View entering={enter(5)} style={styles.section}>
             {/* 새 채팅방은 바로 아래 탭 바 옆 「새 채팅」 구슬(+)이 맡는다 — 같은 곳으로 가는 글자 버튼을 겹쳐 두지 않는다 */}
             <SectionHeader title="최근 상담" subtitle={`${crushes.length}명과 대화 중`} style={styles.sectionHeader} />
-            {/* 그림자는 바깥 칸, 눌림 색이 둥근 모서리 밖으로 안 나가게 자르는 건 안쪽 칸 (아이폰은 자르면 그림자도 잘린다) */}
-            <View style={[styles.listCard, card]}>
+            {/* 흰 바탕 위 줄 목록 — 카드·그림자 없이 줄만(피클·토스 목록 결) */}
+            <View style={styles.listCard}>
               <View style={styles.listClip}>
                 {crushes.map((c, i) => (
                   <Animated.View key={c.id} entering={FadeInDown.delay(300 + 50 * Math.min(i, 8)).duration(360)}>
@@ -244,16 +245,10 @@ export default function HomeScreen() {
               onPress={() => router.push({ pathname: '/about-me', params: { from: 'home' } })}
               pressedScale={0.98}
               accessibilityLabel="나에 대해 알려주세요"
-              style={[styles.profileCard, card]}>
-              <View style={[styles.profileIcon, { backgroundColor: theme.primarySoft }]}>
-                <Ionicons name="person" size={22} color={theme.primary} />
-              </View>
+              style={[styles.profileCard, fill]}>
               <View style={styles.flex}>
-                <View style={styles.profileHead}>
-                  <AppText variant="bodyStrong">나에 대해 알려주세요</AppText>
-                  <BrandPill label="30초" />
-                </View>
-                <AppText variant="caption" color="textSecondary">
+                <AppText variant="bodyStrong">나에 대해 알려주세요 · 30초</AppText>
+                <AppText variant="small" color="textSecondary">
                   답할수록 더 「나다운」 답장이 나와요
                 </AppText>
               </View>
@@ -272,7 +267,7 @@ export default function HomeScreen() {
         ) : null}
       </ScrollView>
       {/* 밝은 바탕이라 시계·배터리는 기본(검은 글자) 그대로 — 스크롤한 내용이 그 뒤로 비치지 않게 바탕색 띠를 깔고, 로고가 사라지면 유리 머리말 */}
-      <StatusBarScrim height={insets.top} color={theme.canvas} />
+      <StatusBarScrim height={insets.top} color={theme.background} />
       <GlassHeader title={APP_NAME} top={insets.top} visible={pastTop} />
       <WhoSheet
         visible={who != null}
@@ -289,15 +284,15 @@ export default function HomeScreen() {
   );
 }
 
-/** 그라데이션 카드 위 흰 「캡처 올리기」 버튼 — 누르면 말랑하게 튄다 (되풀이하던 빛 스침은 11/12 회의 7번 「AI 티」로 뺐다) */
+/** 「캡처 올리기」 — 홈에서 색이 있는 단 하나의 버튼(센딧 파랑 단색) */
 function CaptureButton({ busy, onPress }: { busy: boolean; onPress: () => void }) {
   return (
-    <PressableScale onPress={onPress} feedback={false} pressedScale={0.96} accessibilityLabel="대화 캡처 올리기" accessibilityState={{ busy }} style={styles.capture}>
+    <PressableScale onPress={onPress} feedback={false} pressedScale={0.97} accessibilityLabel="대화 캡처 올리기" accessibilityState={{ busy }} style={styles.capture}>
       {busy ? (
-        <ActivityIndicator color={Brand.blue} />
+        <ActivityIndicator color={Brand.onBrand} />
       ) : (
         <>
-          <Ionicons name="images" size={20} color={Brand.blue} />
+          <Ionicons name="images-outline" size={19} color={Brand.onBrand} />
           <Text style={styles.captureText}>캡처 올리기</Text>
         </>
       )}
@@ -325,47 +320,70 @@ function useCountdown(until: number | null | undefined): number {
 }
 
 /**
- * 캡처 카드 아래 남은 무료 표시 — 숫자만 굵게 (지금 화면이 보여 주는 값 그대로: lib/billing/quota).
- * 「처음 5분 무제한」 체험 중(intro)이면 1초마다 줄어드는 남은 시간 — 끝나면 useQuota 가 원래 표시(남은 횟수)로 돌아간다.
+ * 오른쪽 위 남은 무료 알약(토스 잔액 알약 결) — 「무료 1회 ›」. 누르면 이용권 화면(11/12 회의 10번 「구매 입구가 안 보인다」).
+ * 값은 lib/billing/quota 그대로. 「처음 5분 무제한」 체험 중(intro)이면 1초마다 줄어드는 남은 시간 — 끝나면 useQuota 가 남은 횟수로 돌아간다.
+ * 데모·개인 키 빌드(횟수 제한 없음)는 그리지 않는다.
  */
-function Remaining() {
+function QuotaPill({ onPress }: { onPress: () => void }) {
   const theme = useTheme();
+  const dark = useColorScheme() === 'dark';
   const quota = useQuota();
   const introLeft = useCountdown(quota.kind === 'intro' ? quota.until : null);
-  const base = [styles.remaining, { color: theme.textSecondary }];
-  const strong = [styles.remainingNum, { color: theme.primary }];
-  // 데모·개인 키 빌드는 횟수 제한이 없어 숫자 대신 무엇을 올릴 수 있는지 알려 준다
-  if (!quota.enforced) return <Text style={base}>카톡·DM 캡처 모두 읽을 수 있어요</Text>;
+  if (!quota.enforced) return null;
+  const strong = [styles.pillStrong, { color: theme.primary }];
+  let body: React.ReactNode;
+  let label: string;
   if (quota.kind === 'intro') {
     const clock = introClock(introLeft);
-    return (
-      <Text style={base} accessibilityLabel={`무제한 체험 중, ${clock.spoken} 남았어요`}>
-        {'무제한 체험 중 · '}
+    label = `무제한 체험 중, ${clock.spoken} 남았어요`;
+    body = (
+      <>
+        {'무제한 '}
         <Text style={strong}>{clock.text}</Text>
-        {' 남음'}
-      </Text>
+      </>
+    );
+  } else if (quota.kind === 'premium' || quota.kind === 'team' || quota.kind === 'pass') {
+    label = quotaLabel(quota);
+    body = '무제한 이용 중';
+  } else if (quota.kind === 'exhausted') {
+    label = `${quotaLabel(quota)}, 이용권 보기`;
+    body = '이용권 보기';
+  } else {
+    const count =
+      quota.kind === 'credits'
+        ? { lead: '코칭 횟수권 ', short: '횟수권 ', n: quota.remaining, extra: '' }
+        : quota.kind === 'bonus'
+          ? { lead: '가입 보너스 무료 코칭 ', short: '무료 ', n: quota.bonus ?? quota.remaining, extra: quota.credits ? ` · 횟수권 ${quota.credits}회` : '' }
+          : {
+              lead: quota.kind === 'daily' ? '오늘 무료 코칭 ' : '무료 코칭 ',
+              short: '무료 ',
+              n: quota.free ?? quota.remaining,
+              extra: `${quota.bonus ? ` · 가입 보너스 ${quota.bonus}회` : ''}${quota.credits ? ` · 횟수권 ${quota.credits}회` : ''}`,
+            };
+    label = `${count.lead}${count.n}회 남았어요${count.extra}`;
+    // 남은 횟수는 세어 올라가지 않고 바로 보여 준다 — 0 에서 시작하면 잠깐 「0회」로 보여 다 쓴 줄 안다
+    body = (
+      <>
+        {count.short}
+        <Text style={strong}>{count.n}회</Text>
+      </>
     );
   }
-  const count =
-    quota.kind === 'trial' || quota.kind === 'daily'
-      ? { lead: quota.kind === 'daily' ? '오늘 무료 코칭 ' : '무료 코칭 ', n: quota.free ?? quota.remaining, extra: `${quota.bonus ? ` · 가입 보너스 ${quota.bonus}회` : ''}${quota.credits ? ` · 횟수권 ${quota.credits}회` : ''}` }
-      : quota.kind === 'bonus'
-        ? { lead: '가입 보너스 무료 코칭 ', n: quota.bonus ?? quota.remaining, extra: quota.credits ? ` · 횟수권 ${quota.credits}회` : '' }
-        : quota.kind === 'credits'
-          ? { lead: '코칭 횟수권 ', n: quota.remaining, extra: '' }
-          : null;
-  if (!count) {
-    const label = quota.kind === 'premium' || quota.kind === 'team' ? '무제한으로 쓰고 있어요' : quotaLabel(quota);
-    return <Text style={base}>{label}</Text>;
-  }
   return (
-    <Text style={base} accessibilityLabel={`${count.lead}${count.n}회 남았어요${count.extra}`}>
-      {count.lead}
-      {/* 남은 횟수는 세어 올라가지 않고 바로 보여 준다 — 0 에서 시작하면 잠깐 「0회」로 보여 다 쓴 줄 안다 */}
-      <Text style={strong}>{count.n}회</Text>
-      {' 남았어요'}
-      {count.extra}
-    </Text>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint="이용권 화면을 열어요"
+      hitSlop={6}
+      onPress={() => {
+        haptic.tap();
+        track('home_quota_pill', { kind: quota.kind });
+        onPress();
+      }}
+      style={({ pressed }) => [styles.pill, { backgroundColor: dark ? theme.surfaceElevated : theme.surface, opacity: pressed ? 0.7 : 1 }]}>
+      <Text style={[styles.pillText, { color: theme.text }]}>{body}</Text>
+      <Ionicons name="chevron-forward" size={14} color={theme.textTertiary} />
+    </Pressable>
   );
 }
 
@@ -375,38 +393,35 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xxl, gap: Spacing.xl, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 44 },
   greeting: { gap: 2, marginTop: -Spacing.sm },
-  // 11/12 회의: 두 줄 32pt → 한 줄 26pt (옆 3D 아이콘을 빼서 한 줄에 들어간다)
-  title: { fontSize: 26, lineHeight: 34, fontWeight: '800', letterSpacing: -0.8 },
-  heroBlock: { gap: Spacing.sm + 2, marginTop: -Spacing.sm },
-  heroFill: { paddingHorizontal: Spacing.lg + 2, paddingTop: Spacing.lg + 2, paddingBottom: Spacing.lg + 2 },
-  heroTitle: { color: Brand.onBrand, fontSize: 19, lineHeight: 25, fontWeight: '800', letterSpacing: -0.5 },
-  heroBody: { color: Brand.onBrandDim, fontSize: 14, lineHeight: 20, fontWeight: '600', letterSpacing: -0.2, marginTop: 2, marginBottom: Spacing.md + 2 },
-  // 흰 알약 — 탭 바·적기 칸과 같은 알약 결
+  // 1.4 개편: 26pt → 24pt, 굵기 700
+  title: { fontSize: 24, lineHeight: 32, fontWeight: '700', letterSpacing: -0.6 },
+  // 회색 카드 — 모서리 24, 안쪽 20 (피클 카드 결)
+  captureCard: { borderRadius: 24, padding: Spacing.lg + 4, gap: Spacing.lg, marginTop: -Spacing.xs },
+  captureTexts: { gap: 2 },
+  // 센딧 파랑 단색 버튼 — 홈의 유일한 색
   capture: {
-    height: 52,
-    borderRadius: Radius.pill,
-    backgroundColor: Brand.onBrand,
+    height: 50,
+    borderRadius: 16,
+    backgroundColor: Brand.blue,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
   },
-  captureText: { color: Brand.blue, fontSize: 17, lineHeight: 23, fontWeight: '800', letterSpacing: -0.4 },
-  remaining: { fontSize: 13, lineHeight: 19, fontWeight: '600', textAlign: 'center' },
-  remainingNum: { fontSize: 14, lineHeight: 19, fontWeight: '800' },
-  section: { gap: Spacing.md },
+  captureText: { color: Brand.onBrand, fontSize: 16, lineHeight: 22, fontWeight: '600', letterSpacing: -0.3 },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 2, height: 34, paddingLeft: 14, paddingRight: 10, borderRadius: Radius.pill },
+  pillText: { fontSize: 14, lineHeight: 20, fontWeight: '600', letterSpacing: -0.2 },
+  pillStrong: { fontSize: 14, lineHeight: 20, fontWeight: '700' },
+  section: { gap: Spacing.sm },
   sectionHeader: { marginTop: 0, marginBottom: 0, paddingHorizontal: 2 },
-  writeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm + 2, borderRadius: Radius.pill, paddingLeft: Spacing.lg + 2, paddingRight: Spacing.sm, minHeight: 62 },
-  writeArrow: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
-  listCard: { borderRadius: Radius.lg + 2 },
-  listClip: { borderRadius: Radius.lg + 2, overflow: 'hidden', paddingVertical: Spacing.xs },
+  writeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm + 2, borderRadius: Radius.pill, paddingLeft: Spacing.lg + 4, paddingRight: 8, minHeight: 54, marginTop: -Spacing.sm },
+  writeArrow: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  listCard: { marginHorizontal: -Spacing.lg },
+  listClip: { overflow: 'hidden' },
   registerLink: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: Spacing.sm },
-  notice: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md, padding: Spacing.lg + 2, borderRadius: Radius.lg + 2 },
-  noticeIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  notice: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md, padding: Spacing.lg + 2, borderRadius: 20 },
   noticeBody: { marginTop: 2 },
   noticeMore: { marginTop: Spacing.sm },
-  profileCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: Radius.lg + 2, padding: Spacing.lg + 2 },
-  profileIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  profileHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: 2 },
+  profileCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: 20, padding: Spacing.lg + 2 },
   keyNotice: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.lg, borderRadius: Radius.md },
 });

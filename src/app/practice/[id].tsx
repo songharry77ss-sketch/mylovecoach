@@ -260,7 +260,7 @@ export default function PracticeSessionScreen() {
               onLongPress={report.available ? () => report.open({ mode: 'practice', content: practiceFeedbackReportContent(item) }) : undefined}
               accessibilityHint={report.available ? '길게 누르면 이 피드백을 신고할 수 있어요' : undefined}
               style={[styles.feedback, { backgroundColor: (item.delta ?? 0) >= 0 ? theme.accentSoft : theme.primarySoft }]}>
-              <AppText variant="caption" weight="800" color={(item.delta ?? 0) >= 0 ? 'accent' : 'primary'}>
+              <AppText variant="caption" weight="700" color={(item.delta ?? 0) >= 0 ? 'accent' : 'primary'}>
                 {(item.delta ?? 0) >= 0 ? `👍 +${item.delta ?? 0}°` : `💡 ${item.delta}°`}
               </AppText>
               <AppText variant="caption" color="textSecondary" style={styles.flex}>
@@ -382,7 +382,7 @@ export default function PracticeSessionScreen() {
                   </AppText>
                   {best ? (
                     <View style={styles.best}>
-                      <AppText variant="caption" color={Brand.onBrandDim} weight="800">
+                      <AppText variant="caption" color={Brand.onBrandDim} weight="700">
                         오늘의 한 마디 · +{best.delta}°
                       </AppText>
                       <AppText variant="bodyStrong" color={Brand.onBrand}>

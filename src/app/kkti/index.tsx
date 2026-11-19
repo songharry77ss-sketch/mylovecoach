@@ -405,7 +405,7 @@ function Quiz({ onComplete, onExit }: { onComplete: (answers: number[]) => void;
         <Animated.View style={[styles.card, { backgroundColor: theme.surfaceElevated }, Shadow as ViewStyle, cardStyle]}>
           <View style={styles.cardHead}>
             <View style={[styles.qPill, { backgroundColor: theme.primarySoft }]}>
-              <AppText variant="caption" color="primary" weight="800">
+              <AppText variant="caption" color="primary" weight="700">
                 Q{index + 1}
               </AppText>
             </View>
@@ -466,13 +466,13 @@ function OptionButton({ letter, label, selected, onPress }: { letter: string; la
       style={[styles.option, { backgroundColor: selected ? theme.primarySoft : theme.surface, borderColor: selected ? theme.primary : 'transparent' }]}>
       {selected ? (
         <BrandGradient style={styles.optionKey}>
-          <AppText variant="caption" weight="800" color={Brand.onBrand}>
+          <AppText variant="caption" weight="700" color={Brand.onBrand}>
             {letter}
           </AppText>
         </BrandGradient>
       ) : (
         <View style={[styles.optionKey, { backgroundColor: theme.surfaceElevated }]}>
-          <AppText variant="caption" weight="800" color="textSecondary">
+          <AppText variant="caption" weight="700" color="textSecondary">
             {letter}
           </AppText>
         </View>
@@ -584,7 +584,7 @@ const styles = StyleSheet.create({
   bubbleB: { right: 0, top: 4, borderBottomRightRadius: 4 },
   bubbleC: { left: 10, bottom: 4, borderTopLeftRadius: 4 },
   bubbleD: { right: 6, bottom: 14, borderTopRightRadius: 4 },
-  kkti: { fontSize: 60, lineHeight: 68, fontWeight: '900', letterSpacing: -1.5, marginTop: Spacing.xs },
+  kkti: { fontSize: 60, lineHeight: 68, fontWeight: '700', letterSpacing: -1.5, marginTop: Spacing.xs },
   introDesc: { marginTop: Spacing.xs },
   perks: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, width: '100%' },
   perkWrap: { flexBasis: '47%', flexGrow: 1 },

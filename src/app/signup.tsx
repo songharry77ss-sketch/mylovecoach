@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: -Spacing.sm },
   close: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   head: { gap: Spacing.sm },
-  headline: { fontSize: 28, lineHeight: 37, fontWeight: '900', letterSpacing: -0.9 },
+  headline: { fontSize: 28, lineHeight: 37, fontWeight: '700', letterSpacing: -0.9 },
   badge: { marginTop: Spacing.xs },
   heroOuter: { borderRadius: Radius.xl },
   hero: { borderRadius: Radius.xl, overflow: 'hidden', padding: Spacing.xl, gap: Spacing.md },

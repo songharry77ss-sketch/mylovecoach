@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
   head: { paddingHorizontal: Spacing.xl, gap: Spacing.md, paddingBottom: Spacing.sm, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   headRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   coachId: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  coachName: { fontSize: 16, fontWeight: '800', letterSpacing: -0.3 },
+  coachName: { fontSize: 16, fontWeight: '700', letterSpacing: -0.3 },
   coachSub: { fontSize: 12, fontWeight: '600' },
   skip: { paddingHorizontal: Spacing.md, paddingVertical: 7, borderRadius: Radius.pill },
   skipText: { fontSize: 13, fontWeight: '700' },

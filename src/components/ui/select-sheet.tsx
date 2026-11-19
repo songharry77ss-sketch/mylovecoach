@@ -42,7 +42,7 @@ export function SelectSheet<T extends string>({ visible, title, options, value, 
       <View style={[styles.sheet, { backgroundColor: theme.card, paddingBottom: insets.bottom + Spacing.lg }]}>
         <View style={[styles.handle, { backgroundColor: theme.border }]} />
         <View style={styles.head}>
-          <AppText variant="title2" weight="800" style={styles.flex}>
+          <AppText variant="title2" weight="700" style={styles.flex}>
             {title}
           </AppText>
           <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={onClose} hitSlop={10} style={({ pressed }) => [styles.close, { backgroundColor: fill }, pressed ? styles.pressed : null]}>

@@ -120,7 +120,7 @@ export function DemoReel() {
         </View>
         <AppText variant="smallStrong">{partner.title}</AppText>
         <View style={[styles.sample, { backgroundColor: theme.primarySoft }]}>
-          <AppText variant="caption" color="primary" weight="800">
+          <AppText variant="caption" color="primary" weight="700">
             예시
           </AppText>
         </View>
@@ -150,7 +150,7 @@ export function DemoReel() {
               <View style={styles.replyArea}>
                 <Animated.View key={replyIndex} entering={SlideInRight.duration(320)} exiting={SlideOutLeft.duration(260)} style={[styles.reply, { backgroundColor: theme.bubbleUser }]}>
                   <AppText variant="small">{replies[replyIndex].text}</AppText>
-                  <AppText variant="caption" color="primary" weight="800">
+                  <AppText variant="caption" color="primary" weight="700">
                     성공 확률 {replies[replyIndex].rate}%
                   </AppText>
                 </Animated.View>
@@ -206,7 +206,7 @@ function Thermo() {
         <View style={styles.thermoValue}>
           {n >= DEMO_HEAT ? (
             <View style={[styles.rise, { backgroundColor: theme.accentSoft }]}>
-              <AppText variant="caption" color="accent" weight="800">
+              <AppText variant="caption" color="accent" weight="700">
                 ▲ 올랐어요
               </AppText>
             </View>
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
   phone: { borderRadius: Radius.xl, borderWidth: 1, padding: Spacing.md, gap: Spacing.sm, width: '100%', maxWidth: 340, alignSelf: 'center', overflow: 'hidden' },
   topBar: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingBottom: Spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth },
   avatar: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 12, lineHeight: 16, fontWeight: '800' },
+  avatarText: { fontSize: 12, lineHeight: 16, fontWeight: '700' },
   sample: { marginLeft: 'auto', paddingHorizontal: Spacing.sm + 2, paddingVertical: 3, borderRadius: Radius.pill },
   stage: { height: 236, gap: Spacing.sm },
   theirs: { alignSelf: 'flex-start', borderRadius: Radius.md, borderTopLeftRadius: 4, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
   thermoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   thermoValue: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   rise: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: Radius.pill },
-  thermoNum: { fontSize: 22, lineHeight: 26, fontWeight: '900', letterSpacing: -0.8 },
+  thermoNum: { fontSize: 22, lineHeight: 26, fontWeight: '700', letterSpacing: -0.8 },
   track: { height: 8, borderRadius: 4, overflow: 'hidden' },
   fillWrap: { height: '100%', borderRadius: 4, overflow: 'hidden' },
   replyArea: { gap: 6, overflow: 'hidden' },
@@ -299,6 +299,6 @@ const styles = StyleSheet.create({
   dot: { height: 6, borderRadius: 3 },
   toast: { alignSelf: 'center', borderRadius: Radius.pill, position: 'absolute', bottom: 4 },
   toastFill: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: Radius.pill, paddingHorizontal: Spacing.md, paddingVertical: 7 },
-  toastText: { color: Brand.onBrand, fontSize: 12, lineHeight: 16, fontWeight: '800' },
+  toastText: { color: Brand.onBrand, fontSize: 12, lineHeight: 16, fontWeight: '700' },
   heart: { position: 'absolute', bottom: 30 },
 });

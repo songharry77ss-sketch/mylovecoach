@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
-import { GradientButton, Icon3D } from '@/components/brand/brand';
+import { GradientButton } from '@/components/brand/brand';
 import { useAiReport } from '@/components/coach/ai-report-sheet';
 import { AnalysisCard } from '@/components/coach/analysis-card';
 import { CoachLabel } from '@/components/coach/coach-avatar';
@@ -231,10 +231,18 @@ export default function CrushChat() {
     send(input).then((result) => result === 'blocked' && blockedSend(input, 'quota', true, true, AUTO_PAYWALL_DELAY_MS));
   }, [crush, pendingImage, pendingWidth, pendingText, send, tone, emoji, router, blockedSend]);
 
+  // 결과가 도착했을 때·채팅방에 다시 들어왔을 때는 맨 아래가 아니라 **마지막 결과의 첫머리**에서 멈춘다.
+  // 예전에는 늘 맨 아래로 내려 결과 카드 끝(다음 단계·다른 답장)만 보이고, 정작 답장 3가지는 화면 위쪽 밖에 있었다(1.4 개편 점검 1번).
+  // 기다리는 중·글을 쓰는 중(키보드)에는 지금처럼 맨 아래로.
+  const lastMsg = messages[messages.length - 1];
+  const lastIsResult = Boolean(lastMsg && lastMsg.role === 'coach' && !lastMsg.pending && lastMsg.analysis);
   useEffect(() => {
-    const t = setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
+    const t = setTimeout(() => {
+      if (lastIsResult && !keyboardVisible) listRef.current?.scrollToIndex({ index: messages.length - 1, viewPosition: 0, viewOffset: Spacing.sm, animated: true });
+      else listRef.current?.scrollToEnd({ animated: true });
+    }, 80);
     return () => clearTimeout(t);
-  }, [messages.length, showUpsell, keyboardVisible]);
+  }, [messages.length, showUpsell, keyboardVisible, lastIsResult]);
 
   // 결과가 도착하는 순간 「톡톡」 진동
   const lastPending = messages[messages.length - 1]?.pending;
@@ -497,7 +505,7 @@ export default function CrushChat() {
                     {rel.label}
                     {crush.mbti ? ` · ${crush.mbti}` : ''}
                     {' · 호감 '}
-                    <AppText variant="caption" color="primary" weight="800">
+                    <AppText variant="caption" color="primary" weight="700">
                       {heat}°
                     </AppText>
                   </AppText>
@@ -541,6 +549,11 @@ export default function CrushChat() {
           keyboardDismissMode="interactive"
           onScroll={onScroll}
           scrollEventThrottle={32}
+          // 아직 그리지 않은 줄로 가려 하면 — 대략 그 자리로 먼저 간 뒤 다시 맞춘다
+          onScrollToIndexFailed={(info) => {
+            listRef.current?.scrollToOffset({ offset: info.averageItemLength * info.index, animated: false });
+            setTimeout(() => listRef.current?.scrollToIndex({ index: info.index, viewPosition: 0, viewOffset: Spacing.sm, animated: true }), 120);
+          }}
           ListEmptyComponent={
             <View style={styles.empty}>
               <Animated.View entering={FadeInDown.duration(380)} style={styles.emptyHead}>
@@ -548,9 +561,7 @@ export default function CrushChat() {
                   <View style={[styles.secretHero, { backgroundColor: theme.text }]}>
                     <Ionicons name="eye-off" size={34} color={theme.background} />
                   </View>
-                ) : (
-                  <Icon3D name="send" size={84} float />
-                )}
+                ) : null}
                 <AppText variant="title1" align="center">
                   {secret ? '아무도 모르게 물어보세요' : `${who}과의 대화를\n캡처해서 올려보세요`}
                 </AppText>
@@ -561,7 +572,7 @@ export default function CrushChat() {
                 </AppText>
               </Animated.View>
               <Animated.View entering={FadeInDown.delay(70).duration(380)} style={styles.emptyCta}>
-                <GradientButton title="대화 캡처 올리기" shine icon={<Ionicons name="image" size={20} color={Brand.onBrand} />} onPress={captureAndSend} disabled={sending} />
+                <GradientButton title="대화 캡처 올리기" icon={<Ionicons name="images-outline" size={19} color={Brand.onBrand} />} onPress={captureAndSend} disabled={sending} />
               </Animated.View>
               {!secret ? (
                 <Animated.View entering={FadeInDown.delay(140).duration(380)} style={styles.perks}>
@@ -581,7 +592,6 @@ export default function CrushChat() {
                       feedback="tap"
                       onPress={() => guardedSend({ crushId: crush.id, image: null, text: s, tone, emoji })}
                       style={[styles.starter, { backgroundColor: theme.background, borderColor: theme.border }]}>
-                      <Ionicons name="chatbubble-ellipses-outline" size={14} color={theme.primary} />
                       <AppText variant="small" weight="600">
                         {s}
                       </AppText>
@@ -595,9 +605,6 @@ export default function CrushChat() {
             needsCrushInfo ? (
               <Animated.View entering={FadeInDown.delay(400)} style={[styles.promo, { backgroundColor: theme.surface }]}>
                 <View style={styles.promoRow}>
-                  <View style={[styles.promoIcon, { backgroundColor: theme.primarySoft }]}>
-                    <Ionicons name="person-add" size={20} color={theme.primary} />
-                  </View>
                   <View style={styles.promoTexts}>
                     <AppText variant="bodyStrong">상대 정보를 알려주면 더 정확해져요</AppText>
                     <AppText variant="caption" color="textSecondary">
@@ -610,7 +617,6 @@ export default function CrushChat() {
             ) : showUpsell ? (
               <Animated.View entering={FadeInDown.delay(400)} style={[styles.promo, { backgroundColor: theme.surface }]}>
                 <View style={styles.promoRow}>
-                  <Icon3D name="ticket" size={44} />
                   <View style={styles.promoTexts}>
                     <AppText variant="bodyStrong">답장이 도움이 됐나요?</AppText>
                     <AppText variant="caption" color="textSecondary">
@@ -629,9 +635,6 @@ export default function CrushChat() {
                   accessibilityLabel={`${crush.name}님 분석 보고서 보기`}
                   onPress={() => router.push({ pathname: '/crush/[id]/report', params: { id: crush.id } })}
                   style={[styles.promo, styles.promoRow, { backgroundColor: theme.surface }]}>
-                  <LinearGradient colors={Brand.button} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.promoIcon}>
-                    <Ionicons name="analytics" size={20} color={Brand.onBrand} />
-                  </LinearGradient>
                   <View style={styles.promoTexts}>
                     <AppText variant="bodyStrong">{crush.name}님 분석 보고서</AppText>
                     <AppText variant="caption" color="textSecondary">
@@ -722,9 +725,7 @@ function Perk({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: stri
   const theme = useTheme();
   return (
     <View style={styles.perk}>
-      <View style={[styles.perkIcon, { backgroundColor: theme.primarySoft }]}>
-        <Ionicons name={icon} size={14} color={theme.primary} />
-      </View>
+      <Ionicons name={icon} size={15} color={theme.textTertiary} />
       <AppText variant="caption" color="textSecondary" style={styles.flexShrink}>
         {text}
       </AppText>
@@ -775,7 +776,7 @@ const styles = StyleSheet.create({
   starters: { gap: Spacing.sm },
   starterRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: Spacing.sm },
   starter: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: Spacing.md + 2, minHeight: 44, borderRadius: Radius.pill, borderWidth: StyleSheet.hairlineWidth * 2 },
-  promo: { borderRadius: Radius.xl, padding: Spacing.lg, gap: Spacing.md },
+  promo: { borderRadius: 24, padding: Spacing.lg, gap: Spacing.md },
   promoRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   promoIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   promoTexts: { gap: 2, flex: 1 },

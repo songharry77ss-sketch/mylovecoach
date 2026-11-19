@@ -387,7 +387,7 @@ function ReportBody({ report, partnerName, countUp }: { report: CrushReport; par
             <View key={i} style={styles.step}>
               <View style={styles.stepRail}>
                 <LinearGradient colors={Brand.button} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.stepDot}>
-                  <AppText variant="caption" color={Brand.onBrand} weight="800">
+                  <AppText variant="caption" color={Brand.onBrand} weight="700">
                     {i + 1}
                   </AppText>
                 </LinearGradient>
@@ -442,7 +442,7 @@ function Section({ icon, title, body, lines, numbered, delay = 0 }: { icon: keyo
       ) : null}
       {lines?.map((line, i) => (
         <View key={i} style={styles.line}>
-          <AppText variant="small" color="primary" weight="800" style={styles.lineMark}>
+          <AppText variant="small" color="primary" weight="700" style={styles.lineMark}>
             {numbered ? `${i + 1}` : '·'}
           </AppText>
           <AppText variant="small" color="textSecondary" style={styles.flex}>
@@ -488,8 +488,8 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs + 2 },
   chip: { paddingHorizontal: Spacing.sm + 2, paddingVertical: 5, borderRadius: Radius.pill },
   matchHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  matchNumber: { fontSize: 40, lineHeight: 46, fontWeight: '900', letterSpacing: -1.4 },
-  matchUnit: { fontSize: 18, fontWeight: '800' },
+  matchNumber: { fontSize: 40, lineHeight: 46, fontWeight: '700', letterSpacing: -1.4 },
+  matchUnit: { fontSize: 18, fontWeight: '700' },
   matchTrack: { height: 10, borderRadius: Radius.pill, overflow: 'hidden' },
   matchFill: { height: '100%', borderRadius: Radius.pill, overflow: 'hidden' },
   line: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'flex-start' },

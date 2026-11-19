@@ -123,7 +123,7 @@ export default function MyScreen() {
               {user?.name?.trim() ? <Text style={styles.profileInitial}>{user.name.trim().slice(0, 1)}</Text> : <Ionicons name="person" size={26} color={Brand.onBrand} />}
             </BrandGradient>
             <View style={styles.profileTexts}>
-              <AppText variant="title2" weight="800" numberOfLines={1}>
+              <AppText variant="title2" weight="700" numberOfLines={1}>
                 {user?.name || '나에 대해 알려주세요'}
               </AppText>
               <AppText variant="small" color="textSecondary" numberOfLines={1}>
@@ -218,7 +218,7 @@ function QuickAction({ icon, label, caption, isNew, onPress }: { icon: keyof typ
       {isNew ? (
         <View style={styles.newRow}>
           <View style={[styles.newDot, { backgroundColor: theme.danger }]} />
-          <AppText variant="caption" weight="800" numberOfLines={1}>
+          <AppText variant="caption" weight="700" numberOfLines={1}>
             새 기능
           </AppText>
         </View>
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   profile: { borderRadius: Radius.lg + 2, padding: Spacing.lg + 2, gap: Spacing.md + 2 },
   profileTop: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md + 2 },
   profileAvatar: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  profileInitial: { color: Brand.onBrand, fontSize: 23, lineHeight: 29, fontWeight: '900' },
+  profileInitial: { color: Brand.onBrand, fontSize: 23, lineHeight: 29, fontWeight: '700' },
   profileTexts: { flex: 1, gap: 2 },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 5, maxWidth: '100%', paddingHorizontal: 10, paddingVertical: 6, borderRadius: Radius.pill },
@@ -245,10 +245,10 @@ const styles = StyleSheet.create({
   pass: { borderRadius: Radius.lg + 2 },
   passFill: { borderRadius: Radius.lg + 2, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.lg + 2, paddingLeft: Spacing.lg + 2, paddingRight: Spacing.lg },
   passTexts: { flex: 1, gap: 3 },
-  passTitle: { color: Brand.onBrand, fontSize: 18, lineHeight: 24, fontWeight: '900', letterSpacing: -0.4 },
+  passTitle: { color: Brand.onBrand, fontSize: 18, lineHeight: 24, fontWeight: '700', letterSpacing: -0.4 },
   passBody: { color: Brand.onBrandDim, fontSize: 13, lineHeight: 18, fontWeight: '600' },
   passChip: { alignSelf: 'flex-start', marginTop: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radius.pill, backgroundColor: Brand.onBrand },
-  passChipText: { color: Brand.blue, fontSize: 12, lineHeight: 16, fontWeight: '800' },
+  passChipText: { color: Brand.blue, fontSize: 12, lineHeight: 16, fontWeight: '700' },
   quick: { flexDirection: 'row', borderRadius: Radius.lg + 2, paddingVertical: Spacing.md, paddingHorizontal: Spacing.xs },
   quickCell: { flex: 1, alignItems: 'center', gap: 6, paddingVertical: Spacing.sm, borderRadius: Radius.md },
   quickIcon: { width: 46, height: 46, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },

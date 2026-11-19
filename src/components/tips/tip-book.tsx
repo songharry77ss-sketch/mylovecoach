@@ -46,7 +46,7 @@ export function WorryTile({ worry, onPress }: { worry: Worry; onPress: () => voi
         <Ionicons name={WORRY_ICON[worry.id]} size={17} color={theme.primary} />
       </View>
       <View style={styles.tileTexts}>
-        <AppText variant="bodyStrong" weight="800" style={styles.tileTitle} numberOfLines={2} lineBreakStrategyIOS="hangul-word">
+        <AppText variant="bodyStrong" weight="700" style={styles.tileTitle} numberOfLines={2} lineBreakStrategyIOS="hangul-word">
           {worry.title}
         </AppText>
         <AppText variant="caption" color="textTertiary" numberOfLines={1}>
@@ -106,7 +106,7 @@ export function ExploreRow({
         </View>
         <AppText variant="caption" color="textTertiary" numberOfLines={1}>
           {note ? (
-            <AppText variant="caption" color="primary" weight="800">
+            <AppText variant="caption" color="primary" weight="700">
               {`${note} · `}
             </AppText>
           ) : null}

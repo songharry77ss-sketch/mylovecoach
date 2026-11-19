@@ -48,7 +48,7 @@ interface ComposerProps {
 }
 
 const EMOJI_NEXT: Record<EmojiPref, EmojiPref> = { on: 'off', off: 'auto', auto: 'on' };
-const EMOJI_LABEL: Record<EmojiPref, string> = { on: '😊 이모지 넣기', off: '🚫 이모지 빼기', auto: '🪞 이모지 자동' };
+const EMOJI_LABEL: Record<EmojiPref, string> = { on: '이모지 넣기', off: '이모지 빼기', auto: '이모지 자동' };
 
 /** 떠 있는 유리 알약 — 한 줄일 때 높이 (모서리는 이 높이의 절반) */
 export const PILL_HEIGHT = 52;
@@ -68,7 +68,6 @@ const INPUT_MAX = 132;
 
 /** 탭 바의 「새 채팅」 구슬과 같은 색 — 보내기 구슬이 보낼 수 있을 때 차오른다 */
 export const ORB_GRADIENT = Brand.orb;
-const ORB_GLOSS = ['rgba(255,255,255,0.42)', 'rgba(255,255,255,0.08)', 'rgba(255,255,255,0)'] as const;
 
 const isWeb = Platform.OS === 'web';
 /** 웹 브라우저는 여러 줄 입력칸을 기본 두 줄로 그린다 — 한 줄로 시작해 글이 늘면 키운다 (앱은 저절로 자란다) */
@@ -102,6 +101,8 @@ export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPi
   const bottomPad = (keyboardVisible ? 0 : insets.bottom) + Spacing.sm;
   const canSend = !sending && (Boolean(image) || text.trim().length > 0);
   const showQuestions = Boolean(questions?.length) && !text && !image && !sending;
+  // 1.4 개편: 입력창 위 칩 줄은 한 번에 하나만 — 쉬고 있을 때는 질문 칩, 캡처를 붙였거나 글을 쓰면 말투 칩(아래 고정 영역 약 172pt → 약 130pt)
+  const showTones = !showQuestions;
 
   const submit = () => {
     if (!canSend) return;
@@ -127,7 +128,7 @@ export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPi
               {notice.countdownUntil ? <NoticeCountdown until={notice.countdownUntil} /> : null}
             </AppText>
             {notice.actionLabel ? (
-              <AppText variant="caption" color="primary" weight="800">
+              <AppText variant="caption" color="primary" weight="700">
                 {notice.actionLabel} ›
               </AppText>
             ) : null}
@@ -145,8 +146,8 @@ export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPi
               pressedScale={0.88}
               onPress={onShuffleQuestions}
               hitSlop={6}
-              style={[styles.dice, { backgroundColor: theme.primarySoft }]}>
-              <Ionicons name="shuffle" size={15} color={theme.primary} />
+              style={[styles.dice, { backgroundColor: theme.surface }]}>
+              <Ionicons name="shuffle" size={15} color={theme.textSecondary} />
             </PressableScale>
           ) : null}
           {questions!.map((q) => (
@@ -169,13 +170,15 @@ export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPi
         </ScrollView>
       ) : null}
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.rowScroll} contentContainerStyle={styles.rowContent} keyboardShouldPersistTaps="handled">
-        <Chip label={EMOJI_LABEL[emoji]} selected={emoji !== 'off'} tone="accent" size="sm" onPress={() => onEmojiChange(EMOJI_NEXT[emoji])} />
-        <View style={[styles.divider, { backgroundColor: theme.border }]} />
-        {TONES.map((t) => (
-          <Chip key={t.key} label={t.label} emoji={t.emoji} selected={tone === t.key} onPress={() => onToneChange(t.key)} size="sm" />
-        ))}
-      </ScrollView>
+      {showTones ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.rowScroll} contentContainerStyle={styles.rowContent} keyboardShouldPersistTaps="handled">
+          {TONES.map((t) => (
+            <Chip key={t.key} label={t.label} selected={tone === t.key} onPress={() => onToneChange(t.key)} size="sm" />
+          ))}
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+          <Chip label={EMOJI_LABEL[emoji]} selected={emoji !== 'off'} size="sm" onPress={() => onEmojiChange(EMOJI_NEXT[emoji])} />
+        </ScrollView>
+      ) : null}
 
       {/* 첨부한 캡처 — 유리 알약 위 작은 카드 */}
       {image ? (
@@ -204,8 +207,8 @@ export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPi
           onPress={onPickImage}
           disabled={sending}
           hitSlop={6}
-          style={[styles.capture, { backgroundColor: theme.primarySoft, opacity: sending ? 0.5 : 1 }]}>
-          <Ionicons name="image" size={18} color={theme.primary} />
+          style={[styles.capture, { backgroundColor: theme.surface, opacity: sending ? 0.5 : 1 }]}>
+          <Ionicons name="image-outline" size={19} color={theme.text} />
         </PressableScale>
         <PillInput
           ref={inputRef}
@@ -303,10 +306,9 @@ export function SendOrb({ active, onPress, accessibilityLabel, size = ORB, style
       </View>
       {/* 차오르는 구슬 — 안드로이드는 그림자(elevation) 있는 칸이 형제 위에 그려지므로 흰 화살표도 이 안에 둔다 */}
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, round, styles.orbShadow, fillStyle]}>
-        <LinearGradient colors={ORB_GRADIENT} start={{ x: 0.2, y: 0 }} end={{ x: 0.85, y: 1 }} style={[StyleSheet.absoluteFill, styles.center, round, styles.clip]}>
-          <LinearGradient pointerEvents="none" colors={ORB_GLOSS} locations={[0, 0.45, 1]} style={styles.gloss} />
+        <View style={[StyleSheet.absoluteFill, styles.center, round, styles.clip, { backgroundColor: Brand.blue }]}>
           <Ionicons name="arrow-up" size={icon} color={Brand.onBrand} />
-        </LinearGradient>
+        </View>
       </Animated.View>
     </PressableScale>
   );
@@ -347,11 +349,10 @@ const styles = StyleSheet.create({
   orb: { alignItems: 'center', justifyContent: 'center' },
   center: { alignItems: 'center', justifyContent: 'center' },
   clip: { overflow: 'hidden' },
-  gloss: { position: 'absolute', top: 0, left: 0, right: 0, height: '58%' },
   // 그림자는 감싸는 칸에 — 구슬(그라데이션)은 둥글게 자르느라 overflow 가 숨김이라 아이폰 그림자가 잘린다
   orbShadow: Platform.select({
-    ios: { shadowColor: Brand.shadow, shadowOpacity: 0.42, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } },
-    android: { elevation: 6, shadowColor: Brand.shadow, backgroundColor: Brand.blue },
-    default: { boxShadow: '0 6px 16px rgba(61,79,232,0.40)' } as ViewStyle,
+    ios: {},
+    android: { backgroundColor: Brand.blue },
+    default: {} as ViewStyle,
   }) as ViewStyle,
 });

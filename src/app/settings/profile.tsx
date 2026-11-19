@@ -74,7 +74,7 @@ export default function ProfileSettings() {
       <Stack.Screen options={{ headerStyle: { backgroundColor: theme.canvas } }} />
       <View style={styles.intro}>
         <View style={styles.introTexts}>
-          <AppText variant="title2" weight="800">
+          <AppText variant="title2" weight="700">
             {'나를 알려 줄수록\n「나다운」 답장이 나와요'}
           </AppText>
           <AppText variant="small" color="textSecondary">
