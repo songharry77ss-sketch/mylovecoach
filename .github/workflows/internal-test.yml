@@ -1,0 +1,225 @@
+name: Internal Test (웹 데모 + 아이폰 Ad Hoc)
+
+# 애플 계약이 막혀(App Store Connect 403) TestFlight 를 못 쓸 때의 내부 테스트 판 — 2026-11-19.
+# - 웹 데모: 예시 답변으로 도는 화면(AI 호출·결제·이용 기록 없음). 공개 주소지만 검색에는 안 잡히게(noindex)
+# - 아이폰 Ad Hoc(ios=true): 개발자 사이트에 기기(UDID)를 등록한 아이폰에만 설치되는 진짜 앱 — 같은 주소의 /ios/
+#   운영 코치 서버를 그대로 쓴다(진짜 코칭). 결제는 애플 유료 앱 계약이 풀릴 때까지 안 된다.
+# 수동 실행: gh workflow run internal-test.yml --ref <브랜치> [-f ios=true]
+# 시크릿: VERCEL_TOKEN · (ios) IOS_ADHOC_PROFILE_BASE64(개발자 사이트에서 만든 Ad Hoc 프로파일) · IOS_CERT_PRIVATE_KEY_BASE64 · APPLE_TEAM_ID
+# 웹은 Vercel 프로젝트 sendit-preview 의 프로덕션 주소(로그인 없이 열림)에 올린다 — 운영 프로젝트(mylovecoach)와 따로.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ios:
+        description: '아이폰 Ad Hoc 앱도 만들기 (기기 등록·프로파일 필요)'
+        type: boolean
+        default: false
+      build_number:
+        description: '아이폰 빌드 번호 (비우면 900 + 실행 번호)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: internal-test
+  cancel-in-progress: false
+
+jobs:
+  ios:
+    if: ${{ inputs.ios }}
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      BUNDLE_ID: app.mylovecoach.ios
+      XCODE_WORKSPACE: ios/app.xcworkspace
+      XCODE_SCHEME: app
+      EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
+      EXPO_PUBLIC_API_TOKEN: ${{ secrets.EXPO_PUBLIC_API_TOKEN }}
+      EXPO_PUBLIC_SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+      BUILD_NUMBER_INPUT: ${{ inputs.build_number }}
+      XCODE_PREFER: '26.6'
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      build: ${{ steps.meta.outputs.build }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: 시크릿 확인
+        env:
+          IOS_ADHOC_PROFILE_BASE64: ${{ secrets.IOS_ADHOC_PROFILE_BASE64 }}
+          IOS_CERT_PRIVATE_KEY_BASE64: ${{ secrets.IOS_CERT_PRIVATE_KEY_BASE64 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          [ "$RUNNER_ENVIRONMENT" = 'github-hosted' ] || { echo '::error::서명은 GitHub 호스팅 러너에서만 허용합니다.'; exit 1; }
+          for name in IOS_ADHOC_PROFILE_BASE64 IOS_CERT_PRIVATE_KEY_BASE64 APPLE_TEAM_ID EXPO_PUBLIC_API_URL EXPO_PUBLIC_SUPABASE_URL EXPO_PUBLIC_SUPABASE_ANON_KEY; do
+            [ -n "${!name//[[:space:]]/}" ] || { echo "::error::누락: $name"; exit 1; }
+          done
+      - run: bash tools/select-xcode.sh
+      - run: npm ci
+      - name: 네이티브 프로젝트 생성 (expo prebuild) + CocoaPods
+        run: |
+          npx expo prebuild --platform ios --no-install
+          cd ios && pod install --repo-update
+      - name: codemagic-cli-tools 설치 (키체인·프로파일 적용만 — API 는 쓰지 않음)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/cm-venv"
+          "$RUNNER_TEMP/cm-venv/bin/pip" install --quiet codemagic-cli-tools
+          echo "$RUNNER_TEMP/cm-venv/bin" >> "$GITHUB_PATH"
+      - name: 서명 준비 (Ad Hoc 프로파일 + 저장소 개인키)
+        env:
+          IOS_ADHOC_PROFILE_BASE64: ${{ secrets.IOS_ADHOC_PROFILE_BASE64 }}
+          IOS_CERT_PRIVATE_KEY_BASE64: ${{ secrets.IOS_CERT_PRIVATE_KEY_BASE64 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$RUNNER_TEMP/signing"
+          printf '%s' "$IOS_ADHOC_PROFILE_BASE64" | tr -d ' \t\r\n' | base64 --decode > "$RUNNER_TEMP/signing/adhoc.mobileprovision"
+          printf '%s' "$IOS_CERT_PRIVATE_KEY_BASE64" | tr -d ' \t\r\n' | base64 --decode > "$RUNNER_TEMP/signing/cert_key.pem"
+          python3 tools/adhoc-signing.py
+          keychain initialize --path "$RUNNER_TEMP/signing/build.keychain-db"
+          keychain add-certificates --path "$RUNNER_TEMP/signing/build.keychain-db" \
+            --certificate "$RUNNER_TEMP/signing/cert.p12" --certificate-password "@file:$RUNNER_TEMP/signing/p12-password"
+          xcode-project use-profiles --project ios/app.xcodeproj \
+            --profile "$RUNNER_TEMP/signing/adhoc.mobileprovision" \
+            --export-options-plist "$RUNNER_TEMP/signing/export_options.plist"
+      - name: 빌드 번호 설정
+        id: meta
+        run: |
+          n="${BUILD_NUMBER_INPUT:-$((900 + GITHUB_RUN_NUMBER))}"
+          [[ "$n" =~ ^[1-9][0-9]*$ ]] || { echo "::error::빌드 번호는 정수여야 합니다"; exit 1; }
+          (cd ios && agvtool new-version -all "$n")
+          v=$(node -p "require('./app.json').expo.version")
+          echo "build=$n" >> "$GITHUB_OUTPUT"
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+      - name: IPA 빌드 (Ad Hoc)
+        run: |
+          xcode-project build-ipa --workspace "$XCODE_WORKSPACE" --scheme "$XCODE_SCHEME" \
+            --no-show-build-settings --archive-flags=-hideShellScriptEnvironment \
+            --export-options-plist "$RUNNER_TEMP/signing/export_options.plist"
+          mkdir -p out && cp build/ios/ipa/*.ipa out/sendit.ipa
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sendit-adhoc-ipa
+          path: out/sendit.ipa
+          retention-days: 14
+      - name: 서명 자료 정리
+        if: ${{ always() && runner.environment == 'github-hosted' }}
+        run: |
+          set +e
+          keychain use-login >/dev/null 2>&1
+          security delete-keychain "$RUNNER_TEMP/signing/build.keychain-db" >/dev/null 2>&1
+          rm -rf "$RUNNER_TEMP/signing" /tmp/xcodebuild_logs
+          find /tmp -maxdepth 1 -type f -name 'xcodebuild_*.log' -delete
+          true
+
+  web:
+    needs: [ios]
+    if: ${{ always() && (needs.ios.result == 'success' || needs.ios.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_SCOPE: ${{ vars.VERCEL_SCOPE }}
+      WITH_IOS: ${{ needs.ios.result == 'success' }}
+      IOS_VERSION: ${{ needs.ios.outputs.version }}
+      IOS_BUILD: ${{ needs.ios.outputs.build }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: '[ -n "$VERCEL_TOKEN" ] || { echo "::error::VERCEL_TOKEN 시크릿이 없습니다"; exit 1; }'
+      - run: npm ci
+      - name: 웹 데모 빌드 (예시 답변 · 결제 화면 미리보기)
+        env:
+          EXPO_PUBLIC_DEMO_MODE: '1'
+          EXPO_PUBLIC_PAYWALL_PREVIEW: ios
+        run: npx expo export --platform web --output-dir preview
+      - uses: actions/download-artifact@v4
+        if: ${{ env.WITH_IOS == 'true' }}
+        with:
+          name: sendit-adhoc-ipa
+          path: preview/ios
+      - name: 사이트 설정 (검색 제외 · 앱 주소 다시 쓰기)
+        run: |
+          cat > preview/vercel.json <<'JSON'
+          {
+            "redirects": [{ "source": "/ios", "destination": "/ios/index.html" }],
+            "headers": [
+              { "source": "/(.*)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
+              { "source": "/ios/manifest.plist", "headers": [{ "key": "Content-Type", "value": "application/xml" }, { "key": "Cache-Control", "value": "no-store" }] },
+              { "source": "/ios/sendit.ipa", "headers": [{ "key": "Content-Type", "value": "application/octet-stream" }, { "key": "Cache-Control", "value": "no-store" }] }
+            ],
+            "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+          }
+          JSON
+      - name: Vercel 프로젝트 연결 (sendit-preview, 없으면 만든다)
+        working-directory: preview
+        run: vercel --version >/dev/null 2>&1 || npm i -g vercel@latest; vercel link --yes --project sendit-preview --token "$VERCEL_TOKEN" ${VERCEL_SCOPE:+--scope "$VERCEL_SCOPE"}
+      - name: 배포
+        id: deploy
+        working-directory: preview
+        run: |
+          set -euo pipefail
+          deploy() { vercel deploy --prod --yes --token "$VERCEL_TOKEN" ${VERCEL_SCOPE:+--scope "$VERCEL_SCOPE"} 2>&1 | tee /tmp/deploy.log | grep -Eo 'https://[a-zA-Z0-9.-]+\.vercel\.app' | tail -1; }
+          alias_of() {
+            org=$(node -p "require('./.vercel/project.json').orgId"); q=""; case "$org" in team_*) q="?teamId=$org" ;; esac
+            curl -sS -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v13/deployments/${1#https://}$q" \
+              | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{let a=[];try{a=JSON.parse(s).alias||[]}catch{};a=a.filter(x=>x.endsWith('.vercel.app')).sort((x,y)=>x.length-y.length);console.log(a[0]||'')})"
+          }
+          dep=$(deploy); [ -n "$dep" ] || { cat /tmp/deploy.log; echo "::error::배포 주소를 찾지 못했습니다"; exit 1; }
+          host=$(alias_of "$dep"); [ -n "$host" ] || { echo "::error::공개 주소(별칭)를 찾지 못했습니다"; exit 1; }
+          if [ "$WITH_IOS" = "true" ]; then
+            # 설치 목록(manifest)에는 IPA 의 절대 주소가 들어가야 해서, 공개 주소를 안 뒤 한 번 더 올린다
+            cat > ios/manifest.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict><key>items</key><array><dict>
+            <key>assets</key><array><dict><key>kind</key><string>software-package</string><key>url</key><string>https://$host/ios/sendit.ipa</string></dict></array>
+            <key>metadata</key><dict>
+              <key>bundle-identifier</key><string>app.mylovecoach.ios</string>
+              <key>bundle-version</key><string>$IOS_VERSION</string>
+              <key>kind</key><string>software</string>
+              <key>title</key><string>센딧 $IOS_VERSION ($IOS_BUILD) 내부 테스트</string>
+            </dict>
+          </dict></array></dict></plist>
+          PLIST
+            sed -i 's/^          //' ios/manifest.plist
+            cat > ios/index.html <<HTML
+          <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+          <title>센딧 내부 테스트 설치</title>
+          <style>body{margin:0;font-family:-apple-system,system-ui,sans-serif;background:#fff;color:#141518}main{max-width:440px;margin:0 auto;padding:48px 20px}h1{font-size:24px;line-height:32px;margin:0 0 8px}p,li{font-size:15px;line-height:23px;color:#5E626B}a.btn{display:block;text-align:center;background:#3D63F5;color:#fff;text-decoration:none;font-weight:600;font-size:17px;padding:16px;border-radius:16px;margin:24px 0}ol{padding-left:20px}small{color:#737780}</style></head>
+          <body><main><h1>센딧 $IOS_VERSION 내부 테스트</h1><p>등록한 아이폰에서만 설치돼요. <b>사파리</b>로 이 페이지를 열어 주세요.</p>
+          <a class="btn" href="itms-services://?action=download-manifest&amp;url=https://$host/ios/manifest.plist">아이폰에 설치하기</a>
+          <ol><li>「설치」를 누르면 홈 화면에 앱이 내려받아져요.</li><li>이미 스토어 센딧이 있으면 그 위에 덮어써요(채팅방 그대로).</li><li>「개발자 모드가 필요」 안내가 뜨면: 설정 → 개인정보 보호 및 보안 → 개발자 모드 켜기 → 재시동.</li><li>결제는 애플 계약이 풀릴 때까지 되지 않아요. 코칭은 실제로 돼요.</li></ol>
+          <p><small>빌드 $IOS_BUILD · 화면만 보려면 <a href="/">웹 데모</a></small></p></main></body></html>
+          HTML
+            sed -i 's/^          //' ios/index.html
+            dep=$(deploy); [ -n "$dep" ] || { cat /tmp/deploy.log; echo "::error::두 번째 배포 실패"; exit 1; }
+          fi
+          echo "url=https://$host" >> "$GITHUB_OUTPUT"
+          echo "::notice title=내부 테스트 주소::웹 데모 https://$host/$([ "$WITH_IOS" = true ] && echo " · 아이폰 설치 https://$host/ios/")"
+      - name: 동작 확인
+        run: |
+          url="${{ steps.deploy.outputs.url }}"
+          curl -sS -o /dev/null -w "index: %{http_code}\n" "$url/"
+          code=$(curl -sS -o /dev/null -w "%{http_code}" "$url/crush/new"); echo "앱 주소 다시 쓰기: $code"; [ "$code" = 200 ] || exit 1
+          if [ "$WITH_IOS" = "true" ]; then
+            curl -sS -o /dev/null -w "ios: %{http_code}\n" "$url/ios/index.html"
+            curl -sS "$url/ios/manifest.plist" | grep -q 'sendit.ipa' || { echo "::error::manifest 가 이상합니다"; exit 1; }
+            curl -sS -o /dev/null -w "ipa: %{http_code} %{size_download}\n" -r 0-1023 "$url/ios/sendit.ipa"
+          fi
