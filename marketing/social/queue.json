@@ -249,7 +249,7 @@
     },
     {
       "id": "q-haircut",
-      "at": "2026-11-21 21:00",
+      "at": "2026-11-28 21:00",
       "channel": "instagram",
       "kind": "reel",
       "media": [
@@ -267,7 +267,7 @@
     },
     {
       "id": "q-haircut-story",
-      "at": "2026-11-21 21:01",
+      "at": "2026-11-28 21:01",
       "channel": "instagram",
       "kind": "story",
       "media": [
@@ -819,6 +819,40 @@
       "approved": true,
       "approvedBy": "사장님 요청 — 채팅 2026-11-18 「세 개 정도 막장드라마 시리즈 올려보자」",
       "after": "ai-makjang-3",
+      "note": "ai-reel 스토리"
+    },
+    {
+      "id": "ai-drama-1",
+      "at": "2026-11-21 21:00",
+      "channel": "instagram",
+      "kind": "reel",
+      "format": "ai-reel",
+      "media": [
+        "marketing/social/ai-drama-1/reel.mp4"
+      ],
+      "cover": "marketing/social/ai-drama-1/cover.jpg",
+      "caption": "[환승 이별 1화] 날 차고 바로 다른 사람 만나던 전여친이, 3개월 만에 새벽 2시에 \"자…?\" 보냄.\n\n센딧에 그대로 넣었더니 답장 3개를 성공 확률이랑 같이 골라 줬어. 앱 화면과 답장은 실제 센딧 AI 결과 그대로야.\n\n※ 지어낸 이야기야. 사람 나오는 장면은 AI로 만든 연출이고, 마지막 카톡은 센딧이 예상한 답장이야.\n\n2화에서 그녀가 돌아온 진짜 이유 공개. 너라면 받아 줄 거야, 읽씹할 거야? 댓글로 👇\n\n#전여친 #환승이별 #자니 #카톡답장 #센딧",
+      "audio": {
+        "trending": true,
+        "videoVolume": 35,
+        "minSeconds": 29
+      },
+      "early": 3,
+      "approved": true,
+      "approvedBy": "사장님 요청 — 채팅 2026-11-19 「시리즈물 잘 터진 거 기반으로 그 시나리오 그대로 한 번 만들어봐」 · 게시 11-21(금) 21:00 선택",
+      "note": "환승 이별 1화 · 두 주인공은 Codex 로 만든 가상 인물 · 사람 장면 Gemini Omni Flash(「AI로 만든 장면」 표시) · 앱 화면은 실제 결과 · 720p 로 줄임"
+    },
+    {
+      "id": "ai-drama-1-story",
+      "at": "2026-11-21 21:01",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/ai-drama-1/reel.mp4"
+      ],
+      "approved": true,
+      "approvedBy": "사장님 요청 — 채팅 2026-11-19 「시리즈물 잘 터진 거 기반으로 그 시나리오 그대로 한 번 만들어봐」 · 게시 11-21(금) 21:00 선택",
+      "after": "ai-drama-1",
       "note": "ai-reel 스토리"
     }
   ]

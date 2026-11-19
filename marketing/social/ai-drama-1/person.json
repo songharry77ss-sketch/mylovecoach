@@ -1,0 +1,12 @@
+{
+  "at": "2026-11-19T13:31:08.767Z",
+  "model": "gemini-omni-1.2-flash",
+  "seconds": 12,
+  "resolution": "1080p",
+  "note": "AI로 만든 사람 장면 — 영상에 「AI로 만든 장면」 표시",
+  "image": {
+    "file": "tools/social-make/samples/drama/hero.jpg",
+    "sha": "cd49f7d904c333f4"
+  },
+  "prompt": "Vertical 9:16 smartphone video with the realism of a casual Instagram vlog: filmed on a phone propped up on the nightstand facing him, a tiny handheld wobble, realistic skin texture, true-to-life colors.\nThe young man has the same face and hair as the man in the reference image (about 24, messy black layered hair with soft curtain bangs); keep his identity consistent for the whole clip. His outfit and the location are as described below, not as in the reference photo.\nLate at night in a dark small bedroom lit only by a dim warm bedside lamp and the glow of his phone. He wears a plain black T-shirt and a thin silver chain. He holds his own smartphone in portrait orientation; the back of the phone faces the camera the whole time and its screen is never visible.\n0-4s: from the very first frame he is lying in bed holding the glowing phone above his face; he reads and freezes, eyes widening, then slowly sits up against the headboard, stunned, and runs a hand through his hair.\n4-8s: he exhales, jaw tight, types a short reply with both thumbs, hesitates for a beat, then taps send firmly and drops the phone face-down on the blanket, staring at the ceiling.\n8-12s: the phone buzzes again; he grabs it, reads, and a slow, slightly bitter smirk appears; he shakes his head once, then looks straight into the camera with a calm, unreadable expression.\nAudio: quiet room tone at night, a phone buzzing at the start and at 8 seconds, blanket rustle. No music. He does not speak: no dialogue, no voice-over.\nNo on-screen text, captions, subtitles, logos or watermarks."
+}

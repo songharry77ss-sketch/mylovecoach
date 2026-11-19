@@ -1,0 +1,12 @@
+{
+  "at": "2026-11-19T13:32:27.533Z",
+  "model": "gemini-omni-1.2-flash",
+  "seconds": 8,
+  "resolution": "1080p",
+  "note": "AI로 만든 사람 장면 — 영상에 「AI로 만든 장면」 표시",
+  "image": {
+    "file": "tools/social-make/samples/drama/heroine.jpg",
+    "sha": "4f67de57260686b0"
+  },
+  "prompt": "Vertical 9:16 smartphone video with the realism of a casual Instagram vlog: filmed on a phone propped up on the bed facing her, a tiny handheld wobble, realistic skin texture, true-to-life colors.\nThe young woman has the same face and hair as the woman in the reference image (about 23, long dark-brown wavy hair with see-through curtain bangs); keep her identity consistent for the whole clip. Her outfit and the location are as described below, not as in the reference photo.\nLate at night she sits on her bed in a small dim bedroom with a gray wall and beige curtains, cool bluish lamp light, wearing a plain white T-shirt, knees pulled up. She holds her own smartphone in portrait orientation; the back of the phone faces the camera the whole time and its screen is never visible.\n0-4s: she stares at the phone, hesitating, bites her lower lip, types a few words with her thumb, pauses, then taps send and quickly presses the phone against her chest, eyes closed, regretful.\n4-8s: she opens her eyes, looks down at the phone again, waiting, then glances away toward the dark window with a sad, complicated look.\nAudio: quiet room tone at night, a soft message-sent sound around 3 seconds. No music. She does not speak: no dialogue, no voice-over.\nNo on-screen text, captions, subtitles, logos or watermarks."
+}
