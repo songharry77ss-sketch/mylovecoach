@@ -4,7 +4,8 @@
 // 돈이 든다 (유료 등급만 · 1080p 초당 약 $0.10 — 12초 한 편 약 $1.3). 그래서:
 //   - 환경 변수 SOCIAL_AI_VIDEO=on 일 때만 부른다 (없으면 오류 — 자동 생산이 모르는 새 돈을 쓰지 않게)
 //   - 한 번 만든 영상은 <폴더>/person.mp4 로 남겨 두고 다시 부르지 않는다
-// 키: GEMINI_API_KEY (Google 주소에만 보낸다 · 기록에 남기지 않는다)
+// 키: GEMINI_VIDEO_API_KEY — 앱 코칭(GEMINI_API_KEY)과 다른 프로젝트의 키. 같은 키를 쓰면 영상 비용이 앱 코칭의 월 지출 한도를 같이 먹어
+//      앱이 멈춘다(2026-11-19 밤 ₩10,000 한도 초과로 코칭 429). 앱 키로 대신하지 않는다. (Google 주소에만 보낸다 · 기록에 남기지 않는다)
 import https from 'node:https';
 
 const HOST = 'generativelanguage.googleapis.com';
@@ -95,9 +96,9 @@ async function download(video, key) {
  * 글(+그림) → 세로 영상 MP4 Buffer.
  * opts: { prompt, images?: [{ data: Buffer, mime }], aspectRatio='9:16', resolution='1080p', seconds=12, key, log }
  */
-export async function omniVideo({ prompt, images = [], aspectRatio = '9:16', resolution = '1080p', seconds = 12, key = process.env.GEMINI_API_KEY, log = console.log } = {}) {
+export async function omniVideo({ prompt, images = [], aspectRatio = '9:16', resolution = '1080p', seconds = 12, key = process.env.GEMINI_VIDEO_API_KEY, log = console.log } = {}) {
   if (process.env.SOCIAL_AI_VIDEO !== 'on') throw new Error('AI 영상 만들기가 꺼져 있어요 (SOCIAL_AI_VIDEO=on 일 때만 — 돈이 드는 일이라)');
-  if (!key) throw new Error('GEMINI_API_KEY 가 없어요');
+  if (!key) throw new Error('영상용 키 GEMINI_VIDEO_API_KEY 가 없어요 — 앱 코칭 키(GEMINI_API_KEY)는 쓰지 않아요 (영상 비용이 앱 한도를 먹지 않게)');
   const input = images.length ? [...images.map((im) => ({ type: 'image', data: im.data.toString('base64'), mime_type: im.mime })), { type: 'text', text: prompt }] : prompt;
   const base = { model: OMNI_MODEL, input, response_format: { type: 'video', aspect_ratio: aspectRatio, resolution, duration: `${seconds}s` } };
   const started = Date.now();
