@@ -1,112 +1,125 @@
 {
-  "at": "2026-11-19T08:13:23.107Z",
-  "scored": 11,
-  "measuring": 7,
+  "at": "2026-11-20T07:55:53.906Z",
+  "scored": 12,
+  "measuring": 9,
   "base": {
-    "views": 17,
+    "views": 72,
     "spread": 0
   },
   "kinds": {
-    "reel": 2.12,
-    "carousel": -0.19,
-    "image": -0.1
+    "reel": 1.36,
+    "carousel": -0.84,
+    "image": -0.75
   },
   "formats": {
     "chat-reel": {
       "n": 0,
       "mean": null,
-      "score": 2.12,
+      "score": 1.36,
       "views": null,
       "spread": null
     },
     "pick-carousel": {
       "n": 0,
       "mean": null,
-      "score": -0.19,
+      "score": -0.84,
       "views": null,
       "spread": null
     },
     "pick-reel": {
       "n": 0,
       "mean": null,
-      "score": 2.12,
+      "score": 1.36,
       "views": null,
       "spread": null
     },
     "list-carousel": {
       "n": 0,
       "mean": null,
-      "score": -0.19,
+      "score": -0.84,
       "views": null,
       "spread": null
     },
     "kkti-pair": {
       "n": 0,
       "mean": null,
-      "score": -0.19,
+      "score": -0.84,
       "views": null,
       "spread": null
     },
     "app-reel": {
       "n": 0,
       "mean": null,
-      "score": 2.12,
+      "score": 1.36,
       "views": null,
       "spread": null
     },
     "old-reel": {
       "n": 4,
-      "mean": 2.81,
-      "score": 2.51,
+      "mean": 1.5,
+      "score": 1.44,
       "views": 181,
       "spread": 1
     },
     "old-carousel": {
       "n": 3,
-      "mean": -0.38,
-      "score": -0.29,
+      "mean": -1.69,
+      "score": -1.27,
       "views": 9,
       "spread": 0
     },
     "old-image": {
       "n": 3,
-      "mean": -0.2,
-      "score": -0.1,
+      "mean": -1.5,
+      "score": -0.75,
       "views": 12,
       "spread": 0
     },
     "real-reel": {
       "n": 1,
-      "mean": 5.69,
-      "score": 3.01,
+      "mean": 4.38,
+      "score": 2.12,
       "views": 607,
       "spread": 4.1
+    },
+    "ai-reel": {
+      "n": 1,
+      "mean": 1.89,
+      "score": 1.5,
+      "views": 199,
+      "spread": 1.1
     }
   },
   "topics": {
     "썸": {
-      "n": 6,
-      "score": 1.24,
-      "views": 170,
-      "spread": 1.4
+      "n": 7,
+      "score": 0.52,
+      "views": 174,
+      "spread": 1.3
     },
     "연락 텀·읽씹": {
       "n": 1,
-      "score": 0.69,
+      "score": 0.36,
       "views": 230,
       "spread": 0
     },
     "꼴: 받은 카톡": {
       "n": 1,
-      "score": 0.69,
+      "score": 0.36,
       "views": 230,
       "spread": 0
     },
     "성향·궁합": {
       "n": 7,
-      "score": 0.7,
+      "score": -0.21,
       "views": 76,
       "spread": 0.6
+    },
+    "시즌": {
+      "n": 1,
+      "score": 0.47,
+      "views": 199,
+      "spread": 1.1
     }
   },
   "best": [
@@ -119,7 +132,7 @@
       "shares": 7,
       "saved": 0,
       "spread": 4.1,
-      "score": 5.69
+      "score": 4.38
     },
     {
       "id": "ig-18126614482676279",
@@ -130,18 +143,18 @@
       "shares": 0,
       "saved": 3,
       "spread": 4.1,
-      "score": 3.87
+      "score": 2.56
     },
     {
-      "id": "d6-ig-reel",
-      "format": "old-reel",
-      "hook": "\"뭐해?\" 하고 2시간 읽씹한 썸남한테 이렇게 보냈더니 (연출)",
-      "url": "https://www.instagram.com/reel/DftkkSqAAfO/",
-      "views": 230,
+      "id": "ai-christmas-cafe",
+      "format": "ai-reel",
+      "hook": "썸남이 먼저 \"크리스마스에 뭐 해?\" 물어보면 뭐라고 답해야 약속까지 갈",
+      "url": "https://www.instagram.com/reel/Df19UwcmS9p/",
+      "views": 199,
       "shares": 0,
-      "saved": 0,
-      "spread": 0,
-      "score": 2.76
+      "saved": 1,
+      "spread": 1.1,
+      "score": 1.89
     }
   ],
   "worst": [
@@ -154,7 +167,7 @@
       "shares": 0,
       "saved": 0,
       "spread": 0,
-      "score": -0.89
+      "score": -2.19
     },
     {
       "id": "ig-18115733822517290",
@@ -165,7 +178,7 @@
       "shares": 0,
       "saved": 0,
       "spread": 0,
-      "score": -0.3
+      "score": -1.61
     }
   ],
   "week": [

@@ -45,6 +45,17 @@
      "likes": 0,
      "comments": 0,
      "watchMs": 6165
+    },
+    {
+     "at": "2026-11-20T07:55:53.906Z",
+     "ageH": 145,
+     "views": 234,
+     "reach": 211,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "watchMs": 6148
     }
    ],
    "meta": {
@@ -105,6 +116,18 @@
      "ageH": 163,
      "views": 4,
      "reach": 2,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 0
+    },
+    {
+     "at": "2026-11-20T07:55:53.906Z",
+     "ageH": 187,
+     "views": 12,
+     "reach": 6,
      "saved": 0,
      "shares": 0,
      "likes": 0,
@@ -172,6 +195,17 @@
      "likes": 1,
      "comments": 0,
      "watchMs": 1899
+    },
+    {
+     "at": "2026-11-20T07:55:53.906Z",
+     "ageH": 187,
+     "views": 221,
+     "reach": 200,
+     "saved": 0,
+     "shares": 0,
+     "likes": 1,
+     "comments": 0,
+     "watchMs": 1961
     }
    ],
    "meta": {
@@ -230,6 +264,18 @@
      "ageH": 234,
      "views": 19,
      "reach": 5,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 0
+    },
+    {
+     "at": "2026-11-20T07:55:53.906Z",
+     "ageH": 258,
+     "views": 28,
+     "reach": 8,
      "saved": 0,
      "shares": 0,
      "likes": 0,
@@ -297,6 +343,17 @@
      "likes": 3,
      "comments": 0,
      "watchMs": 2277
+    },
+    {
+     "at": "2026-11-20T07:55:53.906Z",
+     "ageH": 285,
+     "views": 130,
+     "reach": 107,
+     "saved": 0,
+     "shares": 0,
+     "likes": 3,
+     "comments": 0,
+     "watchMs": 2262
     }
    ],
    "meta": {
@@ -357,6 +414,17 @@
      "likes": 5,
      "comments": 0,
      "watchMs": 4583
+    },
+    {
+     "at": "2026-11-20T07:55:53.906Z",
+     "ageH": 649,
+     "views": 158,
+     "reach": 146,
+     "saved": 3,
+     "shares": 0,
+     "likes": 5,
+     "comments": 0,
+     "watchMs": 4556
     }
    ],
    "meta": {
@@ -416,6 +484,18 @@
      "ageH": 643,
      "views": 12,
      "reach": 7,
+     "saved": 0,
+     "shares": 0,
+     "likes": 2,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 1
+    },
+    {
+     "at": "2026-11-20T07:55:53.906Z",
+     "ageH": 666,
+     "views": 17,
+     "reach": 9,
      "saved": 0,
      "shares": 0,
      "likes": 2,
@@ -624,6 +704,17 @@
      "likes": 3,
      "comments": 0,
      "watchMs": 7496
+    },
+    {
+     "at": "2026-11-20T07:55:53.906Z",
+     "ageH": 88,
+     "views": 609,
+     "reach": 513,
+     "saved": 0,
+     "shares": 7,
+     "likes": 3,
+     "comments": 0,
+     "watchMs": 7463
     }
    ],
    "meta": {
@@ -662,6 +753,17 @@
      "likes": 2,
      "comments": 0,
      "watchMs": 2738
+    },
+    {
+     "at": "2026-11-20T07:55:53.906Z",
+     "ageH": 51,
+     "views": 236,
+     "reach": 215,
+     "saved": 1,
+     "shares": 0,
+     "likes": 2,
+     "comments": 0,
+     "watchMs": 2784
     }
    ],
    "meta": {
@@ -701,6 +803,17 @@
      "likes": 2,
      "comments": 0,
      "watchMs": 2612
+    },
+    {
+     "at": "2026-11-20T07:55:53.906Z",
+     "ageH": 67,
+     "views": 199,
+     "reach": 184,
+     "saved": 1,
+     "shares": 0,
+     "likes": 2,
+     "comments": 0,
+     "watchMs": 2612
     }
    ],
    "meta": {
@@ -730,6 +843,18 @@
      "comments": 0,
      "follows": 0,
      "profileVisits": 0
+    },
+    {
+     "at": "2026-11-20T07:55:53.906Z",
+     "ageH": 28,
+     "views": 12,
+     "reach": 4,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 1
     }
    ],
    "meta": {
@@ -759,6 +884,18 @@
      "comments": 0,
      "follows": 0,
      "profileVisits": 0
+    },
+    {
+     "at": "2026-11-20T07:55:53.906Z",
+     "ageH": 29,
+     "views": 12,
+     "reach": 5,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 2
     }
    ],
    "meta": {
@@ -781,6 +918,18 @@
      "ageH": 5,
      "views": 4,
      "reach": 2,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 0
+    },
+    {
+     "at": "2026-11-20T07:55:53.906Z",
+     "ageH": 29,
+     "views": 11,
+     "reach": 4,
      "saved": 0,
      "shares": 0,
      "likes": 0,
@@ -815,6 +964,18 @@
      "comments": 0,
      "follows": 0,
      "profileVisits": 0
+    },
+    {
+     "at": "2026-11-20T07:55:53.906Z",
+     "ageH": 29,
+     "views": 8,
+     "reach": 3,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 0
     }
    ],
    "meta": {
@@ -842,6 +1003,17 @@
      "likes": 2,
      "comments": 0,
      "watchMs": 3485
+    },
+    {
+     "at": "2026-11-20T07:55:53.906Z",
+     "ageH": 44,
+     "views": 260,
+     "reach": 237,
+     "saved": 1,
+     "shares": 0,
+     "likes": 2,
+     "comments": 0,
+     "watchMs": 3572
     }
    ],
    "meta": {
@@ -854,7 +1026,85 @@
     "topics": [],
     "hourKst": 20
    }
+  },
+  "q-test-the-waters": {
+   "snaps": [
+    {
+     "at": "2026-11-20T07:55:53.906Z",
+     "ageH": 5,
+     "views": 224,
+     "reach": 187,
+     "saved": 0,
+     "shares": 0,
+     "likes": 1,
+     "comments": 0,
+     "watchMs": 2264
+    }
+   ],
+   "meta": {
+    "mediaId": "18056799866808692",
+    "url": "https://www.instagram.com/reel/Df8rruQCVUs/",
+    "postedAt": "2026-11-20T03:24:37+0000",
+    "kind": "reel",
+    "format": "pick-reel",
+    "hook": "애매한 관계\n떠보는 카톡 한 줄",
+    "topics": [
+     "썸"
+    ],
+    "hourKst": 12
+   }
+  },
+  "ai-makjang-2": {
+   "snaps": [
+    {
+     "at": "2026-11-20T07:55:53.906Z",
+     "ageH": 20,
+     "views": 172,
+     "reach": 157,
+     "saved": 0,
+     "shares": 0,
+     "likes": 1,
+     "comments": 0,
+     "watchMs": 3022
+    }
+   ],
+   "meta": {
+    "mediaId": "18160360534523265",
+    "url": "https://www.instagram.com/reel/Df7BZlzkQG9/",
+    "postedAt": "2026-11-19T11:55:45+0000",
+    "kind": "reel",
+    "format": "ai-reel",
+    "hook": "[막장 연애 2화] 남친 폰 속 '자기야'의 주인공… 내 절친이었다. 절",
+    "topics": [],
+    "hourKst": 20
+   }
+  },
+  "ig-18031403531702221": {
+   "snaps": [
+    {
+     "at": "2026-11-20T07:55:53.906Z",
+     "ageH": 21,
+     "views": 9,
+     "reach": 6,
+     "saved": 0,
+     "shares": 3,
+     "likes": 3,
+     "comments": 0,
+     "follows": 1,
+     "profileVisits": 3
+    }
+   ],
+   "meta": {
+    "mediaId": "18031403531702221",
+    "url": "https://www.instagram.com/p/Df681KsnzbE/",
+    "postedAt": "2026-11-19T11:15:25+0000",
+    "kind": "carousel",
+    "format": "old-carousel",
+    "hook": "#센딧 #연애 #수능이벤트 #고민보다go #고민상담",
+    "topics": [],
+    "hourKst": 20
+   }
   }
  },
- "updatedAt": "2026-11-19T08:13:23.107Z"
+ "updatedAt": "2026-11-20T07:55:53.906Z"
 }
