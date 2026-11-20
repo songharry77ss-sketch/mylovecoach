@@ -193,6 +193,25 @@
       "url": "https://www.instagram.com/stories/my.lovecoach/4034291891733937974",
       "mediaId": "18131477383851979",
       "at": "2026-11-20T03:25:25.535Z"
+    },
+    {
+      "id": "ai-makjang-3",
+      "channel": "instagram",
+      "url": "https://www.instagram.com/reel/Df9mYpdgoIx/",
+      "mediaId": "18379863316246460",
+      "at": "2026-11-20T11:57:35.509Z",
+      "audio": {
+        "id": "2380299542453093",
+        "title": "Dreamcore (Spedup)",
+        "artist": "MEWYI"
+      }
+    },
+    {
+      "id": "ai-makjang-3-story",
+      "channel": "instagram",
+      "url": "https://www.instagram.com/stories/my.lovecoach/4034549992953322793",
+      "mediaId": "18389269981236984",
+      "at": "2026-11-20T11:58:11.226Z"
     }
   ]
 }
