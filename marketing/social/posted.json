@@ -226,6 +226,25 @@
       "url": "https://www.instagram.com/stories/my.lovecoach/4034985909837935091",
       "mediaId": "18124039559289863",
       "at": "2026-11-21T02:23:54.949Z"
+    },
+    {
+      "id": "ai-drama-1",
+      "channel": "instagram",
+      "url": "https://www.instagram.com/reel/DgAGNOilaq3/",
+      "mediaId": "17994249624113527",
+      "at": "2026-11-21T11:14:03.538Z",
+      "audio": {
+        "id": "1350757230173277",
+        "title": "GTA 6 (Grand Theft Auto Six Song)",
+        "artist": "AURIX232"
+      }
+    },
+    {
+      "id": "ai-drama-1-story",
+      "channel": "instagram",
+      "url": "https://www.instagram.com/stories/my.lovecoach/4035252869820924477",
+      "mediaId": "17969147058247113",
+      "at": "2026-11-21T11:14:42.994Z"
     }
   ]
 }
