@@ -854,6 +854,101 @@
       "approvedBy": "사장님 요청 — 채팅 2026-11-19 「시리즈물 잘 터진 거 기반으로 그 시나리오 그대로 한 번 만들어봐」 · 게시 11-21(금) 21:00 선택",
       "after": "ai-drama-1",
       "note": "ai-reel 스토리"
+    },
+    {
+      "id": "r-irl-vs-chat",
+      "at": "2026-11-28 12:30",
+      "channel": "instagram",
+      "kind": "reel",
+      "media": [
+        "marketing/social/r-irl-vs-chat/reel.mp4"
+      ],
+      "cover": "marketing/social/r-irl-vs-chat/cover.jpg",
+      "caption": "만나면 장난치는데 톡은 단답인 사람, 관심 있는 거 맞아? 🤔\n\n카톡이 짧은 사람은 생각보다 많아. 만나서 먼저 다가오는지가 더 정확한 신호야.\n\n너도 톡이랑 실제랑 다른 편이야?\n\n#단답 #썸 #카톡 #연애심리 #썸남",
+      "audio": {
+        "trending": true,
+        "videoVolume": 25,
+        "minSeconds": 14
+      },
+      "approved": true,
+      "note": "자동 생산 · chat-reel",
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-21T08:21:22.410Z"
+    },
+    {
+      "id": "r-irl-vs-chat-story",
+      "at": "2026-11-28 12:31",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/r-irl-vs-chat/reel.mp4"
+      ],
+      "approved": true,
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-21T08:21:22.410Z",
+      "after": "r-irl-vs-chat",
+      "note": "자동 생산 · chat-reel 스토리"
+    },
+    {
+      "id": "p-xmas-family",
+      "at": "2026-11-29 12:30",
+      "channel": "instagram",
+      "kind": "carousel",
+      "media": [
+        "marketing/social/p-xmas-family/01.jpg",
+        "marketing/social/p-xmas-family/02.jpg",
+        "marketing/social/p-xmas-family/03.jpg",
+        "marketing/social/p-xmas-family/04.jpg",
+        "marketing/social/p-xmas-family/05.jpg",
+        "marketing/social/p-xmas-family/06.jpg"
+      ],
+      "caption": "썸남한테 크리스마스 뭐 하냐고 물었더니 \"가족이랑 있을 듯\"이 왔다면?\n\n\"너는?\"까지 되물었다면 거절은 아니야. 세 가지 답장을 보냈을 때 반응까지 비교해 봤어.\n\n너는 크리스마스 당일이 중요한 편이야, 아니면 근처 아무 날이나 괜찮아?\n\n#크리스마스 #썸 #카톡답장 #연애고민 #썸남",
+      "approved": true,
+      "note": "자동 생산 · pick-carousel",
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-21T08:21:24.553Z"
+    },
+    {
+      "id": "p-xmas-family-story",
+      "at": "2026-11-29 12:31",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/p-xmas-family/story.jpg"
+      ],
+      "approved": true,
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-21T08:21:24.553Z",
+      "after": "p-xmas-family",
+      "note": "자동 생산 · pick-carousel 스토리"
+    },
+    {
+      "id": "q-first-snow",
+      "at": "2026-11-29 21:00",
+      "channel": "instagram",
+      "kind": "reel",
+      "media": [
+        "marketing/social/q-first-snow/reel.mp4"
+      ],
+      "cover": "marketing/social/q-first-snow/cover.jpg",
+      "caption": "첫눈 오는 밤에 썸남이 \"첫눈 온다!!\" 보냈다면 몇 번으로 답할래?\n\n정답은 없는데 번호 보면 연애 스타일이 보이는 듯 ㅋㅋ\n\n너라면 몇 번이야?\n\n#첫눈 #썸 #썸남 #카톡답장 #밸런스게임",
+      "audio": {
+        "trending": true,
+        "videoVolume": 25,
+        "minSeconds": 9
+      },
+      "approved": true,
+      "note": "자동 생산 · pick-reel",
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-21T08:21:27.273Z"
+    },
+    {
+      "id": "q-first-snow-story",
+      "at": "2026-11-29 21:01",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/q-first-snow/reel.mp4"
+      ],
+      "approved": true,
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-21T08:21:27.273Z",
+      "after": "q-first-snow",
+      "note": "자동 생산 · pick-reel 스토리"
     }
   ]
 }
