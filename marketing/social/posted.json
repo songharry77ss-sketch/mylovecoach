@@ -245,6 +245,25 @@
       "url": "https://www.instagram.com/stories/my.lovecoach/4035252869820924477",
       "mediaId": "17969147058247113",
       "at": "2026-11-21T11:14:42.994Z"
+    },
+    {
+      "id": "r-profile-photo",
+      "channel": "instagram",
+      "url": "https://www.instagram.com/reel/DgCNnWuDUWD/",
+      "mediaId": "18113322437626824",
+      "at": "2026-11-22T06:57:17.749Z",
+      "audio": {
+        "id": "1118164444157300",
+        "title": "사쿠란보",
+        "artist": "YENA (최예나)"
+      }
+    },
+    {
+      "id": "r-profile-photo-story",
+      "channel": "instagram",
+      "url": "https://www.instagram.com/stories/my.lovecoach/4035848790904856122",
+      "mediaId": "18116517890181219",
+      "at": "2026-11-22T06:58:41.585Z"
     }
   ]
 }
