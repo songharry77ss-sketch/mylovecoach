@@ -14,7 +14,11 @@
 //   other? — 상대 인물 장면 하나를 앞 장면 바로 뒤(앱 앞)에 끼운다 (드라마 시리즈: 두 사람이 번갈아 나오게):
 //     { caption(자막), prompt(영어, 통째로), image?, seconds? (6~15, 기본 8), resolution?, cut?: [시작, 끝] (기본 0.2~4.6) }
 //     → <폴더>/other.mp4 · other.json 으로 남겨 둔다 }
-// 사람 영상은 <폴더>/person.mp4 로 남겨 두고 다시 만들지 않는다 (만들려면 SOCIAL_AI_VIDEO=on — 돈이 듦)
+//   stills? — 돈 안 드는 정지 그림 모드 (2026-11-23 사장님 「무료로」): { a: 고민(훅) 그림, b: 답장 치는 그림, c?: 답 받고 반응 그림 (없으면 b) }
+//     영상 모델 대신 그림을 천천히 다가가며(흔들림 조금) 4초씩 이어 12초 사람 영상을 만든다. other 는 { still } 로 — 흰 번쩍임 + 확 다가가기(반전).
+//     그림은 Codex 그림 생성으로 만든 가상 인물만 (samples/<시리즈>/). prompt·image 는 안 쓴다.
+//   badge? — 「AI로 만든 장면」 아래 작은 꼬리표 (예: '센딧 고민 1위 재연' — 앱 집계에 근거한 말만)
+// 사람 영상은 <폴더>/person.mp4 로 남겨 두고 다시 만들지 않는다 (만들려면 SOCIAL_AI_VIDEO=on — 돈이 듦). 정지 그림 모드는 돈이 안 들어 매번 새로 만든다.
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -66,6 +70,19 @@ export const personImage = (it, root = process.cwd()) => imageAt(it.person?.imag
 /** 상대 인물 기준 그림 (person.other.image) */
 export const otherImage = (it, root = process.cwd()) => imageAt(it.person?.other?.image, 'person.other.image', root);
 
+/** 정지 그림 모드의 그림들 — { a, b, c } (c 가 없으면 b). 정지 그림 모드가 아니면 null */
+export function personStills(it, root = process.cwd()) {
+  const s = it.person?.stills;
+  if (!s) return null;
+  const a = imageAt(s.a, 'person.stills.a', root);
+  const b = imageAt(s.b, 'person.stills.b', root);
+  const c = str(s.c) ? imageAt(s.c, 'person.stills.c', root) : b;
+  if (!a || !b) throw new Error('person.stills 는 { a, b, c? } 그림 경로');
+  return { a, b, c };
+}
+/** 상대 장면 정지 그림 (person.other.still) */
+export const otherStill = (it, root = process.cwd()) => imageAt(it.person?.other?.still, 'person.other.still', root);
+
 // ───────────── 자막 그림 (투명 PNG) ─────────────
 
 /** 숏폼에서 흔한 흰 띠 자막 — 줄마다 흰 상자 */
@@ -82,9 +99,16 @@ const aiTag = () =>
     { position: 'absolute', left: 44, top: 168, padding: '10px 22px', borderRadius: 999, backgroundColor: 'rgba(0,0,0,0.55)' },
     text('AI로 만든 장면', { fontSize: 30, fontWeight: 700, color: '#FFFFFF', letterSpacing: -0.5 }),
   );
+/** 「AI로 만든 장면」 아래 꼬리표 (예: 센딧 고민 1위 재연) */
+const badgeTag = (value) =>
+  box(
+    { position: 'absolute', left: 44, top: 236, padding: '10px 22px', borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.92)' },
+    text(value, { fontSize: 30, fontWeight: 800, color: '#191F28', letterSpacing: -0.5 }),
+  );
 /** 사람 장면 자막 위치(px, 1920 기준 위쪽 끝) — 기본 300(머리 위쪽). 얼굴을 보여 줘야 하면 person.captionTop 으로 가슴께(1150 안팎)로 내린다 */
 export const CAPTION_TOP = 300;
-export const overlayTree = (value, top = CAPTION_TOP) => box({ width: W, height: H, fontFamily: 'Pretendard' }, aiTag(), captionLines(value, top));
+export const overlayTree = (value, top = CAPTION_TOP, badge = null) =>
+  box({ width: W, height: H, fontFamily: 'Pretendard' }, aiTag(), ...(str(badge) ? [badgeTag(badge)] : []), captionLines(value, top));
 
 // ───────────── ffmpeg ─────────────
 
@@ -113,6 +137,9 @@ export function resolveCuts(cuts = {}, seconds = 12) {
   if (!(out.a[1] - out.a[0] >= 1) || !(out.b[1] - out.b[0] >= 2)) throw new Error(`사람 장면 자르기 구간이 너무 짧아요 (a ${out.a} · b ${out.b} · 영상 ${seconds.toFixed(1)}초)`);
   return out;
 }
+
+/** 정지 그림 모드의 기본 자르기 — 그림 a 0~4초(훅) · b 4~8초(보냄) · c 8~12초(답 받음) */
+export const STILL_CUTS = { a: [0, 3.95], b: [4, 11.95], replyAt: 8.05 };
 
 /** 상대 인물 장면 자르기 — 기본 0.2~4.6초, 영상 길이 안으로 */
 export function resolveOtherCut(cut, seconds = 8) {
@@ -194,13 +221,46 @@ async function aiClip(dir, name, { prompt, seconds, resolution, image }) {
   return { file, source: 'ai' };
 }
 
-const personClip = (it, dir) =>
-  aiClip(dir, 'person', { prompt: personPrompt(it), seconds: it.person.seconds ?? 12, resolution: it.person.resolution ?? '1080p', image: personImage(it) });
+/**
+ * 정지 그림 한 장 → 움직이는 토막의 ffmpeg 필터 (천천히 다가가기 + 손에 든 듯 살짝 흔들림).
+ * punch: 처음 0.25초에 흰 번쩍임 + 확 다가가기 (반전 장면). 출력 [label] 은 1080×1920·30fps
+ */
+export function stillFilter(input, seconds, label, { punch = false } = {}) {
+  const n = Math.round(seconds * 30);
+  const zoom = punch ? `if(lt(on,8),1+0.16*on/8,1.16+0.06*(on-8)/${n})` : `1+0.09*on/${n}`;
+  return [
+    `[${input}:v]scale=2240:3982:force_original_aspect_ratio=increase,crop=2240:3982`,
+    `zoompan=z='${zoom}':x='(iw-iw/zoom)/2':y='(ih-ih/zoom)*0.42':d=1:s=1124x1998:fps=30`,
+    `crop=1080:1920:x='22+12*sin(2*PI*t*0.61)':y='39+14*sin(2*PI*t*0.47)'`,
+    ...(punch ? ['fade=t=in:st=0:d=0.25:color=white'] : []),
+    `trim=end_frame=${n},setpts=PTS-STARTPTS,setsar=1,format=yuv420p[${label}]`,
+  ].join(',');
+}
 
-const otherClip = (it, dir) => {
+/** 정지 그림들 → 소리 없는(무음 트랙) 영상 하나. parts: [{ image, seconds, punch? }] */
+export function stillClip(dir, name, parts, note) {
+  const file = path.join(dir, `${name}.mp4`);
+  const inputs = parts.flatMap((p) => ['-loop', '1', '-framerate', '30', '-t', String(p.seconds + 0.5), '-i', path.resolve(p.image.rel)]);
+  const total = parts.reduce((s, p) => s + p.seconds, 0);
+  inputs.push('-f', 'lavfi', '-t', String(total), '-i', 'anullsrc=r=44100:cl=stereo');
+  const filter = [...parts.map((p, i) => stillFilter(i, p.seconds, `s${i}`, { punch: p.punch })), `${parts.map((_, i) => `[s${i}]`).join('')}concat=n=${parts.length}:v=1:a=0[v]`].join(';');
+  ff([...inputs, '-filter_complex', filter, '-map', '[v]', '-map', `${parts.length}:a`, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '96k', '-t', String(total), file]);
+  writeFileSync(path.join(dir, `${name}.json`), `${JSON.stringify({ at: new Date().toISOString(), mode: 'stills', seconds: total, note, stills: parts.map((p) => ({ file: p.image.rel, sha: p.image.sha, seconds: p.seconds, punch: Boolean(p.punch) })) }, null, 2)}\n`);
+  return { file, source: 'stills' };
+}
+
+function personClip(it, dir) {
+  const s = personStills(it);
+  if (s) return stillClip(dir, 'person', [{ image: s.a, seconds: 4 }, { image: s.b, seconds: 4 }, { image: s.c, seconds: 4 }], 'AI로 만든 가상 인물 그림(Codex) — 영상에 「AI로 만든 장면」 표시');
+  return aiClip(dir, 'person', { prompt: personPrompt(it), seconds: it.person.seconds ?? 12, resolution: it.person.resolution ?? '1080p', image: personImage(it) });
+}
+
+function otherClip(it, dir) {
   const o = it.person.other;
+  const still = otherStill(it);
+  if (still) return stillClip(dir, 'other', [{ image: still, seconds: o.seconds ?? 5, punch: true }], 'AI로 만든 가상 인물 그림(Codex) — 반전 장면');
   return aiClip(dir, 'other', { prompt: o.prompt.trim(), seconds: o.seconds ?? 8, resolution: o.resolution ?? it.person.resolution ?? '1080p', image: otherImage(it) });
-};
+}
 
 // ───────────── 검사 · 만들기 (formats/index.mjs 가 부름) ─────────────
 
@@ -234,8 +294,16 @@ export function checkAiReel(it, msgProblems) {
       if (!str(o.caption)) out.push('person.other.caption(상대 장면 자막)이 비었어요');
       else if (o.caption.split('\n').some((l) => [...l].length > 14)) out.push('person.other.caption 한 줄은 14자까지 (\\n 으로 나누기)');
       else if (o.caption.split('\n').length > 3) out.push('person.other.caption 은 3줄까지');
-      if (!str(o.prompt)) out.push('person.other.prompt(상대 장면 글, 영어)가 비었어요');
-      if (o.seconds !== undefined && !(Number.isInteger(o.seconds) && o.seconds >= 6 && o.seconds <= 15)) out.push('person.other.seconds 는 6~15');
+      if (!str(o.prompt) && !str(o.still)) out.push('person.other.prompt(상대 장면 글, 영어)나 still(정지 그림)이 필요해요');
+      if (o.still !== undefined) {
+        try {
+          otherStill(it);
+        } catch (e) {
+          out.push(e.message);
+        }
+      }
+      const minSec = str(o.still) ? 3 : 6; // 정지 그림은 짧게 끊어도 된다 (영상 모델은 6초부터)
+      if (o.seconds !== undefined && !(Number.isInteger(o.seconds) && o.seconds >= minSec && o.seconds <= 15)) out.push(`person.other.seconds 는 ${minSec}~15`);
       if (o.resolution !== undefined && !['720p', '1080p'].includes(o.resolution)) out.push('person.other.resolution 은 720p·1080p');
       if (o.cut !== undefined && !(Array.isArray(o.cut) && o.cut.length === 2 && o.cut.every((x) => typeof x === 'number' && x >= 0) && o.cut[1] > o.cut[0])) out.push('person.other.cut 은 [시작, 끝] 초');
       if (o.image !== undefined) {
@@ -247,6 +315,14 @@ export function checkAiReel(it, msgProblems) {
       }
     }
   }
+  if (p.stills !== undefined) {
+    try {
+      personStills(it);
+    } catch (e) {
+      out.push(e.message);
+    }
+  }
+  if (p.badge !== undefined && !(str(p.badge) && [...p.badge].length <= 16)) out.push('person.badge 는 16자까지 한 줄');
   // 자막 3줄(줄마다 약 100px)이 인스타 아래 글·버튼 자리(1600px 아래)에 닿지 않게
   if (p.captionTop !== undefined && !(Number.isInteger(p.captionTop) && p.captionTop >= 160 && p.captionTop <= 1300)) out.push('person.captionTop 은 160~1300 (px)');
   // 사람 장면이 AI 라는 걸 캡션에서도 밝힌다
@@ -255,13 +331,16 @@ export function checkAiReel(it, msgProblems) {
 }
 
 export async function makeAiReelItem(it, dir) {
+  const made = (s) => ({ ai: '새로 만듦', stills: '정지 그림으로 만듦' })[s] ?? '만들어 둔 것';
   const person = await personClip(it, dir);
-  console.log(`  ${it.id}: 사람 장면 ${person.source === 'ai' ? '새로 만듦' : '만들어 둔 것'}`);
+  console.log(`  ${it.id}: 사람 장면 ${made(person.source)}`);
   const info = probe(person.file);
-  const cuts = resolveCuts(it.person.cuts, info.seconds);
+  // 정지 그림은 4초씩 딱 잘려 있어 첫 프레임부터 얼굴(훅)이 나오게 — 기본 구간을 그림 경계에 맞춘다
+  const cuts = resolveCuts(it.person.cuts ?? (person.source === 'stills' ? STILL_CUTS : undefined), info.seconds);
   const otherV = it.person.other ? await otherClip(it, dir) : null;
-  if (otherV) console.log(`  ${it.id}: 상대 장면 ${otherV.source === 'ai' ? '새로 만듦' : '만들어 둔 것'}`);
-  const otherCut = otherV ? resolveOtherCut(it.person.other.cut, probe(otherV.file).seconds) : null;
+  if (otherV) console.log(`  ${it.id}: 상대 장면 ${made(otherV.source)}`);
+  const otherSec = otherV ? probe(otherV.file).seconds : 0;
+  const otherCut = otherV ? resolveOtherCut(it.person.other.cut ?? (otherV.source === 'stills' ? [0, otherSec - 0.05] : undefined), otherSec) : null;
 
   const real = await realAnalysis(it, dir);
   console.log(`  ${it.id}: 진짜 AI 결과 ${real.source === 'api' ? '서버에서 받음' : real.source === 'cache' ? '저장해 둔 것' : '창고의 것'}`);
@@ -279,11 +358,12 @@ export async function makeAiReelItem(it, dir) {
   const ovB1 = tmp('_ov-b1.png');
   const ovB2 = tmp('_ov-b2.png');
   const top = it.person.captionTop ?? CAPTION_TOP;
-  writeFileSync(ovA, await png(overlayTree(it.person.hook, top), W, H));
+  const badge = it.person.badge ?? null;
+  writeFileSync(ovA, await png(overlayTree(it.person.hook, top, badge), W, H));
   writeFileSync(ovB1, await png(overlayTree(it.person.sent, top), W, H));
   writeFileSync(ovB2, await png(overlayTree(it.person.reply, top), W, H));
   const ovO = tmp('_ov-o.png');
-  if (otherV) writeFileSync(ovO, await png(overlayTree(it.person.other.caption, top), W, H));
+  if (otherV) writeFileSync(ovO, await png(overlayTree(it.person.other.caption, top, badge), W, H));
 
   const file = path.join(dir, 'reel.mp4');
   const seconds = composeAiReel({ person: person.file, cuts, head, tail, ovA, ovB1, ovB2, other: otherV ? { file: otherV.file, cut: otherCut, ov: ovO } : null, out: file });
