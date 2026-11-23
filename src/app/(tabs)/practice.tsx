@@ -1,49 +1,52 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { BrandGradient, HeroCard, Icon3D } from '@/components/brand/brand';
 import { RoomAvatar } from '@/components/crush/crush-list-item';
+import { useCostNote, useFill } from '@/components/tips/tip-book';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { AppText } from '@/components/ui/app-text';
-import { useCardStyle, useInsetFill } from '@/components/ui/list-group';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section-header';
-import { Brand, BrandShadow, Radius, Spacing, Typography } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { relativeTime } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
 import { josa } from '@/lib/kkti';
 import { relationshipLabel } from '@/lib/labels';
 import { personasFor } from '@/lib/personas';
-import { personaFromCrush } from '@/lib/practice';
+import { PRACTICE_MAX_TURNS, personaFromCrush } from '@/lib/practice';
 import type { PracticePersona } from '@/lib/types';
 import { sortCrushes, useAppStore } from '@/store/app-store';
 
-/** 등장 순서 — 위에서부터 50ms 간격으로 살짝 올라온다 (스프링으로 부드럽게 멈춘다, 움직임 줄이기 설정이면 바로 보인다) */
-const enter = (step: number) => FadeInDown.delay(step * 50).springify().damping(18);
-/** 카드 모서리 — 지침 1.2: 카드 22 */
-const CARD_RADIUS = Radius.lg + 2;
+/** 등장 — 위에서부터 짧게 (1.4 개편: 튕김 없이) */
+const enter = (step: number) => FadeInDown.delay(step * 40).duration(300);
 const LEVEL = ['', '쉬움', '보통', '어려움'] as const;
-const STEPS = ['상대를 고르면 먼저 카톡이 와요', '답할 때마다 바로 피드백을 받아요', '호감 온도가 0°에서 오르내려요'];
+/** 줄 왼쪽 얼굴 크기 — 줄 사이 선이 이름 글자 아래에서 시작하도록 */
+const AVATAR = 44;
+/** 「이어서 하기」는 처음에 이만큼만, 나머지는 「더 보기」 */
+const SESSIONS_SHOWN = 3;
 
 /**
  * 연애 연습 탭 — AI 상대역과 카톡하듯 연습하고, 0°에서 시작하는 온도를 올려 본다.
- * 1.2 개편: 옅은 회색 바탕(canvas) 위 흰 카드, 큰 제목이 사라지면 「연애 연습」 유리 머리말.
+ * 1.4 「깔끔하게」 개편: 흰 바탕 + 줄 목록(홈 「최근 상담」과 같은 결). 떠다니는 3D 하트·사용법 파란 카드·2열 타일·이모지 얼굴을 걷었다.
+ * 제목 아래 한 줄로 사용법, 그 아래 한 번에 쓰는 횟수(연습 한 번 = 코칭 1회). 상대 얼굴은 앱 공통 얼굴 원(이름 첫 글자).
+ * 내 채팅방이 있으면 「내 상대와 미리 연습」을 맨 위로 — 실제 그 사람으로 리허설하는 것이 이 탭에서 가장 설득력 있다.
  */
 export default function PracticeTab() {
   const theme = useTheme();
   const router = useRouter();
-  const cardBg = useCardStyle();
-  const inset = useInsetFill();
+  const fill = useFill();
   const user = useAppStore((s) => s.user);
   const practice = useAppStore((s) => s.practice);
   const crushMap = useAppStore((s) => s.crushes);
   const startPractice = useAppStore((s) => s.startPractice);
   const seePracticeDot = useAppStore((s) => s.seePracticeDot);
+  const cost = useCostNote('연습 한 번에');
+  const [moreSessions, setMoreSessions] = useState(false);
   // 연애 연습을 열었으면 「이런 기능도 있어요」 빨간 점(탐색 탭·탭 바)은 그만 띄운다 (11/12 회의 3번)
   useFocusEffect(
     useCallback(() => {
@@ -53,6 +56,7 @@ export default function PracticeTab() {
   const personas = useMemo(() => personasFor(user?.gender ?? 'other'), [user?.gender]);
   const sessions = useMemo(() => Object.values(practice).sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 6), [practice]);
   const crushes = useMemo(() => sortCrushes(crushMap).filter((c) => !c.secret && c.name !== '상대'), [crushMap]);
+  const shownSessions = moreSessions ? sessions : sessions.slice(0, SESSIONS_SHOWN);
 
   const start = (persona: PracticePersona) => {
     haptic.thud();
@@ -61,85 +65,32 @@ export default function PracticeTab() {
   };
 
   return (
-    <Screen safeTop tab title="연애 연습" contentStyle={styles.content}>
+    <Screen safeTop tab title="연애 연습" background={theme.background} contentStyle={styles.content}>
       <Animated.View entering={enter(0)} style={styles.head}>
-        <View style={styles.flex}>
-          <AppText variant="small" color="textSecondary" weight="600">
-            연애 연습
+        <Text style={[styles.title, { color: theme.text }]} accessibilityRole="header">
+          연애 연습
+        </Text>
+        <AppText variant="small" color="textSecondary">
+          상대를 고르면 먼저 카톡이 와요. 답할 때마다 피드백과 호감 온도가 바뀌어요.
+        </AppText>
+        {/* 무료 횟수를 쓰는 기능 — 누르기 전에 한 번에 얼마나 쓰는지(0회면 다 썼다고 먼저 알린다) */}
+        {cost.note ? (
+          <AppText variant="caption" color="textSecondary" weight="600" style={styles.cost}>
+            {cost.out ? cost.note : `연습 한 번에 코칭 1회 · ${PRACTICE_MAX_TURNS}마디까지 · ${cost.left}`}
           </AppText>
-          <Text style={[styles.title, { color: theme.text }]} accessibilityRole="header">
-            {'실전 전에\n카톡으로 연습해요'}
-          </Text>
-        </View>
-        <Icon3D name="heart" size={80} float style={styles.icon3d} />
+        ) : null}
       </Animated.View>
 
-      {sessions.length ? (
-        <Animated.View entering={enter(1)}>
-          <SectionHeader title="이어서 하기" style={styles.sectionTitle} />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hscroll} style={styles.hscrollWrap}>
-            {sessions.map((s, i) => {
-              const last = s.turns[s.turns.length - 1];
-              const latest = i === 0;
-              const inner = (
-                <>
-                  <View style={styles.sessionTop}>
-                    <Text style={styles.sessionEmoji}>{s.persona.emoji}</Text>
-                    <AnimatedNumber value={s.heat} suffix="°" ticks={false} duration={800} style={[styles.sessionHeat, { color: latest ? Brand.onBrand : theme.primary }]} />
-                  </View>
-                  <AppText variant="smallStrong" color={latest ? Brand.onBrand : 'text'} numberOfLines={1}>
-                    {s.persona.name}
-                    {s.ended ? ' · 끝' : ''}
-                  </AppText>
-                  <AppText variant="caption" color={latest ? Brand.onBrandDim : 'textSecondary'} numberOfLines={2} style={styles.sessionLast}>
-                    {last?.text ?? ''}
-                  </AppText>
-                  <AppText variant="caption" color={latest ? Brand.onBrandFaint : 'textTertiary'}>
-                    {relativeTime(s.updatedAt)}
-                  </AppText>
-                </>
-              );
-              return (
-                <PressableScale
-                  key={s.id}
-                  pressedScale={0.97}
-                  accessibilityLabel={`${s.persona.name}${josa(s.persona.name, '과', '와')}의 연습 이어서 하기, 호감 온도 ${s.heat}도`}
-                  onPress={() => router.push({ pathname: '/practice/[id]', params: { id: s.id } })}
-                  style={[styles.session, latest ? BrandShadow : cardBg]}>
-                  {latest ? <BrandGradient style={styles.sessionFill}>{inner}</BrandGradient> : <View style={styles.sessionFill}>{inner}</View>}
-                </PressableScale>
-              );
-            })}
-          </ScrollView>
-        </Animated.View>
-      ) : (
-        <Animated.View entering={enter(1)}>
-          <HeroCard>
-            <Text style={styles.heroTitle}>이렇게 연습해요</Text>
-            <View style={styles.steps}>
-              {STEPS.map((step, i) => (
-                <View key={step} style={styles.step}>
-                  <View style={styles.stepNum}>
-                    <Text style={styles.stepNumText}>{i + 1}</Text>
-                  </View>
-                  <Text style={styles.stepText}>{step}</Text>
-                </View>
-              ))}
-            </View>
-          </HeroCard>
-        </Animated.View>
-      )}
-
       {crushes.length ? (
-        <Animated.View entering={enter(2)}>
-          <SectionHeader title="내 상대와 미리 연습" subtitle="실제로 보내기 전에 리허설해요" style={[styles.sectionHead, styles.sectionHeadAbove]} />
+        <Animated.View entering={enter(1)} style={styles.section}>
+          <SectionHeader title="내 상대와 미리 연습" style={styles.sectionHeader} />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hscroll} style={styles.hscrollWrap}>
             {crushes.map((c) => (
-              <PressableScale key={c.id} pressedScale={0.97} accessibilityLabel={`${c.name}${josa(c.name, '과', '와')} 연습 시작`} onPress={() => start(personaFromCrush(c))} style={[styles.crushChip, cardBg]}>
-                <RoomAvatar crush={c} size={40} />
+              <PressableScale key={c.id} pressedScale={0.97} accessibilityLabel={`${c.name}${josa(c.name, '과', '와')} 연습 시작`} onPress={() => start(personaFromCrush(c))} style={[styles.crushChip, { backgroundColor: fill }]}>
+                <RoomAvatar crush={c} size={36} />
                 <View>
                   <AppText variant="smallStrong">{c.name}</AppText>
-                  <AppText variant="caption" color="primary" weight="700">
+                  <AppText variant="caption" color="textSecondary">
                     {relationshipLabel(c.relationship).label} · 연습 시작
                   </AppText>
                 </View>
@@ -149,87 +100,127 @@ export default function PracticeTab() {
         </Animated.View>
       ) : null}
 
-      <Animated.View entering={enter(3)}>
-        <SectionHeader title="연습 상대 고르기" subtitle="어려울수록 쉽게 넘어오지 않아요" style={styles.sectionHead} />
-      </Animated.View>
-      <View style={styles.grid}>
-        {personas.map((p, i) => (
-          <Animated.View key={p.id} entering={FadeInDown.delay(200 + 50 * Math.min(i, 8)).duration(320)} style={styles.gridItem}>
-            <PressableScale onPress={() => start(p)} accessibilityLabel={`${p.name}, ${p.age}, 난이도 ${LEVEL[p.difficulty] ?? ''}`} style={[styles.persona, cardBg]}>
-              <View style={styles.personaTop}>
-                <View style={[styles.personaEmojiWrap, { backgroundColor: inset }]}>
-                  <Text style={styles.personaEmoji}>{p.emoji}</Text>
-                </View>
-                <View style={[styles.level, { backgroundColor: p.difficulty >= 3 ? theme.accentSoft : theme.primarySoft }]}>
-                  <AppText variant="caption" weight="800" color={p.difficulty >= 3 ? 'accent' : 'primary'}>
-                    {LEVEL[p.difficulty] ?? ''}
-                  </AppText>
-                </View>
+      {sessions.length ? (
+        <Animated.View entering={enter(2)} style={styles.section}>
+          <SectionHeader title="이어서 하기" style={styles.sectionHeader} />
+          <View style={styles.list}>
+            {shownSessions.map((s, i) => {
+              const last = s.turns[s.turns.length - 1];
+              return (
+                <Pressable
+                  key={s.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${s.persona.name}${josa(s.persona.name, '과', '와')}의 연습 이어서 하기, 호감 온도 ${s.heat}도`}
+                  onPress={() => {
+                    haptic.soft();
+                    router.push({ pathname: '/practice/[id]', params: { id: s.id } });
+                  }}
+                  style={({ pressed }) => [styles.row, { backgroundColor: pressed ? fill : 'transparent' }]}>
+                  <RoomAvatar crush={{ id: s.persona.id, name: s.persona.name }} size={AVATAR} />
+                  <View style={styles.rowTexts}>
+                    <View style={styles.nameRow}>
+                      <AppText variant="bodyStrong" numberOfLines={1} style={styles.shrink}>
+                        {s.persona.name}
+                        {s.ended ? ' · 끝' : ''}
+                      </AppText>
+                      <AppText variant="caption" color="textTertiary">
+                        {relativeTime(s.updatedAt)}
+                      </AppText>
+                    </View>
+                    <AppText variant="small" color="textSecondary" numberOfLines={1}>
+                      {last?.text ?? ''}
+                    </AppText>
+                  </View>
+                  <AnimatedNumber value={s.heat} suffix="°" ticks={false} duration={800} style={[styles.heat, { color: theme.primary }]} />
+                  {i < shownSessions.length - 1 ? <View pointerEvents="none" style={[styles.divider, { backgroundColor: theme.separator }]} /> : null}
+                </Pressable>
+              );
+            })}
+          </View>
+          {sessions.length > SESSIONS_SHOWN ? (
+            <Pressable accessibilityRole="button" accessibilityState={{ expanded: moreSessions }} onPress={() => setMoreSessions((v) => !v)} hitSlop={6} style={styles.more}>
+              <AppText variant="smallStrong" color="textSecondary">
+                {moreSessions ? '접기' : `지난 연습 ${sessions.length - SESSIONS_SHOWN}개 더 보기`}
+              </AppText>
+              <Ionicons name={moreSessions ? 'chevron-up' : 'chevron-down'} size={15} color={theme.textTertiary} />
+            </Pressable>
+          ) : null}
+        </Animated.View>
+      ) : null}
+
+      {/* 연습 상대 — 홈 「최근 상담」과 같은 줄 목록(얼굴 원 + 이름·나이 + MBTI·직업·난이도 + 상황 한 줄) */}
+      <Animated.View entering={enter(3)} style={styles.section}>
+        <SectionHeader title="연습 상대 고르기" style={styles.sectionHeader} />
+        <View style={styles.list}>
+          {personas.map((p) => (
+            <Pressable
+              key={p.id}
+              accessibilityRole="button"
+              accessibilityLabel={`${p.name}, ${p.age}, 난이도 ${LEVEL[p.difficulty] ?? ''}`}
+              onPress={() => start(p)}
+              style={({ pressed }) => [styles.row, styles.personaRow, { backgroundColor: pressed ? fill : 'transparent' }]}>
+              <RoomAvatar crush={{ id: p.id, name: p.name }} size={AVATAR} />
+              <View style={styles.rowTexts}>
+                <AppText variant="bodyStrong" numberOfLines={1}>
+                  {p.name} · {p.age}
+                </AppText>
+                <AppText variant="small" color="textSecondary" numberOfLines={1}>
+                  {p.mbti} · {p.job || relationshipLabel(p.relationship).label} · {LEVEL[p.difficulty] ?? ''}
+                </AppText>
+                <AppText variant="small" color="textSecondary" numberOfLines={1} style={styles.scenario}>
+                  {p.scenario}
+                </AppText>
               </View>
-              <AppText variant="bodyStrong" weight="800" numberOfLines={1}>
-                {p.name} · {p.age}
-              </AppText>
-              <AppText variant="caption" color="textSecondary" numberOfLines={1}>
-                {p.mbti} · {p.job || relationshipLabel(p.relationship).label}
-              </AppText>
-              <AppText variant="caption" color="textSecondary" numberOfLines={3} style={styles.scenario}>
-                {p.scenario}
-              </AppText>
-            </PressableScale>
-          </Animated.View>
-        ))}
-        <View style={styles.gridItem}>
-          <PressableScale onPress={() => router.push('/practice/custom')} accessibilityLabel="연습 상대 직접 만들기" style={[styles.persona, styles.custom, cardBg]}>
-            <View style={[styles.customIcon, { backgroundColor: theme.primarySoft }]}>
-              <Ionicons name="add" size={26} color={theme.primary} />
+              <View pointerEvents="none" style={[styles.divider, { backgroundColor: theme.separator }]} />
+            </Pressable>
+          ))}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="연습 상대 직접 만들기"
+            onPress={() => {
+              haptic.select();
+              router.push('/practice/custom');
+            }}
+            style={({ pressed }) => [styles.row, { backgroundColor: pressed ? fill : 'transparent' }]}>
+            <View style={[styles.addCircle, { backgroundColor: fill }]}>
+              <Ionicons name="add" size={22} color={theme.text} />
             </View>
-            <AppText variant="bodyStrong" weight="800" align="center">
-              직접 만들기
-            </AppText>
-            <AppText variant="caption" color="textSecondary" align="center">
-              나이·MBTI·상황을 골라 나만의 연습 상대를 만들어요
-            </AppText>
-          </PressableScale>
+            <View style={styles.rowTexts}>
+              <AppText variant="bodyStrong">직접 만들기</AppText>
+              <AppText variant="small" color="textSecondary" numberOfLines={1}>
+                나이·MBTI·상황을 골라 나만의 연습 상대를 만들어요
+              </AppText>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.textTertiary} />
+          </Pressable>
         </View>
-      </View>
+      </Animated.View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { gap: Spacing.md },
-  flex: { flex: 1 },
-  head: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.sm, marginBottom: Spacing.xs },
-  title: { ...Typography.hero, fontSize: 30, lineHeight: 39, marginTop: 4 },
-  icon3d: { marginRight: -4 },
-  sectionTitle: { marginTop: Spacing.xs, marginBottom: Spacing.md, paddingHorizontal: 2 },
-  sectionHead: { marginTop: Spacing.md, marginBottom: Spacing.xs, paddingHorizontal: 2 },
-  // 바로 아래가 가로 스크롤(위 여백을 그림자 자리로 비운 칸)일 때
-  sectionHeadAbove: { marginBottom: Spacing.md },
-  // 카드 그림자가 가로 스크롤 칸에 잘리지 않게 위아래를 조금 비우고, 그만큼 바깥 간격을 줄인다
-  hscrollWrap: { marginHorizontal: -Spacing.lg, marginTop: -Spacing.lg, marginBottom: -Spacing.xl, flexGrow: 0 },
-  hscroll: { gap: Spacing.sm + 2, paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, paddingBottom: Spacing.xxl },
-  session: { width: 172, borderRadius: CARD_RADIUS },
-  sessionFill: { flex: 1, borderRadius: CARD_RADIUS, padding: Spacing.md + 2, gap: 4, overflow: 'hidden' },
-  sessionTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },
-  sessionEmoji: { fontSize: 28, lineHeight: 34 },
-  sessionHeat: { fontSize: 24, lineHeight: 28, fontWeight: '900', letterSpacing: -0.8 },
-  sessionLast: { minHeight: 32 },
-  heroTitle: { color: Brand.onBrand, fontSize: 22, lineHeight: 28, fontWeight: '900', letterSpacing: -0.5 },
-  steps: { gap: Spacing.md, marginTop: Spacing.lg },
-  step: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  stepNum: { width: 28, height: 28, borderRadius: 14, backgroundColor: Brand.glass, borderWidth: 1, borderColor: Brand.glassBorder, alignItems: 'center', justifyContent: 'center' },
-  stepNumText: { color: Brand.onBrand, fontSize: 13, lineHeight: 16, fontWeight: '900' },
-  stepText: { flex: 1, color: Brand.onBrand, opacity: 0.94, fontSize: 15, lineHeight: 21, fontWeight: '700' },
-  crushChip: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderRadius: CARD_RADIUS, paddingVertical: Spacing.sm + 2, paddingLeft: Spacing.md, paddingRight: Spacing.lg },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -Spacing.xs - 1 },
-  gridItem: { width: '50%', padding: Spacing.xs + 1 },
-  persona: { borderRadius: CARD_RADIUS, padding: Spacing.md + 2, gap: 3, minHeight: 188 },
-  personaTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: Spacing.xs },
-  personaEmojiWrap: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  personaEmoji: { fontSize: 28, lineHeight: 34 },
-  level: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: Radius.pill },
-  scenario: { marginTop: 2 },
-  custom: { alignItems: 'center', justifyContent: 'center', gap: Spacing.xs },
-  customIcon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
+  content: { gap: Spacing.xl },
+  head: { gap: 4, marginTop: Spacing.sm, paddingHorizontal: 2 },
+  // 홈·탐색 제목과 같은 크기(24pt · 700)
+  title: { fontSize: 24, lineHeight: 32, fontWeight: '700', letterSpacing: -0.6, marginTop: 6, marginBottom: 2 },
+  cost: { marginTop: 2 },
+  section: { gap: Spacing.sm },
+  sectionHeader: { marginTop: 0, marginBottom: 0, paddingHorizontal: 2 },
+  hscrollWrap: { marginHorizontal: -Spacing.lg, flexGrow: 0 },
+  hscroll: { gap: Spacing.sm, paddingHorizontal: Spacing.lg },
+  crushChip: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm + 2, borderRadius: 20, paddingVertical: Spacing.sm + 2, paddingLeft: Spacing.sm + 2, paddingRight: Spacing.lg },
+  // 줄 목록은 화면 끝까지(눌림 색이 가장자리까지)
+  list: { marginHorizontal: -Spacing.lg },
+  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, minHeight: 72 },
+  personaRow: { alignItems: 'flex-start' },
+  rowTexts: { flex: 1, gap: 2 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  shrink: { flexShrink: 1 },
+  scenario: { marginTop: 1 },
+  heat: { fontSize: 22, lineHeight: 28, fontWeight: '700', letterSpacing: -0.6, minWidth: 48, textAlign: 'right' },
+  addCircle: { width: AVATAR, height: AVATAR, borderRadius: AVATAR / 2, alignItems: 'center', justifyContent: 'center' },
+  // 줄 사이 가는 선 — 이름 글자 아래에서 시작한다 (안쪽 여백 + 얼굴 + 간격)
+  divider: { position: 'absolute', bottom: 0, right: Spacing.lg, left: Spacing.lg + AVATAR + Spacing.md, height: StyleSheet.hairlineWidth },
+  more: { flexDirection: 'row', alignItems: 'center', alignSelf: 'center', gap: 4, minHeight: 44, paddingHorizontal: Spacing.md },
 });

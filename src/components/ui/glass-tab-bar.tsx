@@ -128,8 +128,8 @@ export function GlassTabBar({ state, descriptors, navigation }: TabBarProps) {
 
   const g = glassColors(dark);
   const c = dark
-    ? { pill: g.fill, edge: g.edge, tint: 'rgba(122,150,255,0.20)', lens: 'rgba(64,72,100,0.96)', rim: 'rgba(255,255,255,0.28)', inactive: theme.textSecondary }
-    : { pill: g.fill, edge: g.edge, tint: 'rgba(61,99,245,0.11)', lens: 'rgba(255,255,255,0.97)', rim: 'rgba(255,255,255,1)', inactive: theme.textSecondary };
+    ? { pill: g.fill, edge: g.edge, tint: 'rgba(255,255,255,0.10)', lens: 'rgba(64,72,100,0.96)', rim: 'rgba(255,255,255,0.28)', inactive: theme.textSecondary }
+    : { pill: g.fill, edge: g.edge, tint: 'rgba(20,21,24,0.06)', lens: 'rgba(255,255,255,0.97)', rim: 'rgba(255,255,255,1)', inactive: theme.textSecondary };
 
   const lensStyle = useAnimatedStyle(() => ({
     transform: [
@@ -187,7 +187,8 @@ export function GlassTabBar({ state, descriptors, navigation }: TabBarProps) {
             {routes.map((route, i) => {
               const options = descriptors[route.key]?.options ?? {};
               const isFocused = i === focused;
-              const color = isFocused ? theme.primary : c.inactive;
+              // 1.4 개편: 고른 탭은 파랑 대신 검정 — 색은 화면 안의 주요 버튼에만 남긴다
+              const color = isFocused ? theme.text : c.inactive;
               const label = typeof options.title === 'string' ? options.title : route.name;
               const dot = route.name === 'tips' && practiceDot;
               const onPress = () => {
@@ -240,7 +241,7 @@ function TabContent({ focused, lift, children }: { focused: boolean; lift: Share
   return <Animated.View style={[styles.tabInner, style]}>{children}</Animated.View>;
 }
 
-/** 새 채팅 — 파란 유리 구슬. 누르면 눌렸다 튕기고 + 가 한 바퀴(90°) 돈다 */
+/** 새 채팅 — 센딧 파랑 단색 원(1.4 개편: 광택·파란 빛 그림자를 걷었다). 누르면 눌렸다 튕기고 + 가 90° 돈다 */
 function NewChatButton({ onPress, reduced }: { onPress: () => void; reduced: boolean }) {
   const press = useSharedValue(0);
   const spin = useSharedValue(0);
@@ -267,8 +268,6 @@ function NewChatButton({ onPress, reduced }: { onPress: () => void; reduced: boo
       }}>
       <Animated.View style={[styles.ballWrap, ball]}>
         <LinearGradient colors={Brand.orb} start={{ x: 0.2, y: 0 }} end={{ x: 0.85, y: 1 }} style={styles.ball}>
-          {/* 위쪽이 은은하게 밝은 구슬 광택 (둥글게 잘린 안쪽에 위→아래로) */}
-          <LinearGradient pointerEvents="none" colors={['rgba(255,255,255,0.42)', 'rgba(255,255,255,0.08)', 'rgba(255,255,255,0)']} locations={[0, 0.45, 1]} style={styles.gloss} />
           <Animated.View style={icon}>
             <Ionicons name="add" size={32} color={Brand.onBrand} allowFontScaling={false} />
           </Animated.View>
@@ -295,7 +294,7 @@ const styles = StyleSheet.create({
   tabs: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, flexDirection: 'row', paddingHorizontal: PAD },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   tabInner: { alignItems: 'center', justifyContent: 'center', gap: 2 },
-  label: { fontSize: 11, lineHeight: 14, fontWeight: '700', letterSpacing: -0.2 },
+  label: { fontSize: 12, lineHeight: 15, fontWeight: '600', letterSpacing: -0.2 },
   // 「탐색」 새 기능 빨간 점 — 아이콘 오른쪽 위, 알약 색 테두리로 아이콘과 떨어져 보이게
   dot: { position: 'absolute', top: -1, right: -3, width: 9, height: 9, borderRadius: 4.5, borderWidth: 1.5 },
   // 그림자는 감싸는 칸에 — 구슬(그라데이션)은 둥글게 자르느라 overflow 가 숨김이라 아이폰 그림자가 잘린다
@@ -304,9 +303,9 @@ const styles = StyleSheet.create({
     height: TAB_BAR_HEIGHT,
     borderRadius: TAB_BAR_HEIGHT / 2,
     ...Platform.select({
-      ios: { shadowColor: Brand.shadow, shadowOpacity: 0.45, shadowRadius: 14, shadowOffset: { width: 0, height: 8 } },
-      android: { elevation: 10, shadowColor: Brand.shadow, backgroundColor: Brand.blue },
-      default: { boxShadow: '0 10px 26px rgba(61,79,232,0.45)' } as ViewStyle,
+      ios: { shadowColor: '#000000', shadowOpacity: 0.14, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
+      android: { elevation: 5, shadowColor: '#000000', backgroundColor: Brand.blue },
+      default: { boxShadow: '0 4px 14px rgba(0,0,0,0.14)' } as ViewStyle,
     }),
   },
   ball: {
@@ -317,5 +316,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  gloss: { position: 'absolute', top: 0, left: 0, right: 0, height: '58%' },
 });

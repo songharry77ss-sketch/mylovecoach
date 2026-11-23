@@ -454,7 +454,16 @@ describe('홈 — 채팅 먼저 (캡처 올리기 · 상황만 적기)', () => {
     expect(shown).not.toContain('속마음 카드');
   });
 
-  it('캡처 카드 아래에 남은 무료 횟수가 있고, 채팅방이 생기면 「최근 상담」에 이름·호감 온도 줄이 생겨 누르면 그 방으로 간다', () => {
+  it('오른쪽 위 남은 무료 알약을 누르면 이용권 화면이 열린다 (11/12 회의 10번 「구매 입구가 안 보인다」, 1.4)', () => {
+    const t = mount(<HomeScreen />);
+    const pill = t.root.findAll((n) => typeof n.props.accessibilityLabel === 'string' && /무료 코칭 \d+회 남았어요/.test(n.props.accessibilityLabel) && typeof n.props.onPress === 'function');
+    expect(pill.length).toBeGreaterThan(0);
+    mockRouter.push.mockClear();
+    act(() => pill[pill.length - 1].props.onPress());
+    expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/paywall', params: { reason: 'banner' } });
+  });
+
+  it('남은 무료 횟수가 보이고, 채팅방이 생기면 「최근 상담」에 이름·호감 온도 줄이 생겨 누르면 그 방으로 간다', () => {
     const t = mount(<HomeScreen />);
     expect(t.root.findAll((n) => typeof n.props.accessibilityLabel === 'string' && /무료 코칭 \d+회 남았어요/.test(n.props.accessibilityLabel)).length).toBeGreaterThan(0);
     expect(texts(t).join('\n')).toContain('이렇게 나와요');

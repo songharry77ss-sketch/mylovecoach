@@ -23,7 +23,7 @@ export function EmptyState({ emoji, title, description, actionTitle, onAction }:
           {emoji}
         </AppText>
       </View>
-      <AppText variant="title2" weight="800" align="center" style={styles.title}>
+      <AppText variant="title2" weight="700" align="center" style={styles.title}>
         {title}
       </AppText>
       {description ? (

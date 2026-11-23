@@ -16,7 +16,7 @@ export function SectionHeader({ title, subtitle, right, style }: SectionHeaderPr
   return (
     <View style={[styles.row, style]}>
       <View style={styles.texts}>
-        <AppText variant="title3" weight="800" style={styles.title} accessibilityRole="header">
+        <AppText variant="title3" weight="700" style={styles.title} accessibilityRole="header">
           {title}
         </AppText>
         {subtitle ? (

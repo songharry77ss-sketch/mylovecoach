@@ -76,6 +76,16 @@ export interface SaleOffer<P extends SaleProductLike = SaleProductLike> {
 }
 
 /** 숫자 가격 — 스토어가 준 값, 없으면 원화 표시 가격(「₩2,700」)에서 읽는다. 모르면 null */
+/**
+ * 특가의 취소선 정가·할인율은 이 시각부터 보인다 — 2026-11-27 20:45(KST, 정가 ₩3,900 인상 20일 뒤).
+ * 그 전에는 「최근 20일 최저가」가 예전 가격(₩2,700)이라 「₩3,900 → ₩2,900」이 거짓 할인으로 보일 수 있다(docs/DAY_PASS_SALE.md).
+ * 특가 자체(값·마감 시간)는 그대로 보인다.
+ */
+export const SALE_ANCHOR_FROM = Date.UTC(2026, 10, 27, 11, 45);
+
+/** 지금 취소선 정가·할인율을 보여도 되는지 */
+export const saleAnchorAllowed = (now = Date.now()) => now >= SALE_ANCHOR_FROM;
+
 export function priceNumber(p: Pick<SaleProductLike, 'price' | 'displayPrice'>): number | null {
   if (typeof p.price === 'number' && Number.isFinite(p.price) && p.price > 0) return p.price;
   const won = /^\s*₩\s?([\d,]+)\s*$/.exec(p.displayPrice ?? '');

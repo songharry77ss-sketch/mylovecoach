@@ -3,6 +3,8 @@
  * - 첫 화면: 프로필 · 바로 쓰기(빠른 코칭 · 비밀 상담 · 연애 연습) · 큰 주제 줄(계정 · 앱 설정 · 개인정보 · 도움말·정보)만, 스위치 없음
  * - 연애 연습: 아직 안 봤으면 「새 기능」 빨간 점, 누르면 켜고(점도 사라짐) 연습 탭으로
  * - 예전 마이에 있던 설정·링크·버튼이 하위 화면 어딘가에 모두 있다
+ * - 1.4: 맨 위 이용권 상태판(남은 무료 횟수 · 이용 중인 이용권과 끝나는 시각 + 「이용권 보기」),
+ *   「AI 코치 연결」(개인 API 키) 줄은 코치 서버에 연결된 스토어 빌드에서 숨기고 데모·개인 키 빌드에서만 보인다
  */
 import { act } from 'react';
 import { Switch, Text } from 'react-native';
@@ -16,6 +18,9 @@ import DataSettings from '@/app/settings/data';
 import HelpSettings from '@/app/settings/help';
 import { ListRow } from '@/components/ui/list-row';
 import { track } from '@/lib/analytics';
+import { currentQuota } from '@/lib/billing/gate';
+import { APP_CONFIG } from '@/lib/config';
+import { formatPassEnd, quotaLabel } from '@/lib/billing/quota';
 import { useAppStore } from '@/store/app-store';
 
 jest.mock('@react-native-async-storage/async-storage', () => {
@@ -29,6 +34,7 @@ jest.mock('@react-native-async-storage/async-storage', () => {
     },
   };
 });
+// 코치 서버에 연결된 스토어 빌드 — 개인 키 빌드는 시험 안에서 apiUrl 을 비워 흉내 낸다 (화면이 그릴 때 읽는 값)
 jest.mock('@/lib/config', () => ({
   APP_CONFIG: {
     apiUrl: 'https://api.example',
@@ -163,15 +169,14 @@ describe('마이 첫 화면 — 큰 주제로 묶기', () => {
     }
   });
 
-  it('줄 오른쪽에 지금 상태를 짧게 — 가입 · 진동', () => {
+  it('줄 오른쪽에 지금 상태를 짧게 — 가입 (뜻이 약한 「진동 켬」은 뺐다)', () => {
     const t = mount(<MyScreen />);
     expect(row(t, '이용권·계정').props.value).toBe('가입 전');
-    expect(row(t, '앱 설정').props.value).toBe('진동 켬');
+    expect(row(t, '앱 설정').props.value).toBeUndefined();
     act(() => {
       useAppStore.setState({ member, hapticsOn: false });
     });
     expect(row(t, '이용권·계정').props.value).toBe('카카오 계정');
-    expect(row(t, '앱 설정').props.value).toBe('진동 끔');
   });
 
   it('바로 쓰기 — 빠른 코칭은 빠른 코칭 화면, 비밀 상담은 저장되지 않는 방을 열어 들어간다', () => {
@@ -182,6 +187,56 @@ describe('마이 첫 화면 — 큰 주제로 묶기', () => {
     const secret = Object.values(useAppStore.getState().crushes).find((c) => c.secret);
     expect(secret).toBeDefined();
     expect(mockRouter.push).toHaveBeenLastCalledWith({ pathname: '/crush/[id]', params: { id: secret!.id } });
+  });
+});
+
+describe('이용권 상태판 (11/12 회의 10번 「구매 탭이 잘 안 보인다」)', () => {
+  const passButton = (t: ReactTestRenderer) => t.root.findAll((n) => n.props.accessibilityLabel === '이용권 보기' && typeof n.props.onPress === 'function')[0];
+
+  it('맨 위에 남은 무료 횟수를 크게 보여 주고, 「이용권 보기」는 결제 화면(reason my)으로 간다', () => {
+    const t = mount(<MyScreen />);
+    const head = quotaLabel(currentQuota()).split(' · ')[0];
+    const shown = texts(t);
+    expect(shown).toContain(head);
+    // 상태판이 프로필보다 먼저 (맨 위)
+    expect(shown.indexOf(head)).toBeLessThan(shown.indexOf('나에 대해 알려주세요'));
+    act(() => passButton(t).props.onPress());
+    expect(mockRouter.push).toHaveBeenLastCalledWith({ pathname: '/paywall', params: { reason: 'my' } });
+  });
+
+  it('하루 이용권을 쓰는 중이면 이용권 이름과 끝나는 시각을 보여 준다', () => {
+    const until = Date.now() + 3 * 3_600_000;
+    act(() => {
+      useAppStore.setState({ wallet: { ...useAppStore.getState().wallet, passUntil: until } });
+    });
+    const t = mount(<MyScreen />);
+    const shown = texts(t);
+    expect(shown).toContain('이용 중');
+    expect(shown).toContain('하루 이용권');
+    expect(shown.join('\n')).toContain(`${formatPassEnd(until, Date.now())}까지`);
+    act(() => passButton(t).props.onPress());
+    expect(mockRouter.push).toHaveBeenLastCalledWith({ pathname: '/paywall', params: { reason: 'my' } });
+  });
+});
+
+describe('앱 설정 — 「AI 코치 연결」(개인 API 키)', () => {
+  const config = APP_CONFIG as { apiUrl: string };
+  afterEach(() => {
+    config.apiUrl = 'https://api.example';
+  });
+
+  it('코치 서버에 연결된 스토어 빌드에서는 줄을 숨긴다 (손님에게 키 입력 화면이 열리지 않게)', () => {
+    const t = mount(<AppSettings />);
+    expect(rowTitles(t)).not.toContain('AI 코치 연결');
+    expect(rowTitles(t)).toContain('내 프로필 · 추구미 · 목표');
+  });
+
+  it('코치 서버가 없는 개인 키 빌드에서는 보이고, 누르면 키 화면으로 간다', () => {
+    config.apiUrl = '';
+    const t = mount(<AppSettings />);
+    act(() => row(t, 'AI 코치 연결').props.onPress());
+    expect(row(t, 'AI 코치 연결').props.value).toBe('연결 필요');
+    expect(mockRouter.push).toHaveBeenLastCalledWith('/settings/api-key');
   });
 });
 
@@ -234,13 +289,12 @@ describe('예전 마이의 기능은 하나도 빠지지 않았다 (자리만 �
       switchLabels(t).forEach((x) => seen.switches.add(x));
       texts(t).forEach((x) => seen.texts.add(x));
     }
-    // 예전 마이의 「이용권」·「계정」·「AI 코치」·「프라이버시」·「정보」 묶음의 줄 (이 빌드에서 보이는 것)
+    // 예전 마이의 「이용권」·「계정」·「AI 코치」·「프라이버시」·「정보」 묶음의 줄 (이 빌드에서 보이는 것 — 「AI 코치 연결」은 서버 빌드라 숨김, 위 시험)
     for (const title of [
       '구독 관리 · 해지',
       '구매 복원',
       '카카오로 가입됨',
       '로그아웃',
-      'AI 코치 연결',
       '내 프로필 · 추구미 · 목표',
       'AI 답변 신고하기',
       '개인정보 설정',

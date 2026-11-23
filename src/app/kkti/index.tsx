@@ -1,11 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 import { BackHandler, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, {
   Easing,
   Extrapolation,
+  FadeInDown,
   cancelAnimation,
   interpolate,
   interpolateColor,
@@ -19,21 +19,23 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandGradient, BrandPill, GradientButton, HeroCard, Icon3D, WashBackground } from '@/components/brand/brand';
+import { GradientButton } from '@/components/brand/brand';
 import { AppText } from '@/components/ui/app-text';
 import { PressableScale } from '@/components/ui/pressable-scale';
-import { Brand, Colors, MaxContentWidth, Radius, Shadow, Spacing, palette } from '@/constants/theme';
+import { Brand, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
 import { countKkti } from '@/lib/kkti-stat';
-import { KKTI_AXES, KKTI_QUESTIONS, computeKkti, kktiFromCode, toSaved, type KktiResult } from '@/lib/kkti';
+import { KKTI_AXES, KKTI_QUESTIONS, codeLetters, computeKkti, kktiFromCode, readableTextOn, toSaved, type KktiResult } from '@/lib/kkti';
 import { useAppStore } from '@/store/app-store';
 
 /**
  * KKTI 테스트 — 인트로 → 한 문제씩 카드 → 「결과 분석 중…」 → 결과 화면.
- * 고르면 톡 진동과 함께 카드가 옆으로 날아가고, 다음 카드가 튕기듯 들어온다.
+ * 고르면 톡 진동과 함께 카드가 옆으로 날아가고, 다음 카드가 들어온다.
+ * 1.4 「깔끔하게」 개편: 흰 바탕. 입구는 큰 문장 두 줄 + 결과 예시 카드 한 장(「예시」 표시) + 버튼 하나 — 떠다니는 말풍선·유리 원·3D 하트·
+ * 2×2 아이콘 타일·반짝 아이콘·바탕 그라데이션을 걷었다(공유 링크로 들어오는 첫 화면이라 「무엇·얼마나·무료」가 한눈에). 문항은 축마다 바뀌던 바탕색·이모지를 걷었다.
  * 마지막 문제를 고르면 결과를 내 프로필에 저장해 두고 결과 링크(/kkti/result?a=…)로 넘어간다.
  * 친구 결과를 보다가 들어왔으면(/kkti?w=친구답코드) 끝났을 때 그 친구와의 궁합까지 보여 준다.
  */
@@ -41,25 +43,18 @@ import { useAppStore } from '@/store/app-store';
 type Phase = 'intro' | 'quiz' | 'analyzing';
 
 const TOTAL = KKTI_QUESTIONS.length;
+/** 입구 예시 카드에 쓸 답 번호 */
+const EXAMPLE_ANSWER = 1;
 const AXIS_INDEX = KKTI_QUESTIONS.map((q) => KKTI_AXES.findIndex((a) => a.key === q.axis));
 const LETTERS = ['A', 'B', 'C', 'D'];
 const CHAT_TIMES = ['오후 10:42', '오후 11:07', '오전 1:13', '오후 9:58', '오후 7:21'];
 /** 「결과 분석 중…」 연출 시간 */
 const ANALYZE_MS = 2100;
 
-/** 축(연락 시작·답장 속도·표현·진도)마다 배경을 하늘색 → 보라 사이에서 살짝 바꿔, 문제가 넘어갈 때마다 분위기가 달라지게 */
-const AXIS_TINT = {
-  light: [palette.sendSky50, palette.sendMist, palette.violet50, palette.sky50],
-  dark: [Brand.washDark[1], Brand.washDark[2], Colors.dark.surface, Colors.dark.primarySoft],
-} as const;
-
-const PERKS: { icon: keyof typeof Ionicons.glyphMap; title: string; body: string }[] = [
-  { icon: 'heart', title: '16가지 연애 유형', body: '선빠폭직? 후느담밀?' },
-  { icon: 'chatbubble-ellipses', title: '카톡 속 진짜 MBTI', body: '확신도 %까지' },
-  { icon: 'shapes', title: '애니어그램 추정', body: '1~9번 중 나는?' },
-  // 12문항의 답 조합 1,677만 개를 모두 계산해 보면 서로 다른 색이 5,610,943가지 나온다
-  { icon: 'color-palette', title: '나만의 연애 컬러', body: '560만 가지 색 중 하나' },
-];
+/** 결과에 나오는 것 — 한 줄 글로(예전 2×2 아이콘 타일). 12문항의 답 조합 1,677만 개를 모두 계산해 보면 서로 다른 색이 5,610,943가지 나온다 */
+const PERKS = '16가지 연애 유형 · 카톡 속 진짜 MBTI · 애니어그램 · 560만 가지 연애 컬러';
+/** 입구의 결과 예시 — 실제 계산한 유형 카드(모든 문항에서 둘째 답 — 직진 불도저 · 살구 젤리) */
+const EXAMPLE = computeKkti(KKTI_QUESTIONS.map(() => EXAMPLE_ANSWER));
 
 export default function KktiTestScreen() {
   const router = useRouter();
@@ -117,16 +112,14 @@ function Intro({ friend, onStart, onClose }: { friend: KktiResult | null; onStar
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const saved = useAppStore((s) => s.kkti);
+  const dark = useColorScheme() === 'dark';
+  const fill = dark ? theme.surfaceElevated : theme.surface;
+  const enter = (step: number) => FadeInDown.delay(step * 50).duration(300);
 
   return (
-    <WashBackground>
+    <View style={[styles.flex, { backgroundColor: theme.background }]}>
       <View style={[styles.topBar, { paddingTop: insets.top + Spacing.sm }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="닫기"
-          onPress={onClose}
-          hitSlop={10}
-          style={[styles.iconCircle, { backgroundColor: theme.surfaceElevated }, Shadow as ViewStyle]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={onClose} hitSlop={10} style={[styles.iconCircle, { backgroundColor: fill }]}>
           <Ionicons name="close" size={20} color={theme.text} />
         </Pressable>
       </View>
@@ -134,122 +127,101 @@ function Intro({ friend, onStart, onClose }: { friend: KktiResult | null; onStar
       <ScrollView contentContainerStyle={styles.introScroll} showsVerticalScrollIndicator={false}>
         <View style={styles.introInner}>
           {friend ? (
-            <PopIn delay={60} style={styles.stretch}>
-              <View style={[styles.friendInvite, { backgroundColor: theme.surfaceElevated, borderColor: theme.primary }]}>
-                <View style={[styles.friendDot, { backgroundColor: friend.color.hex }]}>
-                  <AppText style={styles.friendEmoji}>{friend.type.emoji}</AppText>
-                </View>
-                <View style={styles.flexShrink}>
-                  <AppText variant="smallStrong">「{friend.type.name}」 친구가 기다리고 있어요</AppText>
-                  <AppText variant="caption" color="textSecondary">
-                    테스트를 끝내면 둘의 카톡 궁합이 나와요
-                  </AppText>
-                </View>
+            <Animated.View entering={enter(0)} style={[styles.friendInvite, { backgroundColor: fill }]}>
+              <View style={[styles.friendDot, { backgroundColor: friend.color.hex }]}>
+                <AppText style={styles.friendEmoji}>{friend.type.emoji}</AppText>
               </View>
-            </PopIn>
+              <View style={styles.flexShrink}>
+                <AppText variant="smallStrong">「{friend.type.name}」 친구가 기다리고 있어요</AppText>
+                <AppText variant="caption" color="textSecondary">
+                  테스트를 끝내면 둘의 카톡 궁합이 나와요
+                </AppText>
+              </View>
+            </Animated.View>
           ) : null}
 
-          <PopIn delay={0} from={0.85} style={styles.stretch}>
-            <IntroHero />
-          </PopIn>
-
-          <PopIn delay={260} from={0.9}>
-            <AppText variant="body" color="textSecondary" align="center" style={styles.introDesc}>
-              선톡, 답장 속도, 이모지 습관만 봐도 다 보여요.{'\n'}16가지 연애 유형부터 나만의 연애 컬러까지!
+          {/* 큰 문장 두 줄 + 무엇·얼마나·무료 */}
+          <Animated.View entering={enter(1)} style={styles.introHead}>
+            <AppText variant="smallStrong" color="textSecondary">
+              KKTI
             </AppText>
-          </PopIn>
+            <AppText style={[styles.introTitle, { color: theme.text }]} accessibilityRole="header">
+              {'카톡으로 보는\n진짜 연애 MBTI'}
+            </AppText>
+            <AppText variant="body" color="textSecondary">
+              1분이면 끝 · 12문항 · 무료
+            </AppText>
+          </Animated.View>
 
-          <View style={styles.perks}>
-            {PERKS.map((p, i) => (
-              <PopIn key={p.title} delay={340 + i * 60} style={styles.perkWrap}>
-                <View style={[styles.perk, { backgroundColor: theme.surfaceElevated }, Shadow as ViewStyle]}>
-                  <View style={[styles.perkIcon, { backgroundColor: theme.primarySoft }]}>
-                    <Ionicons name={p.icon} size={17} color={theme.primary} />
-                  </View>
-                  <AppText variant="smallStrong" numberOfLines={1}>
-                    {p.title}
-                  </AppText>
-                  <AppText variant="caption" color="textTertiary" numberOfLines={1}>
-                    {p.body}
-                  </AppText>
-                </View>
-              </PopIn>
-            ))}
-          </View>
+          {/* 결과 예시 — 실제 유형 카드 모양(공유 그림과 같은 색 카드) + 「예시」 */}
+          <Animated.View entering={enter(2)}>
+            <ExampleCard />
+          </Animated.View>
 
-          {saved ? (
-            <View style={[styles.lastResult, { backgroundColor: theme.surfaceElevated }]}>
-              <View style={[styles.lastDot, { backgroundColor: saved.color }]} />
-              <AppText variant="small" color="textSecondary" style={styles.flexShrink}>
-                지난 결과 {saved.emoji} {saved.name} ({saved.code}) · 다시 해 볼까요?
-              </AppText>
-            </View>
-          ) : null}
+          <Animated.View entering={enter(3)} style={styles.introNotes}>
+            <AppText variant="small" color="textSecondary">
+              선톡, 답장 속도, 이모지 습관만 봐도 다 보여요.
+            </AppText>
+            <AppText variant="small" color="textSecondary">
+              {PERKS}
+            </AppText>
+            {saved ? (
+              <View style={styles.lastResult}>
+                <View style={[styles.lastDot, { backgroundColor: saved.color }]} />
+                <AppText variant="small" color="textSecondary" style={styles.flexShrink}>
+                  지난 결과 {saved.name} ({saved.code}) · 다시 해 볼까요?
+                </AppText>
+              </View>
+            ) : null}
+          </Animated.View>
         </View>
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.lg }]}>
-        <GradientButton
-          title={friend ? '테스트하고 궁합 보기' : '테스트 시작하기'}
-          shine
-          haptic={false}
-          onPress={onStart}
-          icon={<Ionicons name="sparkles" size={18} color={Brand.onBrand} />}
-        />
-        <AppText variant="caption" color="textTertiary" align="center">
+        <GradientButton title={friend ? '테스트하고 궁합 보기' : '테스트 시작하기'} haptic={false} onPress={onStart} />
+        <AppText variant="caption" color="textSecondary" align="center">
           {friend ? '가입 없이 바로 · 1분이면 둘의 궁합이 나와요' : '가입 없이 바로 · 결과를 친구에게 보내면 둘의 궁합이 나와요'}
         </AppText>
       </View>
-    </WashBackground>
+    </View>
   );
 }
 
-/** 그라데이션 카드 — 3D 하트 둘레로 카톡 말풍선이 둥실둥실 떠다닌다 */
-function IntroHero() {
+/** 결과 예시 카드 — 결과 화면 맨 위 유형 카드를 작게(유형색 면 + 네 글자 + 이름 + 한 줄). 색은 공유 그림의 내용이라 남긴다 */
+function ExampleCard() {
+  const { type, color } = EXAMPLE;
+  const ink = readableTextOn(color.hex);
+  const inkSoft = ink === '#FFFFFF' ? 'rgba(255,255,255,0.86)' : 'rgba(20,21,24,0.74)';
+  const glass = ink === '#FFFFFF' ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.5)';
   return (
-    <HeroCard style={styles.stretch}>
-      <View style={styles.heroBody}>
-        <BrandPill label="1분이면 끝 · 12문항 · 무료" icon="time" tone="glass" style={styles.heroPill} />
-        <View style={styles.heroStage}>
-          <FloatingBubble text="뭐해?" delay={0} style={styles.bubbleA} />
-          <FloatingBubble text="ㅋㅋㅋㅋㅋㅋ" delay={350} style={styles.bubbleB} />
-          <FloatingBubble text="자니…?" delay={700} style={styles.bubbleC} />
-          <FloatingBubble text="ㅎㅎ 나도" delay={1050} style={styles.bubbleD} />
-          <View style={styles.heroIconRing}>
-            <Icon3D name="heart" size={92} float />
-          </View>
+    <View
+      style={[styles.example, { backgroundColor: color.hex }]}
+      accessible
+      accessibilityLabel={`결과 예시: ${type.name}, ${EXAMPLE.code}. ${type.oneLiner}`}>
+      <View style={styles.exampleTop}>
+        <View style={[styles.examplePill, { backgroundColor: glass }]}>
+          <AppText variant="caption" weight="700" color={ink}>
+            예시
+          </AppText>
         </View>
-        <AppText style={styles.kkti} color={Brand.onBrand} align="center" accessibilityRole="header">
-          KKTI
-        </AppText>
-        <AppText variant="title2" align="center" color={Brand.onBrand}>
-          카톡으로 보는 진짜 연애 MBTI
+        <AppText variant="caption" weight="600" color={inkSoft}>
+          KKTI 연애 유형
         </AppText>
       </View>
-    </HeroCard>
-  );
-}
-
-function FloatingBubble({ text, delay, style }: { text: string; delay: number; style: StyleProp<ViewStyle> }) {
-  const y = useSharedValue(0);
-  useEffect(() => {
-    y.value = withDelay(
-      delay,
-      withRepeat(
-        withSequence(withTiming(-7, { duration: 1150, easing: Easing.inOut(Easing.sin) }), withTiming(7, { duration: 1150, easing: Easing.inOut(Easing.sin) })),
-        -1,
-        false,
-      ),
-    );
-    return () => cancelAnimation(y);
-  }, [delay, y]);
-  const animated = useAnimatedStyle(() => ({ transform: [{ translateY: y.value }] }));
-  return (
-    <Animated.View style={[styles.floatBubble, style, animated]}>
-      <AppText variant="smallStrong" color={palette.sendInk}>
-        {text}
+      <View style={styles.exampleLetters}>
+        {codeLetters(EXAMPLE.code).map((letter, i) => (
+          <View key={i} style={[styles.exampleLetter, { backgroundColor: glass }]}>
+            <AppText style={[styles.exampleLetterText, { color: ink }]}>{letter}</AppText>
+          </View>
+        ))}
+      </View>
+      <AppText variant="title2" color={ink}>
+        {type.name}
       </AppText>
-    </Animated.View>
+      <AppText variant="small" color={inkSoft} numberOfLines={2}>
+        {type.oneLiner}
+      </AppText>
+    </View>
   );
 }
 
@@ -257,7 +229,8 @@ function FloatingBubble({ text, delay, style }: { text: string; delay: number; s
 
 function Quiz({ onComplete, onExit }: { onComplete: (answers: number[]) => void; onExit: () => void }) {
   const theme = useTheme();
-  const scheme = useColorScheme();
+  const dark = useColorScheme() === 'dark';
+  const fill = dark ? theme.surfaceElevated : theme.surface;
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   // 카드가 날아가는 거리
@@ -274,7 +247,6 @@ function Quiz({ onComplete, onExit }: { onComplete: (answers: number[]) => void;
 
   const x = useSharedValue(fly * 0.55);
   const progress = useSharedValue(0);
-  const tint = useSharedValue(AXIS_INDEX[0]);
 
   const later = (ms: number, fn: () => void) => {
     timers.current.push(setTimeout(fn, ms));
@@ -285,15 +257,14 @@ function Quiz({ onComplete, onExit }: { onComplete: (answers: number[]) => void;
     return () => list.forEach(clearTimeout);
   }, []);
 
-  // 새 문제가 그려지면 카드가 튕기듯 들어온다
+  // 새 문제가 그려지면 카드가 미끄러져 들어온다
   useEffect(() => {
-    x.value = withSequence(withTiming(direction.current * fly * 0.55, { duration: 0 }), withSpring(0, { damping: 13, stiffness: 180, mass: 0.9 }));
-    progress.value = withSpring(index / TOTAL, { damping: 15, stiffness: 140 });
-    tint.value = withTiming(AXIS_INDEX[index], { duration: 500 });
+    x.value = withSequence(withTiming(direction.current * fly * 0.55, { duration: 0 }), withSpring(0, { damping: 18, stiffness: 200, mass: 0.9 }));
+    progress.value = withTiming(index / TOTAL, { duration: 300 });
     busy.current = false;
     const landed = setTimeout(() => haptic.soft(), 150);
     return () => clearTimeout(landed);
-  }, [index, fly, x, progress, tint]);
+  }, [index, fly, x, progress]);
 
   const showCheer = (text: string) => {
     setCheer({ id: Date.now(), text });
@@ -308,7 +279,7 @@ function Quiz({ onComplete, onExit }: { onComplete: (answers: number[]) => void;
     const next = [...answers];
     next[index] = option;
     setAnswers(next);
-    progress.value = withSpring((index + 1) / TOTAL, { damping: 12, stiffness: 160 });
+    progress.value = withTiming((index + 1) / TOTAL, { duration: 300 });
     // 고른 답이 잠깐 반짝 → 카드가 왼쪽으로 날아간다
     later(150, () => {
       x.value = withTiming(-fly, { duration: 230, easing: Easing.in(Easing.cubic) });
@@ -319,8 +290,8 @@ function Quiz({ onComplete, onExit }: { onComplete: (answers: number[]) => void;
         return;
       }
       const upcoming = index + 1;
-      if (upcoming === TOTAL / 2) showCheer('벌써 절반! 🔥');
-      else if (upcoming === TOTAL - 1) showCheer('마지막 문제 💘');
+      if (upcoming === TOTAL / 2) showCheer('벌써 절반!');
+      else if (upcoming === TOTAL - 1) showCheer('마지막 문제예요');
       direction.current = 1;
       setIndex(upcoming);
     });
@@ -351,10 +322,6 @@ function Quiz({ onComplete, onExit }: { onComplete: (answers: number[]) => void;
     return () => sub.remove();
   });
 
-  const tints = AXIS_TINT[scheme];
-  const bgStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(tint.value, [0, 1, 2, 3], [tints[0], tints[1], tints[2], tints[3]]),
-  }));
   const barStyle = useAnimatedStyle(() => ({ width: `${Math.max(0, Math.min(1, progress.value)) * 100}%` }));
   const cardStyle = useAnimatedStyle(() => ({
     opacity: interpolate(Math.abs(x.value), [0, fly * 0.7], [1, 0], Extrapolation.CLAMP),
@@ -369,20 +336,19 @@ function Quiz({ onComplete, onExit }: { onComplete: (answers: number[]) => void;
   const axis = KKTI_AXES[AXIS_INDEX[index]];
 
   return (
-    <Animated.View style={[styles.flex, styles.clip, bgStyle]}>
+    <View style={[styles.flex, styles.clip, { backgroundColor: theme.background }]}>
       <View style={[styles.quizHeader, { paddingTop: insets.top + Spacing.sm }]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={index === 0 ? '처음 화면으로' : '이전 문제'}
           onPress={back}
           hitSlop={10}
-          style={[styles.iconCircle, { backgroundColor: theme.surfaceElevated }]}>
+          style={[styles.iconCircle, { backgroundColor: fill }]}>
           <Ionicons name="chevron-back" size={20} color={theme.text} />
         </Pressable>
-        <View style={[styles.track, { backgroundColor: theme.surfaceElevated }]}>
-          <Animated.View style={[styles.fill, barStyle]}>
-            <LinearGradient colors={Brand.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
-          </Animated.View>
+        {/* 진행 막대 — 가는 단색(진행 중 표시는 센딧 파랑) */}
+        <View style={[styles.track, { backgroundColor: fill }]}>
+          <Animated.View style={[styles.fill, { backgroundColor: theme.primary }, barStyle]} />
         </View>
         <AppText variant="smallStrong" color="textSecondary" style={styles.counter}>
           {index + 1}/{TOTAL}
@@ -392,29 +358,22 @@ function Quiz({ onComplete, onExit }: { onComplete: (answers: number[]) => void;
       <ScrollView contentContainerStyle={[styles.quizScroll, { paddingBottom: insets.bottom + Spacing.xl }]} showsVerticalScrollIndicator={false}>
         <View style={styles.cheerRow}>
           {cheer ? (
-            <PopIn key={cheer.id} from={0.5}>
-              <BrandGradient style={styles.cheer}>
-                <AppText variant="smallStrong" color={Brand.onBrand}>
+            <PopIn key={cheer.id} from={0.85}>
+              <View style={[styles.cheer, { backgroundColor: theme.text }]}>
+                <AppText variant="smallStrong" color={theme.background}>
                   {cheer.text}
                 </AppText>
-              </BrandGradient>
+              </View>
             </PopIn>
           ) : null}
         </View>
 
-        <Animated.View style={[styles.card, { backgroundColor: theme.surfaceElevated }, Shadow as ViewStyle, cardStyle]}>
-          <View style={styles.cardHead}>
-            <View style={[styles.qPill, { backgroundColor: theme.primarySoft }]}>
-              <AppText variant="caption" color="primary" weight="800">
-                Q{index + 1}
-              </AppText>
-            </View>
-            <AppText variant="caption" color="textTertiary">
-              {axis.emoji} {axis.label}
-            </AppText>
-          </View>
+        <Animated.View style={[styles.card, cardStyle]}>
+          <AppText variant="caption" color="textSecondary" weight="600">
+            Q{index + 1} · {axis.label}
+          </AppText>
 
-          {question.bubble ? <ChatBubble text={question.bubble} time={CHAT_TIMES[index % CHAT_TIMES.length]} /> : <AppText style={styles.qEmoji}>{question.emoji}</AppText>}
+          {question.bubble ? <ChatBubble text={question.bubble} time={CHAT_TIMES[index % CHAT_TIMES.length]} /> : null}
 
           <AppText variant="title2">{question.prompt}</AppText>
 
@@ -425,25 +384,26 @@ function Quiz({ onComplete, onExit }: { onComplete: (answers: number[]) => void;
           </View>
         </Animated.View>
       </ScrollView>
-    </Animated.View>
+    </View>
   );
 }
 
 /** 카톡처럼 생긴 상대 말풍선 */
 function ChatBubble({ text, time }: { text: string; time: string }) {
   const theme = useTheme();
+  const fill = useColorScheme() === 'dark' ? theme.surfaceElevated : theme.surface;
   return (
     <View style={styles.chatRow}>
       <View style={[styles.chatAvatar, { backgroundColor: theme.primarySoft }]}>
-        <AppText style={styles.chatAvatarEmoji}>🙂</AppText>
+        <AppText style={[styles.chatAvatarText, { color: theme.primary }]}>그</AppText>
       </View>
       <View style={styles.chatBody}>
         <AppText variant="caption" color="textSecondary">
           그 사람
         </AppText>
         <View style={styles.chatLine}>
-          <View style={[styles.chatBubble, { backgroundColor: theme.surfaceSelected }]}>
-            <AppText variant="bodyStrong">{text}</AppText>
+          <View style={[styles.chatBubble, { backgroundColor: fill }]}>
+            <AppText variant="body">{text}</AppText>
           </View>
           <AppText variant="caption" color="textTertiary" style={styles.chatTime}>
             {time}
@@ -456,31 +416,24 @@ function ChatBubble({ text, time }: { text: string; time: string }) {
 
 function OptionButton({ letter, label, selected, onPress }: { letter: string; label: string; selected: boolean; onPress: () => void }) {
   const theme = useTheme();
+  const fill = useColorScheme() === 'dark' ? theme.surfaceElevated : theme.surface;
   return (
     <PressableScale
       feedback={false}
-      pressedScale={0.97}
+      pressedScale={0.98}
       onPress={onPress}
       accessibilityLabel={label}
       accessibilityState={{ selected }}
-      style={[styles.option, { backgroundColor: selected ? theme.primarySoft : theme.surface, borderColor: selected ? theme.primary : 'transparent' }]}>
-      {selected ? (
-        <BrandGradient style={styles.optionKey}>
-          <AppText variant="caption" weight="800" color={Brand.onBrand}>
-            {letter}
-          </AppText>
-        </BrandGradient>
-      ) : (
-        <View style={[styles.optionKey, { backgroundColor: theme.surfaceElevated }]}>
-          <AppText variant="caption" weight="800" color="textSecondary">
-            {letter}
-          </AppText>
-        </View>
-      )}
-      <AppText variant="body" weight={selected ? '700' : undefined} style={styles.optionLabel}>
+      style={[styles.option, { backgroundColor: fill, borderColor: selected ? theme.text : 'transparent' }]}>
+      <View style={[styles.optionKey, { backgroundColor: selected ? theme.text : theme.background }]}>
+        <AppText variant="caption" weight="700" color={selected ? theme.background : theme.textSecondary}>
+          {letter}
+        </AppText>
+      </View>
+      <AppText variant="body" weight={selected ? '600' : undefined} style={styles.optionLabel}>
         {label}
       </AppText>
-      {selected ? <Ionicons name="checkmark-circle" size={20} color={theme.primary} /> : null}
+      {selected ? <Ionicons name="checkmark" size={20} color={theme.text} /> : null}
     </PressableScale>
   );
 }
@@ -489,7 +442,7 @@ function OptionButton({ letter, label, selected, onPress }: { letter: string; la
 
 const STEPS = ['선톡 습관 살펴보는 중…', '답장 속도 재는 중…', '이모지 개수 세는 중…', '밀당 지수 계산 중…', '나만의 연애 컬러 조색 중…'];
 
-/** 두근두근 — 심장이 뛰고, 여러 색이 섞이다가 내 연애 컬러로 멈춘다 */
+/** 두근두근 — 심장이 뛰고, 회색에서 내 연애 컬러로 물든다 */
 function Analyzing({ color }: { color: string }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -518,16 +471,16 @@ function Analyzing({ color }: { color: string }) {
     };
   }, [beat, ring, mix]);
 
-  // 앱 색(하늘색 → 파랑 → 보라)에서 시작해 여러 색이 섞이다가 내 연애 컬러로 멈춘다
-  const stops = [Brand.sky, Brand.blue, Brand.violet, palette.mint500, palette.yellow500, color];
+  // 회색(무채색)에서 시작해 내 연애 컬러로 물든다 — 여러 색을 섞던 연출은 걷었다
+  const stops = [theme.textTertiary, color];
   const blobStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(mix.value, [0, 0.2, 0.4, 0.6, 0.8, 1], stops),
+    backgroundColor: interpolateColor(mix.value, [0, 1], stops),
     transform: [{ scale: beat.value }],
   }));
   const ringStyle = useAnimatedStyle(() => ({
-    opacity: 0.55 * (1 - ring.value),
-    borderColor: interpolateColor(mix.value, [0, 0.2, 0.4, 0.6, 0.8, 1], stops),
-    transform: [{ scale: 1 + ring.value * 0.9 }],
+    opacity: 0.45 * (1 - ring.value),
+    borderColor: interpolateColor(mix.value, [0, 1], stops),
+    transform: [{ scale: 1 + ring.value * 0.7 }],
   }));
 
   return (
@@ -572,54 +525,44 @@ const styles = StyleSheet.create({
   topBar: { paddingHorizontal: Spacing.lg, flexDirection: 'row', width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   iconCircle: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
 
-  stretch: { alignSelf: 'stretch' },
   introScroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm, paddingBottom: Spacing.lg },
-  introInner: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', alignItems: 'center', gap: Spacing.md },
-  heroBody: { alignItems: 'center', marginHorizontal: -Spacing.sm },
-  heroPill: { alignSelf: 'center' },
-  heroStage: { width: '100%', maxWidth: 320, height: 150, alignItems: 'center', justifyContent: 'center' },
-  heroIconRing: { width: 116, height: 116, borderRadius: 58, alignItems: 'center', justifyContent: 'center', backgroundColor: Brand.glass, borderWidth: 1, borderColor: Brand.glassBorder },
-  floatBubble: { position: 'absolute', paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm - 1, borderRadius: Radius.lg, backgroundColor: palette.white },
-  bubbleA: { left: 0, top: 16, borderBottomLeftRadius: 4 },
-  bubbleB: { right: 0, top: 4, borderBottomRightRadius: 4 },
-  bubbleC: { left: 10, bottom: 4, borderTopLeftRadius: 4 },
-  bubbleD: { right: 6, bottom: 14, borderTopRightRadius: 4 },
-  kkti: { fontSize: 60, lineHeight: 68, fontWeight: '900', letterSpacing: -1.5, marginTop: Spacing.xs },
-  introDesc: { marginTop: Spacing.xs },
-  perks: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm, width: '100%' },
-  perkWrap: { flexBasis: '47%', flexGrow: 1 },
-  perk: { borderRadius: Radius.lg, padding: Spacing.md, gap: 3 },
-  perkIcon: { width: 32, height: 32, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-  lastResult: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radius.pill, maxWidth: '100%' },
-  lastDot: { width: 14, height: 14, borderRadius: 7 },
-  friendInvite: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderWidth: 1.5, borderRadius: Radius.lg, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2, maxWidth: '100%' },
+  introInner: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', gap: Spacing.xl },
+  introHead: { gap: Spacing.xs },
+  introTitle: { fontSize: 28, lineHeight: 36, fontWeight: '700', letterSpacing: -0.7 },
+  introNotes: { gap: Spacing.xs },
+  example: { borderRadius: 24, padding: Spacing.lg + 2, gap: Spacing.sm },
+  exampleTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.xs },
+  examplePill: { paddingHorizontal: Spacing.sm + 2, paddingVertical: 3, borderRadius: Radius.pill },
+  exampleLetters: { flexDirection: 'row', gap: 6 },
+  exampleLetter: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  exampleLetterText: { fontSize: 22, lineHeight: 28, fontWeight: '700' },
+  lastResult: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.xs },
+  lastDot: { width: 12, height: 12, borderRadius: 6 },
+  friendInvite: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: 20, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 2 },
   friendDot: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   friendEmoji: { fontSize: 24, lineHeight: 30 },
   footer: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm, gap: Spacing.sm, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
 
   quizHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingHorizontal: Spacing.lg, paddingBottom: Spacing.sm, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
-  track: { flex: 1, height: 10, borderRadius: 5, overflow: 'hidden' },
-  fill: { height: '100%', borderRadius: 5, overflow: 'hidden' },
+  track: { flex: 1, height: 6, borderRadius: 3, overflow: 'hidden' },
+  fill: { height: '100%', borderRadius: 3 },
   counter: { minWidth: 40, textAlign: 'right' },
   quizScroll: { flexGrow: 1, paddingHorizontal: Spacing.lg, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   cheerRow: { height: 44, alignItems: 'center', justifyContent: 'center' },
   cheer: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.xs + 2, borderRadius: Radius.pill, overflow: 'hidden' },
-  card: { borderRadius: Radius.xl, padding: Spacing.xl, gap: Spacing.lg },
-  cardHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  qPill: { paddingHorizontal: Spacing.sm + 2, paddingVertical: 3, borderRadius: Radius.pill },
-  qEmoji: { fontSize: 44, lineHeight: 54 },
+  card: { paddingVertical: Spacing.sm, gap: Spacing.lg },
   options: { gap: Spacing.sm },
-  option: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: Radius.lg, borderWidth: 1.5, paddingHorizontal: Spacing.md, paddingVertical: Spacing.md + 2, minHeight: 56 },
-  optionKey: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  option: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: 18, borderWidth: 1.5, paddingHorizontal: Spacing.md, paddingVertical: Spacing.md + 2, minHeight: 56 },
+  optionKey: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   optionLabel: { flex: 1 },
 
   chatRow: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'flex-start' },
-  chatAvatar: { width: 36, height: 36, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  chatAvatarEmoji: { fontSize: 20, lineHeight: 26 },
+  chatAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  chatAvatarText: { fontSize: 15, lineHeight: 20, fontWeight: '700' },
   chatBody: { flex: 1, gap: 4 },
   chatLine: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, flexWrap: 'wrap' },
-  chatBubble: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 1, borderRadius: 16, borderTopLeftRadius: 4, maxWidth: '82%' },
-  chatTime: { fontSize: 10, lineHeight: 14 },
+  chatBubble: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 1, borderRadius: 18, borderTopLeftRadius: 6, maxWidth: '82%' },
+  chatTime: { fontSize: 12, lineHeight: 16 },
 
   analyzing: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.md, paddingHorizontal: Spacing.xl },
   blobBox: { width: 200, height: 200, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.md },

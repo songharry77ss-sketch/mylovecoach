@@ -1,26 +1,25 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Animated, { Easing, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 
 import { useCelebrate } from '@/components/fx/celebration';
 import { AppText } from '@/components/ui/app-text';
-import { Brand, Radius, Spacing, palette } from '@/constants/theme';
+import { Radius, Spacing, palette } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { haptic } from '@/lib/haptics';
 import { HEAT_MAX, HEAT_MIN } from '@/store/app-store';
 
 /**
- * 누적 호감 온도 구간별 이름·색 — 센딧 그라데이션처럼 낮으면 하늘색, 오를수록 파랑 → 보라.
+ * 누적 호감 온도 구간별 이름·색 — 1.4 개편: 구간마다 색을 바꾸던 것(하늘·파랑·보라)을 센딧 파랑 한 색으로, 영하만 회색.
  * 홈 목록·연습·채팅방이 같이 쓴다
  */
 export function heatMeta(value: number): { label: string; emoji: string; color: string } {
-  if (value >= 90) return { label: '불타는 중', emoji: '🔥', color: palette.sendViolet600 };
-  if (value >= 70) return { label: '뜨거움', emoji: '❤️‍🔥', color: palette.sendViolet500 };
-  if (value >= 50) return { label: '설렘', emoji: '💜', color: palette.sendBlue600 };
+  if (value >= 90) return { label: '불타는 중', emoji: '🔥', color: palette.sendBlue500 };
+  if (value >= 70) return { label: '뜨거움', emoji: '❤️‍🔥', color: palette.sendBlue500 };
+  if (value >= 50) return { label: '설렘', emoji: '💜', color: palette.sendBlue500 };
   if (value >= 30) return { label: '따뜻함', emoji: '🌤️', color: palette.sendBlue500 };
-  if (value >= 10) return { label: '미지근', emoji: '☁️', color: palette.sky600 };
-  if (value >= 0) return { label: '아직 덤덤', emoji: '🌱', color: palette.sky500 };
+  if (value >= 10) return { label: '미지근', emoji: '☁️', color: palette.sendBlue500 };
+  if (value >= 0) return { label: '아직 덤덤', emoji: '🌱', color: palette.sendBlue500 };
   return { label: '영하', emoji: '🧊', color: palette.gray500 };
 }
 
@@ -137,20 +136,18 @@ export function HeatGauge({ value, from, delta, revealKey, compact, caption, tit
         </View>
         <View style={styles.numberRow}>
           {d != null && d !== 0 ? (
-            <Animated.View style={[styles.badge, { backgroundColor: up ? theme.primarySoft : theme.surface }, badgeStyle]}>
+            <Animated.View style={[styles.badge, badgeStyle]}>
               <AppText variant="smallStrong" color={up ? theme.primary : theme.textSecondary}>
                 {up ? `+${d}°` : `−${Math.abs(d)}°`}
               </AppText>
             </Animated.View>
           ) : null}
-          <AppText style={[compact ? styles.numberCompact : styles.number, { color: meta.color }]}>{shown}°</AppText>
+          <AppText style={[compact ? styles.numberCompact : styles.number, { color: shown < 0 ? theme.textSecondary : theme.primary }]}>{shown}°</AppText>
         </View>
       </View>
-      <View ref={anchor} onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)} style={[styles.track, compact && styles.trackCompact, { backgroundColor: theme.surfaceSelected }]}>
+      <View ref={anchor} onLayout={(e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width)} style={[styles.track, compact && styles.trackCompact, { backgroundColor: theme.surface }]}>
         {width > 0 ? (
-          <Animated.View style={[styles.fill, fill]}>
-            <LinearGradient colors={Brand.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
-          </Animated.View>
+          <Animated.View style={[styles.fill, { backgroundColor: theme.primary }, fill]} />
         ) : null}
         {/* 0° 눈금 — 영하일 때만 (그라데이션 위의 흰 줄이 흠처럼 보여서) */}
         {width > 0 && shown < 0 ? <View style={[styles.zero, { left: zeroLeft, backgroundColor: theme.background }]} /> : null}
@@ -177,11 +174,11 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: Spacing.sm },
   labelBox: { flexShrink: 1, gap: 2 },
   numberRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  number: { fontSize: 44, lineHeight: 50, fontWeight: '900', letterSpacing: -1.6 },
-  numberCompact: { fontSize: 34, lineHeight: 40, fontWeight: '900', letterSpacing: -1.2 },
-  badge: { paddingHorizontal: Spacing.md, paddingVertical: 5, borderRadius: Radius.pill },
-  track: { height: 12, borderRadius: Radius.pill, overflow: 'hidden', justifyContent: 'center' },
-  trackCompact: { height: 8 },
+  number: { fontSize: 34, lineHeight: 40, fontWeight: '700', letterSpacing: -1 },
+  numberCompact: { fontSize: 22, lineHeight: 28, fontWeight: '700', letterSpacing: -0.6 },
+  badge: { paddingHorizontal: 2, paddingVertical: 2, borderRadius: Radius.pill },
+  track: { height: 8, borderRadius: Radius.pill, overflow: 'hidden', justifyContent: 'center' },
+  trackCompact: { height: 6 },
   fill: { height: '100%', borderRadius: Radius.pill, overflow: 'hidden' },
   zero: { position: 'absolute', width: 2, top: 2, bottom: 2, opacity: 0.8 },
   scale: { flexDirection: 'row', justifyContent: 'space-between' },

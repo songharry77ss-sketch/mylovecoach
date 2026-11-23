@@ -1,9 +1,10 @@
 import { Platform } from 'react-native';
 
 /**
- * 센딧(나만의 연애 코치) 디자인 토큰 — 2026-11 개편.
- * 「럽코」 시안의 토스 결(흰 화면, 연회색 카드, 큰 한글·숫자, 한 가지 주요 행동)에
- * 앱 아이콘과 같은 하늘색 → 파랑 → 보라 그라데이션을 주인공 색으로 쓴다. 분홍은 쓰지 않는다.
+ * 센딧(나만의 연애 코치) 디자인 토큰 — 1.4 「깔끔하게」 개편 (2026-11-19, 11/12 회의 7번 「AI 느낌」).
+ * 피클·토스 결: 흰 바탕 + 무채색 회색 면 + 거의 검정 글자, 색은 센딧 파랑 **한 가지를 단색으로** 화면의 한두 곳에만.
+ * 그라데이션·파란 빛 그림자·떠다니는 3D 그림을 걷었다(「AI 티」의 대부분이 이것이었다 — docs/design/SENDIT_UI.md).
+ * 분홍은 쓰지 않는다.
  */
 export const palette = {
   sky50: '#EEF7FF',
@@ -111,52 +112,57 @@ export interface ThemeColors {
 export const Colors: Record<'light' | 'dark', ThemeColors> = {
   light: {
     background: palette.white,
-    surface: palette.gray100,
+    // 회색 면은 무채색(피클 #F5F5F5 결) — 예전 #F2F4F6 은 푸른 기가 돌아 차가웠다
+    surface: '#F4F4F6',
     surfaceElevated: palette.white,
-    surfaceSelected: '#E9EEFF',
-    border: '#EBEEF2',
-    text: palette.sendInk,
-    textSecondary: '#5B6573',
-    textTertiary: palette.gray500,
+    surfaceSelected: '#EDF0FE',
+    border: '#E8E8EC',
+    // 글자는 거의 검정, 보조 글자는 무채색 회색(흰 바탕 5.9:1) — 남색 잉크는 「앱 템플릿」 느낌이 났다
+    text: '#141518',
+    textSecondary: '#5E626B',
+    // 옅은 글자도 4.5:1 을 넘게(예전 #8B95A1 은 3.0:1 — 동의 고지문까지 이 색이었다)
+    textTertiary: '#737780',
     primary: palette.sendBlue500,
-    primarySoft: '#EDF1FF',
+    primarySoft: '#EEF1FE',
     primaryText: palette.white,
     accent: palette.sendViolet500,
     accentSoft: '#F1EEFF',
     danger: palette.red500,
-    success: palette.mint500,
-    warning: palette.peach500,
-    bubbleUser: '#E6EDFF',
-    bubbleCoach: palette.white,
+    // 글자로 쓰는 초록은 짙게(흰 바탕 4.6:1)
+    success: '#14855A',
+    warning: '#C2410C',
+    // 내 말풍선 — 옅은 라벤더 블루 면 + 검정 글자(11/12 회의 9번 「보랏빛」을 바탕 대신 여기서 낸다)
+    bubbleUser: '#E4E6FF',
+    bubbleCoach: '#F4F4F6',
     tabBar: palette.white,
-    // 11/12 회의 9번: 바탕에 옅은 보랏빛 (예전 #F3F5F9 — 회색만이라 차가웠다)
-    canvas: '#F5F4FB',
+    // 11/12 회의 9번: 바탕에 아주 옅은 보랏빛 — 카드 화면(마이·설정·결제)에만. 대화·홈은 흰 바탕
+    canvas: '#F6F6FA',
     card: palette.white,
-    separator: '#EEF0F4',
+    separator: '#EFEFF3',
   },
   dark: {
-    background: '#0D1018',
-    surface: '#161A24',
-    surfaceElevated: '#1C2130',
-    surfaceSelected: '#242B42',
-    border: '#252B3A',
-    text: '#F2F4F8',
-    textSecondary: '#AEB6C4',
-    textTertiary: '#7D8696',
-    primary: '#6E8BFF',
-    primarySoft: '#1A2247',
+    background: '#0E0F12',
+    surface: '#1A1B20',
+    surfaceElevated: '#202128',
+    surfaceSelected: '#232A45',
+    border: '#2A2B32',
+    text: '#F3F3F5',
+    textSecondary: '#B1B3BB',
+    textTertiary: '#8D9099',
+    primary: '#7590FF',
+    primarySoft: '#1B2140',
     primaryText: palette.white,
     accent: '#9C8CFF',
     accentSoft: '#231E45',
     danger: '#FF6B76',
-    success: palette.mint500,
-    warning: palette.peach500,
-    bubbleUser: '#1E2A57',
-    bubbleCoach: '#1C2130',
-    tabBar: '#0D1018',
-    canvas: '#0C0D17',
-    card: '#161A24',
-    separator: '#232938',
+    success: '#4CD69A',
+    warning: '#FF9F5A',
+    bubbleUser: '#2A2F5C',
+    bubbleCoach: '#1A1B20',
+    tabBar: '#0E0F12',
+    canvas: '#0B0B0F',
+    card: '#17181D',
+    separator: '#26272E',
   },
 };
 
@@ -187,11 +193,14 @@ export const Radius = {
 } as const;
 
 export const Typography = {
-  /** 무대 화면(첫 화면·홈 머리말·결제)의 큰 제목 — 스토어 이미지처럼 굵게 */
-  hero: { fontSize: 34, lineHeight: 42, fontWeight: '900' as const, letterSpacing: -1.2 },
-  display: { fontSize: 30, lineHeight: 40, fontWeight: '800' as const, letterSpacing: -0.5 },
-  title1: { fontSize: 24, lineHeight: 32, fontWeight: '700' as const, letterSpacing: -0.4 },
-  title2: { fontSize: 20, lineHeight: 28, fontWeight: '700' as const, letterSpacing: -0.3 },
+  /**
+   * 1.4 개편: 크기는 조금만 키우고 위계는 굵기(700·600·400)와 회색으로 — 900·800 같은 아주 굵은 글자는 「AI 앱」 느낌의 큰 원인이었다.
+   * 무대 화면(첫 화면·결제)의 큰 제목
+   */
+  hero: { fontSize: 28, lineHeight: 36, fontWeight: '700' as const, letterSpacing: -0.7 },
+  display: { fontSize: 26, lineHeight: 34, fontWeight: '700' as const, letterSpacing: -0.6 },
+  title1: { fontSize: 22, lineHeight: 30, fontWeight: '700' as const, letterSpacing: -0.4 },
+  title2: { fontSize: 19, lineHeight: 26, fontWeight: '700' as const, letterSpacing: -0.3 },
   title3: { fontSize: 17, lineHeight: 24, fontWeight: '600' as const, letterSpacing: -0.2 },
   body: { fontSize: 16, lineHeight: 24, fontWeight: '400' as const, letterSpacing: -0.1 },
   bodyStrong: { fontSize: 16, lineHeight: 24, fontWeight: '600' as const, letterSpacing: -0.1 },
@@ -201,62 +210,56 @@ export const Typography = {
 } as const;
 
 /**
- * 센딧 브랜드 — 앱 아이콘과 같은 그라데이션. 큰 카드·주요 버튼·숫자 강조에 쓴다.
- * 그라데이션 위 글자는 흰색(onBrand). 흰 바탕 위 강조 글자는 primary(파랑) 또는 accent(보라).
+ * 센딧 브랜드 색 — 1.4 개편부터 **단색**. 예전 이름(gradient·button·orb …)은 그대로 두고 값만 한 가지 색으로 바꿔
+ * 남은 LinearGradient 들도 저절로 단색 면이 된다. 새 화면에서는 그라데이션을 만들지 말고 theme.primary / Brand.blue 를 쓴다.
+ * 색 면 위 글자는 흰색(onBrand).
  */
+const SOLID = palette.sendBlue500;
 export const Brand = {
-  /**
-   * 주인공 그라데이션 (왼쪽 위 → 오른쪽 아래): 파랑 → 보라. 글자가 놓이는 왼쪽 위에서도 흰 글자 대비 3.8:1 이상이 되게
-   * 아이콘보다 조금 짙게 시작한다 — 아이콘의 하늘색은 카드 오른쪽 위 장식 빛(HeroCard)과 gradientBright 로 낸다
-   */
-  gradient: ['#3F7CF8', palette.sendBlue500, palette.sendViolet500] as [string, string, string],
-  /** 글자가 없는 장식 면 — 아이콘과 같은 하늘색 시작 */
-  gradientBright: ['#6FC8FF', palette.sendBlue500, palette.sendViolet500] as [string, string, string],
-  /** 떠 있는 둥근 구슬(탭 바 「새 채팅」·채팅 「보내기」) — 위가 밝은 유리 구슬 */
-  orb: ['#6B9BFF', palette.sendBlue500, '#5845EE'] as [string, string, string],
-  /** 버튼처럼 좁은 면 — 흰 글자가 또렷하게 */
-  button: ['#4A78FB', palette.sendBlue500, '#6A55F2'] as [string, string, string],
-  /** 화면 바탕의 옅은 빛 (스플래시와 같은 흰색 → 옅은 라벤더) */
-  wash: ['#FFFFFF', '#F3F5FF', '#ECEFFF'] as [string, string, string],
-  washDark: ['#0D1018', '#111528', '#151A36'] as [string, string, string],
-  /** 그라데이션 위 글자 */
+  /** 색 면(예전 그라데이션 카드) — 단색 */
+  gradient: [SOLID, SOLID, SOLID] as [string, string, string],
+  gradientBright: [SOLID, SOLID, SOLID] as [string, string, string],
+  /** 떠 있는 둥근 버튼(탭 바 「새 채팅」·채팅 「보내기」) — 단색 */
+  orb: [SOLID, SOLID, SOLID] as [string, string, string],
+  /** 주요 버튼 — 단색 */
+  button: [SOLID, SOLID, SOLID] as [string, string, string],
+  /** 화면 바탕 — 흰색 한 가지(옅은 라벤더 그라데이션 바탕은 걷었다) */
+  wash: ['#FFFFFF', '#FFFFFF', '#FFFFFF'] as [string, string, string],
+  washDark: ['#0E0F12', '#0E0F12', '#0E0F12'] as [string, string, string],
+  /** 색 면 위 글자 */
   onBrand: '#FFFFFF',
-  onBrandDim: 'rgba(255,255,255,0.82)',
-  onBrandFaint: 'rgba(255,255,255,0.62)',
-  /** 그라데이션 위 반투명 칩·장식 */
+  onBrandDim: 'rgba(255,255,255,0.86)',
+  onBrandFaint: 'rgba(255,255,255,0.7)',
+  /** 색 면 위 반투명 칩 */
   glass: 'rgba(255,255,255,0.18)',
   glassBorder: 'rgba(255,255,255,0.32)',
-  /** 그라데이션 버튼·카드 아래 퍼지는 그림자 색 */
-  shadow: '#3D4FE8',
+  shadow: '#000000',
   sky: palette.sendSky,
-  blue: palette.sendBlue500,
+  blue: SOLID,
   violet: palette.sendViolet500,
 } as const;
 
-/** 그라데이션 버튼·카드 아래 은은한 파란 그림자 */
-export const BrandShadow = Platform.select({
-  ios: { shadowColor: Brand.shadow, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.28, shadowRadius: 18 },
-  android: { elevation: 8, shadowColor: Brand.shadow },
-  default: { boxShadow: '0 10px 24px rgba(61,79,232,0.28)' },
+/**
+ * 예전 「파란 빛 그림자」 자리 — 1.4 개편에서 걷었다(네온 빛 번짐처럼 보였다). 색 면·버튼에는 그림자를 두지 않는다.
+ * 떠 있는 것(탭 바·새 채팅 버튼)은 FloatShadow 를 쓴다.
+ */
+export const BrandShadow = {} as object;
+
+/** 화면 위에 떠 있는 조작부(탭 바·새 채팅 버튼·시트) — 무채색 아주 옅게 */
+export const FloatShadow = Platform.select({
+  ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 14 },
+  android: { elevation: 4, shadowColor: '#000000' },
+  default: { boxShadow: '0 4px 14px rgba(0,0,0,0.08)' },
 }) as object;
 
 export const Shadow = Platform.select({
-  ios: {
-    shadowColor: '#1B2A5A',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-  },
-  android: { elevation: 2 },
-  default: { boxShadow: '0 6px 16px rgba(27,42,58,0.06)' },
+  ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8 },
+  android: { elevation: 1 },
+  default: { boxShadow: '0 2px 8px rgba(0,0,0,0.04)' },
 }) as object;
 
-/** 흰 카드(canvas 위)의 아주 옅은 그림자 — 다크 모드에서는 쓰지 않고 가는 테두리로 */
-export const CardShadow = Platform.select({
-  ios: { shadowColor: '#1B2559', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 14 },
-  android: { elevation: 1 },
-  default: { boxShadow: '0 4px 14px rgba(27,37,89,0.05)' },
-}) as object;
+/** 흰 카드(canvas 위) — 그림자 없이 면으로만 나눈다(피클 결) */
+export const CardShadow = {} as object;
 
 export const MaxContentWidth = 640;
 

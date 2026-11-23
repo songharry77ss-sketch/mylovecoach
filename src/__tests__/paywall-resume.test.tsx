@@ -4,7 +4,7 @@
  * 2) 연애 연습 화면: 막혀서 결제 화면으로 간 뒤 횟수권이 들어오면, 입력해 둔 말을 다시 누르지 않아도 보낸다
  */
 import { act } from 'react';
-import { TextInput } from 'react-native';
+import { Text, TextInput } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { create, type ReactTestRenderer } from 'react-test-renderer';
 
@@ -249,6 +249,10 @@ describe('연애 연습 화면 — 결제 뒤 이어 보내기', () => {
       await flush();
     });
     const screen = tree as unknown as ReactTestRenderer;
+    // 0회일 때는 「1회를 써요」가 아니라 다 썼다고 먼저 알린다 (예전엔 0회에도 「코칭 1회가 차감돼요」였다)
+    const notes = screen.root.findAllByType(Text).map((t) => [t.props.children].flat().join(''));
+    expect(notes).toContain('무료 횟수를 다 썼어요 · 이용권이 있으면 바로 시작돼요');
+    expect(notes.some((n) => n.includes('1회를 써요') || n.includes('차감'))).toBe(false);
     act(() => screen.root.findByType(TextInput).props.onChangeText('네 잘 들어갔어요!'));
     const send = screen.root.findAll((n) => n.props.accessibilityLabel === '보내기' && typeof n.props.onPress === 'function');
     await act(async () => {

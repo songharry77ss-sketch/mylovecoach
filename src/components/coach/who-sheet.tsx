@@ -124,5 +124,5 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.md, paddingHorizontal: Spacing.md, borderRadius: Radius.lg, minHeight: 68 },
   outline: { borderWidth: 1 },
   icon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  heat: { fontSize: 22, lineHeight: 26, fontWeight: '900', letterSpacing: -0.8 },
+  heat: { fontSize: 22, lineHeight: 26, fontWeight: '700', letterSpacing: -0.8 },
 });

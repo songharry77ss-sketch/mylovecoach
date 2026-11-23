@@ -58,10 +58,12 @@ export const FREE_TRIAL_TOTAL = 3;
 export const FREE_DAILY = 1;
 
 /**
- * 회원가입을 쓸 수 있는 빌드의 무료 규칙 (2026-10 결정):
- * 비회원은 맛보기 1회 → 카카오·Google·Apple 로 가입하면 보너스 3회 + 매일 1회 충전.
+ * 회원가입을 쓸 수 있는 빌드의 무료 규칙:
+ * 비회원은 맛보기 3회 → 카카오·Google·Apple 로 가입하면 보너스 3회 + 매일 1회 충전.
+ * (2026-10 결정은 맛보기 1회였으나, 11-23 사장님 결정으로 3회 — 안드로이드는 가입이 브라우저를 거쳐야 해서
+ *  14일 새 안드로이드 이용자 36명 중 1명만 가입했고, 첫 코칭 직후 결제·가입 벽에서 대부분 떠났다)
  */
-export const GUEST_TRIAL_TOTAL = 1;
+export const GUEST_TRIAL_TOTAL = 3;
 export const SIGNUP_BONUS = 3;
 
 /**
@@ -83,7 +85,7 @@ export interface FreeRules {
 /** 예전 규칙 (가입 없음): 체험 3회 + 매일 1회 */
 export const DEFAULT_RULES: FreeRules = { trial: FREE_TRIAL_TOTAL, daily: FREE_DAILY };
 
-/** 가입을 쓸 수 있으면 비회원은 맛보기 1회만, 회원은 매일 1회 충전 */
+/** 가입을 쓸 수 있으면 비회원은 맛보기 3회(충전 없음), 회원은 매일 1회 충전 */
 export const freeRules = (authAvailable: boolean, member: boolean): FreeRules =>
   !authAvailable ? DEFAULT_RULES : { trial: GUEST_TRIAL_TOTAL, daily: member ? FREE_DAILY : 0 };
 

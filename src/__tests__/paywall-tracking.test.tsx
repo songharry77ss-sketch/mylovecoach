@@ -118,7 +118,11 @@ afterEach(() => {
 it('결제 화면을 열면 이유를 남기고, 다른 상품을 고르면 그 상품을 남긴다', () => {
   mount();
   expect(propsOf('paywall_open')).toEqual({ reason: 'quota' });
-  act(() => pressable('주간 구독').props.onPress());
+  // 1.4: 주간 구독은 「다른 이용권 보기」를 펼쳐야 보인다 — 펼친 것도 남긴다
+  act(() => pressable('다른 이용권 보기').props.onPress());
+  expect(propsOf('paywall_more')).toEqual({ reason: 'quota' });
+  const weekly = renderer.root.findAll((n) => n.props.accessibilityRole === 'radio' && typeof n.props.onPress === 'function' && textOf(n).includes('주간 구독'))[0];
+  act(() => weekly.props.onPress());
   expect(propsOf('paywall_plan')).toEqual({ plan: 'weekly', reason: 'quota' });
 });
 

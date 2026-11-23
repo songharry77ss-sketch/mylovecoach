@@ -82,7 +82,6 @@ export default function DataSettings() {
     <SubScreen title="개인정보">
       <ListGroup title="채팅 목록">
         <ListRow
-          icon="eye-off-outline"
           title="채팅 미리보기 숨기기"
           subtitle="채팅 목록에 대화 내용이 보이지 않아요"
           right={<Switch accessibilityLabel="채팅 미리보기 숨기기" value={hidePreviews} onValueChange={setHidePreviews} />}
@@ -91,15 +90,15 @@ export default function DataSettings() {
 
       <ListGroup title="AI · 이용 기록">
         {!isDemoMode ? (
-          <ListRow icon="cloud-upload-outline" title="AI 분석 동의" subtitle={aiConsentNote} right={<Switch accessibilityLabel="AI 분석 동의" value={aiConsent === true} onValueChange={toggleAiConsent} />} />
+          <ListRow title="AI 분석 동의" subtitle={aiConsentNote} right={<Switch accessibilityLabel="AI 분석 동의" value={aiConsent === true} onValueChange={toggleAiConsent} />} />
         ) : null}
-        <ListRow icon="shield-checkmark-outline" title="개인정보 설정" subtitle="이용 기록 · 코칭 내용 저장 · 삭제 요청" onPress={() => router.push('/settings/privacy')} />
-        <ListRow icon="document-text-outline" title="개인정보 처리방침" onPress={() => Linking.openURL(APP_CONFIG.privacyUrl)} />
+        <ListRow title="개인정보 설정" subtitle="이용 기록 · 코칭 내용 저장 · 삭제 요청" onPress={() => router.push('/settings/privacy')} />
+        <ListRow title="개인정보 처리방침" onPress={() => Linking.openURL(APP_CONFIG.privacyUrl)} />
       </ListGroup>
 
       {/* 되돌릴 수 없는 삭제는 맨 아래 작은 글자 버튼으로 (예전 마이 맨 아래와 같은 결) */}
       <View style={styles.footer}>
-        <AppText variant="caption" color="textTertiary" align="center">
+        <AppText variant="caption" color="textSecondary" align="center">
           채팅방·캡처·프로필은 이 기기에 저장돼요
         </AppText>
         <QuietLink title="모든 데이터 삭제" onPress={confirmReset} />

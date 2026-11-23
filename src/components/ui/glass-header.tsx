@@ -39,5 +39,5 @@ export function GlassHeader({ title, top, visible }: { title: string; top: numbe
 const styles = StyleSheet.create({
   wrap: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
   bar: { position: 'absolute', left: 0, right: 0, height: GLASS_HEADER_BAR, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 56 },
-  title: { fontSize: 16, lineHeight: 22, fontWeight: '800', letterSpacing: -0.3 },
+  title: { fontSize: 16, lineHeight: 22, fontWeight: '700', letterSpacing: -0.3 },
 });

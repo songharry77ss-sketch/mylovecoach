@@ -199,8 +199,8 @@ export default function Start() {
           <Text style={[styles.guideLabel, { color: theme.textSecondary }]}>캡처하는 법</Text>
           {STEPS.map((s, i) => (
             <View key={s.title} style={styles.stepRow}>
-              <View style={[styles.stepNum, { backgroundColor: theme.primarySoft }]}>
-                <Text style={[styles.stepNumText, { color: theme.primary }]}>{i + 1}</Text>
+              <View style={[styles.stepNum, { backgroundColor: theme.surface }]}>
+                <Text style={[styles.stepNumText, { color: theme.textSecondary }]}>{i + 1}</Text>
               </View>
               <View style={styles.stepTexts}>
                 <Text style={[styles.stepTitle, { color: theme.text }]}>{s.title}</Text>
@@ -258,14 +258,11 @@ export default function Start() {
               variant={typed ? 'brand' : 'secondary'}
               onPress={() => go('text')}
               disabled={busy || !typed}
-              icon={<Ionicons name="sparkles" size={18} color={typed ? Brand.onBrand : theme.textSecondary} />}
             />
           </Animated.View>
         ) : (
           <PressableScale onPress={openWriting} style={[styles.writeRow, card]} accessibilityLabel="캡처 없이 상황만 적기">
-            <View style={[styles.writeIcon, { backgroundColor: theme.primarySoft }]}>
-              <Ionicons name="create-outline" size={18} color={theme.primary} />
-            </View>
+            <Ionicons name="create-outline" size={20} color={theme.textSecondary} />
             <View style={styles.flex}>
               <Text style={[styles.writeTitle, { color: theme.text }]}>캡처가 없다면? 상황만 적어도 돼요</Text>
               <Text style={[styles.writeBody, { color: theme.textSecondary }]}>「소개팅 다음 날 먼저 연락해도 될까?」처럼</Text>
@@ -307,24 +304,24 @@ const styles = StyleSheet.create({
   browseText: { fontSize: 13, fontWeight: '700' },
   hero: { gap: Spacing.sm, marginTop: Spacing.sm },
   // 11/12 회의: 30pt → 26pt (첫 장 24pt 와 같은 결)
-  title: { fontSize: 26, lineHeight: 35, fontWeight: '800', letterSpacing: -0.7 },
+  title: { fontSize: 26, lineHeight: 35, fontWeight: '700', letterSpacing: -0.7 },
   sub: { fontSize: 15, lineHeight: 22, fontWeight: '500', letterSpacing: -0.2 },
   guide: { borderRadius: Radius.lg + 2, padding: Spacing.lg + 2, gap: Spacing.md },
   guideHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   guideLabel: { fontSize: 13, fontWeight: '700' },
   stepRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   stepNum: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  stepNumText: { fontSize: 13, fontWeight: '800' },
+  stepNumText: { fontSize: 13, fontWeight: '700' },
   stepTexts: { flex: 1, gap: 2 },
-  stepTitle: { fontSize: 15, fontWeight: '800', letterSpacing: -0.2 },
+  stepTitle: { fontSize: 15, fontWeight: '700', letterSpacing: -0.2 },
   stepBody: { fontSize: 13, lineHeight: 18, fontWeight: '500' },
   cta: { gap: Spacing.sm },
   writeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderRadius: Radius.lg + 2, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   writeIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  writeTitle: { fontSize: 14, fontWeight: '800', letterSpacing: -0.2 },
+  writeTitle: { fontSize: 14, fontWeight: '700', letterSpacing: -0.2 },
   writeBody: { fontSize: 12, fontWeight: '500', marginTop: 2 },
   ask: { borderRadius: Radius.lg + 2, padding: Spacing.lg, gap: Spacing.md },
-  askTitle: { fontSize: 14, fontWeight: '800' },
+  askTitle: { fontSize: 14, fontWeight: '700' },
   askInput: { minHeight: 92, maxHeight: 180, textAlignVertical: 'top', borderRadius: Radius.md, borderWidth: 1, padding: Spacing.md, fontSize: 16, lineHeight: 24, fontWeight: '500' },
   examples: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
   example: { borderRadius: Radius.pill, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 7 },

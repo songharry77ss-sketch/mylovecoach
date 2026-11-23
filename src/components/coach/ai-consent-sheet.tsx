@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
 import { Keyboard, Linking, Modal, Platform, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -72,7 +71,6 @@ export function AiConsentHost() {
 }
 
 interface ConsentRow {
-  icon: keyof typeof Ionicons.glyphMap;
   label: string;
   text: string;
 }
@@ -87,31 +85,26 @@ function consentCopy(route: AiRoute) {
   const relay = route.via === 'relay';
   const rows: ConsentRow[] = [
     {
-      icon: 'images-outline',
       label: '보내는 내용',
       text: '대화 캡처 이미지, 입력한 대화·상황 글, 내 프로필·상대 정보(이름·성별·나이·MBTI·메모 등), 최근 코칭 기록, 센딧이 기억하는 이야기(지난 대화에서 정리한 짧은 메모)와 같은 채팅방에서 이전에 요청한 답장 방식·주의사항이에요. 캡처 속 상대방의 이름과 메시지도 함께 가요.',
     },
     {
-      icon: 'paper-plane-outline',
       label: '받는 곳',
       text: relay
         ? '기본은 Google LLC의 Gemini API예요. Google 쪽이 사용량 한도·혼잡·오류로 답하지 못할 때만 같은 내용을 Anthropic PBC의 Claude API나 OpenAI, L.L.C.의 OpenAI API로 보내요. 모두 중계 서버(Vercel)를 거쳐 미국 등 해외 서버로 암호화해서 보내요(국외 이전).'
         : `내가 등록한 API 키의 회사(${company})예요. 중계 서버 없이 이 기기에서 미국 등 해외 서버로 바로 보내요(국외 이전).`,
     },
     {
-      icon: 'sparkles-outline',
       label: '쓰는 목적',
       text: '답장 추천, 대화 분석, 상대 분석 보고서, 연애 연습, 속마음 풀이 결과를 만드는 데 써요.',
     },
     {
-      icon: 'server-outline',
       label: '보관',
       text: relay
         ? '중계 서버는 저장하지 않고 전달만 해요(코칭 내용 저장에 따로 동의했다면 캡처를 뺀 코칭 질문·답은 1년 보관). 받은 회사에서는 각 회사의 API 약관과 개인정보 정책에 따라 보관·처리돼요.'
         : `우리 서버를 거치지 않아 우리 쪽엔 남지 않아요. ${company}에서는 그 회사의 약관과 개인정보 정책에 따라 보관·처리돼요.`,
     },
     {
-      icon: 'hand-left-outline',
       label: '동의하지 않으면',
       text: '답장 추천 같은 AI 기능을 쓸 수 없어요. 동의한 뒤에도 마이 → 개인정보에서 언제든 철회할 수 있어요.',
     },
@@ -153,25 +146,20 @@ function ConsentSheet({ route, onAnswer }: { route: AiRoute; onAnswer: (agreed: 
         onAccessibilityEscape={() => onAnswer(false)}
         style={[styles.sheet, { backgroundColor: theme.background, paddingBottom: insets.bottom + Spacing.lg, maxHeight: height - insets.top - Spacing.lg }]}>
         <ScrollView ref={scrollRef} style={styles.scroll} contentContainerStyle={styles.body}>
-          <View style={[styles.badge, { backgroundColor: theme.primarySoft }]}>
-            <Ionicons name="shield-checkmark" size={22} color={theme.primary} />
-          </View>
+          {/* 1.4 개편: 방패 아이콘 타일·줄마다 아이콘을 걷고, 항목 이름 + 내용을 가는 선으로 나눈 키-값 줄로 (글은 그대로, 12pt → 14pt) */}
           <AppText variant="title2" accessibilityRole="header">
             {copy.title}
           </AppText>
-          <AppText variant="small" color="textSecondary">
+          <AppText variant="small" color="textSecondary" style={styles.lead}>
             {copy.lead}
           </AppText>
-          <View style={[styles.rows, { backgroundColor: theme.surface }]}>
-            {copy.rows.map((row) => (
-              <View key={row.label} style={styles.row}>
-                <Ionicons name={row.icon} size={18} color={theme.textSecondary} style={styles.rowIcon} />
-                <View style={styles.rowTexts}>
-                  <AppText variant="smallStrong">{row.label}</AppText>
-                  <AppText variant="caption" color="textSecondary">
-                    {row.text}
-                  </AppText>
-                </View>
+          <View style={styles.rows}>
+            {copy.rows.map((row, i) => (
+              <View key={row.label} style={[styles.row, i > 0 ? { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.separator } : null]}>
+                <AppText variant="smallStrong">{row.label}</AppText>
+                <AppText variant="small" color="textSecondary" style={styles.rowText}>
+                  {row.text}
+                </AppText>
               </View>
             ))}
           </View>
@@ -203,11 +191,10 @@ const styles = StyleSheet.create({
   },
   scroll: { flexGrow: 0, flexShrink: 1 },
   body: { gap: Spacing.md, paddingBottom: Spacing.lg },
-  badge: { width: 44, height: 44, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
-  rows: { borderRadius: Radius.lg, padding: Spacing.lg, gap: Spacing.lg },
-  row: { flexDirection: 'row', gap: Spacing.md, alignItems: 'flex-start' },
-  rowIcon: { marginTop: 1 },
-  rowTexts: { flex: 1, gap: 2 },
+  lead: { lineHeight: 21 },
+  rows: { marginTop: Spacing.xs },
+  row: { gap: 4, paddingVertical: Spacing.md },
+  rowText: { lineHeight: 21 },
   link: { alignSelf: 'center', paddingVertical: Spacing.xs },
   actions: { gap: Spacing.xs, paddingTop: Spacing.sm },
 });
