@@ -1,0 +1,66 @@
+{
+  "at": "2026-11-23T14:49:47.464Z",
+  "note": "운영 코치 서버(/api/coach)가 돌려준 실제 결과 — app-reel 녹화에 넣음",
+  "request": {
+    "crush": {
+      "name": "도윤",
+      "gender": "male",
+      "relationship": "talking",
+      "style": [],
+      "notes": "",
+      "heat": 0
+    },
+    "user": {
+      "name": "",
+      "gender": "female",
+      "style": []
+    },
+    "tone": "natural",
+    "emoji": "on",
+    "toneChosen": false,
+    "emojiChosen": false,
+    "text": "도윤: 내일 6시에 볼까?\n도윤: 너 좋아할 것 같은 파스타집 찾아놨어 ㅎㅎ\n도윤: 근데 매운 거 잘 먹어?",
+    "history": [],
+    "today": "11/23(월)"
+  },
+  "analysis": {
+    "callName": null,
+    "speechLevel": "unknown",
+    "summary": "도윤 님이 약속 시간과 메뉴까지 챙기며 적극적으로 데이트를 준비하고 있어요. 호응하며 약속을 확정 지어보세요!",
+    "temperature": "hot",
+    "interestScore": 90,
+    "heatDelta": 15,
+    "insights": [
+      "장소 파악과 식성 체크까지 하며 세심하게 데이트를 준비하고 있어요.",
+      "내일 만나자는 적극적인 호감 표현입니다."
+    ],
+    "replies": [
+      {
+        "tone": "natural",
+        "text": "완전 좋아! 6시에 보자 ㅎㅎ 나 매운 거 엄청 잘 먹어 😋",
+        "why": "기분 좋게 호응하며 식성 정보를 담백하게 전달해요",
+        "expectedReaction": "오 다행이다! 그럼 거기서 6시에 만나자 ㅎㅎ",
+        "successRate": 95
+      },
+      {
+        "tone": "witty",
+        "text": "센스 대박! 나 매운 거 잘 먹지 ㅎㅎ 파스타집 기대된다 🌶️✨",
+        "why": "식당을 찾아본 칭찬과 기대를 함께 전해 텐션을 올려요",
+        "expectedReaction": "ㅋㅋ 준비 많이 했으니까 기대해!",
+        "successRate": 90
+      },
+      {
+        "tone": "flirty",
+        "text": "나 맛집 찾아주는 사람한테 제일 잘 흔들리는데 🫢 매운 거 완전 좋아!",
+        "why": "은근한 칭찬과 설렘을 전하며 분위기를 달궈요",
+        "expectedReaction": "ㅋㅋ 그럼 자주 찾아줘야겠네. 내일 봐!",
+        "successRate": 85
+      }
+    ],
+    "nextStep": "시간과 식성을 밝히며 기분 좋게 승낙하고 내일 만남 약속 확정하기",
+    "warnings": [],
+    "memory": [
+      "11/23(월) 도윤이 내일 6시 약속을 잡으며 직접 찾아본 매운 파스타집을 제안함."
+    ]
+  }
+}
