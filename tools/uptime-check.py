@@ -89,7 +89,8 @@ def main():
         problems.append(f'버전 API {status}' + (f' ({why})' if why else ''))
 
     prev = previous_conclusion()
-    hourly = time.gmtime().tm_min < 10
+    # 매시 첫 회차(:03)에 실제 코칭까지 확인 — 예약 실행이 몇 분 밀려도 잡히게 15분까지
+    hourly = time.gmtime().tm_min < 15
     if APP_TOKEN and (hourly or prev == 'failure' or os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'):
         req = {
             'crush': {'name': '점검', 'gender': 'female', 'relationship': 'talking', 'style': [], 'notes': ''},

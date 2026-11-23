@@ -6,7 +6,8 @@ name: 서비스 감시
 
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    # 정각·10분 단위는 GitHub 예약 실행이 몰려 밀리거나 빠진다(11-23 첫 등록 뒤 2시간 넘게 한 번도 안 돎) — 붐비지 않는 분에
+    - cron: '3,13,23,33,43,53 * * * *'
   workflow_dispatch:
 
 permissions:
