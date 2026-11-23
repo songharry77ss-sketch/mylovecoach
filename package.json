@@ -6,6 +6,7 @@
     "@anthropic-ai/sdk": "^0.126.0",
     "@expo/vector-icons": "^15.1.1",
     "@react-native-async-storage/async-storage": "^3.1.1",
+    "@react-native-google-signin/google-signin": "17.0.0",
     "@resvg/resvg-js": "^2.6.2",
     "@supabase/supabase-js": "^2.117.2",
     "expo": "~57.0.23",

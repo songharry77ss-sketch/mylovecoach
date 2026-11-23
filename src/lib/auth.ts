@@ -12,6 +12,7 @@ import { Platform } from 'react-native';
 
 import { discardQueuedAnalytics, track } from '@/lib/analytics';
 import { APP_CONFIG } from '@/lib/config';
+import { nativeGoogleSignIn, nativeGoogleSignOut } from '@/lib/google-native';
 import { authStorageKey, supabase } from '@/lib/supabase';
 import { useAppStore, type MemberState } from '@/store/app-store';
 
@@ -125,8 +126,29 @@ async function signInWithBrowser(provider: 'kakao' | 'google'): Promise<LinkResu
 /** 카카오 로그인 (웹·앱 공통 브라우저 인증) */
 export const signInWithKakao = (): Promise<LinkResult | null> => signInWithBrowser('kakao');
 
-/** Google 로그인 (웹·앱 공통 브라우저 인증, 기본 프로필·이메일만) */
-export const signInWithGoogle = (): Promise<LinkResult | null> => signInWithBrowser('google');
+/**
+ * Google 로그인 (기본 프로필·이메일만).
+ * 안드로이드는 앱 안 계정 선택 창(google-native.android.ts)으로 ID 토큰을 받아 바로 로그인한다 — 브라우저를 거치면
+ * 대부분 중간에 떠났다(11-23: 14일 새 안드로이드 이용자 36명 중 가입 1명). 쓸 수 없으면(설정·Play 서비스·토큰 거절)
+ * 예전처럼 브라우저 로그인으로 넘어간다. 웹·아이폰은 브라우저 로그인.
+ */
+export async function signInWithGoogle(): Promise<LinkResult | null> {
+  if (Platform.OS === 'android' && supabase) {
+    const native = await nativeGoogleSignIn();
+    if (native.status === 'cancelled') throw new AuthCancelled('cancelled');
+    if (native.status === 'success') {
+      const { error } = await ensureClient().auth.signInWithIdToken({ provider: 'google', token: native.idToken });
+      if (!error) {
+        track('google_native', { result: 'ok' });
+        return linkMember();
+      }
+      track('google_native', { result: 'fallback', reason: 'token-rejected' });
+    } else {
+      track('google_native', { result: 'fallback', reason: native.reason });
+    }
+  }
+  return signInWithBrowser('google');
+}
 
 /** Apple 로그인 (아이폰 전용, 기기 안의 Apple 계정 창) */
 export async function signInWithApple(): Promise<LinkResult> {
@@ -239,6 +261,7 @@ async function dropLocalSession(): Promise<void> {
 /** 로그아웃 (이 기기에서만) */
 export async function signOut(): Promise<void> {
   await dropLocalSession();
+  await nativeGoogleSignOut().catch(() => {});
   useAppStore.getState().setMember(null);
   track('logout');
 }

@@ -23,6 +23,11 @@ export const APP_CONFIG = {
   apiSameOrigin: Platform.OS === 'web' && process.env.EXPO_PUBLIC_DEMO_MODE !== '1',
   /** 프록시가 요구하는 앱 토큰 (선택) */
   apiToken: process.env.EXPO_PUBLIC_API_TOKEN ?? '',
+  /**
+   * 안드로이드 앱 안 Google 로그인(계정 선택 창)이 ID 토큰을 받을 웹 클라이언트 ID — Supabase Google 제공자에 등록된 것과 같아야 한다.
+   * 로그인 주소에 그대로 실리는 공개 값이다(비밀 아님). 안드로이드 클라이언트(앱 서명 SHA-1)는 같은 Google Cloud 프로젝트에 따로 있다
+   */
+  googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '134476362186-jf8fu8rjro34fj0afghm6l38h4hfsd9p.apps.googleusercontent.com',
   supportEmail: process.env.EXPO_PUBLIC_SUPPORT_EMAIL ?? 'contact@craving.win',
   privacyUrl: process.env.EXPO_PUBLIC_PRIVACY_URL ?? 'https://mylovecoach.vercel.app/privacy.html',
   termsUrl: process.env.EXPO_PUBLIC_TERMS_URL ?? 'https://mylovecoach.vercel.app/terms.html',
