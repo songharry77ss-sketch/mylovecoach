@@ -1,0 +1,26 @@
+{
+  "at": "2026-11-23T14:43:41.980Z",
+  "mode": "stills",
+  "seconds": 12,
+  "note": "AI로 만든 가상 인물 그림(Codex) — 영상에 「AI로 만든 장면」 표시",
+  "stills": [
+    {
+      "file": "tools/social-make/samples/late-reply/doyun-ep2-a.jpg",
+      "sha": "51f32c9ac351f2f7",
+      "seconds": 4,
+      "punch": false
+    },
+    {
+      "file": "tools/social-make/samples/late-reply/doyun-ep2-b.jpg",
+      "sha": "72beece5c79fd0a9",
+      "seconds": 4,
+      "punch": false
+    },
+    {
+      "file": "tools/social-make/samples/late-reply/doyun-ep2-c.jpg",
+      "sha": "d5954ce17da08f7a",
+      "seconds": 4,
+      "punch": false
+    }
+  ]
+}
