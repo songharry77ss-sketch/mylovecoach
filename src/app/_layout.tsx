@@ -15,6 +15,7 @@ import { ToastProvider } from '@/components/ui/toast';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { flushAnalytics, initAnalytics, launchAcquisition, pauseAnalytics, resumeAnalytics, trackScreen, updateIdentity } from '@/lib/analytics';
+import { checkInstallAttribution } from '@/lib/install-attribution';
 import { endBilling, initBilling } from '@/lib/billing/iap';
 import { refreshTeam } from '@/lib/billing/team';
 import { linkMember } from '@/lib/auth';
@@ -135,6 +136,8 @@ export default function RootLayout() {
     if (!hydrated) return;
     // 처음 실행이면 어디서 들어왔는지 기기에 적어 둔다 (이용 기록과 함께 전송)
     if (!useAppStore.getState().acquisition) useAppStore.getState().setAcquisition(launchAcquisition());
+    // 어느 광고·링크로 설치했는지 처음 한 번 확인해 덧붙인다 (안드로이드 Play 설치 경로·아이폰 애플 광고 귀속)
+    checkInstallAttribution().catch(() => {});
     // 저장소를 실제로 다 읽기 전(2.5초 안전장치로 먼저 시작)에는 기기 ID 가 임시 값이라 보내지 않는다 —
     // 임시 ID 로 쌓인 기록은 삭제 요청으로 지울 수 없기 때문. 다 읽으면 아래 onFinishHydration 이 이어서 켠다
     const loaded = () => useAppStore.persist.hasHydrated();

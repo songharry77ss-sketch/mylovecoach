@@ -1,0 +1,36 @@
+name: 서비스 감시
+
+# 센딧 운영 서버(웹·API·AI 코칭)가 멈추면 알린다 — tools/uptime-check.py
+# 11-20 Vercel 지출 예산 100% 로 서버가 이틀 가까이 멈췄는데 아무도 몰랐던 일 뒤에 추가.
+# 알림: 텔레그램(TELEGRAM_BOT_TOKEN·TELEGRAM_CHAT_ID 시크릿이 있을 때) + 작업 실패 메일.
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/uptime-check.py
+          sparse-checkout-cone-mode: false
+      - name: 웹 · API · AI 코칭 확인
+        env:
+          GH_TOKEN: ${{ github.token }}
+          API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
+          APP_TOKEN: ${{ secrets.EXPO_PUBLIC_API_TOKEN }}
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python3 tools/uptime-check.py

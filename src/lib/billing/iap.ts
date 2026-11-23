@@ -20,6 +20,7 @@ import {
   type PlanKey,
 } from '@/lib/billing/plans';
 import type { PremiumState } from '@/lib/billing/quota';
+import { storeFixHint } from '@/lib/billing/store-hint';
 
 type IapModule = typeof import('expo-iap');
 let IAP: IapModule | null = null;
@@ -94,14 +95,25 @@ const codeOf = (error: unknown): string => {
 
 /**
  * 상품 조회 실패를 사람이 할 수 있는 조치로 바꾼다.
- * Google Play 응답 코드: -1 결제 서비스 끊김, 2 서비스 사용 불가, 3 결제 사용 불가(Play 스토어 로그인·업데이트·국가), 12 네트워크
+ * Google Play 응답 코드: -2 스토어 앱이 오래됨, -1 결제 서비스 끊김, 2 서비스 사용 불가, 3 결제 사용 불가(Play 스토어 로그인·업데이트·국가), 12 네트워크
  */
 const storeHint = (error: unknown): string => {
-  const { responseCode } = problemOf(error);
-  if (responseCode === 3) return '이 기기에서 스토어 결제를 쓸 수 없는 상태예요. 스토어 앱을 열어 로그인·업데이트한 뒤 다시 시도해주세요.';
-  if (responseCode === -1 || responseCode === 2 || responseCode === 12) return '스토어에 잠시 연결되지 않아요. 네트워크를 확인하고 다시 시도해주세요.';
+  const problem = problemOf(error);
+  const { responseCode } = problem;
+  const fix = storeFixHint(problem);
+  if (fix) return fix;
+  if (responseCode != null && TRANSIENT_STORE_CODES.has(responseCode))
+    return '스토어 앱에 잠시 연결되지 않아요. 스토어 앱을 한 번 열었다가 돌아오거나, 와이파이·데이터를 바꿔(VPN 은 끄고) 다시 시도해주세요.';
   return '상품 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.';
 };
+
+/**
+ * 잠깐 뒤 다시 물으면 대부분 풀리는 Google Play 응답 코드 — -1 결제 서비스 끊김, 2 서비스 사용 불가, 12 네트워크.
+ * (2026-11-20 01:59 안드로이드 1.3.3 기기가 1년권 결제 직전 조회에서 12 를 받아 막힘 — 결제 직전에는 조금 기다렸다 한 번 더 묻는다)
+ */
+const TRANSIENT_STORE_CODES = new Set([-1, 2, 12]);
+/** 결제 직전 조회가 잠깐의 오류로 실패했을 때 다시 묻기 전 기다리는 시간 */
+export const PURCHASE_RETRY_DELAY_MS = 2000;
 
 let lastProblem: StoreProblem | null = null;
 /** 마지막 상품 조회에서 실패한 이유 — 조회를 새로 시작할 때 지운다 (원인을 이용 기록에 남기는 용도) */
@@ -206,6 +218,30 @@ export function endBilling() {
 /** Android 구독 상품에서 고를 기본 요금제 — 주간 구독은 weekly, 1년권은 선불 요금제 year */
 const androidBasePlan = (plan: PlanKey) => (plan === 'year' ? ANDROID_YEAR_BASE_PLAN : ANDROID_WEEKLY_BASE_PLAN);
 
+type StoreItem = Awaited<ReturnType<typeof fetchWithReconnect>>[number];
+
+/** Android 구독 상품에서 그 이용권의 기본 요금제 오퍼 (없으면 첫 오퍼). Android 구독이 아니면 null */
+function androidOfferOf(item: StoreItem, plan: PlanKey) {
+  if (item.platform !== 'android' || item.type !== 'subs') return null;
+  const offers = item.subscriptionOffers ?? [];
+  return offers.find((o) => o.basePlanIdAndroid === androidBasePlan(plan)) ?? offers[0] ?? null;
+}
+
+/**
+ * 결제 직전 상품 조회. 연결을 새로 맺어도 잠깐의 오류(-1·2·12)로 실패하면 조금 기다렸다 한 번 더 묻는다
+ * — 결제 화면을 연 동안 스토어 앱이 깨어나거나 네트워크가 돌아오는 경우가 많다.
+ */
+async function fetchForPurchase(request: FetchRequest) {
+  try {
+    return await fetchWithReconnect(request);
+  } catch (error) {
+    const { responseCode } = problemOf(error);
+    if (responseCode == null || !TRANSIENT_STORE_CODES.has(responseCode)) throw error;
+    await new Promise((resolve) => setTimeout(resolve, PURCHASE_RETRY_DELAY_MS));
+    return await fetchWithReconnect(request);
+  }
+}
+
 /**
  * 스토어에서 상품 정보(현지 통화 표시 가격)를 가져온다. 실패하면 기본 표시 가격을 쓴다.
  * 하루 이용권 특가 상품은 스토어가 돌려줬을 때만 목록 끝에 붙인다 (기본 가격이 없어 확인 전에는 보여 줄 수 없다).
@@ -239,16 +275,12 @@ export async function loadPlanProducts(): Promise<PlanProduct[]> {
     const list: PlanProduct[] = fallback.map((f) => {
       const item = items.find((i) => i.id === f.productId);
       if (!item) return { ...f, available: false };
-      let offerToken: string | null | undefined;
-      let displayPrice = item.displayPrice;
       if (item.platform === 'android' && item.type === 'subs') {
-        const offers = item.subscriptionOffers ?? [];
-        const offer = offers.find((o) => o.basePlanIdAndroid === androidBasePlan(f.plan)) ?? offers[0];
-        offerToken = offer?.offerTokenAndroid;
-        displayPrice = offer?.displayPrice || displayPrice;
-        return { ...f, displayPrice: displayPrice || f.displayPrice, offerToken, available: true };
+        const offer = androidOfferOf(item, f.plan);
+        const displayPrice = offer?.displayPrice || item.displayPrice;
+        return { ...f, displayPrice: displayPrice || f.displayPrice, offerToken: offer?.offerTokenAndroid, available: true };
       }
-      return { ...f, displayPrice: displayPrice || f.displayPrice, offerToken, available: true, ...numeric(item) };
+      return { ...f, displayPrice: item.displayPrice || f.displayPrice, offerToken: undefined, available: true, ...numeric(item) };
     });
     const sale = items.find((i) => i.id === DAY_SALE_PRODUCT_ID);
     if (sale?.displayPrice) list.push({ plan: 'day', productId: DAY_SALE_PRODUCT_ID, displayPrice: sale.displayPrice, available: true, sale: true, ...numeric(sale) });
@@ -263,15 +295,18 @@ export async function purchasePlan(product: PlanProduct): Promise<PurchaseOutcom
   if (!IAP || !(await ensureConnected())) return { status: 'error', message: '스토어에 연결하지 못했어요. 네트워크를 확인하고 다시 시도해주세요.' };
   const iap = IAP;
   // 스토어가 이 상품을 내려주지 않으면 결제 시트가 뜨지 않는다 — 조용히 실패하지 말고 이유를 알린다
-  // 조회가 실패하면 연결을 새로 맺고 한 번 더 묻는다 (Android 결제 서비스 끊김)
+  // 조회가 실패하면 연결을 새로 맺고 한 번 더 묻고, 잠깐의 오류면 조금 기다렸다 또 묻는다 (Android 결제 서비스 끊김·네트워크)
   lastProblem = null;
+  let item: StoreItem | undefined;
   try {
-    const found = await fetchWithReconnect({ skus: [product.productId], type: isSubscriptionPlan(product.plan) ? 'subs' : 'in-app' });
-    if (!found.some((i) => i.id === product.productId))
-      return { status: 'error', message: `스토어에서 이 상품을 찾지 못했어요. 잠시 후 다시 시도해주세요. (${product.productId})` };
+    const found = await fetchForPurchase({ skus: [product.productId], type: isSubscriptionPlan(product.plan) ? 'subs' : 'in-app' });
+    item = found.find((i) => i.id === product.productId);
+    if (!item) return { status: 'error', message: `스토어에서 이 상품을 찾지 못했어요. 잠시 후 다시 시도해주세요. (${product.productId})` };
   } catch (error) {
     return { status: 'error', message: `${storeHint(error)}${codeOf(error)}` };
   }
+  // Android 구독은 방금 받은 요금제 오퍼 토큰을 쓴다 — 결제 화면을 열 때 조회가 실패해 기본 목록(토큰 없음)을 보고 있었어도 맞는 요금제로 결제된다
+  const offerToken = androidOfferOf(item, product.plan)?.offerTokenAndroid || product.offerToken;
   settle({ status: 'cancelled' });
   return new Promise<PurchaseOutcome>((resolve) => {
     inflight = resolve;
@@ -281,7 +316,7 @@ export async function purchasePlan(product: PlanProduct): Promise<PurchaseOutcom
       isSubscriptionPlan(product.plan)
         ? iap.requestPurchase({
             type: 'subs',
-            request: { apple: { sku }, google: { skus: [sku], subscriptionOffers: product.offerToken ? [{ sku, offerToken: product.offerToken }] : [] } },
+            request: { apple: { sku }, google: { skus: [sku], subscriptionOffers: offerToken ? [{ sku, offerToken }] : [] } },
           })
         : iap.requestPurchase({ type: 'in-app', request: { apple: { sku }, google: { skus: [sku] } } });
     request.catch((error: unknown) => {

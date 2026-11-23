@@ -4,6 +4,7 @@
  * 어제(한국 날짜) 하루를 모아 운영자 텔레그램으로 보낸다:
  *   신규 회원(10명까지 닉네임·가입 방법·이메일)과 누적 회원 · 스토어 매출(실제 결제만, 스토어·상품별)·환불·해지 예약
  *   · 서비스 이용 기록이 있는 기기의 앱 실행 기기 수·코칭 결과 수·결제 화면 열람 기기 수·결제창 진입 기기 수
+ *   · 이번 달·누적 매출, 어제 새 기기와 누적 회원의 아이폰/갤럭시·들어온 경로·나이·성별, 어제 세션 체류 시간 (_report-detail.ts)
  *     (1.0.4 부터는 만 14세 이상 전체, 1.0.3 까지의 앱은 이용 기록에 선택 동의한 기기만 보낸다)
  * 응답에는 리포트 내용(이메일 등)을 싣지 않는다.
  * 환경변수: CRON_SECRET (없으면 503), SUPABASE_URL·SUPABASE_SERVICE_ROLE_KEY, TELEGRAM_BOT_TOKEN·TELEGRAM_CHAT_ID
@@ -14,6 +15,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 import { isSaleProduct, type PlanKey } from '../src/lib/billing/plans';
 
+import { collectDetail, detailSections, revenueTotalLines, type DetailData } from './_report-detail';
 import { formatRevenue, planLabel, STORE_LABELS, sumRevenue, type StoreName } from './_store';
 import { countRows, query, supabaseReady } from './_supabase';
 import { escapeHtml, kstDate, kstMidnight, notifyTelegram, telegramReady } from './_telegram';
@@ -99,6 +101,8 @@ export interface ReportData {
   checkout: number | null;
   /** A/B 「처음 5분 무제한」 누적 (실험 시작 전 날짜면 없음) */
   ab?: { on: AbArm; off: AbArm } | null;
+  /** 누적 매출 · 기기 · 경로 · 나이·성별 · 체류 시간 */
+  detail?: DetailData | null;
 }
 
 /** 리포트 문구 (이용자가 보낸 값은 escape) */
@@ -132,6 +136,7 @@ export function reportMessage(d: ReportData): string {
     const cancels = d.sales.filter((s) => s.kind === 'cancel').length;
     lines.push(` · ↩️ 환불 ${refunds}건 · ⚠️ 해지 예약 ${cancels}건`);
   }
+  if (d.detail) lines.push(...revenueTotalLines(d.detail));
 
   lines.push('');
   lines.push('📱 이용 (이용 기록이 있는 기기)');
@@ -144,6 +149,7 @@ export function reportMessage(d: ReportData): string {
     lines.push(abLine('5분 체험', d.ab.on));
     lines.push(abLine('지금 규칙', d.ab.off));
   }
+  if (d.detail) lines.push(...detailSections(d.detail));
   return lines.join('\n');
 }
 
@@ -165,7 +171,11 @@ export async function collectReport(now = Date.now()): Promise<ReportData> {
     distinctDevices('app_event', `name=eq.purchase_start&${between('created_at')}`),
   ]);
   const ab = end.getTime() > AB_FREE5_START ? { on: await abArm('on', end.toISOString()), off: await abArm('off', end.toISOString()) } : null;
-  return { day: kstDate(start), newMembers, members, totalMembers, sales, launches, coaching, paywall, checkout, ab };
+  // 이번 달 = 어제가 속한 달(한국 시간) 1일 0시부터
+  const kst = new Date(start.getTime() + 9 * 60 * 60 * 1000);
+  const monthStart = new Date(Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), 1) - 9 * 60 * 60 * 1000);
+  const detail = await collectDetail(start, end, monthStart).catch(() => null);
+  return { day: kstDate(start), newMembers, members, totalMembers, sales, launches, coaching, paywall, checkout, ab, detail };
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

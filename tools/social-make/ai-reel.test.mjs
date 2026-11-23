@@ -91,3 +91,34 @@ test('사람 장면 자막 위치(captionTop) — 얼굴을 가리지 않게 내
   assert.ok(FORMATS['ai-reel'].check({ ...sample, person: { ...sample.person, captionTop: 1500 } }).some((p) => p.includes('captionTop')));
   assert.ok(FORMATS['ai-reel'].check({ ...sample, person: { ...sample.person, captionTop: '1150' } }).some((p) => p.includes('captionTop')));
 });
+
+test('상대 인물 장면(other) — 드라마 시리즈 예시는 검사를 통과하고, 빠진 칸은 막는다', async () => {
+  const { resolveOtherCut } = await import('./formats/ai-reel.mjs');
+  const drama = JSON.parse(readFileSync(new URL('./samples/drama-series.json', import.meta.url), 'utf8')).items[0];
+  assert.deepEqual(FORMATS['ai-reel'].check(drama), []);
+  const bad = { ...drama, person: { ...drama.person, other: { caption: '아주아주아주아주아주아주 긴 자막', seconds: 30, image: 'nope.gif' } } };
+  const p = FORMATS['ai-reel'].check(bad);
+  assert.ok(p.some((x) => x.includes('person.other.caption')));
+  assert.ok(p.some((x) => x.includes('person.other.prompt')));
+  assert.ok(p.some((x) => x.includes('person.other.seconds')));
+  assert.ok(p.some((x) => x.includes('person.other.image')));
+  // 자르기 — 기본 0.2~4.6, 영상보다 길면 끝에 맞춤, 너무 짧으면 막음
+  assert.deepEqual(resolveOtherCut(undefined, 8), [0.2, 4.6]);
+  assert.ok(resolveOtherCut([1, 20], 6)[1] < 6);
+  assert.throws(() => resolveOtherCut([0, 0.5], 8), /너무 짧아요/);
+});
+
+test('영상은 앱 코칭 키(GEMINI_API_KEY)로 대신 만들지 않는다 — 영상용 키가 없으면 멈춘다', async () => {
+  const keep = { on: process.env.SOCIAL_AI_VIDEO, app: process.env.GEMINI_API_KEY, video: process.env.GEMINI_VIDEO_API_KEY };
+  process.env.SOCIAL_AI_VIDEO = 'on';
+  process.env.GEMINI_API_KEY = 'app-coach-key';
+  delete process.env.GEMINI_VIDEO_API_KEY;
+  try {
+    await assert.rejects(omniVideo({ prompt: 'x' }), /GEMINI_VIDEO_API_KEY/);
+  } finally {
+    for (const [k, v] of [['SOCIAL_AI_VIDEO', keep.on], ['GEMINI_API_KEY', keep.app], ['GEMINI_VIDEO_API_KEY', keep.video]]) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  }
+});

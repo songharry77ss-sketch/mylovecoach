@@ -77,7 +77,8 @@ interface ConsentRow {
 
 /**
  * 시트 문구. 개인정보 처리방침(site/privacy.html 1·2번(국외 이전 표 포함)·4·5번)에 적힌 내용만 쓴다 — 처리방침을 고치면 여기도 같이 고칠 것.
- * 서버를 거치면 Google(Gemini), 개인 키면 그 키의 회사로 바로 간다. 둘 다 미국 등 해외 서버라 국외 이전이다.
+ * 서버를 거치면 기본 Google(Gemini), Google 이 답하지 못할 때만 Anthropic(Claude)·OpenAI(GPT). 개인 키면 그 키의 회사로 바로 간다.
+ * 모두 미국 등 해외 서버라 국외 이전이다.
  */
 function consentCopy(route: AiRoute) {
   const { company, ai } = AI_PROVIDER_LABEL[route.provider];
@@ -90,7 +91,7 @@ function consentCopy(route: AiRoute) {
     {
       label: '받는 곳',
       text: relay
-        ? 'Google LLC의 Gemini API예요. AI 기능을 쓸 때마다 중계 서버(Vercel)를 거쳐 미국 등 해외 서버로 암호화해서 보내요(국외 이전).'
+        ? '기본은 Google LLC의 Gemini API예요. Google 쪽이 사용량 한도·혼잡·오류로 답하지 못할 때만 같은 내용을 Anthropic PBC의 Claude API나 OpenAI, L.L.C.의 OpenAI API로 보내요. 모두 중계 서버(Vercel)를 거쳐 미국 등 해외 서버로 암호화해서 보내요(국외 이전).'
         : `내가 등록한 API 키의 회사(${company})예요. 중계 서버 없이 이 기기에서 미국 등 해외 서버로 바로 보내요(국외 이전).`,
     },
     {
@@ -100,7 +101,7 @@ function consentCopy(route: AiRoute) {
     {
       label: '보관',
       text: relay
-        ? '중계 서버는 저장하지 않고 전달만 해요(코칭 내용 저장에 따로 동의했다면 캡처를 뺀 코칭 질문·답은 1년 보관). Google에서는 Gemini API 약관에 따라 보관·처리돼요.'
+        ? '중계 서버는 저장하지 않고 전달만 해요(코칭 내용 저장에 따로 동의했다면 캡처를 뺀 코칭 질문·답은 1년 보관). 받은 회사에서는 각 회사의 API 약관과 개인정보 정책에 따라 보관·처리돼요.'
         : `우리 서버를 거치지 않아 우리 쪽엔 남지 않아요. ${company}에서는 그 회사의 약관과 개인정보 정책에 따라 보관·처리돼요.`,
     },
     {
@@ -108,6 +109,13 @@ function consentCopy(route: AiRoute) {
       text: '답장 추천 같은 AI 기능을 쓸 수 없어요. 동의한 뒤에도 마이 → 개인정보에서 언제든 철회할 수 있어요.',
     },
   ];
+  if (relay) {
+    return {
+      title: '대화 내용을 AI로 보내도 될까요?',
+      lead: '답장과 분석을 만들려면, 코칭에 필요한 내용을 AI로 보내야 해요. 기본은 Google(Gemini)이고, 막힐 때만 Anthropic(Claude)·OpenAI(GPT)가 대신 답해요. 동의하면 다음부터는 묻지 않아요.',
+      rows,
+    };
+  }
   return {
     title: `대화 내용을 ${company} AI로 보내도 될까요?`,
     lead: `답장과 분석을 만들려면, 코칭에 필요한 내용을 ${company}의 AI(${ai})로 보내야 해요. 동의하면 다음부터는 묻지 않아요.`,

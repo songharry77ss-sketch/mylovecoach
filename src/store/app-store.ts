@@ -90,6 +90,8 @@ export interface AppState {
   resetEpoch: number;
   /** 채팅 하단의 프리미엄 안내 카드를 닫았는지 */
   upsellDismissed: boolean;
+  /** 대화방 「가입하고 무료 코칭 더 받기」 카드를 닫은 시각 — 3일 뒤 다시 보여 준다 (signup-nudge.ts) */
+  signupNudgeDismissedAt: number | null;
   /** 스토어에 나와 있는 새 버전 (저장하지 않음 — 켤 때마다 서버에 다시 묻는다). 없으면 null */
   appUpdate: AppUpdate | null;
   /** 새 버전 안내를 미룬 기록 — 그 버전은 until 까지 다시 권하지 않는다 */
@@ -115,6 +117,8 @@ export interface AppState {
   aiConsentAt: number | null;
   /** 처음 앱을 연 곳 (이용 기록과 함께 전송) */
   acquisition: Acquisition | null;
+  /** 광고 유입(Play 설치 경로·애플 광고 귀속)을 확인한 시각 — 한 번만 본다 (install-attribution.ts) */
+  attributionCheckedAt: number | null;
   /** 진동 효과 */
   hapticsOn: boolean;
   /** 채팅방 목록에서 대화 미리보기 숨기기 */
@@ -183,6 +187,7 @@ export interface AppState {
   /** AI 분석 동의 기록 — 동의한 AI 회사, 동의 안 함·철회면 null */
   setAiConsent: (provider: AiProvider | null) => void;
   setAcquisition: (acquisition: Acquisition) => void;
+  markAttributionChecked: (at: number) => void;
   setPremium: (premium: PremiumState | null) => void;
   setTeam: (team: TeamState | null) => void;
   setMember: (member: MemberState | null) => void;
@@ -203,6 +208,7 @@ export interface AppState {
   /** 예전 이름 — consumeQuota 와 같다 */
   consumeFreeCredit: () => void;
   dismissUpsell: () => void;
+  dismissSignupNudge: (at: number) => void;
   setAppUpdate: (update: AppUpdate | null) => void;
   /** 새 버전 안내를 until 까지 미룬다. null 이면 미룬 기록을 지워 바로 다시 권한다 */
   snoozeUpdate: (snooze: { version: string; until: number } | null) => void;
@@ -261,9 +267,10 @@ const LEGACY_CONSENT_VERSION = 2;
 
 /**
  * 개인정보 안내의 판. 3 = 서비스 이용 기록 기본 수집·「코칭 내용 저장」 선택 동의로 바뀐 안내 (2026-10-21 처리방침).
+ * 4 = AI 예비 경로(Google 이 답하지 못할 때 Anthropic·OpenAI) 추가 (2026-11-20 처리방침).
  * 새 이용자는 첫 화면 동의 창에서, 기존 이용자는 홈의 안내 카드로 한 번 본다
  */
-export const PRIVACY_NOTICE_VERSION = 3;
+export const PRIVACY_NOTICE_VERSION = 4;
 
 /** 「분석 중」인 채로 저장돼 있던 코치 말풍선을 앱을 다시 켤 때 바꿔 읽는 안내 (「다시 시도」 버튼이 뜬다) */
 const STALLED_ERROR = '분석이 중간에 멈췄어요. 다시 시도해주세요.';
@@ -359,6 +366,7 @@ export const useAppStore = create<AppState>()(
       legacyServerRecords: false,
       resetEpoch: 0,
       upsellDismissed: false,
+      signupNudgeDismissedAt: null,
       appUpdate: null,
       updateSnooze: null,
       deviceId: createId('d_'),
@@ -370,6 +378,7 @@ export const useAppStore = create<AppState>()(
       aiConsentProvider: null,
       aiConsentAt: null,
       acquisition: null,
+      attributionCheckedAt: null,
       hapticsOn: true,
       hidePreviews: false,
       onboardingSeen: false,
@@ -532,6 +541,7 @@ export const useAppStore = create<AppState>()(
       dismissPrivacyNotice: () => set({ privacyNoticeSeen: PRIVACY_NOTICE_VERSION }),
       setAiConsent: (provider) => set({ aiConsent: provider !== null, aiConsentProvider: provider, aiConsentAt: Date.now() }),
       setAcquisition: (acquisition) => set({ acquisition }),
+      markAttributionChecked: (at) => set({ attributionCheckedAt: at }),
       setPremium: (premium) => set({ premium }),
       setTeam: (team) => set({ team }),
       setMember: (member) => set({ member }),
@@ -574,6 +584,7 @@ export const useAppStore = create<AppState>()(
       },
       consumeFreeCredit: () => get().consumeQuota(),
       dismissUpsell: () => set({ upsellDismissed: true }),
+      dismissSignupNudge: (at) => set({ signupNudgeDismissedAt: at }),
       setAppUpdate: (appUpdate) => set({ appUpdate }),
       snoozeUpdate: (updateSnooze) => set({ updateSnooze }),
       setHapticsOn: (hapticsOn) => set({ hapticsOn }),
@@ -742,6 +753,7 @@ export const useAppStore = create<AppState>()(
           legacyDeletionChecked: s.legacyDeletionChecked,
           legacyServerRecords: s.legacyServerRecords,
           upsellDismissed: s.upsellDismissed,
+          signupNudgeDismissedAt: s.signupNudgeDismissedAt,
           updateSnooze: s.updateSnooze,
           deviceId: s.deviceId,
           termsAgreedAt: s.termsAgreedAt,
@@ -752,6 +764,7 @@ export const useAppStore = create<AppState>()(
           aiConsentProvider: s.aiConsentProvider,
           aiConsentAt: s.aiConsentAt,
           acquisition: s.acquisition,
+          attributionCheckedAt: s.attributionCheckedAt,
           hapticsOn: s.hapticsOn,
           hidePreviews: s.hidePreviews,
           onboardingSeen: s.onboardingSeen,
@@ -780,7 +793,7 @@ export const useAppStore = create<AppState>()(
       //   그 기록은 지우지 않는다 (사용자 결정 10-07 「새 동의만 저장, 예전 기록은 둔다」)
       merge: (persisted, current) => {
         const saved = (persisted ?? {}) as Partial<AppState> & LegacySaved;
-        const provider = saved.aiConsentProvider === 'google' || saved.aiConsentProvider === 'anthropic' ? saved.aiConsentProvider : null;
+        const provider = saved.aiConsentProvider === 'relay' || saved.aiConsentProvider === 'google' || saved.aiConsentProvider === 'anthropic' ? saved.aiConsentProvider : null;
         const savedAiAt = typeof saved.aiConsentAt === 'number' ? saved.aiConsentAt : null;
         // 저장소를 늦게 다 읽었고(2.5초 안전장치로 먼저 시작) 그사이 이번 실행에서 동의를 새로 골랐으면 그 답이 더 새롭다 —
         // 기기 시계와 상관없이 지금 고른 답을 남긴다 (저장소를 다시 읽는 곳은 없으므로 current 의 답은 이번 실행의 것)

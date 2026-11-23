@@ -665,6 +665,7 @@
           ['기기', esc([u.platform, u.app_version ? `v${u.app_version}` : null].filter(Boolean).join(' · '))],
           ['들어온 곳', esc(sourceLabel(u))],
           ['광고 링크', esc([acq.source && `utm_source=${acq.source}`, acq.medium && `utm_medium=${acq.medium}`, acq.campaign && `utm_campaign=${acq.campaign}`].filter(Boolean).join(' · '))],
+          ['광고 상세', esc(acq.source === 'apple-ads' ? [acq.campaign && `캠페인 ${acq.campaign}`, acq.content && `광고그룹 ${acq.content}`, acq.term && `키워드 ${acq.term}`].filter(Boolean).join(' · ') : [acq.content && `utm_content=${acq.content}`, acq.term && `utm_term=${acq.term}`].filter(Boolean).join(' · '))],
           ['이전 사이트', esc(acq.referrer || '')],
           ['처음 연 주소', esc(acq.landing || '')],
           ['시작 방식', esc(START[meta.start_mode] ?? '')],

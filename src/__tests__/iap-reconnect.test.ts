@@ -87,6 +87,19 @@ describe('스토어 상품 조회 실패', () => {
     expect(mockIap.requestPurchase).not.toHaveBeenCalled();
   });
 
+  it('결제 직전 조회가 「기능 미지원(-2)」이면 기다리지 않고 스토어 앱 업데이트를 안내한다 (2026-11-20 04시)', async () => {
+    mockIap.fetchProducts.mockRejectedValue(playError(-2));
+
+    const outcome = await iap.purchasePlan({ plan: 'credits', productId: 'mylovecoach.credits.10', displayPrice: '₩4,900' });
+
+    expect(outcome.status).toBe('error');
+    if (outcome.status !== 'error') return;
+    expect(outcome.message).toContain('스토어 앱이 오래돼서');
+    expect(outcome.message).toContain('(query-product · -2)');
+    expect(mockIap.fetchProducts).toHaveBeenCalledTimes(2);
+    expect(mockIap.requestPurchase).not.toHaveBeenCalled();
+  });
+
   it('결제 직전 조회가 한 번 실패해도 다시 연결해 찾으면 결제 시트를 띄운다', async () => {
     mockIap.fetchProducts.mockRejectedValueOnce(playError(-1)).mockResolvedValueOnce([product('mylovecoach.credits.10')]);
 
@@ -99,6 +112,52 @@ describe('스토어 상품 조회 실패', () => {
       request: { apple: { sku: 'mylovecoach.credits.10' }, google: { skus: ['mylovecoach.credits.10'] } },
     });
     expect(iap.lastStoreProblem()).toEqual({ code: 'query-product', responseCode: -1 });
+  });
+
+  describe('결제 직전 조회가 잠깐의 오류(-1·2·12)로 거듭 실패할 때 (2026-11-20 1년권 「query-product · 12」)', () => {
+    afterEach(() => jest.useRealTimers());
+
+    it('다시 연결해도 12 면 조금 기다렸다 한 번 더 묻고, 그때 찾으면 결제 시트를 띄운다', async () => {
+      jest.useFakeTimers();
+      mockIap.fetchProducts
+        .mockRejectedValueOnce(playError(12))
+        .mockRejectedValueOnce(playError(12))
+        .mockResolvedValueOnce([product('mylovecoach.credits.10')]);
+
+      void iap.purchasePlan({ plan: 'credits', productId: 'mylovecoach.credits.10', displayPrice: '₩4,900' });
+      await jest.advanceTimersByTimeAsync(0);
+      expect(mockIap.requestPurchase).not.toHaveBeenCalled();
+      await jest.advanceTimersByTimeAsync(iap.PURCHASE_RETRY_DELAY_MS);
+
+      expect(mockIap.fetchProducts).toHaveBeenCalledTimes(3);
+      expect(mockIap.requestPurchase).toHaveBeenCalledWith(expect.objectContaining({ type: 'in-app' }));
+    });
+
+    it('끝까지 12 면 스토어 앱 열기·네트워크 바꾸기를 안내하고 응답 코드를 붙인다', async () => {
+      jest.useFakeTimers();
+      mockIap.fetchProducts.mockRejectedValue(playError(12));
+
+      const pending = iap.purchasePlan({ plan: 'year', productId: 'mylovecoach.pass.year', displayPrice: '₩29,800' });
+      await jest.advanceTimersByTimeAsync(iap.PURCHASE_RETRY_DELAY_MS);
+      const outcome = await pending;
+
+      expect(outcome.status).toBe('error');
+      if (outcome.status !== 'error') return;
+      expect(outcome.message).toContain('스토어 앱을 한 번 열었다가 돌아오거나');
+      expect(outcome.message).toContain('(query-product · 12)');
+      expect(mockIap.fetchProducts).toHaveBeenCalledTimes(4);
+      expect(mockIap.requestPurchase).not.toHaveBeenCalled();
+    });
+
+    it('결제 사용 불가(3)처럼 기다려도 안 풀리는 오류는 기다리지 않고 바로 알린다', async () => {
+      jest.useFakeTimers();
+      mockIap.fetchProducts.mockRejectedValue(playError(3));
+
+      const outcome = await iap.purchasePlan({ plan: 'credits', productId: 'mylovecoach.credits.10', displayPrice: '₩4,900' });
+
+      expect(outcome.status).toBe('error');
+      expect(mockIap.fetchProducts).toHaveBeenCalledTimes(2);
+    });
   });
 });
 
@@ -191,6 +250,29 @@ describe('1년권 (iOS 자동 갱신 없는 구독 · Android 선불 요금제)'
     expect(mockIap.requestPurchase).toHaveBeenCalledWith({
       type: 'subs',
       request: { apple: { sku: 'mylovecoach.pass.year' }, google: { skus: ['mylovecoach.pass.year'], subscriptionOffers: [{ sku: 'mylovecoach.pass.year', offerToken: 'tok-year' }] } },
+    });
+  });
+
+  it('결제 화면이 기본 목록(오퍼 토큰 없음)이어도 결제 직전에 받은 1년권 선불 요금제 토큰으로 결제한다', async () => {
+    mockIap.fetchProducts.mockResolvedValue([
+      {
+        id: 'mylovecoach.pass.year',
+        displayPrice: '',
+        platform: 'android',
+        type: 'subs',
+        subscriptionOffers: [
+          { basePlanIdAndroid: 'other', offerTokenAndroid: 'tok-other', displayPrice: '₩1' },
+          { basePlanIdAndroid: 'year', offerTokenAndroid: 'tok-year-fresh', displayPrice: '₩29,800' },
+        ],
+      },
+    ]);
+
+    void iap.purchasePlan({ plan: 'year', productId: 'mylovecoach.pass.year', displayPrice: '₩29,800' });
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(mockIap.requestPurchase).toHaveBeenCalledWith({
+      type: 'subs',
+      request: { apple: { sku: 'mylovecoach.pass.year' }, google: { skus: ['mylovecoach.pass.year'], subscriptionOffers: [{ sku: 'mylovecoach.pass.year', offerToken: 'tok-year-fresh' }] } },
     });
   });
 

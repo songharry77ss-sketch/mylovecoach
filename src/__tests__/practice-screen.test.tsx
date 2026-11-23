@@ -116,7 +116,7 @@ beforeAll(async () => {
     user: { name: '지훈', gender: 'male', style: [], defaultTone: 'natural', createdAt: 0 },
     // AI 분석 동의는 받은 상태 (동의 시트는 따로 시험한다). 연습 1회 차감도 이미 한 상태
     aiConsent: true,
-    aiConsentProvider: 'google',
+    aiConsentProvider: 'relay',
     aiConsentAt: 1,
     practice: { pr_long: { id: 'pr_long', persona: PERSONA, turns: longTurns(), heat: 20, mood: '🙂', startedAt: 0, updatedAt: 0, charged: true } },
   });
@@ -164,7 +164,7 @@ describe('연애 연습 화면 — 말풍선 상한과 AI 답변 신고', () => 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('https://coach.test/api/coach');
-    expect(init?.headers?.['x-ai-consent']).toBe('google');
+    expect(init?.headers?.['x-ai-consent']).toBe('google,anthropic,openai');
     const body = JSON.parse(init?.body ?? '{}') as { mode: string; turns: { role: string; text: string }[] };
     expect(body.mode).toBe('practice');
     expect(body.turns).toHaveLength(PRACTICE_PROMPT_TURNS);
@@ -203,7 +203,7 @@ describe('연애 연습 화면 — 말풍선 상한과 AI 답변 신고', () => 
     }));
     useAppStore.setState({
       aiConsent: true,
-      aiConsentProvider: 'google',
+      aiConsentProvider: 'relay',
       usage: EMPTY_USAGE,
       wallet: { ...EMPTY_WALLET, credits: 10 },
       practice: { pr_long: { id: 'pr_long', persona: PERSONA, turns: [{ id: 't0', role: 'them', text: PERSONA.opener, at: 0 }], heat: 20, mood: '🙂', startedAt: 0, updatedAt: 0, charged: false } },

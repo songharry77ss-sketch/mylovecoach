@@ -192,7 +192,7 @@ export default function HomeScreen() {
             <View style={styles.flex}>
               <AppText variant="smallStrong">개인정보 처리방침이 바뀌었어요</AppText>
               <AppText variant="caption" color="textSecondary" style={styles.noticeBody}>
-                앱 이용 기록(화면·버튼 이용)은 서비스 제공·개선을 위해 자동으로 수집돼요(만 14세 미만 제외). 질문·답변 같은 코칭 내용 저장은 계속 선택이에요.
+                AI가 답하지 못하는 일이 없도록, Google(Gemini)이 사용량 한도·혼잡·오류로 막힐 때만 Anthropic(Claude)·OpenAI(GPT)가 대신 답해요. 다음에 AI 기능을 쓸 때 한 번 더 동의를 물어요.
               </AppText>
               <AppText variant="smallStrong" color="primary" accessibilityRole="link" onPress={() => closePrivacyNotice(true)} style={styles.noticeMore}>
                 자세히 보기 · 설정 바꾸기 ›
