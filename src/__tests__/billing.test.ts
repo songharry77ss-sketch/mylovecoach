@@ -205,7 +205,7 @@ describe('팀원 무제한', () => {
   });
 });
 
-describe('가입 규칙 (맛보기 1회 → 가입 보너스 3회 + 매일 1회)', () => {
+describe('가입 규칙 (맛보기 3회 → 가입 보너스 3회 + 매일 1회)', () => {
   const guest = freeRules(true, false);
   const member = freeRules(true, true);
 
@@ -213,9 +213,13 @@ describe('가입 규칙 (맛보기 1회 → 가입 보너스 3회 + 매일 1회)
     expect(freeRules(false, false)).toEqual({ trial: FREE_TRIAL_TOTAL, daily: FREE_DAILY });
   });
 
-  it('비회원은 맛보기 1회 뒤 막히고, 가입하면 3회를 더 쓴다', () => {
+  it('비회원은 맛보기 3회 뒤 막히고, 가입하면 3회를 더 쓴다', () => {
+    expect(GUEST_TRIAL_TOTAL).toBe(3);
     expect(quotaStatus(null, EMPTY_USAGE, NOW, EMPTY_WALLET, null, guest)).toEqual({ kind: 'trial', remaining: GUEST_TRIAL_TOTAL, free: GUEST_TRIAL_TOTAL, credits: 0 });
-    let usage = consumeOne(null, EMPTY_USAGE, EMPTY_WALLET, NOW, null, guest).usage;
+    // 맛보기를 다 쓰기 전에는 막히지 않는다 (11-23: 1회 → 3회). 맛보기는 어제 다 쓴 것으로 하고, 오늘 가입하는 경우를 본다
+    let usage = consumeOne(null, EMPTY_USAGE, EMPTY_WALLET, NOW - DAY, null, guest).usage;
+    expect(quotaStatus(null, usage, NOW - DAY, EMPTY_WALLET, null, guest)).toEqual({ kind: 'trial', remaining: 2, free: 2, credits: 0 });
+    for (let i = 1; i < GUEST_TRIAL_TOTAL; i++) usage = consumeOne(null, usage, EMPTY_WALLET, NOW - DAY, null, guest).usage;
     const blocked = quotaStatus(null, usage, NOW, EMPTY_WALLET, null, guest);
     expect(blocked).toEqual({ kind: 'exhausted', remaining: 0, free: 0, credits: 0, daily: 0 });
     expect(quotaLabel(blocked)).toContain('가입하면');
