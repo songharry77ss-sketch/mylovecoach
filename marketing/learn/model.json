@@ -1,125 +1,131 @@
 {
-  "at": "2026-11-22T07:39:39.208Z",
-  "scored": 20,
+  "at": "2026-11-23T08:28:35.325Z",
+  "scored": 22,
   "measuring": 5,
   "base": {
-    "views": 16,
+    "views": 72,
     "spread": 0
   },
   "kinds": {
-    "reel": 2.47,
-    "carousel": 0.32,
-    "image": -0.1
+    "reel": 1.47,
+    "carousel": -0.52,
+    "image": -1
   },
   "formats": {
     "chat-reel": {
       "n": 1,
-      "mean": 3.38,
-      "score": 2.7,
+      "mean": 2.04,
+      "score": 1.61,
       "views": 236,
       "spread": 0.9
     },
     "pick-carousel": {
       "n": 1,
-      "mean": -0.13,
-      "score": 0.21,
+      "mean": -1.47,
+      "score": -0.76,
       "views": 13,
       "spread": 0
     },
     "pick-reel": {
-      "n": 0,
-      "mean": null,
-      "score": 2.47,
-      "views": null,
-      "spread": null
+      "n": 1,
+      "mean": 1.43,
+      "score": 1.46,
+      "views": 226,
+      "spread": 0
     },
     "list-carousel": {
       "n": 0,
       "mean": null,
-      "score": 0.32,
+      "score": -0.52,
       "views": null,
       "spread": null
     },
     "kkti-pair": {
       "n": 0,
       "mean": null,
-      "score": 0.32,
+      "score": -0.52,
       "views": null,
       "spread": null
     },
     "app-reel": {
       "n": 0,
       "mean": null,
-      "score": 2.47,
+      "score": 1.47,
       "views": null,
       "spread": null
     },
     "old-reel": {
       "n": 4,
-      "mean": 2.85,
-      "score": 2.69,
+      "mean": 1.5,
+      "score": 1.49,
       "views": 181,
       "spread": 1
     },
     "old-carousel": {
       "n": 4,
-      "mean": 0.68,
-      "score": 0.53,
+      "mean": -0.67,
+      "score": -0.6,
       "views": 10,
       "spread": 7.5
     },
     "old-image": {
       "n": 6,
-      "mean": -0.15,
-      "score": -0.1,
+      "mean": -1.5,
+      "score": -1,
       "views": 13,
       "spread": 0
     },
     "real-reel": {
       "n": 1,
-      "mean": 5.73,
-      "score": 3.28,
+      "mean": 4.38,
+      "score": 2.2,
       "views": 607,
       "spread": 4.1
     },
     "ai-reel": {
-      "n": 3,
-      "mean": 3.04,
-      "score": 2.76,
-      "views": 211,
-      "spread": 0.6
+      "n": 4,
+      "mean": 1.67,
+      "score": 1.58,
+      "views": 221,
+      "spread": 0.5
     }
   },
   "topics": {
     "썸": {
-      "n": 12,
-      "score": 1.16,
-      "views": 126,
-      "spread": 0.9
+      "n": 13,
+      "score": 0.17,
+      "views": 133,
+      "spread": 0.8
     },
     "연락 텀·읽씹": {
       "n": 2,
-      "score": 1.24,
+      "score": 0.7,
       "views": 233,
       "spread": 0.5
     },
     "꼴: 받은 카톡": {
       "n": 2,
-      "score": 0.53,
+      "score": 0,
       "views": 122,
       "spread": 0
     },
     "성향·궁합": {
       "n": 7,
-      "score": 0.73,
+      "score": -0.21,
       "views": 76,
       "spread": 0.6
     },
     "시즌": {
       "n": 1,
-      "score": 0.81,
+      "score": 0.47,
       "views": 199,
       "spread": 1.1
+    },
+    "재회·전 애인": {
+      "n": 1,
+      "score": 0.39,
+      "views": 252,
+      "spread": 0
     }
   },
   "best": [
@@ -132,7 +138,7 @@
       "shares": 7,
       "saved": 0,
       "spread": 4.1,
-      "score": 5.73
+      "score": 4.38
     },
     {
       "id": "ig-18126614482676279",
@@ -143,7 +149,7 @@
       "shares": 0,
       "saved": 3,
       "spread": 4.1,
-      "score": 3.91
+      "score": 2.56
     },
     {
       "id": "ig-18031403531702221",
@@ -154,7 +160,7 @@
       "shares": 3,
       "saved": 0,
       "spread": 30,
-      "score": 3.74
+      "score": 2.39
     }
   ],
   "worst": [
@@ -167,7 +173,7 @@
       "shares": 0,
       "saved": 0,
       "spread": 0,
-      "score": -0.85
+      "score": -2.19
     },
     {
       "id": "ig-18115733822517290",
@@ -178,7 +184,7 @@
       "shares": 0,
       "saved": 0,
       "spread": 0,
-      "score": -0.26
+      "score": -1.61
     }
   ],
   "week": [
@@ -186,8 +192,8 @@
     "list-carousel",
     "chat-reel",
     "kkti-pair",
-    "pick-reel",
+    "app-reel",
     "pick-carousel",
-    "app-reel"
+    "pick-reel"
   ]
 }
