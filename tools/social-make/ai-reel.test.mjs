@@ -122,3 +122,46 @@ test('영상은 앱 코칭 키(GEMINI_API_KEY)로 대신 만들지 않는다 —
     }
   }
 });
+
+test('정지 그림 모드(stills) — 돈 드는 영상 모델 없이, 그림이 없으면 막고 c 는 b 로 대신한다', async () => {
+  const { personStills, otherStill, STILL_CUTS, resolveCuts } = await import('./formats/ai-reel.mjs');
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'ai-reel-still-'));
+  for (const f of ['a.png', 'b.png', 'o.png']) writeFileSync(path.join(dir, f), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+  const s = personStills({ person: { stills: { a: 'a.png', b: 'b.png' } } }, dir);
+  assert.equal(s.c.rel, 'b.png');
+  assert.equal(personStills({ person: {} }, dir), null);
+  assert.equal(otherStill({ person: { other: { still: 'o.png' } } }, dir).mime, 'image/png');
+  assert.throws(() => personStills({ person: { stills: { a: 'a.png' } } }, dir), /stills/);
+  // 그림 경계(4초)에 맞춘 기본 구간 — 첫 프레임부터 얼굴(훅)
+  const c = resolveCuts(STILL_CUTS, 12);
+  assert.equal(c.a[0], 0);
+  assert.ok(c.replyAt >= 8 && c.replyAt < 8.5);
+  const bad = FORMATS['ai-reel'].check({ ...sample, person: { ...sample.person, stills: { a: 'tools/없는.png', b: 'tools/없는.png' }, badge: '열여섯 자가 넘는 아주 아주 긴 꼬리표입니다' } });
+  assert.ok(bad.some((x) => x.includes('person.stills.a')));
+  assert.ok(bad.some((x) => x.includes('person.badge')));
+});
+
+test('정지 그림 필터 — 다가가기·흔들림, 반전은 흰 번쩍임 + 확 다가가기', async () => {
+  const { stillFilter } = await import('./formats/ai-reel.mjs');
+  const calm = stillFilter(0, 4, 's0');
+  assert.match(calm, /^\[0:v\]/);
+  assert.match(calm, /zoompan=z='1\+0\.09\*on\/120'/);
+  assert.match(calm, /crop=1080:1920:x='[^']*sin/);
+  assert.doesNotMatch(calm, /fade/);
+  assert.match(calm, /trim=end_frame=120.*\[s0\]$/);
+  const punch = stillFilter(2, 5, 'o', { punch: true });
+  assert.match(punch, /fade=t=in:st=0:d=0\.25:color=white/);
+  assert.match(punch, /if\(lt\(on,8\)/);
+});
+
+test('「읽씹 전쟁」 3부작 — 정지 그림 모드로 검사를 통과하고, 재연·AI 연출·근거를 캡션에 밝힌다', () => {
+  const series = JSON.parse(readFileSync(new URL('./samples/late-reply-series.json', import.meta.url), 'utf8')).items;
+  assert.equal(series.length, 3);
+  for (const it of series) {
+    assert.deepEqual(FORMATS['ai-reel'].check(it), [], it.id);
+    assert.ok(it.person.stills && it.person.other.still, `${it.id} 정지 그림 모드`);
+    assert.equal(it.person.prompt, undefined);
+    assert.match(it.caption, /지어낸 재연/);
+    assert.match(it.caption, /고민 1위/);
+  }
+});
