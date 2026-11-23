@@ -1,0 +1,65 @@
+{
+  "at": "2026-11-23T14:38:55.268Z",
+  "note": "운영 코치 서버(/api/coach)가 돌려준 실제 결과 — app-reel 녹화에 넣음",
+  "request": {
+    "crush": {
+      "name": "도윤",
+      "gender": "male",
+      "relationship": "talking",
+      "style": [],
+      "notes": "",
+      "heat": 0
+    },
+    "user": {
+      "name": "",
+      "gender": "female",
+      "style": []
+    },
+    "tone": "natural",
+    "emoji": "on",
+    "toneChosen": false,
+    "emojiChosen": false,
+    "text": "나: 오늘 점심 뭐 먹었어?\n도윤: 아 미안 ㅠㅠ 이제 봤어\n도윤: 오늘 하루 종일 정신없었다\n도윤: 너는 저녁 먹었어?",
+    "history": [],
+    "today": "11/23(월)"
+  },
+  "analysis": {
+    "callName": null,
+    "speechLevel": "casual",
+    "summary": "바쁜 와중에도 미안함과 함께 먼저 밥을 먹었는지 물어보며 대화를 이어가려는 호감이 보여요.",
+    "temperature": "warm",
+    "interestScore": 75,
+    "heatDelta": 5,
+    "insights": [
+      "답장이 늦었지만 핑계 대신 챙겨주는 질문을 건넸어요."
+    ],
+    "replies": [
+      {
+        "tone": "natural",
+        "text": "괜찮아 바빴구나 🥹 나도 방금 먹었어! 오늘 진짜 고생 많았다 푹 쉬어 ㅎㅎ",
+        "why": "부담 없는 다정한 공감과 안부 전달",
+        "expectedReaction": "응 고마워 너도 고생했어! 저녁 뭐 먹었어?",
+        "successRate": 85
+      },
+      {
+        "tone": "witty",
+        "text": "얼마나 정신없었길래 🥺 나 맛있는 거 먹었지! 오늘 고생했으니까 저녁 맛있는 거 챙겨먹어 ㅎㅎ",
+        "why": "자연스럽게 대화를 이어가는 다정한 리액션",
+        "expectedReaction": "ㅋㅋ 뭐 먹었는데? 나도 이제 먹으려고!",
+        "successRate": 80
+      },
+      {
+        "tone": "flirty",
+        "text": "괜찮아 하루 종일 고생 많았네 🥺 바쁜 와중에 챙겨줘서 고마워 ㅎㅎ 저녁 꼭 챙겨먹어!",
+        "why": "은근한 호감 표현과 챙겨주는 조율",
+        "expectedReaction": "당연히 챙겨야지 ㅎㅎ 너는 저녁 맛있는 거 먹었어?",
+        "successRate": 82
+      }
+    ],
+    "nextStep": "오늘 하루 고생한 도윤을 따뜻하게 토닥이며 저녁 메뉴 이야기로 대화를 이어가세요.",
+    "warnings": [],
+    "memory": [
+      "11/23(월) 도윤이 하루 종일 바빠 답장이 늦었지만 미안해하며 나의 저녁 안부를 먼저 물어봄."
+    ]
+  }
+}

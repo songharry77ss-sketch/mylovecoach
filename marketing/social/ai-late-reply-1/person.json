@@ -1,0 +1,26 @@
+{
+  "at": "2026-11-23T14:38:46.569Z",
+  "mode": "stills",
+  "seconds": 12,
+  "note": "AI로 만든 가상 인물 그림(Codex) — 영상에 「AI로 만든 장면」 표시",
+  "stills": [
+    {
+      "file": "tools/social-make/samples/late-reply/jiwoo-ep1-a.jpg",
+      "sha": "9ce5939958fd219d",
+      "seconds": 4,
+      "punch": false
+    },
+    {
+      "file": "tools/social-make/samples/late-reply/jiwoo-ep1-b.jpg",
+      "sha": "b110ef5b15b96bf0",
+      "seconds": 4,
+      "punch": false
+    },
+    {
+      "file": "tools/social-make/samples/late-reply/jiwoo-ep1-c.jpg",
+      "sha": "b350a37e5bc76a11",
+      "seconds": 4,
+      "punch": false
+    }
+  ]
+}
