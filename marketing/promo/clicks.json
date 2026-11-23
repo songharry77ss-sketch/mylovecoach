@@ -1,5 +1,12 @@
 {
-  "updatedAt": "2026-11-22T21:11:24.575Z",
-  "clicks": [],
+  "updatedAt": "2026-11-23T17:53:32.004Z",
+  "clicks": [
+    {
+      "day": "2026-11-23",
+      "code": "insidezaki",
+      "device": "a",
+      "count": 2
+    }
+  ],
   "opens": []
 }
