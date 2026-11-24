@@ -1,70 +1,70 @@
 {
-  "at": "2026-11-23T08:28:35.325Z",
-  "scored": 22,
-  "measuring": 5,
+  "at": "2026-11-24T10:35:58.014Z",
+  "scored": 24,
+  "measuring": 4,
   "base": {
     "views": 72,
     "spread": 0
   },
   "kinds": {
-    "reel": 1.47,
-    "carousel": -0.52,
+    "reel": 1.42,
+    "carousel": -0.61,
     "image": -1
   },
   "formats": {
     "chat-reel": {
       "n": 1,
       "mean": 2.04,
-      "score": 1.61,
+      "score": 1.58,
       "views": 236,
       "spread": 0.9
     },
     "pick-carousel": {
       "n": 1,
       "mean": -1.47,
-      "score": -0.76,
+      "score": -0.83,
       "views": 13,
       "spread": 0
     },
     "pick-reel": {
       "n": 1,
       "mean": 1.43,
-      "score": 1.46,
+      "score": 1.43,
       "views": 226,
       "spread": 0
     },
     "list-carousel": {
-      "n": 0,
-      "mean": null,
-      "score": -0.52,
-      "views": null,
-      "spread": null
+      "n": 1,
+      "mean": -1.35,
+      "score": -0.79,
+      "views": 16,
+      "spread": 0
     },
     "kkti-pair": {
       "n": 0,
       "mean": null,
-      "score": -0.52,
+      "score": -0.61,
       "views": null,
       "spread": null
     },
     "app-reel": {
       "n": 0,
       "mean": null,
-      "score": 1.47,
+      "score": 1.42,
       "views": null,
       "spread": null
     },
     "old-reel": {
       "n": 4,
       "mean": 1.5,
-      "score": 1.49,
+      "score": 1.47,
       "views": 181,
       "spread": 1
     },
     "old-carousel": {
       "n": 4,
       "mean": -0.67,
-      "score": -0.6,
+      "score": -0.64,
       "views": 10,
       "spread": 7.5
     },
@@ -78,30 +78,30 @@
     "real-reel": {
       "n": 1,
       "mean": 4.38,
-      "score": 2.2,
+      "score": 2.16,
       "views": 607,
       "spread": 4.1
     },
     "ai-reel": {
-      "n": 4,
-      "mean": 1.67,
-      "score": 1.58,
-      "views": 221,
-      "spread": 0.5
+      "n": 5,
+      "mean": 1.5,
+      "score": 1.47,
+      "views": 206,
+      "spread": 0.4
     }
   },
   "topics": {
     "썸": {
-      "n": 13,
-      "score": 0.17,
-      "views": 133,
-      "spread": 0.8
+      "n": 14,
+      "score": 0.08,
+      "views": 125,
+      "spread": 0.7
     },
     "연락 텀·읽씹": {
-      "n": 2,
-      "score": 0.7,
-      "views": 233,
-      "spread": 0.5
+      "n": 3,
+      "score": 0.72,
+      "views": 204,
+      "spread": 0.3
     },
     "꼴: 받은 카톡": {
       "n": 2,
@@ -122,9 +122,9 @@
       "spread": 1.1
     },
     "재회·전 애인": {
-      "n": 1,
-      "score": 0.39,
-      "views": 252,
+      "n": 2,
+      "score": 0.48,
+      "views": 199,
       "spread": 0
     }
   },
@@ -189,11 +189,11 @@
   ],
   "week": [
     "chat-reel",
-    "list-carousel",
-    "chat-reel",
     "kkti-pair",
-    "app-reel",
+    "chat-reel",
+    "list-carousel",
+    "pick-reel",
     "pick-carousel",
-    "pick-reel"
+    "app-reel"
   ]
 }
