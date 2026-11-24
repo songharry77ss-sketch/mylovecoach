@@ -1,10 +1,16 @@
 {
-  "updatedAt": "2026-11-24T02:30:55.613Z",
+  "updatedAt": "2026-11-24T17:26:56.643Z",
   "clicks": [
     {
       "day": "2026-11-24",
       "code": "andsam",
       "device": "w",
+      "count": 2
+    },
+    {
+      "day": "2026-11-24",
+      "code": "lovelang",
+      "device": "a",
       "count": 1
     },
     {
