@@ -76,6 +76,11 @@ jobs:
           GEMINI_VIDEO_API_KEY: ${{ secrets.GEMINI_VIDEO_API_KEY }}
           EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
           EXPO_PUBLIC_API_TOKEN: ${{ secrets.EXPO_PUBLIC_API_TOKEN }}
+          # 릴스 목소리·특수 효과음(일레븐랩스) — 키가 없으면 그 소리만 빼고 만든다 (tools/social-make/sound.mjs)
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE_F: ${{ vars.ELEVENLABS_VOICE_F }}
+          ELEVENLABS_VOICE_M: ${{ vars.ELEVENLABS_VOICE_M }}
+          ELEVENLABS_MODEL: ${{ vars.ELEVENLABS_MODEL }}
         run: |
           node tools/social-make/make.mjs --bank "$BANK" --check
           node tools/social-make/make.mjs --bank "$BANK" --id "$ID" --out out
