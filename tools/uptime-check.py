@@ -4,10 +4,12 @@
 이틀 가까이 아무도 몰랐다. Vercel 이 멈추면 Vercel 안의 알림(텔레그램 일일 보고 cron)도 같이 멈추므로
 바깥(GitHub Actions)에서 확인한다.
 
-- 매번: 웹(200), 앱 버전 API(앱 토큰, 200)
-- 매시 첫 회차와 직전 회차가 실패였을 때: 실제 코칭 1번(기기 번호 없이 보내 코칭 기록·통계에 남지 않음)
+- 매번(10분마다): 웹(200), 앱 버전 API(앱 토큰, 200), 실제 코칭 1번 — 지금 앱과 같은 3사 동의(google,anthropic,openai)로 보내
+  Claude → GPT → Gemini 중 누가 답했는지 남긴다 (기기 번호 없이 보내 코칭 기록·통계에 남지 않음, 1회 약 1원)
+- 매시 첫 회차: Google 에만 동의한 예전 앱 경로(Gemini)도 코칭 1번
 - 문제가 있으면 텔레그램으로 알리고(비밀값이 있을 때) 작업을 실패로 끝낸다 → GitHub 실패 메일도 간다
-- 계속 멈춰 있으면 매시 한 번만 다시 알리고, 풀리면 「복구」를 알린다
+- 멈춰 있는 동안은 회차마다(10분마다) 계속 알리고, 풀리면 「복구」를 알린다 (2026-11-26 사용자 요청)
+- AI 회사 하나가 실패하고 다른 회사가 대신 답한 경우는 코치 서버가 바로 따로 알린다 (api/coach.ts)
 
 출력에 토큰·응답 본문 전체를 찍지 않는다.
 """
@@ -89,9 +91,9 @@ def main():
         problems.append(f'버전 API {status}' + (f' ({why})' if why else ''))
 
     prev = previous_conclusion()
-    # 매시 첫 회차(:03)에 실제 코칭까지 확인 — 예약 실행이 몇 분 밀려도 잡히게 15분까지
+    # 매시 첫 회차(:03)에는 예전 앱 경로(Gemini)도 확인 — 예약 실행이 몇 분 밀려도 잡히게 15분까지
     hourly = time.gmtime().tm_min < 15
-    if APP_TOKEN and (hourly or prev == 'failure' or os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'):
+    if APP_TOKEN:
         req = {
             'crush': {'name': '점검', 'gender': 'female', 'relationship': 'talking', 'style': [], 'notes': ''},
             'user': {'name': '감시', 'gender': 'male', 'style': []},
@@ -99,28 +101,36 @@ def main():
             'text': '어제 영화 재밌었다고 톡이 왔어. 뭐라고 답하지?',
             'remember': False,
         }
-        status, _, body, sec = call('/api/coach', 'POST', req, {'x-app-token': APP_TOKEN, 'x-ai-consent': 'google'}, timeout=90)
-        replies = 0
-        try:
-            replies = len((json.loads(body).get('analysis') or {}).get('replies') or [])
-        except Exception:
-            pass
-        if status != 200 or replies == 0:
+        paths = [('AI 코칭', 'google,anthropic,openai')]
+        if hourly or os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch':
+            paths.append(('예전 앱 AI 코칭(Gemini)', 'google'))
+        for label, consent in paths:
+            status, _, body, sec = call('/api/coach', 'POST', req, {'x-app-token': APP_TOKEN, 'x-ai-consent': consent}, timeout=90)
+            replies = 0
+            provider = ''
             try:
-                err = str(json.loads(body).get('error') or '')[:80]
+                data = json.loads(body)
+                replies = len((data.get('analysis') or {}).get('replies') or [])
+                provider = str(data.get('provider') or '')
             except Exception:
-                err = ''
-            problems.append(f'AI 코칭 {status}' + (f' · {err}' if err else ''))
-        else:
-            print(f'AI 코칭 정상 ({sec:.1f}초, 답장 {replies}개)')
+                pass
+            if status != 200 or replies == 0:
+                try:
+                    err = str(json.loads(body).get('error') or '')[:80]
+                except Exception:
+                    err = ''
+                problems.append(f'{label} {status}' + (f' · {err}' if err else ''))
+            else:
+                print(f'{label} 정상 ({sec:.1f}초, 답장 {replies}개, 답한 AI {provider or "?"})')
 
     now = time.strftime('%m-%d %H:%M', time.gmtime(time.time() + 9 * 3600))
     if problems:
         print('문제:', ' / '.join(problems))
-        # 처음 멈췄을 때 + 계속 멈춰 있으면 매시 한 번
-        if prev != 'failure' or hourly:
-            telegram(f'🚨 센딧 서비스 이상 ({now} KST)\n' + '\n'.join('- ' + p for p in problems)
-                     + '\n\nDEPLOYMENT_PAUSED 면 Vercel 지출 예산 확인 → 프로젝트 정지 풀기')
+        # 멈춰 있는 동안 회차마다(10분마다) 계속 알린다
+        again = ' (계속 멈춰 있음)' if prev == 'failure' else ''
+        telegram(f'🚨 센딧 서비스 이상{again} ({now} KST)\n' + '\n'.join('- ' + p for p in problems)
+                 + '\n\nDEPLOYMENT_PAUSED 면 Vercel 지출 예산 확인 → 프로젝트 정지 풀기'
+                 + '\n크레딧 소진이면 AI 회사(Anthropic·OpenAI·Google AI Studio) 충전')
         sys.exit(1)
     print('정상')
     if prev == 'failure':

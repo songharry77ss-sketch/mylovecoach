@@ -270,7 +270,7 @@ const LEGACY_CONSENT_VERSION = 2;
  * 4 = AI 예비 경로(Google 이 답하지 못할 때 Anthropic·OpenAI) 추가 (2026-11-20 처리방침).
  * 새 이용자는 첫 화면 동의 창에서, 기존 이용자는 홈의 안내 카드로 한 번 본다
  */
-export const PRIVACY_NOTICE_VERSION = 4;
+export const PRIVACY_NOTICE_VERSION = 5;
 
 /** 「분석 중」인 채로 저장돼 있던 코치 말풍선을 앱을 다시 켤 때 바꿔 읽는 안내 (「다시 시도」 버튼이 뜬다) */
 const STALLED_ERROR = '분석이 중간에 멈췄어요. 다시 시도해주세요.';
@@ -793,7 +793,7 @@ export const useAppStore = create<AppState>()(
       //   그 기록은 지우지 않는다 (사용자 결정 10-07 「새 동의만 저장, 예전 기록은 둔다」)
       merge: (persisted, current) => {
         const saved = (persisted ?? {}) as Partial<AppState> & LegacySaved;
-        const provider = saved.aiConsentProvider === 'relay' || saved.aiConsentProvider === 'google' || saved.aiConsentProvider === 'anthropic' ? saved.aiConsentProvider : null;
+        const provider = saved.aiConsentProvider === 'relay2' || saved.aiConsentProvider === 'relay' || saved.aiConsentProvider === 'google' || saved.aiConsentProvider === 'anthropic' ? saved.aiConsentProvider : null;
         const savedAiAt = typeof saved.aiConsentAt === 'number' ? saved.aiConsentAt : null;
         // 저장소를 늦게 다 읽었고(2.5초 안전장치로 먼저 시작) 그사이 이번 실행에서 동의를 새로 골랐으면 그 답이 더 새롭다 —
         // 기기 시계와 상관없이 지금 고른 답을 남긴다 (저장소를 다시 읽는 곳은 없으므로 current 의 답은 이번 실행의 것)

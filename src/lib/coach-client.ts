@@ -85,11 +85,11 @@ export function isCoachConfigured(directApiKey?: string | null): boolean {
 const viaServer = () => Boolean(APP_CONFIG.apiUrl || APP_CONFIG.apiSameOrigin);
 
 /**
- * 서버를 거치는 요청은 기본 Google(Gemini), Google 이 한도·혼잡·오류로 답하지 못할 때만 Anthropic(Claude)·OpenAI(GPT)로 간다 (2026-11-20).
+ * 서버를 거치는 요청은 Anthropic(Claude) 먼저, 답하지 못하면 OpenAI(GPT), 그다음 Google(Gemini)로 간다 (2026-11-26).
  * 동의 시트·개인정보 처리방침 2번도 세 회사를 안내한다. 받는 곳을 바꾸려면 이 값·서버·동의 시트 문구·처리방침을 같이 고칠 것
  * (서버는 x-ai-consent 헤더에 없는 회사로는 보내지 않는다)
  */
-const RELAY_ROUTE: AiRoute = { provider: 'relay', via: 'relay' };
+const RELAY_ROUTE: AiRoute = { provider: 'relay2', via: 'relay' };
 
 /** 개인 키로 직접 보낼 회사 — runDirect 와 같은 판별 (Gemini 키가 아니면 Anthropic 으로 보낸다) */
 const directRoute = (apiKey: string): AiRoute => ({ provider: detectProvider(apiKey) === 'gemini' ? 'google' : 'anthropic', via: 'direct' });
