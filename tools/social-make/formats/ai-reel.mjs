@@ -17,6 +17,9 @@
 //   stills? — 돈 안 드는 정지 그림 모드 (2026-11-23 사장님 「무료로」): { a: 고민(훅) 그림, b: 답장 치는 그림, c?: 답 받고 반응 그림 (없으면 b) }
 //     영상 모델 대신 그림을 천천히 다가가며(흔들림 조금) 4초씩 이어 12초 사람 영상을 만든다. other 는 { still } 로 — 흰 번쩍임 + 확 다가가기(반전).
 //     그림은 Codex 그림 생성으로 만든 가상 인물만 (samples/<시리즈>/). prompt·image 는 안 쓴다.
+//   motion? — 정지 그림 대신 쓸 움직이는 토막 (2026-11-26 사장님 「사람이 진짜 사람처럼 움직이게 · 무료로」): { a?, b?, c? } 저장소 안 mp4.
+//     같은 이름의 정지 그림을 무료 Wan 2.2(허깅페이스 ZeroGPU 무료 할당, Apache-2.0 · 워터마크 없음)로 3~5초 움직이게 만든 것. 없는 칸은 정지 그림 그대로.
+//     other 는 { still, motion? }. 토막이 장면보다 조금 짧으면 살짝 느리게(최대 1.3배) 늘리고, 그래도 모자라면 마지막 장면을 잡아 둔다.
 //   badge? — 「AI로 만든 장면」 아래 작은 꼬리표 (예: '센딧 고민 1위 재연' — 앱 집계에 근거한 말만)
 // 사람 영상은 <폴더>/person.mp4 로 남겨 두고 다시 만들지 않는다 (만들려면 SOCIAL_AI_VIDEO=on — 돈이 듦). 정지 그림 모드는 돈이 안 들어 매번 새로 만든다.
 import { createHash } from 'node:crypto';
@@ -82,6 +85,26 @@ export function personStills(it, root = process.cwd()) {
 }
 /** 상대 장면 정지 그림 (person.other.still) */
 export const otherStill = (it, root = process.cwd()) => imageAt(it.person?.other?.still, 'person.other.still', root);
+
+/** 움직이는 토막(mp4) — 저장소 기준 경로. 없으면 null */
+function videoAt(rel, label, root = process.cwd()) {
+  if (!str(rel)) return null;
+  const file = path.resolve(root, rel);
+  if (path.extname(file).toLowerCase() !== '.mp4') throw new Error(`${label} 는 mp4 (${rel})`);
+  if (!existsSync(file)) throw new Error(`${label} 파일이 없어요 (${rel})`);
+  return { rel, sha: createHash('sha256').update(readFileSync(file)).digest('hex').slice(0, 16) };
+}
+/** 정지 그림 칸마다 바꿔 쓸 움직이는 토막 — { a?, b?, c? } (person.motion) */
+export function personMotion(it, root = process.cwd()) {
+  const m = it.person?.motion;
+  if (m === undefined) return {};
+  if (!m || typeof m !== 'object' || Array.isArray(m)) throw new Error('person.motion 은 { a?, b?, c? } mp4 경로');
+  const bad = Object.keys(m).filter((k) => !['a', 'b', 'c'].includes(k));
+  if (bad.length) throw new Error(`person.motion 칸은 a·b·c 만 (${bad.join(', ')})`);
+  return Object.fromEntries(Object.entries(m).map(([k, v]) => [k, videoAt(v, `person.motion.${k}`, root)]).filter(([, v]) => v));
+}
+/** 상대 장면 움직이는 토막 (person.other.motion) */
+export const otherMotion = (it, root = process.cwd()) => videoAt(it.person?.other?.motion, 'person.other.motion', root);
 
 // ───────────── 자막 그림 (투명 PNG) ─────────────
 
@@ -237,28 +260,56 @@ export function stillFilter(input, seconds, label, { punch = false } = {}) {
   ].join(',');
 }
 
-/** 정지 그림들 → 소리 없는(무음 트랙) 영상 하나. parts: [{ image, seconds, punch? }] */
+/**
+ * 움직이는 토막(무료 Wan 2.2 — 560×832·16fps 안팎) → 1080×1920·30fps 토막의 ffmpeg 필터.
+ * 장면보다 짧으면 최대 1.3배까지 느리게 늘리고, 그래도 모자라면 마지막 장면을 잡아 둔다. 아주 천천히 다가가고(반전은 punch),
+ * 16→30fps 는 움직임 보간(mci)으로 — 그냥 늘리면 뚝뚝 끊겨 보인다
+ */
+export function motionFilter(input, seconds, clipSeconds, label, { punch = false } = {}) {
+  const n = Math.round(seconds * 30);
+  const k = Math.min(1.3, Math.max(1, seconds / Math.max(0.5, clipSeconds)));
+  const zoom = punch ? `if(lt(on,8),1+0.14*on/8,1.14+0.04*(on-8)/${n})` : `1+0.05*on/${n}`;
+  return [
+    `[${input}:v]setpts=${k.toFixed(4)}*(PTS-STARTPTS)`,
+    'minterpolate=fps=30:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1',
+    'scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920,unsharp=5:5:0.6',
+    `zoompan=z='${zoom}':x='(iw-iw/zoom)/2':y='(ih-ih/zoom)*0.42':d=1:s=1080x1920:fps=30`,
+    ...(punch ? ['fade=t=in:st=0:d=0.25:color=white'] : []),
+    'tpad=stop_mode=clone:stop_duration=3',
+    `trim=end_frame=${n},setpts=PTS-STARTPTS,setsar=1,format=yuv420p[${label}]`,
+  ].join(',');
+}
+
+/** 정지 그림(·움직이는 토막)들 → 소리 없는(무음 트랙) 영상 하나. parts: [{ image, video?, seconds, punch? }] — video 가 있으면 그림 대신 쓴다 */
 export function stillClip(dir, name, parts, note) {
   const file = path.join(dir, `${name}.mp4`);
-  const inputs = parts.flatMap((p) => ['-loop', '1', '-framerate', '30', '-t', String(p.seconds + 0.5), '-i', path.resolve(p.image.rel)]);
+  const inputs = parts.flatMap((p) => (p.video ? ['-i', path.resolve(p.video.rel)] : ['-loop', '1', '-framerate', '30', '-t', String(p.seconds + 0.5), '-i', path.resolve(p.image.rel)]));
   const total = parts.reduce((s, p) => s + p.seconds, 0);
   inputs.push('-f', 'lavfi', '-t', String(total), '-i', 'anullsrc=r=44100:cl=stereo');
-  const filter = [...parts.map((p, i) => stillFilter(i, p.seconds, `s${i}`, { punch: p.punch })), `${parts.map((_, i) => `[s${i}]`).join('')}concat=n=${parts.length}:v=1:a=0[v]`].join(';');
+  const filters = parts.map((p, i) => (p.video ? motionFilter(i, p.seconds, probe(path.resolve(p.video.rel)).seconds, `s${i}`, { punch: p.punch }) : stillFilter(i, p.seconds, `s${i}`, { punch: p.punch })));
+  const filter = [...filters, `${parts.map((_, i) => `[s${i}]`).join('')}concat=n=${parts.length}:v=1:a=0[v]`].join(';');
   ff([...inputs, '-filter_complex', filter, '-map', '[v]', '-map', `${parts.length}:a`, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '96k', '-t', String(total), file]);
-  writeFileSync(path.join(dir, `${name}.json`), `${JSON.stringify({ at: new Date().toISOString(), mode: 'stills', seconds: total, note, stills: parts.map((p) => ({ file: p.image.rel, sha: p.image.sha, seconds: p.seconds, punch: Boolean(p.punch) })) }, null, 2)}\n`);
+  const moving = parts.filter((p) => p.video).length;
+  const meta = { at: new Date().toISOString(), mode: moving ? 'stills+motion' : 'stills', seconds: total, note, stills: parts.map((p) => ({ file: p.image.rel, sha: p.image.sha, seconds: p.seconds, punch: Boolean(p.punch), ...(p.video ? { motion: { file: p.video.rel, sha: p.video.sha } } : {}) })) };
+  writeFileSync(path.join(dir, `${name}.json`), `${JSON.stringify(meta, null, 2)}\n`);
+  if (moving) console.log(`  ${name}: 움직이는 토막 ${moving}/${parts.length}칸 (무료 Wan 2.2)`);
   return { file, source: 'stills' };
 }
 
 function personClip(it, dir) {
   const s = personStills(it);
-  if (s) return stillClip(dir, 'person', [{ image: s.a, seconds: 4 }, { image: s.b, seconds: 4 }, { image: s.c, seconds: 4 }], 'AI로 만든 가상 인물 그림(Codex) — 영상에 「AI로 만든 장면」 표시');
+  if (s) {
+    const m = personMotion(it);
+    const note = m.a || m.b || m.c ? 'AI로 만든 가상 인물 그림(Codex) + 그 그림을 움직인 토막(Wan 2.2) — 영상에 「AI로 만든 장면」 표시' : 'AI로 만든 가상 인물 그림(Codex) — 영상에 「AI로 만든 장면」 표시';
+    return stillClip(dir, 'person', ['a', 'b', 'c'].map((k) => ({ image: s[k], video: m[k] ?? null, seconds: 4 })), note);
+  }
   return aiClip(dir, 'person', { prompt: personPrompt(it), seconds: it.person.seconds ?? 12, resolution: it.person.resolution ?? '1080p', image: personImage(it) });
 }
 
 function otherClip(it, dir) {
   const o = it.person.other;
   const still = otherStill(it);
-  if (still) return stillClip(dir, 'other', [{ image: still, seconds: o.seconds ?? 5, punch: true }], 'AI로 만든 가상 인물 그림(Codex) — 반전 장면');
+  if (still) return stillClip(dir, 'other', [{ image: still, video: otherMotion(it), seconds: o.seconds ?? 5, punch: true }], 'AI로 만든 가상 인물 그림(Codex) — 반전 장면');
   return aiClip(dir, 'other', { prompt: o.prompt.trim(), seconds: o.seconds ?? 8, resolution: o.resolution ?? it.person.resolution ?? '1080p', image: otherImage(it) });
 }
 
@@ -302,6 +353,14 @@ export function checkAiReel(it, msgProblems) {
           out.push(e.message);
         }
       }
+      if (o.motion !== undefined) {
+        if (!str(o.still)) out.push('person.other.motion 은 still(정지 그림)과 같이 써요');
+        try {
+          otherMotion(it);
+        } catch (e) {
+          out.push(e.message);
+        }
+      }
       const minSec = str(o.still) ? 3 : 6; // 정지 그림은 짧게 끊어도 된다 (영상 모델은 6초부터)
       if (o.seconds !== undefined && !(Number.isInteger(o.seconds) && o.seconds >= minSec && o.seconds <= 15)) out.push(`person.other.seconds 는 ${minSec}~15`);
       if (o.resolution !== undefined && !['720p', '1080p'].includes(o.resolution)) out.push('person.other.resolution 은 720p·1080p');
@@ -318,6 +377,14 @@ export function checkAiReel(it, msgProblems) {
   if (p.stills !== undefined) {
     try {
       personStills(it);
+    } catch (e) {
+      out.push(e.message);
+    }
+  }
+  if (p.motion !== undefined) {
+    if (p.stills === undefined) out.push('person.motion 은 stills(정지 그림 모드)와 같이 써요');
+    try {
+      personMotion(it);
     } catch (e) {
       out.push(e.message);
     }

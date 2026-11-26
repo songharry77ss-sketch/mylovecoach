@@ -154,6 +154,38 @@ test('정지 그림 필터 — 다가가기·흔들림, 반전은 흰 번쩍임 
   assert.match(punch, /if\(lt\(on,8\)/);
 });
 
+test('움직이는 토막(motion) — 정지 그림 칸을 mp4 로 바꿔 쓰고, 칸 이름·형식·짝(stills/still)이 틀리면 막는다', async () => {
+  const { personMotion, otherMotion } = await import('./formats/ai-reel.mjs');
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'ai-reel-motion-'));
+  for (const f of ['a.mp4', 'o.mp4', 'a.png']) writeFileSync(path.join(dir, f), Buffer.from([0, 0, 0, 0x18]));
+  const m = personMotion({ person: { motion: { a: 'a.mp4' } } }, dir);
+  assert.deepEqual(Object.keys(m), ['a']);
+  assert.match(m.a.sha, /^[0-9a-f]{16}$/);
+  assert.deepEqual(personMotion({ person: {} }, dir), {});
+  assert.equal(otherMotion({ person: { other: { motion: 'o.mp4' } } }, dir).rel, 'o.mp4');
+  assert.throws(() => personMotion({ person: { motion: { d: 'a.mp4' } } }, dir), /a·b·c/);
+  assert.throws(() => personMotion({ person: { motion: { a: 'a.png' } } }, dir), /mp4/);
+  assert.throws(() => personMotion({ person: { motion: { a: '없음.mp4' } } }, dir), /없어요/);
+  const bad = FORMATS['ai-reel'].check({ ...sample, person: { ...sample.person, motion: { a: 'tools/없는.mp4' }, other: { caption: '반전', prompt: 'x', motion: 'tools/없는.mp4' } } });
+  assert.ok(bad.some((x) => x.includes('stills(정지 그림 모드)와 같이')));
+  assert.ok(bad.some((x) => x.includes('person.motion.a')));
+  assert.ok(bad.some((x) => x.includes('person.other.motion 은 still')));
+});
+
+test('움직이는 토막 필터 — 짧으면 최대 1.3배 느리게, 보간으로 30fps, 모자라면 마지막 장면을 잡는다', async () => {
+  const { motionFilter } = await import('./formats/ai-reel.mjs');
+  const f = motionFilter(1, 4, 3.5, 's1');
+  assert.match(f, /^\[1:v\]setpts=1\.1429\*\(PTS-STARTPTS\)/);
+  assert.match(f, /minterpolate=fps=30:mi_mode=mci/);
+  assert.match(f, /scale=1080:1920/);
+  assert.match(f, /tpad=stop_mode=clone/);
+  assert.match(f, /trim=end_frame=120.*\[s1\]$/);
+  assert.doesNotMatch(f, /fade/);
+  assert.match(motionFilter(0, 5, 2, 'o'), /setpts=1\.3000\*/);
+  assert.match(motionFilter(0, 3, 5, 'o'), /setpts=1\.0000\*/);
+  assert.match(motionFilter(0, 5, 3.5, 'o', { punch: true }), /fade=t=in:st=0:d=0\.25:color=white/);
+});
+
 test('「읽씹 전쟁」 3부작 — 정지 그림 모드로 검사를 통과하고, 재연·AI 연출·근거를 캡션에 밝힌다', () => {
   const series = JSON.parse(readFileSync(new URL('./samples/late-reply-series.json', import.meta.url), 'utf8')).items;
   assert.equal(series.length, 3);
@@ -163,5 +195,14 @@ test('「읽씹 전쟁」 3부작 — 정지 그림 모드로 검사를 통과�
     assert.equal(it.person.prompt, undefined);
     assert.match(it.caption, /지어낸 재연/);
     assert.match(it.caption, /고민 1위/);
+    assert.ok(it.analysis?.replies?.length, `${it.id} 11-23 운영 서버 실제 결과를 보관 — 다시 만들 때 서버를 부르지 않음`);
   }
+});
+
+test('창고 검사 — 보관한 실제 AI 결과(analysis)의 이모지는 막지 않고, 우리가 쓴 글의 이모지는 막는다', async () => {
+  const { bankProblems } = await import('./bank.mjs');
+  const series = JSON.parse(readFileSync(new URL('./samples/late-reply-series.json', import.meta.url), 'utf8')).items;
+  assert.deepEqual(bankProblems(series), []);
+  const bad = bankProblems([{ ...series[0], person: { ...series[0].person, hook: '읽씹 🫢' } }]);
+  assert.ok(bad.some((x) => x.includes('그림이 없는 이모지')));
 });

@@ -1,5 +1,5 @@
 {
-  "note": "「읽씹 전쟁」 시리즈 ai-reel 정지 그림 모드(돈 안 듦) — 사장님 지시 2026-11-23: ① 첫 화면은 무조건 예쁜 여자·잘생긴 남자 ② 예상 못한 장면(반전) ③ 실제 사례 기반 시리즈. 근거: 센딧 연애팁 백서에서 이용자가 가장 많이 고른 고민 1위가 「답장이 늦어요(late-reply)」(11-23 집계 — 개인 대화 내용은 안 봄). 인물(지우·도윤)은 Codex 그림 생성으로 만든 가상 인물(samples/late-reply/), 실제 인물 사진 없음. 이야기는 재연(지어낸 것)이라 캡션에 밝히고, 사람 장면엔 「AI로 만든 장면」. 앱 화면과 답장은 운영 코치 서버의 실제 결과. 짜임: 매력적인 얼굴 클로즈업 + 훅 자막(0초) → 반전(상대 쪽 사정, 흰 번쩍임) → 센딧 실제 화면 → 반응 → 다음 화 예고.",
+  "note": "「읽씹 전쟁」 시리즈 ai-reel 정지 그림 모드(돈 안 듦) — 사장님 지시 2026-11-23: ① 첫 화면은 무조건 예쁜 여자·잘생긴 남자 ② 예상 못한 장면(반전) ③ 실제 사례 기반 시리즈. 근거: 센딧 연애팁 백서에서 이용자가 가장 많이 고른 고민 1위가 「답장이 늦어요(late-reply)」(11-23 집계 — 개인 대화 내용은 안 봄). 2026-11-26 「사람이 진짜 사람처럼 움직이게·무료로」(사장님): 같은 그림을 무료 Wan 2.2(허깅페이스 ZeroGPU 무료 할당)로 움직인 토막을 person.motion·other.motion 에 — 하루 무료 3~4토막이라 훅(a)부터 채우고 나머지는 정지 그림. 인물(지우·도윤)은 Codex 그림 생성으로 만든 가상 인물(samples/late-reply/), 실제 인물 사진 없음. 이야기는 재연(지어낸 것)이라 캡션에 밝히고, 사람 장면엔 「AI로 만든 장면」. 앱 화면과 답장은 운영 코치 서버의 실제 결과. 짜임: 매력적인 얼굴 클로즈업 + 훅 자막(0초) → 반전(상대 쪽 사정, 흰 번쩍임) → 센딧 실제 화면 → 반응 → 다음 화 예고.",
   "items": [
     {
       "id": "ai-late-reply-1",
@@ -28,15 +28,20 @@
           "b": "tools/social-make/samples/late-reply/jiwoo-ep1-b.jpg",
           "c": "tools/social-make/samples/late-reply/jiwoo-ep1-c.jpg"
         },
+        "motion": { "a": "tools/social-make/samples/late-reply/motion/jiwoo-ep1-a.mp4" },
         "captionTop": 1150,
         "other": {
           "caption": "근데 그 3시간\n썸남은 사실…\n썼다 지웠다 중",
           "still": "tools/social-make/samples/late-reply/doyun-ep1-other.jpg",
-          "seconds": 5
+          "motion": "tools/social-make/samples/late-reply/motion/doyun-ep1-other.mp4",
+          "seconds": 4
         }
       },
       "end": { "ask": "2화: 이번엔 그녀가 읽씹" },
-      "caption": "[읽씹 전쟁 1화] 점심 뭐 먹었냐고 물어봤는데 3시간째 읽씹. 근데 그 3시간 동안 썸남은 사실… 썼다 지웠다 하고 있었다면?\n\n센딧에 대화를 그대로 넣었더니 답장 3개를 성공 확률이랑 같이 골라 줬어. 앱 화면과 답장은 실제 센딧 AI 결과 그대로야.\n\n센딧 연애팁에서 이용자들이 제일 많이 고른 고민 1위가 「답장이 늦어요」라서 시리즈로 만들었어.\n※ 인물과 이야기는 지어낸 재연이야. 사람 나오는 장면은 AI로 만든 연출이고, 마지막 카톡은 센딧이 예상한 답장이야.\n\n너는 답장 늦게 오면 몇 시간까지 기다려 봤어? 👇\n\n#썸 #읽씹 #답장 #카톡답장 #센딧"
+      "caption": "[읽씹 전쟁 1화] 점심 뭐 먹었냐고 물어봤는데 3시간째 읽씹. 근데 그 3시간 동안 썸남은 사실… 썼다 지웠다 하고 있었다면?\n\n센딧에 대화를 그대로 넣었더니 답장 3개를 성공 확률이랑 같이 골라 줬어. 앱 화면과 답장은 실제 센딧 AI 결과 그대로야.\n\n센딧 연애팁에서 이용자들이 제일 많이 고른 고민 1위가 「답장이 늦어요」라서 시리즈로 만들었어.\n※ 인물과 이야기는 지어낸 재연이야. 사람 나오는 장면은 AI로 만든 연출이고, 마지막 카톡은 센딧이 예상한 답장이야.\n\n너는 답장 늦게 오면 몇 시간까지 기다려 봤어? 👇\n\n#썸 #읽씹 #답장 #카톡답장 #센딧",
+      "analysisAt": "2026-11-23T14:38:55.268Z 운영 코치 서버(/api/coach) 실제 결과 — 같은 대화로 다시 받지 않고 그대로 씀",
+      "analysisRequest": {"crush":{"name":"도윤","gender":"male","relationship":"talking","style":[],"notes":"","heat":0},"user":{"name":"","gender":"female","style":[]},"tone":"natural","emoji":"on","toneChosen":false,"emojiChosen":false,"text":"나: 오늘 점심 뭐 먹었어?\n도윤: 아 미안 ㅠㅠ 이제 봤어\n도윤: 오늘 하루 종일 정신없었다\n도윤: 너는 저녁 먹었어?","history":[],"today":"11/23(월)"},
+      "analysis": {"callName":null,"speechLevel":"casual","summary":"바쁜 와중에도 미안함과 함께 먼저 밥을 먹었는지 물어보며 대화를 이어가려는 호감이 보여요.","temperature":"warm","interestScore":75,"heatDelta":5,"insights":["답장이 늦었지만 핑계 대신 챙겨주는 질문을 건넸어요."],"replies":[{"tone":"natural","text":"괜찮아 바빴구나 🥹 나도 방금 먹었어! 오늘 진짜 고생 많았다 푹 쉬어 ㅎㅎ","why":"부담 없는 다정한 공감과 안부 전달","expectedReaction":"응 고마워 너도 고생했어! 저녁 뭐 먹었어?","successRate":85},{"tone":"witty","text":"얼마나 정신없었길래 🥺 나 맛있는 거 먹었지! 오늘 고생했으니까 저녁 맛있는 거 챙겨먹어 ㅎㅎ","why":"자연스럽게 대화를 이어가는 다정한 리액션","expectedReaction":"ㅋㅋ 뭐 먹었는데? 나도 이제 먹으려고!","successRate":80},{"tone":"flirty","text":"괜찮아 하루 종일 고생 많았네 🥺 바쁜 와중에 챙겨줘서 고마워 ㅎㅎ 저녁 꼭 챙겨먹어!","why":"은근한 호감 표현과 챙겨주는 조율","expectedReaction":"당연히 챙겨야지 ㅎㅎ 너는 저녁 맛있는 거 먹었어?","successRate":82}],"nextStep":"오늘 하루 고생한 도윤을 따뜻하게 토닥이며 저녁 메뉴 이야기로 대화를 이어가세요.","warnings":[],"memory":["11/23(월) 도윤이 하루 종일 바빠 답장이 늦었지만 미안해하며 나의 저녁 안부를 먼저 물어봄."]}
     },
     {
       "id": "ai-late-reply-2",
@@ -67,6 +72,7 @@
           "b": "tools/social-make/samples/late-reply/doyun-ep2-b.jpg",
           "c": "tools/social-make/samples/late-reply/doyun-ep2-c.jpg"
         },
+        "motion": { "a": "tools/social-make/samples/late-reply/motion/doyun-ep2-a.mp4" },
         "captionTop": 1150,
         "other": {
           "caption": "근데 그 하루\n그녀는 사실…\n단톡방 작전 회의",
@@ -75,7 +81,10 @@
         }
       },
       "end": { "ask": "3화: 데이트 전날의 반전" },
-      "caption": "[읽씹 전쟁 2화] 이번엔 남자 쪽. 영화 보자고 했는데 썸녀가 하루째 읽씹… 근데 그 하루 동안 그녀는 친구들이랑 단톡방에서 작전 회의 중이었다면?\n\n센딧에 대화를 그대로 넣었더니 답장 3개를 성공 확률이랑 같이 골라 줬어. 앱 화면과 답장은 실제 센딧 AI 결과 그대로야.\n\n센딧 연애팁에서 이용자들이 제일 많이 고른 고민 1위 「답장이 늦어요」 시리즈야.\n※ 인물과 이야기는 지어낸 재연이야. 사람 나오는 장면은 AI로 만든 연출이고, 마지막 카톡은 센딧이 예상한 답장이야.\n\n너는 답장 늦게 하는 이유가 뭐야? 👇\n\n#썸 #읽씹 #썸녀 #카톡답장 #센딧"
+      "caption": "[읽씹 전쟁 2화] 이번엔 남자 쪽. 영화 보자고 했는데 썸녀가 하루째 읽씹… 근데 그 하루 동안 그녀는 친구들이랑 단톡방에서 작전 회의 중이었다면?\n\n센딧에 대화를 그대로 넣었더니 답장 3개를 성공 확률이랑 같이 골라 줬어. 앱 화면과 답장은 실제 센딧 AI 결과 그대로야.\n\n센딧 연애팁에서 이용자들이 제일 많이 고른 고민 1위 「답장이 늦어요」 시리즈야.\n※ 인물과 이야기는 지어낸 재연이야. 사람 나오는 장면은 AI로 만든 연출이고, 마지막 카톡은 센딧이 예상한 답장이야.\n\n너는 답장 늦게 하는 이유가 뭐야? 👇\n\n#썸 #읽씹 #썸녀 #카톡답장 #센딧",
+      "analysisAt": "2026-11-23T14:43:51.697Z 운영 코치 서버(/api/coach) 실제 결과 — 같은 대화로 다시 받지 않고 그대로 씀",
+      "analysisRequest": {"crush":{"name":"지우","gender":"female","relationship":"talking","style":[],"notes":"","heat":0},"user":{"name":"","gender":"male","style":[]},"tone":"natural","emoji":"on","toneChosen":false,"emojiChosen":false,"text":"나: 이번 주말에 그 영화 같이 볼래?\n지우: 헐 미안 ㅠㅠ 이제 봤어!!\n지우: 주말에 시간 될 것 같은데\n지우: 토요일 괜찮아?","history":[],"today":"11/23(월)"},
+      "analysis": {"callName":null,"speechLevel":"casual","summary":"지우 님이 답장이 늦은 것에 사과하며 먼저 토요일 시간을 제안했으니 확실한 호감 신호예요!","temperature":"hot","interestScore":85,"heatDelta":12,"insights":["답장은 늦었지만 먼저 구체적인 요일(토요일)을 제안했어요.","사과와 함께 약속에 대한 적극성을 보이고 있어요."],"replies":[{"tone":"natural","text":"괜찮아! 토요일 좋아 ㅎㅎ 몇 시쯤 볼까? 😊","why":"쿨하게 반응하며 자연스럽게 구체적인 시간 정하기","expectedReaction":"나 오후 2시 이후면 다 좋아!","successRate":90},{"tone":"witty","text":"사과는 만남으로 받을게 🤭 토요일에 몇 시가 편해?","why":"장난스러운 톤으로 부담 없이 약속 잡기","expectedReaction":"ㅋㅋ 좋아! 3시쯤 볼까?","successRate":85},{"tone":"flirty","text":"괜찮아, 토요일에 볼 생각 하니까 벌써 설렌다 🥹 영화 보고 뭐 먹을까?","why":"은근한 설렘 표현으로 썸 분위기 끌어올리기","expectedReaction":"나도 설레 ㅎㅎ 맛있는 거 먹자!","successRate":80}],"nextStep":"토요일 만남의 시간과 만날 장소를 자연스럽게 확정하세요.","warnings":[],"memory":["11/23(월) 지우에게 주말 영화 데이트를 제안함","11/23(월) 지우가 뒤늦게 답장하며 11/28(토)에 만나자고 먼저 요일을 제안함"]}
     },
     {
       "id": "ai-late-reply-3",
@@ -102,6 +111,7 @@
           "b": "tools/social-make/samples/late-reply/jiwoo-ep3-b.jpg",
           "c": "tools/social-make/samples/late-reply/jiwoo-ep3-c.jpg"
         },
+        "motion": { "a": "tools/social-make/samples/late-reply/motion/jiwoo-ep3-a.mp4" },
         "captionTop": 1150,
         "other": {
           "caption": "근데 이 남자\n답장을 어디서\n고르냐면…",
@@ -110,7 +120,10 @@
         }
       },
       "end": { "ask": "둘이 잘 될까?" },
-      "caption": "[읽씹 전쟁 3화] 읽씹으로 시작한 썸, 드디어 첫 데이트 전날. 근데 썸남 카톡이 너무 완벽한데… 알고 보니 그도 센딧으로 답장 고르고 있었다면? ㅋㅋ\n\n센딧에 대화를 그대로 넣었더니 답장 3개를 성공 확률이랑 같이 골라 줬어. 앱 화면과 답장은 실제 센딧 AI 결과 그대로야.\n\n센딧 연애팁에서 이용자들이 제일 많이 고른 고민 1위 「답장이 늦어요」에서 시작한 시리즈의 마지막 화야.\n※ 인물과 이야기는 지어낸 재연이야. 사람 나오는 장면은 AI로 만든 연출이고, 마지막 카톡은 센딧이 예상한 답장이야.\n\n상대도 답장 고민한다는 거 알면 덜 떨려, 더 떨려? 👇\n\n#썸 #첫데이트 #읽씹 #카톡답장 #센딧"
+      "caption": "[읽씹 전쟁 3화] 읽씹으로 시작한 썸, 드디어 첫 데이트 전날. 근데 썸남 카톡이 너무 완벽한데… 알고 보니 그도 센딧으로 답장 고르고 있었다면? ㅋㅋ\n\n센딧에 대화를 그대로 넣었더니 답장 3개를 성공 확률이랑 같이 골라 줬어. 앱 화면과 답장은 실제 센딧 AI 결과 그대로야.\n\n센딧 연애팁에서 이용자들이 제일 많이 고른 고민 1위 「답장이 늦어요」에서 시작한 시리즈의 마지막 화야.\n※ 인물과 이야기는 지어낸 재연이야. 사람 나오는 장면은 AI로 만든 연출이고, 마지막 카톡은 센딧이 예상한 답장이야.\n\n상대도 답장 고민한다는 거 알면 덜 떨려, 더 떨려? 👇\n\n#썸 #첫데이트 #읽씹 #카톡답장 #센딧",
+      "analysisAt": "2026-11-23T14:49:47.464Z 운영 코치 서버(/api/coach) 실제 결과 — 같은 대화로 다시 받지 않고 그대로 씀",
+      "analysisRequest": {"crush":{"name":"도윤","gender":"male","relationship":"talking","style":[],"notes":"","heat":0},"user":{"name":"","gender":"female","style":[]},"tone":"natural","emoji":"on","toneChosen":false,"emojiChosen":false,"text":"도윤: 내일 6시에 볼까?\n도윤: 너 좋아할 것 같은 파스타집 찾아놨어 ㅎㅎ\n도윤: 근데 매운 거 잘 먹어?","history":[],"today":"11/23(월)"},
+      "analysis": {"callName":null,"speechLevel":"unknown","summary":"도윤 님이 약속 시간과 메뉴까지 챙기며 적극적으로 데이트를 준비하고 있어요. 호응하며 약속을 확정 지어보세요!","temperature":"hot","interestScore":90,"heatDelta":15,"insights":["장소 파악과 식성 체크까지 하며 세심하게 데이트를 준비하고 있어요.","내일 만나자는 적극적인 호감 표현입니다."],"replies":[{"tone":"natural","text":"완전 좋아! 6시에 보자 ㅎㅎ 나 매운 거 엄청 잘 먹어 😋","why":"기분 좋게 호응하며 식성 정보를 담백하게 전달해요","expectedReaction":"오 다행이다! 그럼 거기서 6시에 만나자 ㅎㅎ","successRate":95},{"tone":"witty","text":"센스 대박! 나 매운 거 잘 먹지 ㅎㅎ 파스타집 기대된다 🌶️✨","why":"식당을 찾아본 칭찬과 기대를 함께 전해 텐션을 올려요","expectedReaction":"ㅋㅋ 준비 많이 했으니까 기대해!","successRate":90},{"tone":"flirty","text":"나 맛집 찾아주는 사람한테 제일 잘 흔들리는데 🫢 매운 거 완전 좋아!","why":"은근한 칭찬과 설렘을 전하며 분위기를 달궈요","expectedReaction":"ㅋㅋ 그럼 자주 찾아줘야겠네. 내일 봐!","successRate":85}],"nextStep":"시간과 식성을 밝히며 기분 좋게 승낙하고 내일 만남 약속 확정하기","warnings":[],"memory":["11/23(월) 도윤이 내일 6시 약속을 잡으며 직접 찾아본 매운 파스타집을 제안함."]}
     }
   ]
 }

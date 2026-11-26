@@ -21,7 +21,8 @@ export function bankProblems(list) {
     for (const p of fmt.check(it)) say(p);
     if (it.sound !== undefined && fmt.kind !== 'reel') say('sound 는 릴스에만');
     else for (const p of soundProblems(it, { anchors: it.format === 'ai-reel' })) say(p);
-    const missing = missingEmoji(JSON.stringify({ ...it, caption: '' }));
+    // analysis·analysisRequest 는 운영 코치 서버가 준 실제 결과를 그대로 보관한 것 — 서버에서 바로 받을 때처럼 이모지 검사에서 뺀다(고치면 「실제 결과」가 아니게 됨)
+    const missing = missingEmoji(JSON.stringify({ ...it, caption: '', analysis: undefined, analysisRequest: undefined }));
     if (missing.length) say(`그림이 없는 이모지: ${missing.join(' ')} (scripts/fetch-fluent-emoji.ts 에 추가)`);
     // 캡션·종류는 게시 검사와 같은 규칙으로
     const fake = { id: it.id, at: '2026-01-01 21:00', channel: 'instagram', kind: fmt.kind, media: fmt.kind === 'reel' ? ['x.mp4'] : Array.from({ length: fmt.slides?.(it) ?? 2 }, (_, i) => `${i}.jpg`), caption: it.caption, approved: false };
