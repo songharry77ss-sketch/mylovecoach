@@ -18,8 +18,8 @@ describe('로고 인트로 없이 바로 여는 첫 화면', () => {
 
 describe('앱을 처음 화면으로 열 때 갈 곳 (사용법 안내)', () => {
   const V = 'sendit-1.1';
-  it('처음 설치는 사용법 안내 → (동의·나에 대해) 순서로', () => {
-    expect(entryRoute({ started: false, onboardingSeen: false, guideSeen: null }, V)).toBe('/welcome');
+  it('처음 설치는 사용법 안내·나에 대해 없이 바로 첫 캡처 화면으로 (동의는 그 화면 버튼을 누를 때)', () => {
+    expect(entryRoute({ started: false, onboardingSeen: false, guideSeen: null }, V)).toBe('/start');
   });
 
   it('센딧 전 판(또는 예전 판 안내)을 쓰던 사람은 이번 판 안내를 볼 때까지 「새로워졌어요」 안내로', () => {

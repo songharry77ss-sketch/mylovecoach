@@ -23,7 +23,7 @@ export interface EntryState {
   guideSeen: string | null;
 }
 
-export type EntryRoute = '/welcome' | '/welcome?from=update' | '/welcome?from=intro' | '/start' | '/(tabs)';
+export type EntryRoute = '/welcome?from=update' | '/welcome?from=intro' | '/start' | '/(tabs)';
 
 /** 사용법 안내를 다 본 사람이 갈 곳 — 시작한 사람은 홈, 아직이면 첫 캡처 화면 */
 export const homeRoute = (started: boolean): '/start' | '/(tabs)' => (started ? '/(tabs)' : '/start');
@@ -32,7 +32,9 @@ export const homeRoute = (started: boolean): '/start' | '/(tabs)' => (started ? 
  * 앱을 처음 화면('/')으로 열 때 보낼 곳 (app/index.tsx).
  * - 이번 판 안내를 봤으면: 시작한 사람은 홈, 아직이면 첫 캡처 화면
  * - 센딧 전 판(또는 예전 판 안내)을 쓰던 사람: 「센딧으로 새로워졌어요」 표지 + 사용법 한 번(`?from=update`) → 원래 가던 곳
- * - 처음 설치: 사용법 안내(`/welcome`) → 이용약관 동의 → 나에 대해 → 첫 캡처
+ * - 처음 설치: 바로 첫 캡처 화면(`/start`). 이용약관 동의는 그 화면의 버튼을 누를 때 묻고, 사용법 안내·「나에 대해」는 건너뛴다
+ *   (2026-11-26: 7일 새 이용자 64명 중 56%가 소개 슬라이드·프로필 질문을 지나기 전에 떠남 → 첫 코칭까지의 화면을 줄임.
+ *   첫 캡처 화면이 열리면 소개를 본 것으로 적고(start.tsx), 사용법은 마이 → 「사용법 다시 보기」, 나에 대해는 홈 카드로 나중에)
  * - 센딧 판에서 링크(빠른 코칭·KKTI 공유 등)로 먼저 시작한 사람: 처음 설치용 표지(로고·부제·연구진) + 사용법만(`?from=intro`)
  *   — 이미 시작했으니 동의 창·나에 대해 없이 원래 가던 곳으로 (옛 이용자용 「새로워졌어요」는 보여 주지 않는다)
  * 링크(딥링크·로그인 복귀·KKTI 공유·검색 가이드의 /start?q=)로 열면 그 화면이 바로 열리고 여기를 거치지 않는다 —
@@ -41,6 +43,6 @@ export const homeRoute = (started: boolean): '/start' | '/(tabs)' => (started ? 
 export function entryRoute(s: EntryState, guideVersion: string): EntryRoute {
   if (s.guideSeen === guideVersion) return homeRoute(s.started);
   if (s.guideSeen != null) return '/welcome?from=update';
-  if (!s.started && !s.onboardingSeen) return '/welcome';
+  if (!s.started && !s.onboardingSeen) return '/start';
   return '/welcome?from=intro';
 }

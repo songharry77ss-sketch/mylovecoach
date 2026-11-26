@@ -7,7 +7,8 @@ import { GUIDE_VERSION, useAppStore } from '@/store/app-store';
 
 /**
  * 앱을 처음 화면으로 열 때 갈 곳 (lib/intro-paths 의 entryRoute).
- * 처음이면 사용법 안내, 업데이트한 기존 이용자는 「새로워진 센딧」 사용법 한 번, 그 밖에는 홈(아직 시작 전이면 첫 캡처 화면).
+ * 처음이면 바로 첫 캡처 화면(11-26 — 소개 슬라이드·「나에 대해」 없이), 업데이트한 기존 이용자는 「새로워진 센딧」 사용법 한 번,
+ * 그 밖에는 홈(아직 시작 전이면 첫 캡처 화면).
  */
 export default function Index() {
   const theme = useTheme();

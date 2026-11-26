@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,7 +20,7 @@ import { APP_CONFIG } from '@/lib/config';
 import { haptic } from '@/lib/haptics';
 import { pickImage } from '@/lib/images';
 import { privacyUrl } from '@/lib/privacy-copy';
-import { useAppStore } from '@/store/app-store';
+import { GUIDE_VERSION, useAppStore } from '@/store/app-store';
 
 type StartMode = 'image' | 'text' | 'browse';
 
@@ -45,7 +45,9 @@ const STEPS = [
 ];
 
 /**
- * 첫 캡처 화면 — 처음 실행 소개·「나에 대해」 다음에 오는 마지막 단계이자, 가입·설문 없이 바로 코칭을 받는 입구.
+ * 첫 캡처 화면 — 처음 설치하면 앱이 바로 여는 첫 화면이자(11-26 부터 소개 슬라이드·「나에 대해」 없이), 가입·설문 없이 바로 코칭을 받는 입구.
+ * 처음 설치한 기기가 이 화면을 열면 소개를 본 것으로 적는다 — 첫 코칭 뒤 다음 실행에 사용법 안내가 끼어들지 않게
+ * (사용법은 마이 → 「사용법 다시 보기」, 나에 대해는 홈의 「나에 대해 알려주세요」 카드로 원할 때).
  * 할 일은 하나 — 캡처하는 법을 세 줄로 보여 주고 「대화 캡처 올리기」로 이끈다.
  * 캡처가 없으면 「상황만 적기」를 펼쳐 글로 물어도 된다 (검색 가이드의 ?q= 로 오면 펼친 채로 채워 둔다).
  * KKTI·비밀 상담 같은 부가 기능은 여기서 빼고 홈의 「탐색」 탭에 둔다. 아직 준비가 안 됐으면 위의 「둘러보기」로 홈부터 볼 수 있다.
@@ -78,6 +80,15 @@ export default function Start() {
   const askInput = useRef<TextInput>(null);
   // 펼친 「상황만 적기」 칸의 위치 — 키보드가 올라와도 입력칸이 보이게 이만큼 내린다
   const askY = useRef(0);
+
+  // 처음 설치: 소개를 건너뛰고 바로 왔다고 적는다 (이미 소개를 본·쓰던 이용자가 링크로 연 경우는 건드리지 않는다)
+  useEffect(() => {
+    const s = useAppStore.getState();
+    if (s.onboardingSeen) return;
+    s.setOnboardingSeen();
+    if (s.guideSeen == null) s.setGuideSeen(GUIDE_VERSION);
+    track('onboarding', { step: 'slides', action: 'bypass', mode: 'fresh' });
+  }, []);
 
   const begin = (mode: StartMode) => {
     track('start', { mode, content: useAppStore.getState().contentConsent === true, ...(mode === 'text' ? { typed: typed.length > 0, example: fromExample, ...(prefilled ? { prefilled: true } : {}) } : {}) });
@@ -192,7 +203,7 @@ export default function Start() {
             {userName ? `${userName}님,\n` : ''}
             <Text style={{ color: theme.primary }}>첫 캡처</Text>를 올려 볼까요?
           </Text>
-          <Text style={[styles.sub, { color: theme.textSecondary }]}>호칭·말투에 맞춘 답장 3가지를 골라 줘요.</Text>
+          <Text style={[styles.sub, { color: theme.textSecondary }]}>캡처 한 장이면 호칭·말투에 맞춘 답장 3가지와 호감 온도가 바로 나와요.</Text>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(120).duration(420)} style={[styles.guide, card]}>
