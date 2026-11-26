@@ -134,9 +134,9 @@ afterEach(() => {
 });
 
 describe('처음 열면', () => {
-  it('처음이면 사용법 안내로, 이번 판 안내를 본 사람은 첫 캡처 화면으로, 시작한 사람은 홈으로', () => {
+  it('처음이면 바로 첫 캡처 화면으로, 이번 판 안내를 본 사람도 첫 캡처 화면으로, 시작한 사람은 홈으로', () => {
     mount(<Index />);
-    expect(mockRedirect).toBe('/welcome');
+    expect(mockRedirect).toBe('/start');
     act(() => {
       useAppStore.setState({ onboardingSeen: true, guideSeen: GUIDE_VERSION });
     });
@@ -144,6 +144,23 @@ describe('처음 열면', () => {
     act(() => {
       useAppStore.setState({ user: { name: '', gender: 'other', style: [], defaultTone: 'natural', createdAt: 1 } });
     });
+    expect(mockRedirect).toBe('/(tabs)');
+  });
+
+  it('처음 설치한 기기가 첫 캡처 화면을 열면 소개를 본 것으로 적어, 첫 코칭 뒤 다음 실행에 사용법 안내가 끼어들지 않는다', () => {
+    mount(<Start />);
+    const s = useAppStore.getState();
+    expect(s.onboardingSeen).toBe(true);
+    expect(s.guideSeen).toBe(GUIDE_VERSION);
+    expect(track).toHaveBeenCalledWith('onboarding', { step: 'slides', action: 'bypass', mode: 'fresh' });
+    // 동의 창은 버튼을 누를 때 — 화면을 열기만 해서는 띄우지 않는다
+    expect(useAppStore.getState().termsAgreedAt ?? null).toBeNull();
+    act(() => tree?.unmount());
+    // 첫 코칭으로 채팅방이 생긴 뒤 다음 실행 → 바로 홈
+    act(() => {
+      useAppStore.getState().quickStart();
+    });
+    mount(<Index />);
     expect(mockRedirect).toBe('/(tabs)');
   });
 
