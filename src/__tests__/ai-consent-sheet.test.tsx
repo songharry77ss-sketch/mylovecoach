@@ -68,14 +68,15 @@ describe('AI 분석 동의 시트', () => {
   it('요청이 올 때만 뜨고, 받는 곳·보내는 내용을 알린 뒤 「동의하고 계속」을 그 요청에 돌려준다', async () => {
     const tree = mount();
     expect(texts(tree)).toEqual([]);
-    const { answer } = await ask({ provider: 'relay', via: 'relay' });
+    const { answer } = await ask({ provider: 'relay2', via: 'relay' });
     const shown = texts(tree).join('\n');
     expect(shown).toContain('대화 내용을 AI로 보내도 될까요?');
-    // 기본은 Google, 막힐 때만 예비 두 회사 — 받는 곳을 셋 다 알린다
-    expect(shown).toContain('기본은 Google LLC의 Gemini API예요');
+    // Claude 먼저, 막히면 GPT·Gemini — 받는 곳을 셋 다 순서대로 알린다
+    expect(shown).toContain('먼저 Anthropic PBC의 Claude API로 보내요');
+    expect(shown).toContain('Google LLC의 Gemini API');
     expect(shown).toContain('Anthropic PBC의 Claude API');
     expect(shown).toContain('OpenAI, L.L.C.의 OpenAI API');
-    expect(shown).toContain('답하지 못할 때만');
+    expect(shown).toContain('답하지 못하면(한도·혼잡·오류)');
     expect(shown).toContain('국외 이전');
     expect(shown).toContain('대화 캡처 이미지');
     expect(shown).toContain('마이 → 개인정보에서 언제든 철회');
@@ -90,7 +91,7 @@ describe('AI 분석 동의 시트', () => {
 
   it('「동의 안 함」이면 거절로 돌려주고 시트를 닫는다', async () => {
     const tree = mount();
-    const { answer } = await ask({ provider: 'relay', via: 'relay' });
+    const { answer } = await ask({ provider: 'relay2', via: 'relay' });
     await act(async () => press(tree, '동의 안 함'));
     await expect(answer).resolves.toBe(false);
     expect(texts(tree)).toEqual([]);
@@ -114,7 +115,7 @@ describe('AI 분석 동의 시트', () => {
     const os = jest.replaceProperty(Platform, 'OS', 'android');
     try {
       const tree = mount();
-      const { answer } = await ask({ provider: 'relay', via: 'relay' });
+      const { answer } = await ask({ provider: 'relay2', via: 'relay' });
       expect(texts(tree).join('\n')).toContain('대화 내용을 AI로 보내도 될까요?');
       await act(async () => tree.root.findByType(Modal).props.onRequestClose());
       await expect(answer).resolves.toBe(false);
@@ -127,7 +128,7 @@ describe('AI 분석 동의 시트', () => {
 
   it('VoiceOver 닫기 제스처(두 손가락 문지르기)는 동의 안 함으로 본다', async () => {
     const tree = mount();
-    const { answer } = await ask({ provider: 'relay', via: 'relay' });
+    const { answer } = await ask({ provider: 'relay2', via: 'relay' });
     const sheet = tree.root.findAll((node) => node.props.accessibilityViewIsModal === true && typeof node.props.onAccessibilityEscape === 'function')[0];
     await act(async () => sheet.props.onAccessibilityEscape());
     await expect(answer).resolves.toBe(false);
@@ -137,7 +138,7 @@ describe('AI 분석 동의 시트', () => {
 
   it('시트가 사라지면 기다리던 요청은 거절로 끝나 멈춰 있지 않는다', async () => {
     const tree = mount();
-    const { answer } = await ask({ provider: 'relay', via: 'relay' });
+    const { answer } = await ask({ provider: 'relay2', via: 'relay' });
     act(() => tree.unmount());
     await expect(answer).resolves.toBe(false);
   });

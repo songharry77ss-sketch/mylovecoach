@@ -3,13 +3,16 @@
  * 앱에서 받은 대화 캡처 + 프로필을 Gemini 에 전달하고 구조화된 코칭 결과를 돌려줍니다.
  * 요청 본문의 mode 로 다른 기능도 처리합니다 (없으면 예전 앱의 코칭 요청):
  *   coach(코칭) · report(상대 분석 보고서) · mind(속마음 풀이) · practice(연애 연습 상대역)
- * 중계 요청은 먼저 Google(Gemini)로 보냅니다. Gemini 가 한도·혼잡·오류로 답하지 못하면, 앱이 x-ai-consent 로
- * 「Google·Anthropic·OpenAI 로 보내는 데 동의함」(google,anthropic,openai)을 알려 준 요청에 한해 Anthropic(Claude) → OpenAI(GPT) 순으로
- * 다시 보냅니다(src/lib/ai-backup.ts, 2026-11-20). Google 에만 동의한 예전 앱(헤더 google)은 예전처럼 Gemini 로만 갑니다.
+ * 앱은 x-ai-consent 로 동의한 AI 회사를 동의한 순서대로 알려 줍니다. 새 동의(anthropic,openai,google — 2026-11-26)는
+ * Anthropic(Claude) → OpenAI(GPT) → Google(Gemini), 예전 동의(google,anthropic,openai — 11-20)는 동의한 대로 Gemini 먼저·막힐 때만 Claude → GPT.
+ * 앞이 답하지 못하거나 답의 형식이 틀리면 다음으로 넘기고, 내용 거절은 넘기지 않습니다 (src/lib/ai-backup.ts 의 aiOrder).
+ * Google 에만 동의한 예전 앱(헤더 google·없음)은 Gemini 로만 갑니다.
+ * AI 회사가 실패하면(크레딧 소진·키 오류·한도·서버 오류) 운영자 텔레그램으로 바로 알립니다 — 같은 문제는 30분에 한 번.
  * 받는 곳은 앱의 AI 분석 동의 시트(src/components/coach/ai-consent-sheet.tsx)와 개인정보 처리방침 2번이 안내합니다 — 바꾸려면 셋을 같이 고칠 것.
  * 환경변수:
- *   GEMINI_API_KEY (필수 — 없으면 500), GEMINI_MODEL (선택, 기본 gemini-3.5-flash)
- *   ANTHROPIC_API_KEY · OPENAI_API_KEY (선택, 예비 — 없으면 그 회사는 건너뜀), ANTHROPIC_MODEL · OPENAI_MODEL · ANTHROPIC_EFFORT (선택)
+ *   ANTHROPIC_API_KEY · OPENAI_API_KEY · GEMINI_API_KEY (키가 없는 회사는 건너뜀 — 하나도 없으면 500), AI_PROVIDER_ORDER (선택)
+ *   ANTHROPIC_MODEL (기본 claude-haiku-5-5) · OPENAI_MODEL (기본 gpt-6-luna) · ANTHROPIC_EFFORT · GEMINI_MODEL (선택)
+ *   TELEGRAM_BOT_TOKEN · TELEGRAM_CHAT_ID (선택 — AI 실패 알림)
  *   COACH_APP_TOKEN (선택, 앱 토큰 검사)
  *   비용 스위치 GEMINI_MODEL_LIGHT · GEMINI_THINKING_* · GEMINI_OMIT_TEMPERATURE (선택, 비우면 지금 동작 그대로 — api/_ai-flags.ts)
  * 요청마다 로그 한 줄(JSON)을 남깁니다: 모드·모델·토큰 수·종료 이유·시도 횟수·걸린 시간. Gemini 를 부르기 직전마다 시작 줄도 남깁니다.
@@ -20,8 +23,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { APP_NAME, APP_SUBTITLE } from '../src/constants/brand';
 import { buildTask, parseAiRequest, type AiMode, type AiTask } from '../src/lib/ai-tasks';
 import { IMAGE_TOO_LARGE_MESSAGE, MAX_IMAGE_BASE64_LENGTH, isImageTooLarge, salvageTruncatedCoach } from '../src/lib/coach-schema';
-import { backupOrder, callAnthropicTask, callOpenAITask, consentedCompanies, shouldFallBack, type BackupResult } from '../src/lib/ai-backup';
+import { aiOrder, callAnthropicTask, callOpenAITask, consentList, shouldFallBack, type AiProviderName, type BackupUsage } from '../src/lib/ai-backup';
 import { callGeminiTask, type GeminiUsage } from '../src/lib/gemini';
+import { escapeHtml, notifyTelegram, telegramReady } from './_telegram';
 import { aiFlagsFor } from './_ai-flags';
 import { clientIp, rateLimited, storedKb } from './_limits';
 import { requestPlatform, type RequestPlatform } from './_platform';
@@ -29,8 +33,6 @@ import { analyticsEnabled, contentConsentOk, DEVICE_ID, insert, optedOutDevice, 
 
 export const config = { maxDuration: 120 };
 
-/** 이 서버가 내용을 보내는 AI 회사 — 앱이 x-ai-consent 헤더로 알려 주는 「사용자가 동의한 회사」와 같아야 보낸다 */
-const RELAY_COMPANY = 'google';
 /** x-ai-consent 헤더가 없는 예전 앱(동의 시트 이전 판)이 처리방침으로 안내받은 회사 */
 const LEGACY_APP_COMPANY = 'google';
 
@@ -168,8 +170,10 @@ export interface UsageLine {
   flexMs?: number;
   /** 출력 상한에 걸려 잘린 코칭 응답을 살렸을 때 'memory' (맨 끝의 기억 칸에서 끊겨 기억만 비우고 돌려줌) */
   salvaged?: 'memory';
-  /** Gemini 가 실패해 예비 AI 로 넘어갔을 때: 부른 순서와 결과 (예: anthropic:claude-opus-5-5:ok · openai:gpt-6.2-astra:429) */
-  backup?: string[];
+  /** 답한 회사 (anthropic · openai · gemini) */
+  provider?: string;
+  /** 부른 순서와 결과 (예: anthropic:claude-haiku-5-5:402 · openai:gpt-6-luna:ok) */
+  tries?: string[];
 }
 
 /** 본문의 mode — 아는 값만 (모르는 글자를 로그에 그대로 남기지 않는다) */
@@ -178,8 +182,53 @@ function modeOf(body: unknown): AiMode {
   return mode === 'report' || mode === 'mind' || mode === 'practice' ? mode : 'coach';
 }
 
-function usageFields(usage?: GeminiUsage): Partial<UsageLine> {
-  return { promptTokens: usage?.input, candidatesTokens: usage?.output, thoughtsTokens: usage?.thoughts, cachedTokens: usage?.cached, totalTokens: usage?.total };
+/** 회사 하나에 맡긴 결과 (Gemini·Claude·GPT 공통 모양) */
+type Attempt =
+  | { ok: true; provider: AiProviderName; model?: string; text: string; finishReason?: string; usage?: GeminiUsage | BackupUsage }
+  | { ok: false; provider: AiProviderName; model?: string; code: 'auth' | 'rate_limit' | 'refused' | 'server' | 'parse'; status?: number; message: string; upstreamError?: string; usage?: GeminiUsage | BackupUsage; finishReason?: string };
+
+const AI_NAME: Record<AiProviderName, string> = { anthropic: 'Claude', openai: 'GPT', gemini: 'Gemini' };
+/** 실패 원인 한국어 — 402 는 선불 크레딧 소진 (11-26 Gemini 장애) */
+function failureReason(f: { code: string; status?: number }): string {
+  if (f.status === 402) return '크레딧 소진(402) — 충전 필요';
+  if (f.code === 'auth') return `키 오류(${f.status ?? '?'}) — API 키 확인`;
+  if (f.code === 'rate_limit') return '요청 한도 초과(429)';
+  return f.status ? `서버 오류(${f.status})` : '연결 실패';
+}
+/** 같은 회사·같은 원인은 30분에 한 번만 알린다 (서버 여러 대가 함께 세도록 데이터베이스 횟수 표를 쓴다) */
+const ALERT_WINDOW_MS = 30 * 60 * 1000;
+const alertedAt = new Map<string, number>();
+/** 이 실패를 이번에 알려야 하는지 — 같은 회사·같은 원인은 30분에 한 번 (이 서버의 기억 + 데이터베이스 횟수 표) */
+async function shouldAlert(f: { provider: AiProviderName; code: string; status?: number }, now: number): Promise<boolean> {
+  const key = `alert:${f.provider}:${f.status ?? f.code}`;
+  if (now - (alertedAt.get(key) ?? 0) < ALERT_WINDOW_MS) return false;
+  alertedAt.set(key, now);
+  // 다른 서버가 이미 알렸으면 건너뛴다 (30분 칸마다 1번). 데이터베이스를 못 쓰면 이 서버의 기억만으로 거른다 — 알림을 빠뜨리는 것보다 낫다
+  try {
+    return (await rpc<boolean>('take_quota', { p_kind: `${key}:${Math.floor(now / ALERT_WINDOW_MS)}`, p_units: 1, p_limit: 1 })) !== false;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * 요청이 끝난 뒤 한 통으로 알린다 — 어느 AI 가 왜 실패했고, 다른 AI 가 대신 답했는지(servedBy) 또는 모두 실패해 답장이 안 나갔는지.
+ * 새로 알릴 실패가 없으면 보내지 않는다
+ */
+async function alertAiFailures(failures: { provider: AiProviderName; model?: string; code: string; status?: number }[], servedBy: AiProviderName | null): Promise<void> {
+  if (!failures.length || !telegramReady()) return;
+  const now = Date.now();
+  const fresh: typeof failures = [];
+  for (const f of failures) if (await shouldAlert(f, now)) fresh.push(f);
+  if (!fresh.length) return;
+  const lines = fresh.map((f) => `- ${escapeHtml(AI_NAME[f.provider])}(${escapeHtml(f.model ?? '?')}): ${escapeHtml(failureReason(f))}`);
+  const then = servedBy ? `→ ${AI_NAME[servedBy]}가 대신 답했어요 (답장은 정상)` : '→ 모든 AI 가 답하지 못해 답장이 안 나갔어요';
+  const title = servedBy ? '⚠️ <b>센딧 AI 일부 실패</b>' : '🚨 <b>센딧 답장 실패</b>';
+  await notifyTelegram(`${title}\n${lines.join('\n')}\n${escapeHtml(then)}`).catch(() => false);
+}
+
+function usageFields(usage?: GeminiUsage | BackupUsage): Partial<UsageLine> {
+  return { promptTokens: usage?.input, candidatesTokens: usage?.output, thoughtsTokens: usage && 'thoughts' in usage ? usage.thoughts : undefined, cachedTokens: usage?.cached, totalTokens: usage?.total };
 }
 
 /**
@@ -258,12 +307,7 @@ async function handle(req: VercelRequest, res: VercelResponse, send: (status: nu
     send(405, { error: 'POST만 지원합니다.' }, 'method');
     return;
   }
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    send(500, { error: '서버에 GEMINI_API_KEY가 설정되지 않았어요.' }, 'no_key');
-    return;
-  }
-  let provider: 'gemini' | 'anthropic' | 'openai' = 'gemini';
+  let provider: AiProviderName = 'gemini';
   const expectedToken = process.env.COACH_APP_TOKEN;
   if (expectedToken && req.headers['x-app-token'] !== expectedToken) {
     send(401, { error: '앱 인증에 실패했어요.' }, 'app_token');
@@ -278,9 +322,12 @@ async function handle(req: VercelRequest, res: VercelResponse, send: (status: nu
   }
   // 스위치가 꺼져 있을 때 헤더 없는 예전 앱은 그 판 처리방침이 안내한 Google 로 본다 — 지금은 그대로 받고,
   // 나중에 보낼 회사(RELAY_COMPANY)를 바꾸면 예전 앱도 새 회사로 조용히 보내지 않고 같이 거절된다
-  const consented = consentedCompanies(consentHeader ?? LEGACY_APP_COMPANY);
-  if (!consented.has(RELAY_COMPANY)) {
-    send(503, { error: '지금은 AI 연결을 점검 중이에요. 잠시 후 다시 시도해주세요.' }, 'consent');
+  // 동의한 회사 중 키가 있는 곳만, 동의한 순서대로 (새 동의: Claude → GPT → Gemini · 예전 동의: Gemini → Claude → GPT)
+  const order = aiOrder(consentList(consentHeader ?? LEGACY_APP_COMPANY));
+  if (!order.length) {
+    // 키가 하나도 없으면 서버 설정 문제, 키는 있는데 동의한 회사가 아니면 점검 중
+    if (!aiOrder(['anthropic', 'openai', 'google']).length) send(500, { error: '서버에 AI 키가 설정되지 않았어요.' }, 'no_key');
+    else send(503, { error: '지금은 AI 연결을 점검 중이에요. 잠시 후 다시 시도해주세요.' }, 'consent');
     return;
   }
 
@@ -318,75 +365,97 @@ async function handle(req: VercelRequest, res: VercelResponse, send: (status: nu
     send(200, parsed.mode === 'coach' ? { analysis: output, usage, provider } : { mode: parsed.mode, result: output, usage, provider });
 
   const watch = watchRequest(req, res, SERVER_DEADLINE_MS);
+  const alerts: Promise<unknown>[] = [];
+  /** 알릴 실패 (키·크레딧·한도·서버 오류) — 요청이 끝나면 한 통으로 */
+  const failed: Extract<Attempt, { ok: false }>[] = [];
   try {
-    const result = await callGeminiTask(task, apiKey, {
-      ...aiFlagsFor(parsed.mode),
-      signal: watch.signal,
-      onFlex: ({ served, ms, reason }) => {
-        line.flex = served ? 'served' : `fallback:${reason ?? '?'}`;
-        line.flexMs = ms;
-      },
-      onAttempt: (model, attempt) => {
-        line.model = model;
-        line.attempts = attempt;
-        // 끝 줄이 없는(함수가 취소로 끝난) 호출도 셀 수 있게 부르기 직전에 남긴다 — 이 줄 수가 실제로 부른 횟수
-        console.log(JSON.stringify({ log: 'coach_api_start', mode: parsed.mode, model, attempt }));
-      },
-    });
-    Object.assign(line, usageFields(result.usage), { finishReason: result.finishReason });
-    // Gemini 가 한도·혼잡·오류로 실패했으면, 사용자가 동의한 예비 회사(키가 있는 것)로 차례로 다시 보낸다
-    let backup: Extract<BackupResult, { ok: true }> | null = null;
-    if (!result.ok && shouldFallBack(result.code)) {
-      for (const next of backupOrder(consented)) {
-        if (watch.signal.aborted) break;
-        const tried =
-          next.provider === 'anthropic'
-            ? await callAnthropicTask(task, next.key, { model: process.env.ANTHROPIC_MODEL, effort: process.env.ANTHROPIC_EFFORT, signal: watch.signal })
-            : await callOpenAITask(task, next.key, { model: process.env.OPENAI_MODEL, signal: watch.signal });
-        console.log(JSON.stringify({ log: 'coach_api_backup', mode: parsed.mode, provider: tried.provider, model: tried.model, ok: tried.ok, status: tried.ok ? 200 : tried.status }));
-        (line.backup ??= []).push(`${tried.provider}:${tried.model}:${tried.ok ? 'ok' : (tried.status ?? tried.code)}`);
-        if (tried.ok) {
-          backup = tried;
-          break;
-        }
-        // 내용 거절은 다른 회사로 또 보내지 않는다
-        if (tried.code === 'refused') break;
+    /** 한 회사에 한 번 맡긴다 — 결과 모양을 하나로 맞춘다 */
+    const ask = async (next: { provider: AiProviderName; key: string }): Promise<Attempt> => {
+      if (next.provider === 'gemini') {
+        const r = await callGeminiTask(task, next.key, {
+          ...aiFlagsFor(parsed.mode),
+          signal: watch.signal,
+          onFlex: ({ served, ms, reason }) => {
+            line.flex = served ? 'served' : `fallback:${reason ?? '?'}`;
+            line.flexMs = ms;
+          },
+          onAttempt: (model, attempt) => {
+            line.model = model;
+            line.attempts = attempt;
+            // 끝 줄이 없는(함수가 취소로 끝난) 호출도 셀 수 있게 부르기 직전에 남긴다 — 이 줄 수가 실제로 부른 횟수
+            console.log(JSON.stringify({ log: 'coach_api_start', mode: parsed.mode, model, attempt }));
+          },
+        });
+        return r.ok
+          ? { ok: true, provider: 'gemini', model: r.model, text: r.text, finishReason: r.finishReason, usage: r.usage }
+          : { ok: false, provider: 'gemini', model: r.model, code: r.code, status: r.upstreamStatus ?? r.status, message: r.message, upstreamError: r.upstreamError, usage: r.usage, finishReason: r.finishReason };
       }
+      console.log(JSON.stringify({ log: 'coach_api_start', mode: parsed.mode, provider: next.provider }));
+      const r =
+        next.provider === 'anthropic'
+          ? await callAnthropicTask(task, next.key, { model: process.env.ANTHROPIC_MODEL, effort: process.env.ANTHROPIC_EFFORT, signal: watch.signal })
+          : await callOpenAITask(task, next.key, { model: process.env.OPENAI_MODEL, signal: watch.signal });
+      return r.ok ? { ok: true, provider: r.provider, model: r.model, text: r.text, finishReason: r.finishReason, usage: r.usage } : { ok: false, provider: r.provider, model: r.model, code: r.code, status: r.status, message: r.message };
+    };
+    /** 받은 JSON 글 → 검사한 결과 (형식이 틀리면 null) */
+    const check = (text: string, finishReason?: string): unknown => {
+      // 출력 상한(MAX_TOKENS)에 걸려 잘린 JSON 도 여기서 걸러진다 (로그의 finishReason 으로 구분)
+      let raw: unknown;
+      try {
+        raw = JSON.parse(text);
+      } catch {
+        raw = undefined;
+      }
+      // 코칭 응답은 맨 끝이 기억(memory) 칸이다 — 그 안에서 잘렸으면 답장까지는 다 나온 것이니 기억만 비우고 살린다
+      if (raw === undefined && parsed.mode === 'coach' && finishReason === 'MAX_TOKENS') {
+        raw = salvageTruncatedCoach(text);
+        if (raw !== undefined) line.salvaged = 'memory';
+      }
+      const json = raw === undefined ? null : task.schema.safeParse(raw);
+      return json?.success ? task.normalize(json.data) : null;
+    };
+
+    let failure: Extract<Attempt, { ok: false }> | null = null;
+    for (const next of order) {
+      if (watch.signal.aborted) break;
+      const tried = await ask(next);
+      const mark = tried.ok ? 'ok' : (tried.status ?? tried.code);
+      (line.tries ??= []).push(`${tried.provider}:${tried.model ?? '?'}:${mark}`);
+      // 마지막 시도의 모델·토큰 수·종료 이유를 남긴다 (실패·형식 오류 진단용)
+      Object.assign(line, usageFields(tried.usage), { model: tried.model ?? line.model, finishReason: tried.finishReason });
+      if (tried.ok) {
+        const output = check(tried.text, tried.finishReason);
+        if (output === null) {
+          // 이 회사의 답 형식이 틀렸다 — 다음 회사로
+          failure = { ok: false, provider: tried.provider, model: tried.model, code: 'parse', message: '응답 형식이 올바르지 않아요. 다시 시도해주세요.', finishReason: tried.finishReason };
+          continue;
+        }
+        provider = tried.provider;
+        line.provider = provider;
+        // 앞 회사가 실패하고 이 회사가 대신 답했으면 알린다
+        alerts.push(alertAiFailures(failed, provider));
+        await log({ analysis: output as Record<string, unknown>, provider });
+        reply(output, tried.usage);
+        return;
+      }
+      failure = tried;
+      if (shouldFallBack(tried.code)) failed.push(tried);
+      // 내용 거절은 다른 회사로 또 보내지 않는다
+      if (tried.code === 'refused') break;
     }
-    if (backup) {
-      provider = backup.provider;
-      Object.assign(line, { model: backup.model, finishReason: backup.finishReason, promptTokens: backup.usage?.input, candidatesTokens: backup.usage?.output, cachedTokens: backup.usage?.cached, totalTokens: backup.usage?.total, thoughtsTokens: undefined });
-    }
-    const answer = backup ?? result;
-    if (!answer.ok) {
-      Object.assign(line, { upstreamStatus: answer.upstreamStatus, upstreamError: answer.upstreamError });
-      await log({ provider, error: answer.code });
-      // Google 원문 오류(예: 없는 모델 404 의 영어 안내)는 화면에 그대로 보이지 않게 고정 안내로 바꾼다. 혼잡(503)·한도·키·거절은 원래 우리 문구
-      const message = answer.code === 'server' && answer.status !== 503 ? UPSTREAM_ERROR_MESSAGE : answer.message;
-      send(answer.code === 'auth' ? 500 : answer.code === 'rate_limit' ? 429 : answer.code === 'refused' ? 422 : 502, { error: message }, answer.code);
-      return;
-    }
-    // 출력 상한(MAX_TOKENS)에 걸려 잘린 JSON 도 여기서 걸러진다 (로그의 finishReason 으로 구분)
-    let raw: unknown;
-    try {
-      raw = JSON.parse(answer.text);
-    } catch {
-      raw = undefined;
-    }
-    // 코칭 응답은 맨 끝이 기억(memory) 칸이다 — 그 안에서 잘렸으면 답장까지는 다 나온 것이니 기억만 비우고 살린다
-    if (raw === undefined && parsed.mode === 'coach' && answer.finishReason === 'MAX_TOKENS') {
-      raw = salvageTruncatedCoach(answer.text);
-      if (raw !== undefined) line.salvaged = 'memory';
-    }
-    const json = raw === undefined ? null : task.schema.safeParse(raw);
-    if (!json?.success) {
+    // 아무도 답하지 못했다
+    alerts.push(alertAiFailures(failed, null));
+    const answer = failure ?? { ok: false as const, provider, code: 'server' as const, message: UPSTREAM_ERROR_MESSAGE };
+    Object.assign(line, { provider: answer.provider, upstreamStatus: answer.status, upstreamError: answer.upstreamError });
+    if (answer.code === 'parse') {
       await log({ provider, error: 'parse' });
       send(502, { error: '응답 형식이 올바르지 않아요. 다시 시도해주세요.' }, 'parse');
       return;
     }
-    const output = task.normalize(json.data);
-    await log({ analysis: output as Record<string, unknown>, provider });
-    reply(output, backup ? backup.usage : result.usage);
+    await log({ provider, error: answer.code });
+    // 원문 오류(예: 없는 모델 404 의 영어 안내)는 화면에 그대로 보이지 않게 고정 안내로 바꾼다. 혼잡(503)·한도·키·거절은 원래 우리 문구
+    const message = answer.code === 'server' && answer.status !== 503 ? UPSTREAM_ERROR_MESSAGE : answer.message;
+    send(answer.code === 'auth' ? 500 : answer.code === 'rate_limit' ? 429 : answer.code === 'refused' ? 422 : 502, { error: message }, answer.code);
   } catch {
     const why = watch.reason();
     if (why === 'client') {
@@ -405,5 +474,7 @@ async function handle(req: VercelRequest, res: VercelResponse, send: (status: nu
     send(502, { error: 'AI 서버와 통신하지 못했어요.' }, 'network');
   } finally {
     watch.done();
+    // 알림은 응답을 보낸 뒤에 끝까지 기다린다 (실패해도 앱에는 영향 없음)
+    await Promise.allSettled(alerts);
   }
 }

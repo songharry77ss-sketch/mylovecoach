@@ -77,7 +77,7 @@ interface ConsentRow {
 
 /**
  * 시트 문구. 개인정보 처리방침(site/privacy.html 1·2번(국외 이전 표 포함)·4·5번)에 적힌 내용만 쓴다 — 처리방침을 고치면 여기도 같이 고칠 것.
- * 서버를 거치면 기본 Google(Gemini), Google 이 답하지 못할 때만 Anthropic(Claude)·OpenAI(GPT). 개인 키면 그 키의 회사로 바로 간다.
+ * 서버를 거치면 Anthropic(Claude) 먼저, 답하지 못하면 OpenAI(GPT), 그다음 Google(Gemini). 개인 키면 그 키의 회사로 바로 간다.
  * 모두 미국 등 해외 서버라 국외 이전이다.
  */
 function consentCopy(route: AiRoute) {
@@ -91,7 +91,7 @@ function consentCopy(route: AiRoute) {
     {
       label: '받는 곳',
       text: relay
-        ? '기본은 Google LLC의 Gemini API예요. Google 쪽이 사용량 한도·혼잡·오류로 답하지 못할 때만 같은 내용을 Anthropic PBC의 Claude API나 OpenAI, L.L.C.의 OpenAI API로 보내요. 모두 중계 서버(Vercel)를 거쳐 미국 등 해외 서버로 암호화해서 보내요(국외 이전).'
+        ? '먼저 Anthropic PBC의 Claude API로 보내요. 답하지 못하면(한도·혼잡·오류) 같은 내용을 OpenAI, L.L.C.의 OpenAI API로, 그래도 안 되면 Google LLC의 Gemini API로 보내요. 모두 중계 서버(Vercel)를 거쳐 미국 등 해외 서버로 암호화해서 보내요(국외 이전).'
         : `내가 등록한 API 키의 회사(${company})예요. 중계 서버 없이 이 기기에서 미국 등 해외 서버로 바로 보내요(국외 이전).`,
     },
     {
@@ -112,7 +112,7 @@ function consentCopy(route: AiRoute) {
   if (relay) {
     return {
       title: '대화 내용을 AI로 보내도 될까요?',
-      lead: '답장과 분석을 만들려면, 코칭에 필요한 내용을 AI로 보내야 해요. 기본은 Google(Gemini)이고, 막힐 때만 Anthropic(Claude)·OpenAI(GPT)가 대신 답해요. 동의하면 다음부터는 묻지 않아요.',
+      lead: '답장과 분석을 만들려면, 코칭에 필요한 내용을 AI로 보내야 해요. Anthropic(Claude)이 먼저 답하고, 막히면 OpenAI(GPT)·Google(Gemini)이 대신 답해요. 동의하면 다음부터는 묻지 않아요.',
       rows,
     };
   }

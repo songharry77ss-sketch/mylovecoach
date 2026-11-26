@@ -162,7 +162,7 @@ describe('AI 답변 신고 시트', () => {
     expect(url).toBe('https://coach.test/api/report');
     expect(init?.headers?.['x-app-token']).toBe('app-token');
     const body = sentBody();
-    expect(body).toMatchObject({ mode: 'coach', reason: 'offensive', note: '말투가 비꼬는 느낌이에요', content, model: 'relay/relay', platform: 'ios' });
+    expect(body).toMatchObject({ mode: 'coach', reason: 'offensive', note: '말투가 비꼬는 느낌이에요', content, model: 'relay2/relay', platform: 'ios' });
     expect(Object.keys(body).sort()).toEqual(expect.arrayContaining(['content', 'mode', 'model', 'note', 'platform', 'reason']));
     expect(JSON.stringify(body)).not.toMatch(/deviceId|device_id|sessionId/);
 

@@ -10,7 +10,7 @@ import { callGeminiTask, GEMINI_FALLBACK_MODELS, type CallGeminiOptions } from '
 // 실제 Gemini 는 부르지 않는다 — 불렸는지만 본다 (기본은 실패로 돌려 응답은 502). 나머지(모델 이름·생각 수준 목록)는 진짜를 쓴다
 jest.mock('@/lib/gemini', () => ({ ...jest.requireActual('@/lib/gemini'), callGeminiTask: jest.fn(async () => ({ ok: false, code: 'server', message: 'AI 오류' })) }));
 // 이용 기록은 여기서 볼 것이 아니다
-jest.mock('../../api/_supabase', () => ({ analyticsEnabled: () => false, insert: jest.fn() }));
+jest.mock('../../api/_supabase', () => ({ analyticsEnabled: () => false, insert: jest.fn(), rpc: jest.fn(async () => null) }));
 
 const gemini = jest.mocked(callGeminiTask);
 const BODY = {
@@ -139,13 +139,19 @@ describe('중계 서버는 사용자가 동의한 회사(Google)로만 보낸다
     expect(gemini).not.toHaveBeenCalled();
   });
 
-  it('Gemini 키가 없으면 Anthropic 키·설정이 있어도 그쪽으로 보내지 않고 500', async () => {
+  it('Google 에만 동의했는데 Gemini 키가 없으면 Anthropic 키가 있어도 그쪽으로 보내지 않는다 (점검 중 503)', async () => {
     delete process.env.GEMINI_API_KEY;
     process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
     process.env.AI_PROVIDER = 'anthropic';
     const res = await post({ 'x-ai-consent': 'google' });
-    expect(res.statusCode).toBe(500);
+    expect(res.statusCode).toBe(503);
     expect(gemini).not.toHaveBeenCalled();
+  });
+
+  it('AI 키가 하나도 없으면 500', async () => {
+    delete process.env.GEMINI_API_KEY;
+    const res = await post({ 'x-ai-consent': 'google' });
+    expect(res.statusCode).toBe(500);
   });
 
   it('AI_PROVIDER 가 anthropic 으로 남아 있어도 Gemini 로 보낸다', async () => {
@@ -177,6 +183,8 @@ describe('사용량 로그', () => {
       totalTokens: 3461,
       image: false,
       ms: expect.any(Number),
+      provider: 'gemini',
+      tries: ['gemini:gemini-3.5-flash:ok'],
     });
     const raw = logSpy.mock.calls.map((c) => String(c[0])).join('\n');
     for (const secret of ['민지', '지훈', '첫 메시지', '헬스장', '10.0.']) expect(raw).not.toContain(secret);
@@ -568,14 +576,17 @@ describe('끊기거나 너무 오래 걸리면 기다리지 않는다', () => {
   });
 });
 
-describe('예비 AI — Gemini 가 막히면 동의한 회사(Claude → GPT)로 다시 보낸다', () => {
-  const ALL = 'google,anthropic,openai';
-  const blocked = () => gemini.mockResolvedValueOnce({ ok: false, status: 429, code: 'rate_limit', message: '요청이 너무 많아요. 잠시 후 다시 시도해주세요.', upstreamStatus: 429, upstreamError: 'RESOURCE_EXHAUSTED' } as never);
+describe('AI 순서 — 새 동의(anthropic,openai,google)는 Claude → GPT → Gemini, 예전 동의는 Gemini 먼저 (2026-11-26)', () => {
+  const NEW = 'anthropic,openai,google';
+  const OLD = 'google,anthropic,openai';
   let fetchSpy: jest.SpyInstance;
-  const calls = () => fetchSpy.mock.calls.map((c) => String(c[0]));
-  const anthropicOk = () => ({ ok: true, status: 200, json: async () => ({ stop_reason: 'end_turn', content: [{ type: 'text', text: JSON.stringify(ANALYSIS) }], usage: { input_tokens: 900, output_tokens: 300 } }) });
-  const openaiOk = () => ({ ok: true, status: 200, json: async () => ({ status: 'completed', output: [{ type: 'message', content: [{ type: 'output_text', text: JSON.stringify(ANALYSIS) }] }], usage: { input_tokens: 800, output_tokens: 250, total_tokens: 1050 } }) });
-  const status = (code: number) => ({ ok: false, status: code, json: async () => ({ error: { message: 'x' } }) });
+  const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+  const anthropicOk = (text = JSON.stringify(ANALYSIS)) =>
+    json(200, { id: 'msg_1', type: 'message', role: 'assistant', model: 'claude-haiku-5-5', stop_reason: 'end_turn', content: [{ type: 'thinking', thinking: '', signature: 's' }, { type: 'text', text }], usage: { input_tokens: 900, output_tokens: 300, cache_read_input_tokens: 0 } });
+  const openaiOk = () => json(200, { status: 'completed', output: [{ type: 'message', content: [{ type: 'output_text', text: JSON.stringify(ANALYSIS) }] }], usage: { input_tokens: 800, output_tokens: 250, total_tokens: 1050 } });
+  const fail = (status: number) => json(status, { type: 'error', error: { type: 'x', message: 'x' } });
+  const urls = () => fetchSpy.mock.calls.map((c) => String(c[0])).filter((u) => !u.includes('api.telegram.org'));
+  const bodyOf = (i: number) => JSON.parse(String(fetchSpy.mock.calls[i][1].body));
 
   beforeEach(() => {
     fetchSpy = jest.spyOn(global, 'fetch' as never) as unknown as jest.SpyInstance;
@@ -584,88 +595,144 @@ describe('예비 AI — Gemini 가 막히면 동의한 회사(Claude → GPT)로
   });
   afterEach(() => fetchSpy.mockRestore());
 
-  it('세 회사에 동의한 앱은 Gemini 429 뒤 Claude 의 답을 200 으로 돌려준다 — 로그에 예비 기록', async () => {
-    blocked();
+  it('새 동의 앱은 Claude Haiku 5.5 가 먼저 답한다 — Gemini 는 부르지 않는다', async () => {
     fetchSpy.mockResolvedValueOnce(anthropicOk() as never);
-    const res = await post({ 'x-ai-consent': ALL });
+    const res = await post({ 'x-ai-consent': NEW });
     expect(res.statusCode).toBe(200);
     expect((res.body as { provider: string }).provider).toBe('anthropic');
     expect((res.body as { analysis: { summary: string } }).analysis.summary).toBe('좋은 분위기예요');
-    expect(calls()).toEqual(['https://api.anthropic.com/v1/messages']);
-    const sent = JSON.parse(String(fetchSpy.mock.calls[0][1].body));
-    expect(sent.model).toBe('claude-opus-5-5');
-    expect(sent.output_config.format.type).toBe('json_schema');
-    expect(fetchSpy.mock.calls[0][1].headers['x-api-key']).toBe('sk-ant-test');
+    expect(gemini).not.toHaveBeenCalled();
+    expect(urls()).toEqual(['https://api.anthropic.com/v1/messages']);
+    const sent = bodyOf(0);
+    expect(sent.model).toBe('claude-haiku-5-5');
+    // Haiku 5.5 에는 서버 대체(fallbacks)가 없다 — 보내면 400
+    expect(sent.fallbacks).toBeUndefined();
+    expect(sent.temperature).toBeUndefined();
+    expect(sent.output_config).toEqual(expect.objectContaining({ effort: 'low', format: expect.objectContaining({ type: 'json_schema' }) }));
+    expect(new Headers(fetchSpy.mock.calls[0][1].headers).get('x-api-key')).toBe('sk-ant-test');
     const line = logLines(logSpy).pop()!;
-    expect(line.backup).toEqual(['anthropic:claude-opus-5-5:ok']);
-    expect(line.status).toBe(200);
+    expect(line).toEqual(expect.objectContaining({ status: 200, provider: 'anthropic', model: 'claude-haiku-5-5', tries: ['anthropic:claude-haiku-5-5:ok'], promptTokens: 900 }));
   });
 
-  it('Claude 도 막히면(529) GPT 로 — 그것도 200', async () => {
-    blocked();
-    fetchSpy.mockResolvedValueOnce(status(529) as never).mockResolvedValueOnce(openaiOk() as never);
-    const res = await post({ 'x-ai-consent': ALL });
+  it('Claude 크레딧이 떨어지면(402) GPT-6 Luna 가 답한다', async () => {
+    fetchSpy.mockResolvedValueOnce(fail(402) as never).mockResolvedValueOnce(openaiOk() as never);
+    const res = await post({ 'x-ai-consent': NEW });
     expect(res.statusCode).toBe(200);
     expect((res.body as { provider: string }).provider).toBe('openai');
-    expect(calls()).toEqual(['https://api.anthropic.com/v1/messages', 'https://api.openai.com/v1/responses']);
-    const sent = JSON.parse(String(fetchSpy.mock.calls[1][1].body));
-    expect(sent.model).toBe('gpt-6.2-astra');
-    expect(sent.text.format.type).toBe('json_schema');
-    expect(logLines(logSpy).pop()!.backup).toEqual(['anthropic:claude-opus-5-5:529', 'openai:gpt-6.2-astra:ok']);
-  });
-
-  it('Google 에만 동의한 예전 앱은 Gemini 가 막혀도 다른 회사로 보내지 않는다 (429 그대로)', async () => {
-    blocked();
-    const res = await post({ 'x-ai-consent': 'google' });
-    expect(res.statusCode).toBe(429);
-    expect(fetchSpy).not.toHaveBeenCalled();
-  });
-
-  it('헤더 없는 예전 앱도 마찬가지 — Google 로만', async () => {
-    blocked();
-    expect((await post()).statusCode).toBe(429);
-    expect(fetchSpy).not.toHaveBeenCalled();
-  });
-
-  it('Google 이 빠진 동의(anthropic,openai)는 예전처럼 점검 중(503) — 아무 데도 보내지 않는다', async () => {
-    const res = await post({ 'x-ai-consent': 'anthropic,openai' });
-    expect(res.statusCode).toBe(503);
+    expect(urls()).toEqual(['https://api.anthropic.com/v1/messages', 'https://api.openai.com/v1/responses']);
+    expect(bodyOf(1).model).toBe('gpt-6-luna');
+    expect(bodyOf(1).text.format.type).toBe('json_schema');
+    expect(logLines(logSpy).pop()!.tries).toEqual(['anthropic:claude-haiku-5-5:402', 'openai:gpt-6-luna:ok']);
     expect(gemini).not.toHaveBeenCalled();
-    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('예비 키가 없으면 건너뛰고, 둘 다 없으면 Gemini 오류 그대로', async () => {
-    delete process.env.ANTHROPIC_API_KEY;
-    blocked();
-    fetchSpy.mockResolvedValueOnce(openaiOk() as never);
-    expect((await post({ 'x-ai-consent': ALL })).statusCode).toBe(200);
-    expect(calls()).toEqual(['https://api.openai.com/v1/responses']);
-    delete process.env.OPENAI_API_KEY;
-    blocked();
-    expect((await post({ 'x-ai-consent': ALL })).statusCode).toBe(429);
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-  });
-
-  it('Claude 가 내용을 거절하면 GPT 로 또 보내지 않는다', async () => {
-    blocked();
-    fetchSpy.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ stop_reason: 'refusal', content: [] }) } as never);
-    const res = await post({ 'x-ai-consent': ALL });
-    expect(calls()).toEqual(['https://api.anthropic.com/v1/messages']);
-    expect(res.statusCode).toBe(429);
-  });
-
-  it('Gemini 가 내용을 거절(refused)한 건 예비로 넘기지 않는다', async () => {
-    gemini.mockResolvedValueOnce({ ok: false, status: 200, code: 'refused', message: '거절' } as never);
-    const res = await post({ 'x-ai-consent': ALL });
-    expect(res.statusCode).toBe(422);
-    expect(fetchSpy).not.toHaveBeenCalled();
-  });
-
-  it('Gemini 가 되면 예비는 부르지 않는다', async () => {
-    gemini.mockResolvedValueOnce({ ok: true, text: JSON.stringify(ANALYSIS), usage: { input: 1, output: 1 } } as never);
-    const res = await post({ 'x-ai-consent': ALL });
+  it('Claude·GPT 가 모두 막히면 마지막으로 Gemini', async () => {
+    succeed(ANALYSIS);
+    fetchSpy.mockResolvedValueOnce(fail(529) as never).mockResolvedValueOnce(fail(500) as never);
+    const res = await post({ 'x-ai-consent': NEW });
     expect(res.statusCode).toBe(200);
     expect((res.body as { provider: string }).provider).toBe('gemini');
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(gemini).toHaveBeenCalledTimes(1);
+    expect(logLines(logSpy).pop()!.tries).toEqual(['anthropic:claude-haiku-5-5:529', 'openai:gpt-6-luna:500', 'gemini:gemini-3.5-flash:ok']);
+  });
+
+  it('Claude 의 답 형식이 틀리면 다음 회사(GPT)로 넘긴다', async () => {
+    fetchSpy.mockResolvedValueOnce(anthropicOk('{"summary":') as never).mockResolvedValueOnce(openaiOk() as never);
+    const res = await post({ 'x-ai-consent': NEW });
+    expect(res.statusCode).toBe(200);
+    expect((res.body as { provider: string }).provider).toBe('openai');
+  });
+
+  it('Google 에만 동의한 예전 앱은 Gemini 로만 — Claude·GPT 는 부르지 않는다', async () => {
+    succeed(ANALYSIS);
+    const res = await post({ 'x-ai-consent': 'google' });
+    expect(res.statusCode).toBe(200);
+    expect((res.body as { provider: string }).provider).toBe('gemini');
+    expect(urls()).toEqual([]);
+  });
+
+  it('헤더 없는 예전 앱도 Gemini 로만', async () => {
+    succeed(ANALYSIS);
+    expect((await post()).statusCode).toBe(200);
+    expect(urls()).toEqual([]);
+  });
+
+  it('Gemini 가 막혀도 Google 에만 동의한 앱은 다른 회사로 보내지 않는다 (429 그대로)', async () => {
+    gemini.mockResolvedValueOnce({ ok: false, status: 429, code: 'rate_limit', message: '요청이 너무 많아요. 잠시 후 다시 시도해주세요.', upstreamStatus: 429, upstreamError: 'RESOURCE_EXHAUSTED' } as never);
+    expect((await post({ 'x-ai-consent': 'google' })).statusCode).toBe(429);
+    expect(urls()).toEqual([]);
+  });
+
+  it('예전 3사 동의(google 먼저)는 동의한 대로 Gemini 먼저 — Gemini 가 되면 Claude·GPT 는 부르지 않는다', async () => {
+    succeed(ANALYSIS);
+    const res = await post({ 'x-ai-consent': OLD });
+    expect((res.body as { provider: string }).provider).toBe('gemini');
+    expect(urls()).toEqual([]);
+  });
+
+  it('예전 3사 동의는 Gemini 가 막힐 때만 Claude 로 (크레딧 소진 402)', async () => {
+    gemini.mockResolvedValueOnce({ ok: false, status: 402, code: 'server', message: 'x', upstreamStatus: 402, upstreamError: 'RESOURCE_EXHAUSTED' } as never);
+    fetchSpy.mockResolvedValueOnce(anthropicOk() as never);
+    const res = await post({ 'x-ai-consent': OLD });
+    expect(res.statusCode).toBe(200);
+    expect((res.body as { provider: string }).provider).toBe('anthropic');
+    expect(logLines(logSpy).pop()!.tries).toEqual(['gemini:?:402', 'anthropic:claude-haiku-5-5:ok']);
+  });
+
+  it('AI_PROVIDER_ORDER 는 새 동의에만 — 예전 동의의 순서는 바꾸지 않는다', async () => {
+    process.env.AI_PROVIDER_ORDER = 'openai,anthropic,gemini';
+    succeed(ANALYSIS);
+    expect(((await post({ 'x-ai-consent': OLD })).body as { provider: string }).provider).toBe('gemini');
+  });
+
+  it('Google 이 빠진 동의(anthropic,openai)는 동의한 회사로만 — Gemini 는 부르지 않는다', async () => {
+    fetchSpy.mockResolvedValueOnce(anthropicOk() as never);
+    const res = await post({ 'x-ai-consent': 'anthropic,openai' });
+    expect(res.statusCode).toBe(200);
+    expect(gemini).not.toHaveBeenCalled();
+  });
+
+  it('키가 없는 회사는 건너뛴다', async () => {
+    delete process.env.ANTHROPIC_API_KEY;
+    fetchSpy.mockResolvedValueOnce(openaiOk() as never);
+    expect((await post({ 'x-ai-consent': NEW })).statusCode).toBe(200);
+    expect(urls()).toEqual(['https://api.openai.com/v1/responses']);
+  });
+
+  it('AI_PROVIDER_ORDER 로 순서를 바꿀 수 있다 (gemini 먼저)', async () => {
+    process.env.AI_PROVIDER_ORDER = 'gemini,anthropic,openai';
+    succeed(ANALYSIS);
+    const res = await post({ 'x-ai-consent': NEW });
+    expect((res.body as { provider: string }).provider).toBe('gemini');
+    expect(urls()).toEqual([]);
+  });
+
+  it('Claude 가 내용을 거절하면 다른 회사로 또 보내지 않는다 (422)', async () => {
+    fetchSpy.mockResolvedValueOnce(json(200, { id: 'msg_2', type: 'message', role: 'assistant', model: 'claude-haiku-5-5', stop_reason: 'refusal', content: [], usage: { input_tokens: 1, output_tokens: 0 } }) as never);
+    const res = await post({ 'x-ai-consent': NEW });
+    expect(res.statusCode).toBe(422);
+    expect(urls()).toEqual(['https://api.anthropic.com/v1/messages']);
+    expect(gemini).not.toHaveBeenCalled();
+  });
+
+  it('AI 회사가 실패하면 운영자 텔레그램으로 알린다 — 대신 답한 회사도 함께, 같은 원인은 30분에 한 번', async () => {
+    process.env.TELEGRAM_BOT_TOKEN = 'bot-test';
+    process.env.TELEGRAM_CHAT_ID = '123';
+    fetchSpy.mockImplementation(async (url: unknown) => {
+      const u = String(url);
+      if (u.includes('api.telegram.org')) return json(200, { ok: true });
+      if (u.includes('anthropic')) return fail(402);
+      return openaiOk();
+    });
+    expect((await post({ 'x-ai-consent': NEW })).statusCode).toBe(200);
+    const tg = fetchSpy.mock.calls.filter((c) => String(c[0]).includes('api.telegram.org'));
+    expect(tg).toHaveLength(1);
+    const text = String(JSON.parse(String(tg[0][1].body)).text);
+    expect(text).toContain('Claude');
+    expect(text).toContain('크레딧 소진(402)');
+    expect(text).toContain('GPT가 대신 답했어요');
+    // 같은 원인이 바로 다시 나도 또 보내지 않는다
+    expect((await post({ 'x-ai-consent': NEW })).statusCode).toBe(200);
+    expect(fetchSpy.mock.calls.filter((c) => String(c[0]).includes('api.telegram.org'))).toHaveLength(1);
   });
 });

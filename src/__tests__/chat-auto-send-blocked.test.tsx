@@ -66,7 +66,7 @@ it('무료 횟수가 없으면 붙여 넣은 글을 입력창에 살려 두고 �
   useAppStore.setState({
     user: { name: '지훈', gender: 'male', style: [], defaultTone: 'natural', createdAt: 0 },
     aiConsent: true,
-    aiConsentProvider: 'relay',
+    aiConsentProvider: 'relay2',
     aiConsentAt: 1,
     usage: { total: 99, day: dayKey(now), dayCount: 99 },
     wallet: EMPTY_WALLET,

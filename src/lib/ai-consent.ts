@@ -7,19 +7,24 @@
  * - 동의 안 함·철회는 기록만 하고, 다음에 AI 기능을 쓰면 다시 묻는다
  * - 동의는 안내한 AI 회사에만 유효하다. 개인 키로 다른 회사에 보내게 되면 그 회사로 다시 묻는다
  * - 중계 서버가 예비 AI(Claude·GPT)도 쓰게 되면서(2026-11-20) 예전 중계 동의('google')는 새 중계 경로('relay')를 대신하지 않는다 — 한 번 다시 묻는다
+ * - 답을 Claude 가 먼저 만들게 되면서(2026-11-26) 「Google 먼저」 동의('relay')도 「Claude 먼저」 동의('relay2')를 대신하지 않는다 — 한 번 다시 묻는다
  */
 import { track } from '@/lib/analytics';
 import { useAppStore } from '@/store/app-store';
 
 /**
  * 내용을 받는 AI 회사 (동의 단위).
- * - relay: 우리 중계 서버 — 기본은 Google(Gemini), Google 이 한도·혼잡·오류로 답하지 못할 때만 Anthropic(Claude)·OpenAI(GPT) (2026-11-20 처리방침)
+ * - relay2: 우리 중계 서버 — Anthropic(Claude) 먼저, 답하지 못하면 OpenAI(GPT), 그다음 Google(Gemini) (2026-11-26 처리방침)
+ * - relay: 예전 중계 동의 — Google(Gemini) 먼저, 막힐 때만 Claude·GPT (2026-11-20). 저장값을 읽기 위해서만 남긴다
  * - google·anthropic: 개인 키로 기기에서 바로 보낼 때의 회사. 예전 판 중계 동의('google')도 이 값으로 저장돼 있다 — 새 중계 동의를 대신하지 않는다
  */
-export type AiProvider = 'relay' | 'google' | 'anthropic';
+export type AiProvider = 'relay2' | 'relay' | 'google' | 'anthropic';
 
-/** 중계 동의로 보내도 되는 회사들 — 서버(api/coach.ts)에 x-ai-consent 헤더로 알린다. 예전 앱은 'google' 만 보낸다 */
-export const relayConsentHeader = 'google,anthropic,openai';
+/**
+ * 중계 동의로 보내도 되는 회사들 — 동의한 순서대로 서버(api/coach.ts)에 x-ai-consent 헤더로 알린다.
+ * 서버는 이 순서대로 부른다 (맨 앞이 google 이면 예전 동의로 보고 Gemini 먼저). 예전 앱은 'google' 이나 'google,anthropic,openai' 를 보낸다
+ */
+export const relayConsentHeader = 'anthropic,openai,google';
 
 /** 요청이 가는 길 — 우리 중계 서버를 거쳐서(relay), 또는 개인 키로 기기에서 바로(direct) */
 export interface AiRoute {
@@ -29,6 +34,7 @@ export interface AiRoute {
 
 /** 화면에 쓰는 회사·AI 이름 */
 export const AI_PROVIDER_LABEL: Record<AiProvider, { company: string; ai: string }> = {
+  relay2: { company: 'Anthropic·OpenAI·Google', ai: 'Claude·GPT·Gemini' },
   relay: { company: 'Google·Anthropic·OpenAI', ai: 'Gemini·Claude·GPT' },
   google: { company: 'Google', ai: 'Gemini' },
   anthropic: { company: 'Anthropic', ai: 'Claude' },
