@@ -2,6 +2,7 @@
 import { problems as entryProblems } from '../lib/social.mjs';
 import { missingEmoji } from './kit.mjs';
 import { FORMATS } from './formats/index.mjs';
+import { soundProblems } from './sound.mjs';
 
 /** 창고 항목 검사 — 문제 목록 */
 export function bankProblems(list) {
@@ -18,6 +19,8 @@ export function bankProblems(list) {
       continue;
     }
     for (const p of fmt.check(it)) say(p);
+    if (it.sound !== undefined && fmt.kind !== 'reel') say('sound 는 릴스에만');
+    else for (const p of soundProblems(it, { anchors: it.format === 'ai-reel' })) say(p);
     const missing = missingEmoji(JSON.stringify({ ...it, caption: '' }));
     if (missing.length) say(`그림이 없는 이모지: ${missing.join(' ')} (scripts/fetch-fluent-emoji.ts 에 추가)`);
     // 캡션·종류는 게시 검사와 같은 규칙으로
