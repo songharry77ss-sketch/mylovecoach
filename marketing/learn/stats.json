@@ -111,6 +111,17 @@
      "likes": 0,
      "comments": 0,
      "watchMs": 6134
+    },
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 291,
+     "views": 235,
+     "reach": 212,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "watchMs": 6134
     }
    ],
    "meta": {
@@ -249,6 +260,18 @@
      "comments": 0,
      "follows": 0,
      "profileVisits": 0
+    },
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 332,
+     "views": 13,
+     "reach": 7,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 0
     }
    ],
    "meta": {
@@ -369,6 +392,17 @@
     {
      "at": "2026-11-25T09:25:35.337Z",
      "ageH": 309,
+     "views": 224,
+     "reach": 202,
+     "saved": 0,
+     "shares": 0,
+     "likes": 1,
+     "comments": 0,
+     "watchMs": 1986
+    },
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 332,
      "views": 224,
      "reach": 202,
      "saved": 0,
@@ -512,6 +546,18 @@
      "comments": 0,
      "follows": 0,
      "profileVisits": 0
+    },
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 403,
+     "views": 28,
+     "reach": 8,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 0
     }
    ],
    "meta": {
@@ -632,6 +678,17 @@
     {
      "at": "2026-11-25T09:25:35.337Z",
      "ageH": 406,
+     "views": 131,
+     "reach": 108,
+     "saved": 0,
+     "shares": 0,
+     "likes": 3,
+     "comments": 0,
+     "watchMs": 2247
+    },
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 430,
      "views": 131,
      "reach": 108,
      "saved": 0,
@@ -1101,6 +1158,17 @@
      "likes": 3,
      "comments": 0,
      "watchMs": 7449
+    },
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 233,
+     "views": 614,
+     "reach": 517,
+     "saved": 0,
+     "shares": 7,
+     "likes": 3,
+     "comments": 0,
+     "watchMs": 7459
     }
    ],
    "meta": {
@@ -1198,6 +1266,17 @@
     {
      "at": "2026-11-25T09:25:35.337Z",
      "ageH": 173,
+     "views": 237,
+     "reach": 216,
+     "saved": 1,
+     "shares": 0,
+     "likes": 2,
+     "comments": 0,
+     "watchMs": 2813
+    },
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 197,
      "views": 237,
      "reach": 216,
      "saved": 1,
@@ -1310,6 +1389,17 @@
      "likes": 2,
      "comments": 0,
      "watchMs": 2746
+    },
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 212,
+     "views": 204,
+     "reach": 187,
+     "saved": 1,
+     "shares": 0,
+     "likes": 2,
+     "comments": 0,
+     "watchMs": 2746
     }
    ],
    "meta": {
@@ -1403,6 +1493,18 @@
     {
      "at": "2026-11-25T09:25:35.337Z",
      "ageH": 150,
+     "views": 19,
+     "reach": 5,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 1
+    },
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 173,
      "views": 19,
      "reach": 5,
      "saved": 0,
@@ -1512,6 +1614,18 @@
      "comments": 0,
      "follows": 0,
      "profileVisits": 3
+    },
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 174,
+     "views": 14,
+     "reach": 5,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 3
     }
    ],
    "meta": {
@@ -1604,6 +1718,18 @@
     {
      "at": "2026-11-25T09:25:35.337Z",
      "ageH": 150,
+     "views": 13,
+     "reach": 5,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 0
+    },
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 174,
      "views": 13,
      "reach": 5,
      "saved": 0,
@@ -1712,6 +1838,18 @@
      "comments": 0,
      "follows": 0,
      "profileVisits": 0
+    },
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 174,
+     "views": 13,
+     "reach": 6,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 0
     }
    ],
    "meta": {
@@ -1805,6 +1943,17 @@
      "likes": 2,
      "comments": 0,
      "watchMs": 3548
+    },
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 189,
+     "views": 263,
+     "reach": 238,
+     "saved": 1,
+     "shares": 0,
+     "likes": 2,
+     "comments": 0,
+     "watchMs": 3548
     }
    ],
    "meta": {
@@ -1878,6 +2027,17 @@
     {
      "at": "2026-11-25T09:25:35.337Z",
      "ageH": 126,
+     "views": 228,
+     "reach": 189,
+     "saved": 0,
+     "shares": 0,
+     "likes": 1,
+     "comments": 0,
+     "watchMs": 2298
+    },
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 150,
      "views": 228,
      "reach": 189,
      "saved": 0,
@@ -1960,6 +2120,17 @@
     {
      "at": "2026-11-25T09:25:35.337Z",
      "ageH": 141,
+     "views": 175,
+     "reach": 159,
+     "saved": 0,
+     "shares": 0,
+     "likes": 1,
+     "comments": 0,
+     "watchMs": 2978
+    },
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 165,
      "views": 175,
      "reach": 159,
      "saved": 0,
@@ -2053,6 +2224,18 @@
      "comments": 0,
      "follows": 1,
      "profileVisits": 3
+    },
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 166,
+     "views": 11,
+     "reach": 6,
+     "saved": 0,
+     "shares": 3,
+     "likes": 3,
+     "comments": 0,
+     "follows": 1,
+     "profileVisits": 3
     }
    ],
    "meta": {
@@ -2119,6 +2302,18 @@
     {
      "at": "2026-11-25T09:25:35.337Z",
      "ageH": 103,
+     "views": 16,
+     "reach": 5,
+     "saved": 0,
+     "shares": 0,
+     "likes": 1,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 0
+    },
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 127,
      "views": 16,
      "reach": 5,
      "saved": 0,
@@ -2198,6 +2393,17 @@
      "likes": 0,
      "comments": 0,
      "watchMs": 3026
+    },
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 141,
+     "views": 254,
+     "reach": 233,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "watchMs": 3014
     }
    ],
    "meta": {
@@ -2251,6 +2457,17 @@
     {
      "at": "2026-11-25T09:25:35.337Z",
      "ageH": 74,
+     "views": 163,
+     "reach": 143,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "watchMs": 2875
+    },
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 98,
      "views": 163,
      "reach": 143,
      "saved": 0,
@@ -2318,6 +2535,17 @@
      "likes": 0,
      "comments": 0,
      "watchMs": 3687
+    },
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 118,
+     "views": 147,
+     "reach": 133,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "watchMs": 3722
     }
    ],
    "meta": {
@@ -2363,6 +2591,18 @@
     {
      "at": "2026-11-25T09:25:35.337Z",
      "ageH": 55,
+     "views": 11,
+     "reach": 4,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 0
+    },
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 78,
      "views": 11,
      "reach": 4,
      "saved": 0,
@@ -2423,6 +2663,18 @@
      "comments": 0,
      "follows": 0,
      "profileVisits": 0
+    },
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 93,
+     "views": 6,
+     "reach": 3,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "follows": 0,
+     "profileVisits": 0
     }
    ],
    "meta": {
@@ -2461,6 +2713,17 @@
      "likes": 1,
      "comments": 0,
      "watchMs": 4183
+    },
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 68,
+     "views": 132,
+     "reach": 113,
+     "saved": 0,
+     "shares": 5,
+     "likes": 1,
+     "comments": 0,
+     "watchMs": 4179
     }
    ],
    "meta": {
@@ -2491,6 +2754,17 @@
      "likes": 0,
      "comments": 0,
      "watchMs": 2302
+    },
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 46,
+     "views": 138,
+     "reach": 123,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "watchMs": 2305
     }
    ],
    "meta": {
@@ -2506,7 +2780,60 @@
     ],
     "hourKst": 20
    }
+  },
+  "ig-18101566025671762": {
+   "snaps": [
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 3,
+     "views": 173,
+     "reach": 137,
+     "saved": 0,
+     "shares": 0,
+     "likes": 1,
+     "comments": 0,
+     "watchMs": 3001
+    }
+   ],
+   "meta": {
+    "mediaId": "18101566025671762",
+    "url": "https://www.instagram.com/reel/DgMb46NTpBU/",
+    "postedAt": "2026-11-26T06:15:01+0000",
+    "kind": "reel",
+    "format": "old-reel",
+    "hook": "#시험보다는사랑 #사랑보다는돈 #연애하자 #겨울이다",
+    "topics": [],
+    "hourKst": 15
+   }
+  },
+  "r-anxious-avoidant": {
+   "snaps": [
+    {
+     "at": "2026-11-26T09:04:19.912Z",
+     "ageH": 20,
+     "views": 161,
+     "reach": 143,
+     "saved": 0,
+     "shares": 0,
+     "likes": 0,
+     "comments": 0,
+     "watchMs": 2514
+    }
+   ],
+   "meta": {
+    "mediaId": "18103327838423245",
+    "url": "https://www.instagram.com/reel/DgKnQKYjPrJ/",
+    "postedAt": "2026-11-25T13:15:25+0000",
+    "kind": "reel",
+    "format": "chat-reel",
+    "hook": "불안형 vs 회피형\n카톡하면 생기는 일",
+    "topics": [
+     "애착유형",
+     "꼴: 대비"
+    ],
+    "hourKst": 22
+   }
   }
  },
- "updatedAt": "2026-11-25T09:25:35.337Z"
+ "updatedAt": "2026-11-26T09:04:19.912Z"
 }
