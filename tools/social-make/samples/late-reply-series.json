@@ -1,5 +1,5 @@
 {
-  "note": "「읽씹 전쟁」 시리즈 ai-reel 정지 그림 모드(돈 안 듦) — 사장님 지시 2026-11-23: ① 첫 화면은 무조건 예쁜 여자·잘생긴 남자 ② 예상 못한 장면(반전) ③ 실제 사례 기반 시리즈. 근거: 센딧 연애팁 백서에서 이용자가 가장 많이 고른 고민 1위가 「답장이 늦어요(late-reply)」(11-23 집계 — 개인 대화 내용은 안 봄). 인물(지우·도윤)은 Codex 그림 생성으로 만든 가상 인물(samples/late-reply/), 실제 인물 사진 없음. 이야기는 재연(지어낸 것)이라 캡션에 밝히고, 사람 장면엔 「AI로 만든 장면」. 앱 화면과 답장은 운영 코치 서버의 실제 결과. 짜임: 매력적인 얼굴 클로즈업 + 훅 자막(0초) → 반전(상대 쪽 사정, 흰 번쩍임) → 센딧 실제 화면 → 반응 → 다음 화 예고.",
+  "note": "「읽씹 전쟁」 시리즈 ai-reel 정지 그림 모드(돈 안 듦) — 사장님 지시 2026-11-23: ① 첫 화면은 무조건 예쁜 여자·잘생긴 남자 ② 예상 못한 장면(반전) ③ 실제 사례 기반 시리즈. 근거: 센딧 연애팁 백서에서 이용자가 가장 많이 고른 고민 1위가 「답장이 늦어요(late-reply)」(11-23 집계 — 개인 대화 내용은 안 봄). 2026-11-26 「사람이 진짜 사람처럼 움직이게·무료로」(사장님): 같은 그림을 무료 Wan 2.2(허깅페이스 ZeroGPU 무료 할당)로 움직인 토막을 person.motion·other.motion 에 — 하루 무료 3~4토막이라 훅(a)부터 채우고 나머지는 정지 그림. 인물(지우·도윤)은 Codex 그림 생성으로 만든 가상 인물(samples/late-reply/), 실제 인물 사진 없음. 이야기는 재연(지어낸 것)이라 캡션에 밝히고, 사람 장면엔 「AI로 만든 장면」. 앱 화면과 답장은 운영 코치 서버의 실제 결과. 짜임: 매력적인 얼굴 클로즈업 + 훅 자막(0초) → 반전(상대 쪽 사정, 흰 번쩍임) → 센딧 실제 화면 → 반응 → 다음 화 예고.",
   "items": [
     {
       "id": "ai-late-reply-1",
@@ -28,11 +28,13 @@
           "b": "tools/social-make/samples/late-reply/jiwoo-ep1-b.jpg",
           "c": "tools/social-make/samples/late-reply/jiwoo-ep1-c.jpg"
         },
+        "motion": { "a": "tools/social-make/samples/late-reply/motion/jiwoo-ep1-a.mp4" },
         "captionTop": 1150,
         "other": {
           "caption": "근데 그 3시간\n썸남은 사실…\n썼다 지웠다 중",
           "still": "tools/social-make/samples/late-reply/doyun-ep1-other.jpg",
-          "seconds": 5
+          "motion": "tools/social-make/samples/late-reply/motion/doyun-ep1-other.mp4",
+          "seconds": 4
         }
       },
       "end": { "ask": "2화: 이번엔 그녀가 읽씹" },
@@ -67,6 +69,7 @@
           "b": "tools/social-make/samples/late-reply/doyun-ep2-b.jpg",
           "c": "tools/social-make/samples/late-reply/doyun-ep2-c.jpg"
         },
+        "motion": { "a": "tools/social-make/samples/late-reply/motion/doyun-ep2-a.mp4" },
         "captionTop": 1150,
         "other": {
           "caption": "근데 그 하루\n그녀는 사실…\n단톡방 작전 회의",
@@ -102,6 +105,7 @@
           "b": "tools/social-make/samples/late-reply/jiwoo-ep3-b.jpg",
           "c": "tools/social-make/samples/late-reply/jiwoo-ep3-c.jpg"
         },
+        "motion": { "a": "tools/social-make/samples/late-reply/motion/jiwoo-ep3-a.mp4" },
         "captionTop": 1150,
         "other": {
           "caption": "근데 이 남자\n답장을 어디서\n고르냐면…",

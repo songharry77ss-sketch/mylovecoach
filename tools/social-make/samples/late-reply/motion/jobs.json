@@ -1,0 +1,69 @@
+{
+  "note": "「읽씹 전쟁」 움직이는 토막 — python tools/social-make/wan-motion.py 로 남은 것만 만든다 (무료 할당, 하루 3~4개). 훅(a)·반전(other)부터.",
+  "space": "linoyts/wan2-2-i2v-rCM",
+  "seconds": 3.5,
+  "style": "realistic natural human motion, subtle breathing, slight handheld vertical phone video, keep the same face and outfit, photorealistic, no text",
+  "jobs": [
+    {
+      "name": "jiwoo-ep1-a",
+      "image": "tools/social-make/samples/late-reply/jiwoo-ep1-a.jpg",
+      "prompt": "The young woman lying in bed looks at her phone with a pouting, slightly sulky face, sighs and glances at the camera, warm bedroom lamp light"
+    },
+    {
+      "name": "doyun-ep2-a",
+      "image": "tools/social-make/samples/late-reply/doyun-ep2-a.jpg",
+      "prompt": "The young man lying on the sofa holds his phone up and checks it, then sighs, lowers the phone and looks at the camera with a bored, slightly sad face, warm lamp light"
+    },
+    {
+      "name": "jiwoo-ep3-a",
+      "image": "tools/social-make/samples/late-reply/jiwoo-ep3-a.jpg",
+      "prompt": "The young woman holds her phone up, reads it, gasps with excitement and breaks into a wide smile, swaying slightly, soft vanity mirror light"
+    },
+    {
+      "name": "doyun-ep1-other",
+      "image": "tools/social-make/samples/late-reply/doyun-ep1-other.jpg",
+      "prompt": "The young man stares at his phone, frustrated, runs his hand through his hair, types then deletes, sighs, dim night room",
+      "seconds": 2.5
+    },
+    {
+      "name": "jiwoo-ep2-other",
+      "image": "tools/social-make/samples/late-reply/jiwoo-ep2-other.jpg",
+      "prompt": "Three young women in a bright cafe huddle over one phone, giggling and whispering, the woman in the middle types with a sly smile, the friend on the left covers her mouth laughing, daylight"
+    },
+    {
+      "name": "doyun-ep3-other",
+      "image": "tools/social-make/samples/late-reply/doyun-ep3-other.jpg",
+      "prompt": "The young man at a cafe table at night looks at his phone, taps the screen a few times, then smiles confidently, city lights in the window behind"
+    },
+    {
+      "name": "jiwoo-ep1-b",
+      "image": "tools/social-make/samples/late-reply/jiwoo-ep1-b.jpg",
+      "prompt": "The young woman looks down at her phone, types a message with both thumbs with a small hopeful smile, warm bedroom lamp light"
+    },
+    {
+      "name": "jiwoo-ep1-c",
+      "image": "tools/social-make/samples/late-reply/jiwoo-ep1-c.jpg",
+      "prompt": "The young woman reads her phone, her eyes widen, she covers her mouth with her hand and giggles happily, shoulders lifting, warm lamp light"
+    },
+    {
+      "name": "doyun-ep2-b",
+      "image": "tools/social-make/samples/late-reply/doyun-ep2-b.jpg",
+      "prompt": "The young man sits on the sofa typing on his phone with both thumbs, focused, then a small smile appears, warm lamp light"
+    },
+    {
+      "name": "doyun-ep2-c",
+      "image": "tools/social-make/samples/late-reply/doyun-ep2-c.jpg",
+      "prompt": "The young man reads his phone, breaks into a big smile and pumps his fist in celebration, laughing, warm lamp light"
+    },
+    {
+      "name": "jiwoo-ep3-b",
+      "image": "tools/social-make/samples/late-reply/jiwoo-ep3-b.jpg",
+      "prompt": "The young woman types on her phone with both hands, biting her lip with a shy smile, soft warm bedroom light"
+    },
+    {
+      "name": "jiwoo-ep3-c",
+      "image": "tools/social-make/samples/late-reply/jiwoo-ep3-c.jpg",
+      "prompt": "The young woman reads her phone, laughs in disbelief and touches her forehead with her hand, shaking her head slightly"
+    }
+  ]
+}
