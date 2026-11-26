@@ -195,5 +195,14 @@ test('「읽씹 전쟁」 3부작 — 정지 그림 모드로 검사를 통과�
     assert.equal(it.person.prompt, undefined);
     assert.match(it.caption, /지어낸 재연/);
     assert.match(it.caption, /고민 1위/);
+    assert.ok(it.analysis?.replies?.length, `${it.id} 11-23 운영 서버 실제 결과를 보관 — 다시 만들 때 서버를 부르지 않음`);
   }
+});
+
+test('창고 검사 — 보관한 실제 AI 결과(analysis)의 이모지는 막지 않고, 우리가 쓴 글의 이모지는 막는다', async () => {
+  const { bankProblems } = await import('./bank.mjs');
+  const series = JSON.parse(readFileSync(new URL('./samples/late-reply-series.json', import.meta.url), 'utf8')).items;
+  assert.deepEqual(bankProblems(series), []);
+  const bad = bankProblems([{ ...series[0], person: { ...series[0].person, hook: '읽씹 🫢' } }]);
+  assert.ok(bad.some((x) => x.includes('그림이 없는 이모지')));
 });
