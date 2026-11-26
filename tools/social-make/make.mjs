@@ -20,6 +20,7 @@ import { bankProblems } from './bank.mjs';
 import { FORMATS, closeFormats } from './formats/index.mjs';
 import { makeFeedStory } from './formats/story.mjs';
 import { WEEK, freeSlots, nextDay, pickForDays } from './plan.mjs';
+import { addSound, reelAudio } from './sound.mjs';
 
 const args = process.argv.slice(2);
 const has = (f) => args.includes(f);
@@ -49,6 +50,8 @@ async function build(it, dir, relTo) {
   const fmt = FORMATS[it.format];
   const started = Date.now();
   const made = await fmt.make(it, dir);
+  // 릴스 소리: 합성 효과음(무료) + 일레븐랩스 목소리·효과음 (sound.mjs)
+  const sound = fmt.kind === 'reel' ? await addSound(it, made, dir) : null;
   console.log(`  ${it.id} (${it.format}) ${made.media.length}개 · ${((Date.now() - started) / 1000).toFixed(0)}초`);
   const rel = (f) => path.relative(relTo, f).split(path.sep).join('/');
   // 스토리: 릴스는 영상 그대로, 캐러셀은 첫 장 + 질문 그림
@@ -61,7 +64,7 @@ async function build(it, dir, relTo) {
     media: made.media.map(rel),
     ...(made.cover ? { cover: rel(made.cover) } : {}),
     caption: it.caption.trim(),
-    ...(fmt.kind === 'reel' ? { audio: it.audio ?? { trending: true, videoVolume: 25, minSeconds: Math.ceil(made.seconds ?? 10) } } : {}),
+    ...(fmt.kind === 'reel' ? { audio: reelAudio(it, made, sound) } : {}),
     approved: false,
     note: `자동 생산 · ${it.format}${it.ref ? ` · 참고 ${it.ref}` : ''}`,
     ...(story ? { story: rel(story) } : {}),

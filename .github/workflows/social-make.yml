@@ -77,6 +77,11 @@ jobs:
           # app-reel(실제 앱 사용 영상)이 진짜 AI 결과를 받을 코치 서버 — 데모 웹 빌드에는 들어가지 않는다
           EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
           EXPO_PUBLIC_API_TOKEN: ${{ secrets.EXPO_PUBLIC_API_TOKEN }}
+          # 릴스 목소리·특수 효과음(일레븐랩스) — 키가 없으면 그 소리만 빼고 만든다 (tools/social-make/sound.mjs)
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE_F: ${{ vars.ELEVENLABS_VOICE_F }}
+          ELEVENLABS_VOICE_M: ${{ vars.ELEVENLABS_VOICE_M }}
+          ELEVENLABS_MODEL: ${{ vars.ELEVENLABS_MODEL }}
         run: node tools/social-make/make.mjs --bank "$BANK" --id "$ID" --out one
 
       - name: 하나 만든 결과
@@ -95,6 +100,11 @@ jobs:
           # app-reel(실제 앱 사용 영상)이 진짜 AI 결과를 받을 코치 서버 — 데모 웹 빌드에는 들어가지 않는다
           EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
           EXPO_PUBLIC_API_TOKEN: ${{ secrets.EXPO_PUBLIC_API_TOKEN }}
+          # 릴스 목소리·특수 효과음(일레븐랩스) — 키가 없으면 그 소리만 빼고 만든다 (tools/social-make/sound.mjs)
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE_F: ${{ vars.ELEVENLABS_VOICE_F }}
+          ELEVENLABS_VOICE_M: ${{ vars.ELEVENLABS_VOICE_M }}
+          ELEVENLABS_MODEL: ${{ vars.ELEVENLABS_MODEL }}
         run: |
           # 오늘부터 AHEAD 일 뒤까지 차도록만 넣는다 — 손으로 돌린 다음 날 정기 실행이 돌아도 겹치지 않음
           # 저장소 변수 SOCIAL_AUTO_APPROVE=on 이면 허락된 채로 넣는다 (사장님이 켜고 끄는 스위치)

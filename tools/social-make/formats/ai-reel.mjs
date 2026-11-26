@@ -437,7 +437,29 @@ export async function makeAiReelItem(it, dir) {
   // 표지: 고민하는 얼굴 + 첫 자막 (사람 얼굴이 격자에서 눈에 띈다)
   const cover = path.join(dir, 'cover.jpg');
   ff(['-ss', Math.min(1.2, cuts.a[1] - cuts.a[0] - 0.1).toFixed(2), '-i', file, '-frames:v', '1', '-q:v', '2', cover]);
+  // 소리를 얹을 구간 시각 (sound.mjs 의 at: 'other' · 'reply' 같은 이름)
+  const anchors = reelAnchors({ cuts, otherCut, headSeconds: probe(head).seconds });
   for (const f of [head, tail, ovA, ovB1, ovB2, ovO]) rmSync(f, { force: true });
   console.log(`  ${it.id}: ${seconds.toFixed(1)}초 · ${(readFileSync(file).length / 1e6).toFixed(1)}MB (사람 ${cuts.a.join('~')}초${otherCut ? ` + 상대 ${otherCut.map((x) => x.toFixed(1)).join('~')}초` : ''} + 앱 + 사람 ${cuts.b.map((x) => x.toFixed(1)).join('~')}초)`);
-  return { media: [file], cover, seconds };
+  return { media: [file], cover, seconds, anchors };
+}
+
+/**
+ * 한 편 안에서 구간이 시작되는 시각(초) — composeAiReel 이 잇는 순서 그대로:
+ * 사람(앞) → [상대 인물] → 앱 → 사람(뒤: 보냄 → 답 받음) → 끝 카드
+ */
+export function reelAnchors({ cuts, otherCut = null, headSeconds }) {
+  const r = (x) => Math.round(x * 1000) / 1000;
+  const a = cuts.a[1] - cuts.a[0];
+  const o = otherCut ? otherCut[1] - otherCut[0] : 0;
+  const app = a + o;
+  const sent = app + headSeconds;
+  return {
+    start: 0,
+    ...(otherCut ? { other: r(a) } : {}),
+    app: r(app),
+    sent: r(sent),
+    reply: r(sent + (cuts.replyAt - cuts.b[0])),
+    end: r(sent + (cuts.b[1] - cuts.b[0])),
+  };
 }

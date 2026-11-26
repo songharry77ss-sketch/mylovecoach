@@ -1,0 +1,151 @@
+{
+  "note": "릴스 소리(sound.mjs) 시연 — 「읽씹 전쟁」 1화(정지 그림)에 효과음·목소리를 얹는다. 목소리는 ELEVENLABS_API_KEY 가 있을 때만 들어간다. analysis 는 11-23 운영 서버 결과(코치 서버를 부르지 않음).",
+  "items": [
+    {
+      "id": "ai-sound-demo",
+      "format": "ai-reel",
+      "label": "읽씹 전쟁 1화",
+      "hook": "썸남 답장\n3시간 만에 옴",
+      "hookEm": [
+        "3시간"
+      ],
+      "name": "도윤",
+      "avatar": "🐶",
+      "gender": "male",
+      "myGender": "female",
+      "relationship": "talking",
+      "messages": [
+        {
+          "from": "me",
+          "text": "오늘 점심 뭐 먹었어?",
+          "time": "오후 6:02"
+        },
+        {
+          "from": "them",
+          "text": "아 미안 ㅠㅠ 이제 봤어",
+          "time": "오후 9:07"
+        },
+        {
+          "from": "them",
+          "text": "오늘 하루 종일 정신없었다",
+          "time": "오후 9:07"
+        },
+        {
+          "from": "them",
+          "text": "너는 저녁 먹었어?",
+          "time": "오후 9:08"
+        }
+      ],
+      "person": {
+        "hook": "썸남이 내 카톡\n3시간째 읽씹",
+        "badge": "센딧 고민 1위 재연",
+        "sent": "센딧이 골라 준\n답장 보냄",
+        "reply": "1분 만에\n답장 옴…?",
+        "stills": {
+          "a": "tools/social-make/samples/late-reply/jiwoo-ep1-a.jpg",
+          "b": "tools/social-make/samples/late-reply/jiwoo-ep1-b.jpg",
+          "c": "tools/social-make/samples/late-reply/jiwoo-ep1-c.jpg"
+        },
+        "captionTop": 1150,
+        "other": {
+          "caption": "근데 그 3시간\n썸남은 사실…\n썼다 지웠다 중",
+          "still": "tools/social-make/samples/late-reply/doyun-ep1-other.jpg",
+          "seconds": 5
+        }
+      },
+      "end": {
+        "ask": "2화: 이번엔 그녀가 읽씹"
+      },
+      "caption": "[읽씹 전쟁 1화] 점심 뭐 먹었냐고 물어봤는데 3시간째 읽씹. 근데 그 3시간 동안 썸남은 사실… 썼다 지웠다 하고 있었다면?\n\n센딧에 대화를 그대로 넣었더니 답장 3개를 성공 확률이랑 같이 골라 줬어. 앱 화면과 답장은 실제 센딧 AI 결과 그대로야.\n\n센딧 연애팁에서 이용자들이 제일 많이 고른 고민 1위가 「답장이 늦어요」라서 시리즈로 만들었어.\n※ 인물과 이야기는 지어낸 재연이야. 사람 나오는 장면은 AI로 만든 연출이고, 마지막 카톡은 센딧이 예상한 답장이야.\n\n너는 답장 늦게 오면 몇 시간까지 기다려 봤어? 👇\n\n#썸 #읽씹 #답장 #카톡답장 #센딧",
+      "analysis": {
+        "callName": null,
+        "speechLevel": "casual",
+        "summary": "바쁜 와중에도 미안함과 함께 먼저 밥을 먹었는지 물어보며 대화를 이어가려는 호감이 보여요.",
+        "temperature": "warm",
+        "interestScore": 75,
+        "heatDelta": 5,
+        "insights": [
+          "답장이 늦었지만 핑계 대신 챙겨주는 질문을 건넸어요."
+        ],
+        "replies": [
+          {
+            "tone": "natural",
+            "text": "괜찮아 바빴구나 🥹 나도 방금 먹었어! 오늘 진짜 고생 많았다 푹 쉬어 ㅎㅎ",
+            "why": "부담 없는 다정한 공감과 안부 전달",
+            "expectedReaction": "응 고마워 너도 고생했어! 저녁 뭐 먹었어?",
+            "successRate": 85
+          },
+          {
+            "tone": "witty",
+            "text": "얼마나 정신없었길래 🥺 나 맛있는 거 먹었지! 오늘 고생했으니까 저녁 맛있는 거 챙겨먹어 ㅎㅎ",
+            "why": "자연스럽게 대화를 이어가는 다정한 리액션",
+            "expectedReaction": "ㅋㅋ 뭐 먹었는데? 나도 이제 먹으려고!",
+            "successRate": 80
+          },
+          {
+            "tone": "flirty",
+            "text": "괜찮아 하루 종일 고생 많았네 🥺 바쁜 와중에 챙겨줘서 고마워 ㅎㅎ 저녁 꼭 챙겨먹어!",
+            "why": "은근한 호감 표현과 챙겨주는 조율",
+            "expectedReaction": "당연히 챙겨야지 ㅎㅎ 너는 저녁 맛있는 거 먹었어?",
+            "successRate": 82
+          }
+        ],
+        "nextStep": "오늘 하루 고생한 도윤을 따뜻하게 토닥이며 저녁 메뉴 이야기로 대화를 이어가세요.",
+        "warnings": [],
+        "memory": [
+          "11/23(월) 도윤이 하루 종일 바빠 답장이 늦었지만 미안해하며 나의 저녁 안부를 먼저 물어봄."
+        ]
+      },
+      "analysisRequest": {
+        "crush": {
+          "name": "도윤",
+          "gender": "male",
+          "relationship": "talking",
+          "style": [],
+          "notes": "",
+          "heat": 0
+        },
+        "user": {
+          "name": "",
+          "gender": "female",
+          "style": []
+        },
+        "tone": "natural",
+        "emoji": "on",
+        "toneChosen": false,
+        "emojiChosen": false,
+        "text": "나: 오늘 점심 뭐 먹었어?\n도윤: 아 미안 ㅠㅠ 이제 봤어\n도윤: 오늘 하루 종일 정신없었다\n도윤: 너는 저녁 먹었어?",
+        "history": [],
+        "today": "11/23(월)"
+      },
+      "sound": [
+        {
+          "at": "start",
+          "sfx": "whoosh"
+        },
+        {
+          "at": 0.5,
+          "say": "3시간째 읽씹… 나 뭐 잘못했나?",
+          "voice": "f"
+        },
+        {
+          "at": "other",
+          "sfx": "sting"
+        },
+        {
+          "at": "app",
+          "sfx": "typing",
+          "volume": 0.6
+        },
+        {
+          "at": "reply",
+          "sfx": "buzz"
+        },
+        {
+          "at": "reply",
+          "sfx": "ding"
+        }
+      ]
+    }
+  ]
+}

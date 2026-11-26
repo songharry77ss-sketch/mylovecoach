@@ -2,6 +2,7 @@
 import { problems as entryProblems } from '../lib/social.mjs';
 import { missingEmoji } from './kit.mjs';
 import { FORMATS } from './formats/index.mjs';
+import { soundProblems } from './sound.mjs';
 
 /** 창고 항목 검사 — 문제 목록 */
 export function bankProblems(list) {
@@ -18,6 +19,8 @@ export function bankProblems(list) {
       continue;
     }
     for (const p of fmt.check(it)) say(p);
+    if (it.sound !== undefined && fmt.kind !== 'reel') say('sound 는 릴스에만');
+    else for (const p of soundProblems(it, { anchors: it.format === 'ai-reel' })) say(p);
     // analysis·analysisRequest 는 운영 코치 서버가 준 실제 결과를 그대로 보관한 것 — 서버에서 바로 받을 때처럼 이모지 검사에서 뺀다(고치면 「실제 결과」가 아니게 됨)
     const missing = missingEmoji(JSON.stringify({ ...it, caption: '', analysis: undefined, analysisRequest: undefined }));
     if (missing.length) say(`그림이 없는 이모지: ${missing.join(' ')} (scripts/fetch-fluent-emoji.ts 에 추가)`);
