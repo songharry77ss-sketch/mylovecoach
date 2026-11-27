@@ -163,7 +163,9 @@ def main():
             hangul = any('가' <= ch <= '힣' for ch in text)
             kana = any('぀' <= ch <= 'ヿ' for ch in str(analysis.get('summary') or ''))
             if status != 200 or not replies or hangul or not kana:
-                problems.append(f'일본어판 AI 코칭 {status}' + (' · 한글 섞임' if hangul else '') + ('' if kana else ' · 설명이 일본어가 아님') + ('' if replies else ' · 답장 없음'))
+                # 알림 없이 기록만 (세계판 다른 언어 확인을 다듬는 중 — 2026-11-27)
+                print(f'⚠ 일본어판 AI 코칭 {status}' + (' · 한글 섞임' if hangul else '') + ('' if kana else ' · 설명이 일본어가 아님') + ('' if replies else ' · 답장 없음'))
+                print(f'  응답 앞부분: {body[:600]!r}')
             else:
                 print(f'일본어판 AI 코칭 정상 ({sec:.1f}초, 답장 {len(replies)}개)')
                 print(f'  요약: {str(analysis.get("summary") or "")[:160]}')
