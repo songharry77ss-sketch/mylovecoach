@@ -35,9 +35,12 @@ export const OPENAI_DEFAULT_MODEL = 'gpt-6-luna';
  * 비즈라우터(BizRouter, 국내 AI 중계) — 2026-11-27 사용자 결정: Gemini 선불 크레딧이 또 바닥나 코칭이 멈춰 연결.
  * OpenAI 방식 주소로 Google·Anthropic·OpenAI 모델을 부른다. 기본은 지금 Gemini 와 같은 모델이라
  * 이미 받은 Google 동의 범위 안에서 쓴다 (모델 앞 회사 이름으로 동의를 확인 — bizrouterCompany).
- * 환경변수 BIZROUTER_MODEL 로 바꾼다 (예: anthropic/claude-haiku-4.5 — 그러면 Anthropic 에 동의한 앱만).
+ * 키 하나로 여러 모델을 차례로 부른다 (BIZROUTER_MODELS, 쉼표). 기본은 가장 싼 축(2026-11-27 비즈라우터 가격표, 100만 토큰당 입력/출력):
+ * Claude Haiku 5.5(143원/715원) → GPT-6 Luna(143원/715원) → Gemini 3.5 Flash(2,144원/12,861원).
+ * 회사마다 그 회사에 동의한 앱만, 앱이 동의한 순서대로 쓴다 (aiOrder).
  */
 export const BIZROUTER_DEFAULT_MODEL = 'google/gemini-3.5-flash';
+export const BIZROUTER_DEFAULT_MODELS: readonly string[] = ['anthropic/claude-haiku-5.5', 'openai/gpt-6-luna', BIZROUTER_DEFAULT_MODEL];
 export const BIZROUTER_API_BASE = 'https://api.bizrouter.ai/v1';
 
 /**
@@ -171,6 +174,8 @@ export async function callBizRouterTask(task: AiTask, apiKey: string, options: {
       { role: 'user', content },
     ],
     max_tokens: 16000,
+    // 기능별 온도(코칭·보고서·속마음·연습)는 직접 Gemini 와 같게 — Claude·GPT 는 직접 연결 때처럼 모델 기본값 (추론 모델은 temperature 를 거절함)
+    ...(model.startsWith('google/') ? { temperature: task.temperature } : {}),
     response_format: { type: 'json_schema', json_schema: { name: `sendit_${task.mode}`, strict: false, schema: jsonSchemaOf(task.schema) } },
   };
   let res: Response;
@@ -241,7 +246,7 @@ const AI_NAMES: readonly AiProviderName[] = ['anthropic', 'openai', 'gemini', 'b
  * Google 에만 동의한 예전 앱이면 Gemini(와 Google 모델을 부르는 비즈라우터)만 남는다.
  * 비즈라우터는 맨 뒤 예비다. BIZROUTER_FIRST=1 이면 맨 앞으로 (직접 연결이 막혔을 때 헛걸음을 줄인다).
  */
-export function aiOrder(consent: readonly string[], env: Record<string, string | undefined> = process.env): { provider: AiProviderName; key: string }[] {
+export function aiOrder(consent: readonly string[], env: Record<string, string | undefined> = process.env): { provider: AiProviderName; key: string; model?: string }[] {
   const consented = new Set(consent);
   const wanted = (env.AI_PROVIDER_ORDER ?? '')
     .split(',')
@@ -251,11 +256,31 @@ export function aiOrder(consent: readonly string[], env: Record<string, string |
   let order: AiProviderName[] = [...(!claudeFirst ? LEGACY_AI_ORDER : wanted.length ? [...new Set(wanted)] : DEFAULT_AI_ORDER)];
   if (env.BIZROUTER_FIRST === '1') order = ['bizrouter', ...order.filter((p) => p !== 'bizrouter')];
   const keyOf: Record<AiProviderName, string | undefined> = { anthropic: env.ANTHROPIC_API_KEY, openai: env.OPENAI_API_KEY, gemini: env.GEMINI_API_KEY, bizrouter: env.BIZROUTER_API_KEY };
-  const companyOf = (p: AiProviderName): string | null => (p === 'bizrouter' ? bizrouterCompany(env.BIZROUTER_MODEL) : COMPANY_OF[p]);
-  return order
-    .filter((p) => {
-      const company = companyOf(p);
-      return company !== null && consented.has(company) && Boolean(keyOf[p]);
-    })
-    .map((p) => ({ provider: p, key: keyOf[p] as string }));
+  // 비즈라우터 모델들은 직접 연결과 같은 회사 순서로 줄 세운다 (새 동의: Claude → GPT → Gemini, 예전 동의: Gemini 먼저)
+  const companyRank = order.filter((p): p is Exclude<AiProviderName, 'bizrouter'> => p !== 'bizrouter').map((p) => COMPANY_OF[p]);
+  const rank = (company: string) => {
+    const i = companyRank.indexOf(company);
+    return i < 0 ? companyRank.length : i;
+  };
+  const routed = bizrouterModels(env)
+    .map((model) => ({ model, company: bizrouterCompany(model) }))
+    .filter((m): m is { model: string; company: string } => m.company !== null && consented.has(m.company))
+    .sort((a, b) => rank(a.company) - rank(b.company));
+  const out: { provider: AiProviderName; key: string; model?: string }[] = [];
+  for (const p of order) {
+    if (!keyOf[p]) continue;
+    if (p === 'bizrouter') {
+      for (const m of routed) out.push({ provider: 'bizrouter', key: keyOf[p] as string, model: m.model });
+    } else if (consented.has(COMPANY_OF[p])) {
+      out.push({ provider: p, key: keyOf[p] as string });
+    }
+  }
+  return out;
+}
+
+/** 비즈라우터로 부를 모델 목록 — BIZROUTER_MODELS(쉼표) > BIZROUTER_MODEL(하나) > 기본(Haiku 5.5 → Luna → Gemini 3.5 Flash) */
+export function bizrouterModels(env: Record<string, string | undefined> = process.env): string[] {
+  const raw = env.BIZROUTER_MODELS || env.BIZROUTER_MODEL || '';
+  const list = raw.split(',').map((m) => m.trim()).filter(Boolean);
+  return [...new Set(list.length ? list : BIZROUTER_DEFAULT_MODELS)];
 }
