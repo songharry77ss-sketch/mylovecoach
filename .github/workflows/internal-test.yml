@@ -30,7 +30,7 @@ concurrency:
 jobs:
   ios:
     if: ${{ inputs.ios }}
-    runs-on: macos-26
+    runs-on: xcode-27 # 애플 ITMS-90725: 2027-04 부터 iOS 27 SDK(Xcode 27) 필수
     timeout-minutes: 90
     env:
       BUNDLE_ID: app.mylovecoach.ios
@@ -41,7 +41,7 @@ jobs:
       EXPO_PUBLIC_SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
       EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
       BUILD_NUMBER_INPUT: ${{ inputs.build_number }}
-      XCODE_PREFER: '26.6'
+      XCODE_PREFER: '27.1'
     outputs:
       version: ${{ steps.meta.outputs.version }}
       build: ${{ steps.meta.outputs.build }}
