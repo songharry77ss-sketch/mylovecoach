@@ -14,10 +14,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # 검증된 조합: macos-26 러너 + Xcode 26.6 (2026-09-17 컴파일 성공)
-          # macos-27 프리뷰 러너는 대기열에서 배정되지 않아 제외함
-          - runner: macos-26
-            xcode: '26.6'
+          # 검증된 조합: xcode-27 러너 + Xcode 27.1 (2026-11-27 빌드 성공) — 애플이 2027-04 부터 iOS 27 SDK 를 요구(ITMS-90725)
+          # 예전 조합(macos-26 + 26.6)은 2027-04 이후 업로드가 막혀 뺌
+          - runner: xcode-27
+            xcode: '27.1'
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     env:

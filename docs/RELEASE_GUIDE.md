@@ -142,7 +142,7 @@ App Store Connect API 키·팀 ID·배포 인증서는 팀 단위라 새 앱에�
 
 | 워크플로 | 러너 | 하는 일 |
 |---|---|---|
-| `.github/workflows/ios.yml` | macos-26 + Xcode 26.6 (컴파일 검증 완료) | `expo prebuild` → 번들 ID·인증서·프로파일 자동 생성(codemagic-cli-tools) → IPA → App Store Connect 업로드(TestFlight) |
+| `.github/workflows/ios.yml` | xcode-27 러너 + Xcode 27.1 (2026-11-27 검증, 애플 2027-04 iOS 27 SDK 필수) | `expo prebuild` → 번들 ID·인증서·프로파일 자동 생성(codemagic-cli-tools) → IPA → App Store Connect 업로드(TestFlight) |
 | `.github/workflows/android.yml` | ubuntu | `expo prebuild` → 업로드 키로 서명한 AAB → 산출물 저장, `track` 지정 시 Play Console 트랙 업로드 |
 
 ### 1. PC 에서 시크릿 등록 (5분) 💻
