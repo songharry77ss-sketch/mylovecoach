@@ -1,6 +1,6 @@
 {
-  "at": "2026-11-23T14:49:43.450Z",
-  "mode": "stills",
+  "at": "2026-11-27T07:15:58.532Z",
+  "mode": "stills+motion",
   "seconds": 5,
   "note": "AI로 만든 가상 인물 그림(Codex) — 반전 장면",
   "stills": [
@@ -8,7 +8,11 @@
       "file": "tools/social-make/samples/late-reply/doyun-ep3-other.jpg",
       "sha": "2014afc91f31f22c",
       "seconds": 5,
-      "punch": true
+      "punch": true,
+      "motion": {
+        "file": "tools/social-make/samples/late-reply/motion/doyun-ep3-other.mp4",
+        "sha": "6e75a3f9ecfa6eeb"
+      }
     }
   ]
 }
