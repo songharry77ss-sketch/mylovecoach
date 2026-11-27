@@ -206,3 +206,15 @@ test('창고 검사 — 보관한 실제 AI 결과(analysis)의 이모지는 막
   const bad = bankProblems([{ ...series[0], person: { ...series[0].person, hook: '읽씹 🫢' } }]);
   assert.ok(bad.some((x) => x.includes('그림이 없는 이모지')));
 });
+
+test('창고에 보관한 실제 AI 결과를 쓸 때도 analysis.json 을 남긴다 (게시 가지 넣기 단계가 복사함)', async () => {
+  const { realAnalysis } = await import('./coach-call.mjs');
+  const it = JSON.parse(readFileSync(new URL('./samples/late-reply-series.json', import.meta.url), 'utf8')).items[1];
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'bank-analysis-'));
+  const real = await realAnalysis(it, dir);
+  assert.equal(real.source, 'bank');
+  const saved = JSON.parse(readFileSync(path.join(dir, 'analysis.json'), 'utf8'));
+  assert.deepEqual(saved.analysis, it.analysis);
+  assert.deepEqual(saved.request, it.analysisRequest);
+  assert.equal(saved.at, it.analysisAt);
+});

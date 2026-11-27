@@ -111,12 +111,15 @@ export const calls = { count: 0 };
  */
 export async function realAnalysis(it, dir) {
   const request = coachRequestOf(it);
+  const file = path.join(dir, 'analysis.json');
   if (it.analysis) {
     const p = analysisProblems(it.analysis);
     if (p.length) throw new Error(`${it.id}: 창고의 analysis 를 쓸 수 없어요 — ${p.join(' · ')}`);
-    return { analysis: it.analysis, request: it.analysisRequest ?? request, source: 'bank' };
+    const saved = { analysis: it.analysis, request: it.analysisRequest ?? request };
+    // 서버에서 받을 때처럼 결과물 폴더에 남긴다 — 게시 가지에 「어떤 실제 결과를 썼는지」가 같이 가고, 넣기 단계가 이 파일을 복사한다
+    writeFileSync(file, `${JSON.stringify({ at: it.analysisAt ?? null, note: '창고 항목에 보관한 운영 코치 서버(/api/coach)의 실제 결과 — 다시 받지 않고 그대로 씀', ...saved }, null, 2)}\n`);
+    return { ...saved, source: 'bank' };
   }
-  const file = path.join(dir, 'analysis.json');
   if (existsSync(file)) {
     const saved = JSON.parse(readFileSync(file, 'utf8'));
     // 질문이 바뀌었으면(창고 글을 고침) 다시 받는다
