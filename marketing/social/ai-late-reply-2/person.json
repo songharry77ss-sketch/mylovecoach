@@ -1,14 +1,18 @@
 {
-  "at": "2026-11-23T14:43:41.980Z",
-  "mode": "stills",
+  "at": "2026-11-27T07:10:33.997Z",
+  "mode": "stills+motion",
   "seconds": 12,
-  "note": "AI로 만든 가상 인물 그림(Codex) — 영상에 「AI로 만든 장면」 표시",
+  "note": "AI로 만든 가상 인물 그림(Codex) + 그 그림을 움직인 토막(Wan 2.2) — 영상에 「AI로 만든 장면」 표시",
   "stills": [
     {
       "file": "tools/social-make/samples/late-reply/doyun-ep2-a.jpg",
       "sha": "51f32c9ac351f2f7",
       "seconds": 4,
-      "punch": false
+      "punch": false,
+      "motion": {
+        "file": "tools/social-make/samples/late-reply/motion/doyun-ep2-a.mp4",
+        "sha": "582c0c3adce12d5f"
+      }
     },
     {
       "file": "tools/social-make/samples/late-reply/doyun-ep2-b.jpg",

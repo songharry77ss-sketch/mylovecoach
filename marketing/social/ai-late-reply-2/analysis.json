@@ -1,28 +1,6 @@
 {
-  "at": "2026-11-23T14:43:51.697Z",
-  "note": "운영 코치 서버(/api/coach)가 돌려준 실제 결과 — app-reel 녹화에 넣음",
-  "request": {
-    "crush": {
-      "name": "지우",
-      "gender": "female",
-      "relationship": "talking",
-      "style": [],
-      "notes": "",
-      "heat": 0
-    },
-    "user": {
-      "name": "",
-      "gender": "male",
-      "style": []
-    },
-    "tone": "natural",
-    "emoji": "on",
-    "toneChosen": false,
-    "emojiChosen": false,
-    "text": "나: 이번 주말에 그 영화 같이 볼래?\n지우: 헐 미안 ㅠㅠ 이제 봤어!!\n지우: 주말에 시간 될 것 같은데\n지우: 토요일 괜찮아?",
-    "history": [],
-    "today": "11/23(월)"
-  },
+  "at": "2026-11-23T14:43:51.697Z 운영 코치 서버(/api/coach) 실제 결과 — 같은 대화로 다시 받지 않고 그대로 씀",
+  "note": "창고 항목에 보관한 운영 코치 서버(/api/coach)의 실제 결과 — 다시 받지 않고 그대로 씀",
   "analysis": {
     "callName": null,
     "speechLevel": "casual",
@@ -63,5 +41,27 @@
       "11/23(월) 지우에게 주말 영화 데이트를 제안함",
       "11/23(월) 지우가 뒤늦게 답장하며 11/28(토)에 만나자고 먼저 요일을 제안함"
     ]
+  },
+  "request": {
+    "crush": {
+      "name": "지우",
+      "gender": "female",
+      "relationship": "talking",
+      "style": [],
+      "notes": "",
+      "heat": 0
+    },
+    "user": {
+      "name": "",
+      "gender": "male",
+      "style": []
+    },
+    "tone": "natural",
+    "emoji": "on",
+    "toneChosen": false,
+    "emojiChosen": false,
+    "text": "나: 이번 주말에 그 영화 같이 볼래?\n지우: 헐 미안 ㅠㅠ 이제 봤어!!\n지우: 주말에 시간 될 것 같은데\n지우: 토요일 괜찮아?",
+    "history": [],
+    "today": "11/23(월)"
   }
 }
