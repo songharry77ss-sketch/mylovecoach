@@ -10,16 +10,36 @@ const names = (order: { provider: string }[]) => order.map((o) => o.provider);
 describe('aiOrder + 비즈라우터', () => {
   const env = { GEMINI_API_KEY: 'g', BIZROUTER_API_KEY: 'b' };
 
-  it('Google 에만 동의한 예전 앱도 Google 모델을 부르는 비즈라우터로 넘어간다', () => {
-    expect(names(aiOrder(['google'], env))).toEqual(['gemini', 'bizrouter']);
+  const routes = (order: { provider: string; model?: string }[]) => order.map((o) => (o.model ? `${o.provider}:${o.model}` : o.provider));
+
+  it('Google 에만 동의한 예전 앱은 비즈라우터도 Gemini 모델만', () => {
+    expect(routes(aiOrder(['google'], env))).toEqual(['gemini', 'bizrouter:google/gemini-3.5-flash']);
   });
 
-  it('새 동의(Claude 먼저)에서도 비즈라우터는 맨 뒤 예비', () => {
-    expect(names(aiOrder(['anthropic', 'openai', 'google'], { ...env, ANTHROPIC_API_KEY: 'a' }))).toEqual(['anthropic', 'gemini', 'bizrouter']);
+  it('새 동의(Claude 먼저)는 비즈라우터도 Haiku 5.5 → Luna → Gemini, 맨 뒤 예비', () => {
+    expect(routes(aiOrder(['anthropic', 'openai', 'google'], { ...env, ANTHROPIC_API_KEY: 'a' }))).toEqual([
+      'anthropic',
+      'gemini',
+      'bizrouter:anthropic/claude-haiku-5.5',
+      'bizrouter:openai/gpt-6-luna',
+      'bizrouter:google/gemini-3.5-flash',
+    ]);
   });
 
-  it('BIZROUTER_FIRST=1 이면 맨 앞', () => {
-    expect(names(aiOrder(['google', 'anthropic', 'openai'], { ...env, BIZROUTER_FIRST: '1' }))).toEqual(['bizrouter', 'gemini']);
+  it('예전 동의(google 먼저)는 비즈라우터도 Gemini 먼저, BIZROUTER_FIRST=1 이면 맨 앞', () => {
+    expect(routes(aiOrder(['google', 'anthropic', 'openai'], { ...env, BIZROUTER_FIRST: '1' }))).toEqual([
+      'bizrouter:google/gemini-3.5-flash',
+      'bizrouter:anthropic/claude-haiku-5.5',
+      'bizrouter:openai/gpt-6-luna',
+      'gemini',
+    ]);
+  });
+
+  it('BIZROUTER_MODELS 로 모델을 바꾼다', () => {
+    expect(routes(aiOrder(['anthropic', 'openai', 'google'], { BIZROUTER_API_KEY: 'b', BIZROUTER_MODELS: 'openai/gpt-5.4-nano, google/gemini-3.5-flash-lite' }))).toEqual([
+      'bizrouter:openai/gpt-5.4-nano',
+      'bizrouter:google/gemini-3.5-flash-lite',
+    ]);
   });
 
   it('키가 없으면 빠진다', () => {
@@ -27,7 +47,7 @@ describe('aiOrder + 비즈라우터', () => {
   });
 
   it('비즈라우터 모델 회사에 동의하지 않았으면 쓰지 않는다', () => {
-    expect(names(aiOrder(['google'], { ...env, BIZROUTER_MODEL: 'anthropic/claude-haiku-4.5' }))).toEqual(['gemini']);
+    expect(names(aiOrder(['google'], { ...env, BIZROUTER_MODELS: 'anthropic/claude-haiku-4.5' }))).toEqual(['gemini']);
     expect(names(aiOrder(['google'], { ...env, BIZROUTER_MODEL: 'upstage/solar-pro' }))).toEqual(['gemini']);
   });
 
@@ -39,7 +59,7 @@ describe('aiOrder + 비즈라우터', () => {
 });
 
 describe('callBizRouterTask', () => {
-  const task = { mode: 'coach', system: 'sys', context: 'ctx', task: 'do', schema: z.object({ a: z.string() }), normalize: (x: unknown) => x } as unknown as AiTask;
+  const task = { mode: 'coach', system: 'sys', context: 'ctx', task: 'do', temperature: 0.8, schema: z.object({ a: z.string() }), normalize: (x: unknown) => x } as unknown as AiTask;
   const realFetch = global.fetch;
   afterEach(() => {
     global.fetch = realFetch;
@@ -60,6 +80,15 @@ describe('callBizRouterTask', () => {
     const sent = JSON.parse(init.body);
     expect(sent.response_format.type).toBe('json_schema');
     expect(sent.messages[0]).toEqual({ role: 'system', content: 'sys' });
+    expect(sent.temperature).toBe(0.8);
+  });
+
+  it('Claude·GPT 모델에는 temperature 를 보내지 않는다', async () => {
+    const fetchMock = jest.fn(async () => ({ ok: true, status: 200, json: async () => ({ choices: [{ finish_reason: 'stop', message: { content: '{}' } }] }) }));
+    global.fetch = fetchMock as unknown as typeof fetch;
+    await callBizRouterTask(task, 'key', { model: 'anthropic/claude-haiku-5.5' });
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, { body: string }];
+    expect(JSON.parse(init.body).temperature).toBeUndefined();
   });
 
   it('크레딧 소진(402)은 서버 문제로 — 다음 회사로 넘긴다', async () => {

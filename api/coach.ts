@@ -11,7 +11,7 @@
  * 받는 곳은 앱의 AI 분석 동의 시트(src/components/coach/ai-consent-sheet.tsx)와 개인정보 처리방침 2번이 안내합니다 — 바꾸려면 셋을 같이 고칠 것.
  * 환경변수:
  *   ANTHROPIC_API_KEY · OPENAI_API_KEY · GEMINI_API_KEY · BIZROUTER_API_KEY (키가 없는 회사는 건너뜀 — 하나도 없으면 500), AI_PROVIDER_ORDER (선택)
- *   BIZROUTER_MODEL (기본 google/gemini-3.5-flash) · BIZROUTER_FIRST=1 (비즈라우터 먼저)
+ *   BIZROUTER_MODELS (쉼표, 기본 anthropic/claude-haiku-5.5,openai/gpt-6-luna,google/gemini-3.5-flash — 동의한 회사만) · BIZROUTER_FIRST=1 (비즈라우터 먼저)
  *   ANTHROPIC_MODEL (기본 claude-haiku-5-5) · OPENAI_MODEL (기본 gpt-6-luna) · ANTHROPIC_EFFORT · GEMINI_MODEL (선택)
  *   TELEGRAM_BOT_TOKEN · TELEGRAM_CHAT_ID (선택 — AI 실패 알림)
  *   COACH_APP_TOKEN (선택, 앱 토큰 검사)
@@ -371,7 +371,7 @@ async function handle(req: VercelRequest, res: VercelResponse, send: (status: nu
   const failed: Extract<Attempt, { ok: false }>[] = [];
   try {
     /** 한 회사에 한 번 맡긴다 — 결과 모양을 하나로 맞춘다 */
-    const ask = async (next: { provider: AiProviderName; key: string }): Promise<Attempt> => {
+    const ask = async (next: { provider: AiProviderName; key: string; model?: string }): Promise<Attempt> => {
       if (next.provider === 'gemini') {
         const r = await callGeminiTask(task, next.key, {
           ...aiFlagsFor(parsed.mode),
@@ -397,7 +397,7 @@ async function handle(req: VercelRequest, res: VercelResponse, send: (status: nu
           ? await callAnthropicTask(task, next.key, { model: process.env.ANTHROPIC_MODEL, effort: process.env.ANTHROPIC_EFFORT, signal: watch.signal })
           : next.provider === 'openai'
             ? await callOpenAITask(task, next.key, { model: process.env.OPENAI_MODEL, signal: watch.signal })
-            : await callBizRouterTask(task, next.key, { model: process.env.BIZROUTER_MODEL, signal: watch.signal });
+            : await callBizRouterTask(task, next.key, { model: next.model, signal: watch.signal });
       return r.ok ? { ok: true, provider: r.provider, model: r.model, text: r.text, finishReason: r.finishReason, usage: r.usage } : { ok: false, provider: r.provider, model: r.model, code: r.code, status: r.status, message: r.message };
     };
     /** 받은 JSON 글 → 검사한 결과 (형식이 틀리면 null) */
