@@ -225,6 +225,9 @@ async function listing(target) {
         show: ['name', 'subtitle'],
         tally,
       });
+    // 앱 정보에 새 로캘을 넣으면 Apple 이 편집 중인 버전에도 같은 로캘(빈 칸)을 자동으로 만든다 — 다시 읽어 그것을 고친다 (2026-11-28, 안 그러면 409)
+    if (apply && target.version && !hasLocale(target.verLocs, locale))
+      target.verLocs = await getAll(`/v1/appStoreVersions/${target.version.id}/appStoreVersionLocalizations?limit=200`);
     if (target.version)
       await upsertLocalization({
         label: `버전 ${VERSION} ${locale}`,
@@ -286,7 +289,9 @@ async function screenshots(app, target) {
   const bad = local.filter((x) => !x.size || !SIZES_67.has(`${x.size.width}x${x.size.height}`));
   if (bad.length) throw new Error(`6.7" 크기가 아닌 파일 — ${bad.map((x) => `${x.f}(${x.size ? `${x.size.width}×${x.size.height}` : 'PNG 아님'})`).join(', ')} · 1290×2796 또는 1320×2868 PNG 여야 한다`);
   console.log(`· 올릴 파일 ${files.length}장 — ${dir}`);
-  for (const locale of ['en-US']) {
+  // --shots-all: 기본 언어를 en-US 로 못 바꿀 때(이미 출시된 버전에 영어 스크린샷이 없음) 한국어 말고 모든 로캘에 영어 스크린샷을 직접 올린다
+  const shotLocales = args.includes('--shots-all') ? (target?.verLocs ?? []).map((l) => l.attributes.locale).filter((l) => l !== 'ko') : ['en-US'];
+  for (const locale of shotLocales) {
     const vloc = (target?.verLocs ?? []).find((l) => l.attributes.locale === locale);
     if (!vloc) {
       const msg = `${locale}: 편집 중인 버전에 이 로캘 현지화가 아직 없음 — --listing 과 같이 --apply 하면 만든 뒤 올린다`;
