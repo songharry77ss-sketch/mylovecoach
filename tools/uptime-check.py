@@ -149,6 +149,27 @@ def main():
                 for r in replies[:3]:
                     print(f'  - {str(r.get("text") or "")[:120]}')
 
+            # 세계판 다른 언어(일본어) — 설명이 일본어(가나)로 오고 한글이 없는지
+            ja = dict(en, text='私: 金曜の夜あいてる？新しいバー行ってみたくて\nEmma: えーどうしよっかな😏\nEmma: 誰と行くかによるかも', lang='ja')
+            ja['crush'] = dict(en['crush'], name='Emma')
+            status, _, body, sec = call('/api/coach', 'POST', ja, {'x-app-token': APP_TOKEN, 'x-ai-consent': 'anthropic,openai,google', 'x-app-lang': 'ja'}, timeout=90)
+            analysis = {}
+            try:
+                analysis = json.loads(body).get('analysis') or {}
+            except Exception:
+                pass
+            replies = analysis.get('replies') or []
+            text = json.dumps(analysis, ensure_ascii=False)
+            hangul = any('가' <= ch <= '힣' for ch in text)
+            kana = any('぀' <= ch <= 'ヿ' for ch in str(analysis.get('summary') or ''))
+            if status != 200 or not replies or hangul or not kana:
+                problems.append(f'일본어판 AI 코칭 {status}' + (' · 한글 섞임' if hangul else '') + ('' if kana else ' · 설명이 일본어가 아님') + ('' if replies else ' · 답장 없음'))
+            else:
+                print(f'일본어판 AI 코칭 정상 ({sec:.1f}초, 답장 {len(replies)}개)')
+                print(f'  요약: {str(analysis.get("summary") or "")[:160]}')
+                for r in replies[:3]:
+                    print(f'  - {str(r.get("text") or "")[:120]}')
+
     now = time.strftime('%m-%d %H:%M', time.gmtime(time.time() + 9 * 3600))
     if problems:
         print('문제:', ' / '.join(problems))
