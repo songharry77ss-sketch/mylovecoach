@@ -24,6 +24,7 @@ import {
   CrushRequestSchema,
   GENDER_KO,
   GenderSchema,
+  LangSchema,
   RELATIONSHIP_KO,
   REQUEST_LIMITS,
   RelationshipSchema,
@@ -33,6 +34,7 @@ import {
   buildProfileBlock,
   buildTaskBlock,
   normalizeAnalysis,
+  systemFor,
 } from './coach-schema';
 
 export type AiMode = 'coach' | 'report' | 'mind' | 'practice';
@@ -71,6 +73,8 @@ export const ReportRequestSchema = z.object({
     .default([]),
   /** 누적 온도 변화 (오래된 순) */
   heatLog: z.array(z.object({ at: z.number(), value: z.number(), delta: z.number() })).max(40).default([]),
+  /** 앱 언어 (영어판이면 en) */
+  lang: LangSchema.optional(),
 });
 
 export const MindRequestSchema = z.object({
@@ -88,6 +92,8 @@ export const MindRequestSchema = z.object({
       style: z.array(z.string().max(REQUEST_LIMITS.tag)).max(8).optional(),
     })
     .optional(),
+  /** 앱 언어 (영어판이면 en) */
+  lang: LangSchema.optional(),
 });
 
 export const PracticeRequestSchema = z.object({
@@ -107,6 +113,8 @@ export const PracticeRequestSchema = z.object({
   user: UserRequestSchema,
   heat: z.number(),
   turns: z.array(z.object({ role: z.enum(['me', 'them']), text: z.string().max(600) })).min(1).max(MAX_REQUEST_ARRAY_LENGTH),
+  /** 앱 언어 (영어판이면 en) */
+  lang: LangSchema.optional(),
 });
 
 export type ReportRequest = z.infer<typeof ReportRequestSchema>;
@@ -254,7 +262,7 @@ export function buildReportTask(req: ReportRequest): AiTask<z.infer<typeof Crush
     : `[누적 호감 온도] 지금 ${Math.round(req.crush.heat ?? 0)}°`;
   return {
     mode: 'report',
-    system: REPORT_SYSTEM_PROMPT,
+    system: systemFor(REPORT_SYSTEM_PROMPT, req.lang),
     context: [buildProfileBlock(req), history, heat].join('\n\n'),
     task: '[이번 요청]\n- 위 기록을 바탕으로 상대 분석 보고서를 작성해 주세요.',
     schema: CrushReportSchema,
@@ -278,7 +286,7 @@ export function buildMindTask(req: MindRequest): AiTask<z.infer<typeof MindReadi
   }
   return {
     mode: 'mind',
-    system: MIND_SYSTEM_PROMPT,
+    system: systemFor(MIND_SYSTEM_PROMPT, req.lang),
     context: lines.join('\n'),
     task: `[상황]\n${req.situation.trim()}\n\n[이번 요청]\n- 이 상황에서 ${who}의 속마음을 풀어 주세요.`,
     schema: MindReadingSchema,
@@ -313,7 +321,7 @@ export function buildPracticeTask(req: PracticeRequest): AiTask<z.infer<typeof P
   const convo = ['[지금까지 대화 (오래된 순)]', ...req.turns.slice(-PRACTICE_PROMPT_TURNS).map((t) => `${t.role === 'me' ? '나' : p.name}: ${t.text.replace(/\s+/g, ' ').trim()}`)].join('\n');
   return {
     mode: 'practice',
-    system: PRACTICE_SYSTEM_PROMPT,
+    system: systemFor(PRACTICE_SYSTEM_PROMPT, req.lang),
     context: [persona, user].join('\n\n'),
     task: `${convo}\n\n[지금 연습 온도] ${Math.round(req.heat)}°\n[이번 요청]\n- 마지막 "나"의 메시지에 ${p.name}(으)로서 답하고, 그 메시지를 평가해 주세요.`,
     schema: PracticeReplySchema,
@@ -326,7 +334,7 @@ export function buildPracticeTask(req: PracticeRequest): AiTask<z.infer<typeof P
 export function buildCoachTask(req: z.infer<typeof CoachRequestSchema>): AiTask<z.infer<typeof CoachAnalysisSchema>> {
   return {
     mode: 'coach',
-    system: COACH_SYSTEM_PROMPT,
+    system: systemFor(COACH_SYSTEM_PROMPT, req.lang),
     context: buildContextText(req),
     image: req.image,
     task: buildTaskBlock(req),

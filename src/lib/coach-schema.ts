@@ -15,6 +15,9 @@ export const TemperatureSchema = z.enum(['hot', 'warm', 'neutral', 'cold', 'unkn
 export const GenderSchema = z.enum(['female', 'male', 'other']);
 export const RelationshipSchema = z.enum(['crush', 'talking', 'blind_date', 'friend', 'dating', 'ex']);
 export const EmojiPrefSchema = z.enum(['auto', 'on', 'off']);
+/** 앱 언어 (한국어판·영어판) — 서버가 AI 출력 언어를 정할 때 쓴다 */
+export const LangSchema = z.enum(['ko', 'en']);
+export type Lang = z.infer<typeof LangSchema>;
 
 /** 센딧이 기억하는 이야기 — 채팅방마다 최대 몇 줄까지 기억하는지 (앱이 보내는 줄 수이자 모델에게 부탁하는 줄 수) */
 export const MEMORY_MAX = 8;
@@ -215,6 +218,8 @@ export const CoachRequestSchema = z.object({
   remember: z.boolean().optional(),
   /** 사용자 기기의 오늘 날짜 (예: 11/6(목)) — 「이번 주말」 같은 말을 기억에 날짜로 적게. 예전 앱은 보내지 않는다 */
   today: clipped(REQUEST_LIMITS.today).optional(),
+  /** 앱 언어 — en 이면 설명은 영어, 답장은 대화에 쓰인 언어로 (2026-11-27 세계 출시). 예전 앱은 보내지 않는다(= 한국어) */
+  lang: LangSchema.optional(),
 });
 
 export type CoachRequest = z.infer<typeof CoachRequestSchema>;
@@ -312,6 +317,27 @@ export const COACH_SYSTEM_PROMPT = `당신은 연애 코치 앱 "센딧"의 AI �
 - 상대를 비하하거나 외모·조건을 평가하는 표현은 쓰지 마세요.
 - summary와 insights, nextStep, warnings는 사용자에게 말하는 친근한 존댓말("~해요", "~해보세요")로 씁니다.
 - 출력은 오직 요청된 JSON 구조로만 합니다.`;
+
+/**
+ * 영어판(My Love Coach) 출력 규칙 — 요청 lang 이 en 일 때 각 모드의 시스템 프롬프트 끝에 붙인다.
+ * 한국어 지시문은 그대로 두고(같은 판단 기준을 쓰게) 언어·문화에 맞지 않는 부분만 여기서 덮어쓴다.
+ * 설명은 영어, 답장은 캡처 속 두 사람이 쓰는 언어로 — 영어 외 언어를 쓰는 나라의 이용자도 영어판을 쓰기 때문.
+ */
+export const ENGLISH_OUTPUT_RULES = `LANGUAGE OVERRIDE (English edition of the app, called "My Love Coach") — these rules override any Korean-specific instruction above:
+- Write every explanation for the user (summary, insights, nextStep, warnings, why, headlines, advice, feedback, keywords, strategy, roadmap, memory lines and any other descriptive field) in natural, friendly, casual American English. Talk to the user like a supportive friend ("you"), short and direct. Never output Korean (Hangul) characters.
+- Lengths: where the Korean rules count characters, aim for the same brevity in English (about 20-25 words for a summary, one short sentence elsewhere).
+- Messages meant to be sent or spoken in the chat (replies[].text, expectedReaction, sampleReply, better, practice messages, innerThought, innerVoice) must be in the SAME language the two people use in the conversation. If no conversation is visible, use English. Match their texting style: casual Gen Z / millennial texting, lowercase is fine if they text that way, "haha"/"lol" only if they use it, never cringe pickup lines.
+- Screenshots usually come from iMessage, WhatsApp, Instagram DMs, Snapchat, Messenger, Telegram, LINE, Tinder, Hinge or Bumble. In almost all of them the user's own messages are on the RIGHT (blue/green/purple bubbles) and the other person's are on the LEFT (gray/white). The name at the top is the other person.
+- callName: the nickname or pet name the user uses for the other person (e.g. "babe", "Em"), else null. speechLevel: "casual" unless the conversation is clearly formal ("polite"). Korean honorific rules (존댓말/반말, 언니/오빠 titles) do not apply — just keep the same level of formality the user already uses.
+- Emoji: follow the same on/off/auto rules, using emoji that people actually use in English texting.
+- Cultural context: modern dating in the US/UK/Europe and worldwide (dating apps, texting, DMs), not Korea-specific. Don't assume KakaoTalk.
+- Dates in memory lines: write them like "Sat 11/8". Refer to the user as "I" and the other person by name (or "them").
+- Keep all JSON keys and enum values exactly as specified (e.g. tone, temperature, speechLevel stay as given). Output only the requested JSON.`;
+
+/** 요청 언어에 맞는 시스템 프롬프트 — 한국어(또는 예전 앱)면 그대로 두어 프롬프트 캐시를 지킨다 */
+export function systemFor(system: string, lang: Lang | undefined): string {
+  return lang === 'en' ? `${system}\n\n${ENGLISH_OUTPUT_RULES}` : system;
+}
 
 /**
  * 상대·내 프로필. 상대 정보에 기억이 있으면 끝에 기억 블록도 붙인다(상대 분석 보고서가 이걸로 기억을 함께 읽는다).
