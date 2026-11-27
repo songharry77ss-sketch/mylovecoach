@@ -1,3 +1,4 @@
+import { L, isKo } from '@/lib/i18n';
 import type { Gender } from '@/lib/types';
 
 /**
@@ -10,18 +11,32 @@ export interface MindCard {
   id: string;
   category: MindCategory;
   emoji: string;
-  /** {them} 자리에 남자/여자/상대가 들어간다 */
+  /** {them} 자리에 남자/여자/상대가 들어간다 (영어판은 {They}·{their}·{s} 같은 대명사·동사 자리 — fillThem 참고) */
   situation: string;
 }
 
+/** 분류 값(저장·비교용)은 한국어 그대로 두고, 화면에는 mindCategoryLabel 로 보여 준다 */
 export const MIND_CATEGORIES: MindCategory[] = ['연락', '썸', '데이트', '연애중', '이별·재회'];
+
+const MIND_CATEGORY_EN: Record<MindCategory, string> = {
+  연락: 'Texting',
+  썸: 'Talking stage',
+  데이트: 'Dates',
+  연애중: 'Relationships',
+  '이별·재회': 'Breakups & exes',
+};
+
+/** 화면에 보일 분류 이름 — 한국어판은 값 그대로 */
+export function mindCategoryLabel(category: MindCategory): string {
+  return isKo ? category : MIND_CATEGORY_EN[category];
+}
 
 /*
  * 작성 규칙: {them} 에 들어가는 「남자·여자·상대」는 모두 받침이 없으므로
  * {them} 바로 뒤에는 받침 없는 말에 붙는 조사(가·는·를·와·랑·의·에게·한테)만 쓴다.
  * 이·은·을·과·으로 는 쓰지 않는다 (테스트로 확인).
  */
-export const MIND_CARDS: MindCard[] = [
+const MIND_CARDS_KO: MindCard[] = [
   // 연락
   { id: 'text-1', category: '연락', emoji: '💬', situation: '{them}가 "뭐해?"라고만 보내고 2시간째 답이 없어요.' },
   { id: 'text-2', category: '연락', emoji: '👀', situation: '{them}가 내 카톡을 바로 읽고, 답장은 다음 날 아침에야 보냈어요.' },
@@ -73,8 +88,79 @@ export const MIND_CARDS: MindCard[] = [
   { id: 'ex-8', category: '이별·재회', emoji: '🔁', situation: '다시 만나기로 한 {them}가 예전보다 연락은 줄었는데, 만나면 더 다정해요.' },
 ];
 
-/** 상대를 가리키는 말: male → '남자', female → '여자', other → '상대' */
+/*
+ * 영어판 카드 — id·분류·이모지·순서가 한국어판과 같다. 영어는 성별에 따라 대명사와 동사 꼴이 바뀌므로 자리표를 쓴다:
+ * {They}/{they} → He/he·She/she·They/they, {them} → him·her·them, {their} → his·her·their, {they're} → he's·she's·they're,
+ * {s}·{es} → 3인칭 단수 동사 끝(text{s}, watch{es}), {is}·{was}·{has}·{does} → is/are·was/were·has/have·does/do.
+ * 「100일」 같은 한국 연애 문화 말은 해외에 맞게 바꿨다.
+ */
+const MIND_CARDS_EN: MindCard[] = [
+  // 연락
+  { id: 'text-1', category: '연락', emoji: '💬', situation: '{They} just sent "wyd?" and then went quiet for 2 hours.' },
+  { id: 'text-2', category: '연락', emoji: '👀', situation: '{They} read my text right away but didn\'t reply until the next morning.' },
+  { id: 'text-3', category: '연락', emoji: '🐢', situation: '{They} used to reply instantly. For three days now, it\'s been taking hours.' },
+  { id: 'text-4', category: '연락', emoji: '🌙', situation: '{They} texted me "u up?" at 1 a.m.' },
+  { id: 'text-5', category: '연락', emoji: '🍺', situation: '{They} only text{s} me first on nights {they} go{es} out drinking.' },
+  { id: 'text-6', category: '연락', emoji: '📱', situation: '{They\'re} always first to watch my stories, but never text{s} me first.' },
+  { id: 'text-7', category: '연락', emoji: '📩', situation: '{They\'re} usually a dry texter, but today {they} sent me a long text first.' },
+  { id: 'text-8', category: '연락', emoji: '📞', situation: 'We text every day, but {they} {has} never once suggested a call.' },
+
+  // 썸
+  { id: 'some-1', category: '썸', emoji: '🤔', situation: '{They} told me, "I want to date someone like you."' },
+  { id: 'some-2', category: '썸', emoji: '😳', situation: '{They} joked, "should we just date?" and then instantly said "lol jk."' },
+  { id: 'some-3', category: '썸', emoji: '🌀', situation: 'We\'ve been on three dates, and {they} {has}n\'t made a move or drawn a line.' },
+  { id: 'some-4', category: '썸', emoji: '🙊', situation: 'I asked "so what are we?" and {they} laughed and changed the subject.' },
+  { id: 'some-5', category: '썸', emoji: '🍪', situation: 'I mentioned my favorite snack once in passing. {They} remembered and brought me some.' },
+  { id: 'some-6', category: '썸', emoji: '🚧', situation: '{They} say{s} "I\'m not looking for a relationship right now," but text{s} me every day.' },
+  { id: 'some-7', category: '썸', emoji: '📲', situation: '{They} want{s} to call every night but never ask{s} to meet up.' },
+  { id: 'some-8', category: '썸', emoji: '💌', situation: 'We\'re in a talking stage, and {they} told me a friend wants to set {them} up on a date.' },
+
+  // 데이트
+  { id: 'date-1', category: '데이트', emoji: '🎬', situation: 'After our first date, {they} just texted "had fun today" — no mention of a next one.' },
+  { id: 'date-2', category: '데이트', emoji: '💳', situation: '{They} paid for our whole first date and said, "you can get coffee next time."' },
+  { id: 'date-3', category: '데이트', emoji: '📵', situation: '{They} kept checking {their} phone the whole date.' },
+  { id: 'date-4', category: '데이트', emoji: '📍', situation: '{They} always leave{s} it up to me to pick where we go.' },
+  { id: 'date-5', category: '데이트', emoji: '🤝', situation: 'Our hands brushed a few times while we were walking, and {they} didn\'t pull away.' },
+  { id: 'date-6', category: '데이트', emoji: '😶', situation: '{They} brought up {their} ex in the middle of our date.' },
+  { id: 'date-7', category: '데이트', emoji: '🤒', situation: 'The morning of our date, {they} said {they} felt sick and asked to reschedule.' },
+  { id: 'date-8', category: '데이트', emoji: '📸', situation: '{They} posted a photo of us on {their} Instagram story.' },
+
+  // 연애중
+  { id: 'couple-1', category: '연애중', emoji: '📉', situation: 'A few months into dating, {they} started texting a lot less.' },
+  { id: 'couple-2', category: '연애중', emoji: '🙄', situation: '{They} said "just do whatever you want" and ended the conversation.' },
+  { id: 'couple-3', category: '연애중', emoji: '😢', situation: 'I said my feelings were hurt, and {they} asked, "why would that bother you?"' },
+  { id: 'couple-4', category: '연애중', emoji: '📅', situation: '{They} forgot our anniversary and texted the next day like nothing happened.' },
+  { id: 'couple-5', category: '연애중', emoji: '🍰', situation: 'The day after our fight, {they} brought my favorite cake instead of saying sorry.' },
+  { id: 'couple-6', category: '연애중', emoji: '🏠', situation: 'We\'ve been together 7 years. I brought up moving in, and {they} just said "I\'ll think about it."' },
+  { id: 'couple-7', category: '연애중', emoji: '📺', situation: 'Every weekend, {they} just want{s} to "stay in and chill."' },
+  { id: 'couple-8', category: '연애중', emoji: '💍', situation: 'Whenever marriage comes up, {they} quietly change{s} the subject.' },
+
+  // 이별·재회
+  { id: 'ex-1', category: '이별·재회', emoji: '📨', situation: 'Two months after the breakup, {they} texted "how have you been?"' },
+  { id: 'ex-2', category: '이별·재회', emoji: '⌛', situation: 'Instead of breaking up, {they} said "I think we need some time."' },
+  { id: 'ex-3', category: '이별·재회', emoji: '👻', situation: 'Even after the breakup, {they} still follow{s} me on Instagram and watch{es} every story.' },
+  { id: 'ex-4', category: '이별·재회', emoji: '👤', situation: 'After the breakup, {they} didn\'t block me — just took down {their} profile picture.' },
+  { id: 'ex-5', category: '이별·재회', emoji: '🥃', situation: '{They} drunk-texted me "I miss you," then said nothing the next day.' },
+  { id: 'ex-6', category: '이별·재회', emoji: '☔', situation: 'When we broke up, {they} said, "It\'s not you, it\'s me."' },
+  { id: 'ex-7', category: '이별·재회', emoji: '🎁', situation: 'After the breakup, {they} sent one line on my birthday: "happy birthday."' },
+  { id: 'ex-8', category: '이별·재회', emoji: '🔁', situation: 'We got back together. {They} text{s} less than before, but {they\'re} sweeter in person.' },
+];
+
+export const MIND_CARDS: MindCard[] = L(MIND_CARDS_KO, MIND_CARDS_EN);
+
+/** 영어판 대명사·동사 꼴 — 성별 other 는 they(복수 동사) */
+const PRONOUNS_EN: Record<Gender, Record<string, string>> = {
+  male: { they: 'he', them: 'him', their: 'his', "they're": "he's", s: 's', es: 'es', is: 'is', was: 'was', has: 'has', does: 'does' },
+  female: { they: 'she', them: 'her', their: 'her', "they're": "she's", s: 's', es: 'es', is: 'is', was: 'was', has: 'has', does: 'does' },
+  other: { they: 'they', them: 'them', their: 'their', "they're": "they're", s: '', es: '', is: 'are', was: 'were', has: 'have', does: 'do' },
+};
+
+/**
+ * 상대를 가리키는 말: male → '남자', female → '여자', other → '상대'.
+ * 영어판은 주어 대명사 he · she · they (문장 속에 넣을 때는 fillThem 으로 동사 꼴까지 맞춘다)
+ */
 export function themLabel(gender: Gender): string {
+  if (!isKo) return PRONOUNS_EN[gender]?.they ?? 'they';
   switch (gender) {
     case 'male':
       return '남자';
@@ -85,10 +171,26 @@ export function themLabel(gender: Gender): string {
   }
 }
 
-/** situation 안의 {them} 을 themLabel 로 바꾼다 */
+/**
+ * 글 속의 상대 자리표를 성별에 맞게 채운다.
+ * 한국어판: {them} → themLabel(남자·여자·상대). 영어판: {They}·{they}·{them}·{their}·{they're}·{s}·{es}·{is}·{was}·{has}·{does}
+ * (첫 글자가 대문자인 자리표는 대문자로 시작). 예: fillThem("What {is} {they} thinking?", 'female') → "What is she thinking?"
+ */
+export function fillThem(text: string, gender: Gender): string {
+  if (isKo) {
+    const label = themLabel(gender);
+    return text.replace(/\{them\}/g, () => label);
+  }
+  const words = PRONOUNS_EN[gender] ?? PRONOUNS_EN.other;
+  return text.replace(/\{(They're|they're|They|they|Them|them|Their|their|s|es|is|was|has|does)\}/g, (_m, key: string) => {
+    const word = words[key.toLowerCase()] ?? '';
+    return /[A-Z]/.test(key[0]) ? word.charAt(0).toUpperCase() + word.slice(1) : word;
+  });
+}
+
+/** situation 안의 {them} 을 themLabel 로 바꾼다 (영어판은 대명사·동사 꼴까지) */
 export function renderSituation(card: MindCard, gender: Gender): string {
-  const label = themLabel(gender);
-  return card.situation.replace(/\{them\}/g, () => label);
+  return fillThem(card.situation, gender);
 }
 
 /** 0 이상 length 미만의 정수. rng 가 범위를 벗어난 값을 줘도 배열 밖을 가리키지 않게 막는다 */
@@ -109,7 +211,7 @@ export function drawMindCard(exclude: string[] = [], rng: () => number = Math.ra
  * 채팅 입력창 위에 무작위로 띄울 짧은 질문. {name} 자리에 상대 이름이 들어간다.
  * 이름 끝 받침과 상관없게 항상 「{name}님」 뒤에 조사를 붙인다 (님 → 은·이·을·이랑).
  */
-export const CHAT_QUESTIONS: string[] = [
+const CHAT_QUESTIONS_KO: string[] = [
   '{name}님은 지금 무슨 생각일까?',
   '{name}님이 나한테 관심 있는 걸까?',
   '{name}님 답장이 늦는 이유가 뭘까?',
@@ -132,7 +234,33 @@ export const CHAT_QUESTIONS: string[] = [
   '{name}님이랑 잘될 가능성, 솔직히 어때?',
 ];
 
-/** 중복 없이 count 개를 뽑아 {name} 을 상대 이름으로 바꾼다. 이름이 비어 있으면 '상대' */
+/** 영어판 질문 — 이용자 목소리(「나」)로. 이름을 모르면 「my crush」가 들어간다 */
+const CHAT_QUESTIONS_EN: string[] = [
+  'What\'s {name} thinking right now?',
+  'Is {name} into me?',
+  'Why is {name} so slow to reply?',
+  'Should I text {name} first right now?',
+  'What kind of date would {name} love?',
+  'If I ask {name} out, will it be a yes?',
+  'What\'s {name}\'s interest level right now?',
+  'What did {name} mean by that?',
+  'When should I ask {name} to hang out?',
+  'What kind of texts would turn {name} off?',
+  'How do I keep the convo with {name} going?',
+  'What type is {name} drawn to?',
+  'Does {name} only see me as a friend?',
+  'What compliment would land with {name}?',
+  'Is there a way to know how {name} feels?',
+  'Could {name} be upset with me?',
+  'What should I ask {name} next?',
+  'Is {name} playing hard to get?',
+  'What can I say to cheer {name} up?',
+  'Honestly, what are my chances with {name}?',
+];
+
+export const CHAT_QUESTIONS: string[] = L(CHAT_QUESTIONS_KO, CHAT_QUESTIONS_EN);
+
+/** 중복 없이 count 개를 뽑아 {name} 을 상대 이름으로 바꾼다. 이름이 비어 있으면 '상대'(영어판 'my crush') */
 export function drawChatQuestions(count: number, name: string, rng: () => number = Math.random): string[] {
   const n = Math.max(0, Math.min(Math.floor(count), CHAT_QUESTIONS.length));
   if (!(n > 0)) return [];
@@ -142,7 +270,7 @@ export function drawChatQuestions(count: number, name: string, rng: () => number
     const j = i + pickIndex(pool.length - i, rng);
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
-  const who = name.trim() || '상대';
+  const who = name.trim() || L('상대', 'my crush');
   // 이름에 $& 같은 문자가 있어도 그대로 들어가도록 치환 함수를 쓴다
   return pool.slice(0, n).map((q) => q.replace(/\{name\}/g, () => who));
 }

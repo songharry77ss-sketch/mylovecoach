@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { heatMeta } from '@/components/coach/heat-gauge';
+import { crushDisplayName } from '@/components/crush/crush-name';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { AppText } from '@/components/ui/app-text';
 import { useInsetFill } from '@/components/ui/list-group';
@@ -9,6 +10,7 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { relativeTime } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 import { relationshipLabel } from '@/lib/labels';
 import type { Crush } from '@/lib/types';
 
@@ -33,7 +35,7 @@ export function RoomAvatar({ crush, size = 48 }: { crush: Pick<Crush, 'id' | 'na
   // 1.4 개편: 파랑·보라 두 색을 번갈아 쓰던 것을 한 가지 옅은 색으로 — 사람마다 색이 달라 화면이 어수선했다
   return (
     <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2, backgroundColor: theme.primarySoft }]}>
-      <Text style={[styles.avatarText, { fontSize: size * 0.4, lineHeight: size * 0.5, color: theme.primary }]}>{crush.name.trim().slice(0, 1) || '?'}</Text>
+      <Text style={[styles.avatarText, { fontSize: size * 0.4, lineHeight: size * 0.5, color: theme.primary }]}>{crushDisplayName(crush.name).trim().slice(0, 1) || '?'}</Text>
     </View>
   );
 }
@@ -51,8 +53,11 @@ export function CrushListItem({ crush, lastPreview, hidePreview, divider = false
   const meta = heatMeta(heat);
   const rel = relationshipLabel(crush.relationship);
   const last = crush.heatLog?.[crush.heatLog.length - 1];
-  const preview = hidePreview ? '미리보기를 숨겼어요' : (lastPreview ?? `${rel.label}${crush.mbti ? ` · ${crush.mbti}` : ''} · 캡처를 올려 시작해 보세요`);
-  const when = crush.lastMessageAt ? relativeTime(crush.lastMessageAt) : '새 채팅방';
+  const preview = hidePreview
+    ? L('미리보기를 숨겼어요', 'Preview hidden')
+    : (lastPreview ?? `${rel.label}${crush.mbti ? ` · ${crush.mbti}` : ''}${L(' · 캡처를 올려 시작해 보세요', ' · Upload a screenshot to start')}`);
+  const when = crush.lastMessageAt ? relativeTime(crush.lastMessageAt) : L('새 채팅방', 'New chat');
+  const name = crushDisplayName(crush.name);
   return (
     <Pressable
       accessibilityRole="button"
@@ -60,14 +65,14 @@ export function CrushListItem({ crush, lastPreview, hidePreview, divider = false
         haptic.soft();
         onPress();
       }}
-      accessibilityLabel={`${crush.name}, 호감 온도 ${heat}도, ${when}`}
-      accessibilityHint="채팅방을 열어요"
+      accessibilityLabel={L(`${crush.name}, 호감 온도 ${heat}도, ${when}`, `${name}, interest level ${heat} degrees, ${when}`)}
+      accessibilityHint={L('채팅방을 열어요', 'Opens the chat')}
       style={({ pressed }) => [styles.row, { backgroundColor: pressed ? pressedFill : 'transparent' }]}>
       <RoomAvatar crush={crush} size={AVATAR} />
       <View style={styles.texts}>
         <View style={styles.nameRow}>
           <AppText variant="bodyStrong" numberOfLines={1} style={styles.name}>
-            {crush.name}
+            {name}
           </AppText>
           <AppText variant="caption" color="textTertiary">
             {when}

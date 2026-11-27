@@ -6,6 +6,8 @@
  * - 축마다 한 글자씩 → 유형 코드 4글자 (예: 선빠폭직). 16유형.
  * - 같은 점수로 「카톡 속 진짜 MBTI」(확신도 %), 애니어그램 추정, 나만의 연애 컬러를 만든다.
  * - 답은 6글자 코드로 압축해 결과 링크(?a=)에 싣는다. 같은 답이면 언제나 같은 결과가 나온다.
+ * - 서버(api/)도 이 파일로 한국어 공유 카드·미리보기를 그린다 → @/lib/i18n 금지. 영어판 문구는 앱 전용 kkti-en.ts 에
+ *   같은 유형 코드·문항 id·축 key·색 hex 를 열쇠로 둔다. 문구를 고치거나 늘리면 kkti-en.ts 도 같이 (kkti-en.test 가 확인한다).
  */
 import type { KktiSaved, Tone } from '@/lib/types';
 
@@ -496,22 +498,45 @@ export function josa(word: string, withBatchim: string, withoutBatchim: string):
   return (last - 0xac00) % 28 === 0 ? withoutBatchim : withBatchim;
 }
 
-/** 두 유형이 왜 잘 맞는지·안 맞는지 한 줄 (축을 비교해 만든다) */
-export function matchReason(selfCode: string, otherCode: string): string {
+/** 연락 시작 축의 두 사람 관계 — 내가 다가감 / 상대가 다가옴 / 둘 다 다가감 / 둘 다 기다림 */
+export type KktiLead = 'i_lead' | 'they_lead' | 'both_lead' | 'both_wait';
+
+export interface KktiMatchReasonParts {
+  lead: KktiLead;
+  /** 연락 시작을 뺀 세 축 중 같은 축 */
+  same: KktiAxisKey[];
+  /** 연락 시작을 뺀 세 축 중 다른 축 */
+  diff: KktiAxisKey[];
+}
+
+/** 두 유형을 축마다 비교한 결과 (한 줄 문장은 matchReason, 영어판 문장은 앱의 kkti-en.ts 가 이걸로 만든다) */
+export function matchReasonParts(selfCode: string, otherCode: string): KktiMatchReasonParts {
   const a = codeLetters(selfCode);
   const b = codeLetters(otherCode);
   const rest = [1, 2, 3];
-  const same = rest.filter((i) => a[i] === b[i]).map((i) => KKTI_AXES[i].label);
-  const diff = rest.filter((i) => a[i] !== b[i]).map((i) => KKTI_AXES[i].label);
   const iLead = a[0] === KKTI_AXES[0].plus.letter;
-  const head =
-    a[0] !== b[0]
-      ? iLead
-        ? '내가 먼저 다가가면 반갑게 받아 주고'
-        : '먼저 다가와 줘서 기다릴 필요가 없고'
-      : iLead
-        ? '둘 다 먼저 연락하려다 주도권 싸움이 나고'
-        : '둘 다 선톡만 기다리다 대화가 시작도 안 되고';
+  return {
+    lead: a[0] !== b[0] ? (iLead ? 'i_lead' : 'they_lead') : iLead ? 'both_lead' : 'both_wait',
+    same: rest.filter((i) => a[i] === b[i]).map((i) => KKTI_AXES[i].key),
+    diff: rest.filter((i) => a[i] !== b[i]).map((i) => KKTI_AXES[i].key),
+  };
+}
+
+const LEAD_HEAD: Record<KktiLead, string> = {
+  i_lead: '내가 먼저 다가가면 반갑게 받아 주고',
+  they_lead: '먼저 다가와 줘서 기다릴 필요가 없고',
+  both_lead: '둘 다 먼저 연락하려다 주도권 싸움이 나고',
+  both_wait: '둘 다 선톡만 기다리다 대화가 시작도 안 되고',
+};
+
+const axisLabelOf = (key: KktiAxisKey) => KKTI_AXES.find((a) => a.key === key)?.label ?? key;
+
+/** 두 유형이 왜 잘 맞는지·안 맞는지 한 줄 (축을 비교해 만든다) */
+export function matchReason(selfCode: string, otherCode: string): string {
+  const parts = matchReasonParts(selfCode, otherCode);
+  const same = parts.same.map(axisLabelOf);
+  const diff = parts.diff.map(axisLabelOf);
+  const head = LEAD_HEAD[parts.lead];
   if (!diff.length) return `${head}, ${same.join('·')}까지 똑 닮았어요`;
   if (!same.length) return `${head}, ${diff.join('·')}까지 전부 반대예요`;
   const diffText = diff.join('·');
@@ -530,7 +555,12 @@ export interface KktiEnneagram {
   reason: string;
   /** 「추정」임을 밝히는 안내 */
   note: string;
+  /** 이유 한 줄에 쓴 축 두 개와 그 축에서 기운 쪽 (영어판 이유 문장용) */
+  traits: { key: KktiAxisKey; side: KktiSide }[];
 }
+
+/** 축의 어느 쪽인지 — plus 가 선·빠·폭·직 */
+export type KktiSide = 'plus' | 'minus';
 
 /** 축 값 [연락 시작, 답장 속도, 표현, 진도] 의 대표 모습 */
 const ENNEAGRAM: { number: number; name: string; vibe: string; proto: [number, number, number, number] }[] = [
@@ -572,18 +602,16 @@ export function estimateEnneagram(values: KktiAxisValues): KktiEnneagram {
     .sort((x, y) => y.fit - x.fit || y.weight - x.weight)
     .slice(0, 2)
     .sort((x, y) => x.i - y.i);
-  const poleOf = (i: number) => {
-    const axis = KKTI_AXES[i];
-    const lean = v[i] !== 0 ? v[i] : best.proto[i];
-    return lean >= 0 ? axis.plus : axis.minus;
-  };
-  const [first, second] = ranked.map((r) => poleOf(r.i));
+  const sideOf = (i: number): KktiSide => ((v[i] !== 0 ? v[i] : best.proto[i]) >= 0 ? 'plus' : 'minus');
+  const traits = ranked.map((r) => ({ key: KKTI_AXES[r.i].key, side: sideOf(r.i) }));
+  const [first, second] = ranked.map((r) => KKTI_AXES[r.i][sideOf(r.i)]);
   return {
     number: best.number,
     name: best.name,
     title: `${best.number}번 ${best.name}`,
     reason: `${first.and} ${second.adn} 모습에서 ${best.number}번 ${best.name}의 ${best.vibe}이 보여요.`,
     note: ENNEAGRAM_NOTE,
+    traits,
   };
 }
 
@@ -1139,7 +1167,12 @@ export interface KktiMatchAxis {
   fit: KktiFit;
   /** 둘 중 누가 읽어도 같은 한 줄 */
   line: string;
+  /** line 을 MATCH_LINES 의 어느 칸에서 골랐는지 (영어판 문구용) */
+  lineKey: KktiMatchLineKey;
 }
+
+/** plus·minus: 둘 다 그쪽 / differ: 서로 다른 쪽 / close: 글자는 달라도 둘 다 가운데쯤 */
+export type KktiMatchLineKey = 'plus' | 'minus' | 'differ' | 'close';
 
 export interface KktiMatchTier {
   /** 이 퍼센트 이상이면 이 등급 */
@@ -1156,6 +1189,8 @@ export interface KktiMatch {
   axes: KktiMatchAxis[];
   /** 가장 덜 맞는 축을 위한 한마디 */
   tip: string;
+  /** tip 을 고른 축 (null = 모든 축이 잘 맞아 MATCH_TIP_ALL_GOOD) — 영어판 문구용 */
+  tipKey: KktiAxisKey | null;
 }
 
 /** 높은 등급부터 */
@@ -1233,21 +1268,24 @@ export function kktiMatch(a: KktiResult, b: KktiResult): KktiMatch {
     const same = mine.pole.letter === theirs.pole.letter;
     const fit: KktiFit = raw >= 0.7 ? 'good' : raw >= 0.45 ? 'ok' : 'care';
     // 글자는 달라도 잘 맞는 축에 「달라요」라고 쓰지 않는다
-    const differ = fit === 'good' && lines.close ? lines.close : lines.differ;
+    const differKey: KktiMatchLineKey = fit === 'good' && lines.close ? 'close' : 'differ';
+    const lineKey: KktiMatchLineKey = !same ? differKey : mine.pole.letter === mine.plus.letter ? 'plus' : 'minus';
     return {
       key: mine.key,
       label: mine.label,
       emoji: mine.emoji,
       score: Math.round(raw * 100),
       fit,
-      line: !same ? differ : mine.pole.letter === mine.plus.letter ? lines.plus : lines.minus,
+      line: lines[lineKey] ?? lines.differ,
+      lineKey,
     };
   });
   const spread = clamp((total - MATCH_RAW_LOW) / (MATCH_RAW_HIGH - MATCH_RAW_LOW), 0, 1);
   const percent = Math.round(MATCH_MIN + spread * (MATCH_MAX - MATCH_MIN));
   const tier = KKTI_MATCH_TIERS.find((t) => percent >= t.min) ?? KKTI_MATCH_TIERS[KKTI_MATCH_TIERS.length - 1];
   const weakest = axes.reduce((low, axis) => (axis.score < low.score ? axis : low), axes[0]);
-  return { percent, tier, axes, tip: weakest.fit === 'good' ? MATCH_TIP_ALL_GOOD : MATCH_TIPS[weakest.key] };
+  const tipKey = weakest.fit === 'good' ? null : weakest.key;
+  return { percent, tier, axes, tip: tipKey ? MATCH_TIPS[tipKey] : MATCH_TIP_ALL_GOOD, tipKey };
 }
 
 /** 궁합 공유 문구 — 내 결과(mine)와 상대 결과(theirs). 링크를 연 상대는 같은 궁합 화면을 본다 */

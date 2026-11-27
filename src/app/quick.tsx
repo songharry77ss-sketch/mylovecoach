@@ -7,6 +7,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { GradientButton } from '@/components/brand/brand';
 import { RoomAvatar } from '@/components/crush/crush-list-item';
+import { crushDisplayName } from '@/components/crush/crush-name';
 import { AppText } from '@/components/ui/app-text';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { Screen } from '@/components/ui/screen';
@@ -15,7 +16,9 @@ import { APP_NAME } from '@/constants/brand';
 import { Brand, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
+import { errorText } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 import { pickImage } from '@/lib/images';
 import { sortCrushes, useAppStore } from '@/store/app-store';
 
@@ -58,7 +61,7 @@ export default function QuickCoach() {
       const id = resolveTarget();
       router.replace({ pathname: '/crush/[id]', params: { id, pendingImage: picked.uri, pendingWidth: String(picked.width) } });
     } catch (e) {
-      toast.show(e instanceof Error ? e.message : '사진을 불러오지 못했어요.', 'error');
+      toast.show(errorText(e, '사진을 불러오지 못했어요.', 'Couldn’t load the photo.'), 'error');
     } finally {
       setBusy(false);
     }
@@ -68,12 +71,16 @@ export default function QuickCoach() {
     const text = (await Clipboard.getStringAsync().catch(() => ''))?.trim();
     if (!text) {
       haptic.warning();
-      toast.show('복사한 글이 없어요. 카톡에서 대화를 길게 눌러 복사해 주세요.', 'error');
+      toast.show(L('복사한 글이 없어요. 카톡에서 대화를 길게 눌러 복사해 주세요.', 'Nothing copied. Long-press your chat to copy it first.'), 'error');
       return;
     }
     haptic.thud();
     const id = resolveTarget();
-    router.replace({ pathname: '/crush/[id]', params: { id, pendingText: `상대와 나눈 대화예요. 분석하고 답장을 추천해줘:\n${text.slice(0, 700)}` } });
+    router.replace({ pathname: '/crush/[id]', params: {
+        id,
+        pendingText: L(`상대와 나눈 대화예요. 분석하고 답장을 추천해줘:\n${text.slice(0, 700)}`, `Here’s my chat with them. Analyze it and suggest replies:\n${text.slice(0, 700)}`),
+      },
+    });
   };
 
   const targetStyle = (on: boolean) => [styles.target, { borderColor: on ? theme.text : 'transparent' }];
@@ -81,7 +88,7 @@ export default function QuickCoach() {
   return (
     <Screen sheet contentStyle={styles.content}>
       <AppText variant="title1" accessibilityRole="header">
-        누구와의 대화예요?
+        {L('누구와의 대화예요?', 'Who’s this chat with?')}
       </AppText>
 
       {/* 대상 — 홈 「최근 상담」과 같은 얼굴 원. 고르면 얼굴에 검정 테두리 + 이름이 진하게 */}
@@ -89,24 +96,24 @@ export default function QuickCoach() {
         {crushes.map((c) => {
           const on = target === c.id;
           return (
-            <PressableScale key={c.id} feedback="select" accessibilityLabel={c.name} accessibilityState={{ selected: on }} onPress={() => setTarget(c.id)} style={styles.targetItem}>
+            <PressableScale key={c.id} feedback="select" accessibilityLabel={crushDisplayName(c.name)} accessibilityState={{ selected: on }} onPress={() => setTarget(c.id)} style={styles.targetItem}>
               <View style={targetStyle(on)}>
                 <RoomAvatar crush={c} size={AVATAR} />
               </View>
               <AppText variant="caption" weight={on ? '700' : '500'} color={on ? 'text' : 'textSecondary'} numberOfLines={1}>
-                {c.name}
+                {crushDisplayName(c.name)}
               </AppText>
             </PressableScale>
           );
         })}
-        <PressableScale feedback="select" accessibilityLabel="비밀 상담" accessibilityState={{ selected: target === SECRET }} onPress={() => setTarget(SECRET)} style={styles.targetItem}>
+        <PressableScale feedback="select" accessibilityLabel={L('비밀 상담', 'Private chat')} accessibilityState={{ selected: target === SECRET }} onPress={() => setTarget(SECRET)} style={styles.targetItem}>
           <View style={targetStyle(target === SECRET)}>
             <View style={[styles.secretAvatar, { backgroundColor: fill }]}>
               <Ionicons name="glasses-outline" size={20} color={theme.textSecondary} />
             </View>
           </View>
           <AppText variant="caption" weight={target === SECRET ? '700' : '500'} color={target === SECRET ? 'text' : 'textSecondary'} numberOfLines={1}>
-            비밀 상담
+            {L('비밀 상담', 'Private chat')}
           </AppText>
         </PressableScale>
       </ScrollView>
@@ -114,15 +121,15 @@ export default function QuickCoach() {
       {/* 이 화면의 주요 행동 하나 — 센딧 파랑 단색 버튼 */}
       <Animated.View entering={FadeInDown.duration(260)} style={styles.actions}>
         <GradientButton
-          title="방금 찍은 캡처 올리기"
-          accessibilityLabel="방금 찍은 캡처 올리기"
+          title={L('방금 찍은 캡처 올리기', 'Upload latest screenshot')}
+          accessibilityLabel={L('방금 찍은 캡처 올리기', 'Upload latest screenshot')}
           loading={busy}
           onPress={withCapture}
           icon={<Ionicons name="images-outline" size={19} color={Brand.onBrand} />}
         />
-        <PressableScale feedback="tap" pressedScale={0.98} onPress={withClipboard} accessibilityLabel="복사한 대화 붙여넣기" style={[styles.secondary, { backgroundColor: fill }]}>
+        <PressableScale feedback="tap" pressedScale={0.98} onPress={withClipboard} accessibilityLabel={L('복사한 대화 붙여넣기', 'Paste copied chat')} style={[styles.secondary, { backgroundColor: fill }]}>
           <Ionicons name="clipboard-outline" size={18} color={theme.text} />
-          <AppText variant="bodyStrong">복사한 대화 붙여넣기</AppText>
+          <AppText variant="bodyStrong">{L('복사한 대화 붙여넣기', 'Paste copied chat')}</AppText>
         </PressableScale>
       </Animated.View>
 
@@ -131,15 +138,20 @@ export default function QuickCoach() {
           <PressableScale feedback="select" onPress={() => setGuide((v) => !v)} accessibilityState={{ expanded: guide }} style={styles.guideHead}>
             <Ionicons name="phone-portrait-outline" size={18} color={theme.textSecondary} />
             <AppText variant="smallStrong" style={styles.flex}>
-              아이폰 뒷면을 두 번 톡 치면 이 화면이 열리게 하기
+              {L('아이폰 뒷면을 두 번 톡 치면 이 화면이 열리게 하기', 'Open this by double-tapping the back of your iPhone')}
             </AppText>
             <Ionicons name={guide ? 'chevron-up' : 'chevron-down'} size={16} color={theme.textTertiary} />
           </PressableScale>
           {guide ? (
             <AppText variant="small" color="textSecondary">
-              1. 「단축어」 앱 → + → 「URL 열기」 추가 → 주소에 mylovecoach://quick 입력 → 이름 「{APP_NAME} 빠른 코칭」으로 저장{'\n'}
-              2. 설정 → 손쉬운 사용 → 터치 → 뒷면 탭 → 이중 탭 → 방금 만든 단축어 선택{'\n'}
-              이제 카톡을 보다가 폰 뒷면을 두 번 톡 치면 바로 여기로 와요.
+              {L(
+                `1. 「단축어」 앱 → + → 「URL 열기」 추가 → 주소에 mylovecoach://quick 입력 → 이름 「${APP_NAME} 빠른 코칭」으로 저장\n` +
+                  '2. 설정 → 손쉬운 사용 → 터치 → 뒷면 탭 → 이중 탭 → 방금 만든 단축어 선택\n' +
+                  '이제 카톡을 보다가 폰 뒷면을 두 번 톡 치면 바로 여기로 와요.',
+                '1. Shortcuts app → + → add “Open URLs” → enter mylovecoach://quick → save it as “Quick Coach”\n' +
+                  '2. Settings → Accessibility → Touch → Back Tap → Double Tap → pick that shortcut\n' +
+                  'Now just double-tap the back of your phone while texting to jump right here.',
+              )}
             </AppText>
           ) : null}
         </View>

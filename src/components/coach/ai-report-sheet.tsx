@@ -21,8 +21,28 @@ import {
   type AiReportReason,
 } from '@/lib/ai-report-schema';
 import { APP_CONFIG } from '@/lib/config';
+import { errorText } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 import type { CrushReport, MindReading } from '@/lib/types';
+
+// ai-report-schema 는 서버도 같이 써서 L() 을 못 쓴다 — 영어 라벨은 화면 쪽에 둔다
+const MODE_LABEL_EN: Record<AiReportMode, string> = {
+  coach: 'Reply ideas',
+  report: 'Crush report',
+  practice: 'Practice chat',
+  mind: 'Read their mind',
+};
+const REASON_LABEL_EN: Record<AiReportReason, string> = {
+  offensive: 'Offensive',
+  sexual: 'Sexual / inappropriate',
+  hate: 'Hate / discrimination',
+  dangerous: 'Dangerous / illegal',
+  inaccurate: 'Inaccurate',
+  other: 'Other',
+};
+const MODE_LABEL = L(AI_REPORT_MODE_LABEL, MODE_LABEL_EN);
+const REASON_LABEL = L(AI_REPORT_REASON_LABEL, REASON_LABEL_EN);
 
 /** 무엇을 신고하는지. content 가 없으면 마이 탭처럼 기능을 고르고 메모만으로 신고한다 */
 export interface AiReportTarget {
@@ -122,12 +142,12 @@ function ReportForm({ target, onClose, onSendingChange }: { target: AiReportTarg
       onSendingChange(false);
       haptic.success();
       onClose();
-      toast.show('신고했어요. 알려 주셔서 고마워요.', 'success');
+      toast.show(L('신고했어요. 알려 주셔서 고마워요.', 'Reported. Thanks for letting us know.'), 'success');
     } catch (e) {
       // 모달 위에서는 토스트가 가려지므로 시트 안에 보여 준다
       onSendingChange(false);
       haptic.error();
-      setError(e instanceof Error ? e.message : '신고를 보내지 못했어요. 잠시 후 다시 시도해주세요.');
+      setError(errorText(e, '신고를 보내지 못했어요. 잠시 후 다시 시도해주세요.', 'Couldn’t send your report. Please try again in a moment.'));
       setSending(false);
     }
   };
@@ -138,7 +158,7 @@ function ReportForm({ target, onClose, onSendingChange }: { target: AiReportTarg
 
   return (
     <KeyboardAvoidingView behavior="padding" style={styles.root}>
-      <Pressable style={[StyleSheet.absoluteFill, styles.backdrop]} onPress={dismiss} accessibilityLabel="닫기" />
+      <Pressable style={[StyleSheet.absoluteFill, styles.backdrop]} onPress={dismiss} accessibilityLabel={L('닫기', 'Close')} />
       <View
         accessibilityViewIsModal
         onAccessibilityEscape={dismiss}
@@ -149,37 +169,40 @@ function ReportForm({ target, onClose, onSendingChange }: { target: AiReportTarg
               <Ionicons name="flag" size={20} color={theme.accent} />
             </View>
             <AppText variant="title2" accessibilityRole="header">
-              AI 답변 신고
+              {L('AI 답변 신고', 'Report AI answer')}
             </AppText>
           </View>
           <AppText variant="small" color="textSecondary">
-            불쾌하거나 부적절한 답변이었다면 알려 주세요. 운영자가 확인하고 고칠게요.
+            {L('불쾌하거나 부적절한 답변이었다면 알려 주세요. 운영자가 확인하고 고칠게요.', 'Was this AI answer offensive or inappropriate? Let us know and our team will review it.')}
           </AppText>
 
           {target.secret ? (
             <View style={[styles.box, { backgroundColor: theme.accentSoft }]}>
               <AppText variant="smallStrong" color="accent">
-                🕶️ 비밀 상담 중이에요. 신고하면 이 답변은 저장돼요.
+                {L('🕶️ 비밀 상담 중이에요. 신고하면 이 답변은 저장돼요.', '🕶️ You’re in a private chat. Reporting saves this answer.')}
               </AppText>
               <AppText variant="caption" color="textSecondary">
-                비밀 상담은 기기의 저장 기록에서 제외되지만, 신고한 답변은 운영자 검토를 위해 1년 동안 보관돼요.
+                {L(
+                  '비밀 상담은 기기의 저장 기록에서 제외되지만, 신고한 답변은 운영자 검토를 위해 1년 동안 보관돼요.',
+                  'Private chats aren’t saved on your device, but reported answers are kept for 1 year for our team to review.',
+                )}
               </AppText>
             </View>
           ) : null}
 
           {general ? (
             <>
-              <AppText variant="smallStrong">어느 기능의 답변인가요?</AppText>
+              <AppText variant="smallStrong">{L('어느 기능의 답변인가요?', 'Which feature was it?')}</AppText>
               <View style={styles.chips}>
                 {AI_REPORT_MODES.map((m) => (
-                  <Chip key={m} size="sm" label={AI_REPORT_MODE_LABEL[m]} selected={mode === m} onPress={() => setMode(m)} />
+                  <Chip key={m} size="sm" label={MODE_LABEL[m]} selected={mode === m} onPress={() => setMode(m)} />
                 ))}
               </View>
             </>
           ) : (
             <View style={[styles.box, { backgroundColor: theme.surface }]}>
               <AppText variant="caption" color="textTertiary">
-                신고할 답변
+                {L('신고할 답변', 'Answer being reported')}
               </AppText>
               {/* 보내는 내용을 끝까지 볼 수 있게 — 길면 이 상자 안에서 스크롤 */}
               <ScrollView style={styles.preview} nestedScrollEnabled keyboardShouldPersistTaps="handled">
@@ -188,32 +211,41 @@ function ReportForm({ target, onClose, onSendingChange }: { target: AiReportTarg
             </View>
           )}
 
-          <AppText variant="smallStrong">신고 사유</AppText>
+          <AppText variant="smallStrong">{L('신고 사유', 'Reason')}</AppText>
           <View style={styles.chips}>
             {AI_REPORT_REASONS.map((r) => (
-              <Chip key={r} size="sm" tone="accent" label={AI_REPORT_REASON_LABEL[r]} selected={reason === r} onPress={() => setReason(r)} />
+              <Chip key={r} size="sm" tone="accent" label={REASON_LABEL[r]} selected={reason === r} onPress={() => setReason(r)} />
             ))}
           </View>
 
           <TextField
             value={note}
             onChangeText={setNote}
-            placeholder={general ? '받은 답변과 문제였던 점을 적어 주세요' : '무엇이 문제였는지 적어 주세요 (선택)'}
+            placeholder={general ? L('받은 답변과 문제였던 점을 적어 주세요', 'Paste the answer and tell us what was wrong') : L('무엇이 문제였는지 적어 주세요 (선택)', 'What was wrong? (optional)')}
             multiline
             maxLength={AI_REPORT_NOTE_MAX}
             helper={`${note.length}/${AI_REPORT_NOTE_MAX}`}
-            accessibilityLabel="신고 메모"
+            accessibilityLabel={L('신고 메모', 'Report note')}
           />
 
           <AppText variant="caption" color="textTertiary">
             {general
-              ? '신고하면 적은 내용과 고른 사유가 운영자에게 전송돼 검토·필터 개선에 쓰이고 1년 뒤 지워져요'
+              ? L(
+                  '신고하면 적은 내용과 고른 사유가 운영자에게 전송돼 검토·필터 개선에 쓰이고 1년 뒤 지워져요',
+                  'Your note and reason are sent to our team to review and improve our filters, then deleted after 1 year.',
+                )
               : target.mode === 'mind'
-                ? '신고하면 이 풀이와 물어본 상황 글, 고른 사유가 운영자에게 전송돼 검토·필터 개선에 쓰이고 1년 뒤 지워져요'
-                : '신고하면 이 AI 답변 내용과 고른 사유가 운영자에게 전송돼 검토·필터 개선에 쓰이고 1년 뒤 지워져요'}
+                ? L(
+                    '신고하면 이 풀이와 물어본 상황 글, 고른 사유가 운영자에게 전송돼 검토·필터 개선에 쓰이고 1년 뒤 지워져요',
+                    'This reading, the situation you described, and your reason are sent to our team to review and improve our filters, then deleted after 1 year.',
+                  )
+                : L(
+                    '신고하면 이 AI 답변 내용과 고른 사유가 운영자에게 전송돼 검토·필터 개선에 쓰이고 1년 뒤 지워져요',
+                    'This AI answer and your reason are sent to our team to review and improve our filters, then deleted after 1 year.',
+                  )}
           </AppText>
           <AppText variant="caption" color="primary" accessibilityRole="link" onPress={() => Linking.openURL(`${APP_CONFIG.privacyUrl}#report`)} style={styles.policy}>
-            개인정보 처리방침 자세히 보기 ›
+            {L('개인정보 처리방침 자세히 보기 ›', 'Read our Privacy Policy ›')}
           </AppText>
           {error ? (
             <AppText variant="small" color="danger" accessibilityLiveRegion="polite">
@@ -222,8 +254,8 @@ function ReportForm({ target, onClose, onSendingChange }: { target: AiReportTarg
           ) : null}
         </ScrollView>
         <View style={styles.actions}>
-          <Button title="신고하기" onPress={submit} loading={sending} disabled={!canSend} />
-          <Button title="취소" variant="ghost" size="md" onPress={onClose} disabled={sending} />
+          <Button title={L('신고하기', 'Report')} onPress={submit} loading={sending} disabled={!canSend} />
+          <Button title={L('취소', 'Cancel')} variant="ghost" size="md" onPress={onClose} disabled={sending} />
         </View>
       </View>
     </KeyboardAvoidingView>

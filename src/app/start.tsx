@@ -18,6 +18,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { APP_CONFIG } from '@/lib/config';
 import { haptic } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 import { pickImage } from '@/lib/images';
 import { privacyUrl } from '@/lib/privacy-copy';
 import { GUIDE_VERSION, useAppStore } from '@/store/app-store';
@@ -28,20 +29,23 @@ type StartMode = 'image' | 'text' | 'browse';
 const prefillOf = (q: string | string[] | undefined) => (Array.isArray(q) ? q[0] : q)?.trim().slice(0, 200) ?? '';
 
 /** 눌러서 바로 채우는 상황 예시 — 무엇을 적을지 막막하지 않게 */
-const EXAMPLES = ['썸남이 「뭐해?」라고 보냈어. 뭐라고 답하지?', '소개팅 다음 날, 먼저 연락해도 될까?', '읽씹 3시간째… 한 번 더 보내도 돼?'];
+const EXAMPLES = L(
+  ['썸남이 「뭐해?」라고 보냈어. 뭐라고 답하지?', '소개팅 다음 날, 먼저 연락해도 될까?', '읽씹 3시간째… 한 번 더 보내도 돼?'],
+  ['My crush texted “wyd?” What do I say?', 'Day after a blind date — should I text first?', 'Left on read for 3 hours… double text?'],
+);
 
 /** 기기마다 캡처하는 법 (아이폰 앱에는 다른 회사 기기 이름을 적지 않는다 — App Store 심사 2.3.10) */
 const CAPTURE_HOW =
   Platform.OS === 'ios'
-    ? '측면 버튼과 음량 높이기 버튼을 동시에 눌러요'
+    ? L('측면 버튼과 음량 높이기 버튼을 동시에 눌러요', 'Press the side button and volume up at the same time')
     : Platform.OS === 'android'
-      ? '전원 버튼과 음량 낮추기 버튼을 동시에 눌러요'
-      : '휴대폰에서 대화방을 캡처해 두세요';
+      ? L('전원 버튼과 음량 낮추기 버튼을 동시에 눌러요', 'Press the power and volume down buttons at the same time')
+      : L('휴대폰에서 대화방을 캡처해 두세요', 'Take a screenshot of the chat on your phone');
 
 const STEPS = [
-  { title: '카톡·DM 대화방 열기', body: '답장이 고민되는 대화가 보이게' },
-  { title: '화면 캡처하기', body: CAPTURE_HOW },
-  { title: '아래 버튼으로 올리기', body: '사진에서 캡처를 고르면 바로 읽기 시작해요' },
+  { title: L('카톡·DM 대화방 열기', 'Open the chat (texts or DMs)'), body: L('답장이 고민되는 대화가 보이게', 'Scroll to the part you’re stuck on') },
+  { title: L('화면 캡처하기', 'Take a screenshot'), body: CAPTURE_HOW },
+  { title: L('아래 버튼으로 올리기', 'Upload it below'), body: L('사진에서 캡처를 고르면 바로 읽기 시작해요', 'Pick it from your photos and I’ll start reading right away') },
 ];
 
 /**
@@ -105,7 +109,7 @@ export default function Start() {
       const crushId = quickStart();
       router.replace({ pathname: '/crush/[id]', params: { id: crushId, pendingImage: picked.uri, pendingWidth: String(picked.width) } });
     } catch (e) {
-      toast.show(e instanceof Error ? e.message : '사진을 불러오지 못했어요.', 'error');
+      toast.show(e instanceof Error ? e.message : L('사진을 불러오지 못했어요.', 'Couldn’t load the photo.'), 'error');
     } finally {
       setBusy(false);
     }
@@ -189,25 +193,34 @@ export default function Start() {
           <SenditLogo size="sm" />
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="먼저 홈 둘러보기"
+            accessibilityLabel={L('먼저 홈 둘러보기', 'Look around the app first')}
             onPress={() => go('browse')}
             hitSlop={12}
             style={({ pressed }) => [styles.browse, { backgroundColor: theme.surface }, pressed && styles.pressed]}>
-            <Text style={[styles.browseText, { color: theme.textSecondary }]}>둘러보기</Text>
+            <Text style={[styles.browseText, { color: theme.textSecondary }]}>{L('둘러보기', 'Look around')}</Text>
           </Pressable>
         </Animated.View>
 
         {/* 11/12 회의 7번 「AI 티」: 연구진 배지(첫 장에 이미 있음)·3D 아이콘·같은 말을 되풀이하는 긴 부제를 빼고 제목 한 덩이로 */}
         <Animated.View entering={FadeInDown.delay(60).duration(420)} style={styles.hero}>
           <Text style={[styles.title, { color: theme.text }]} accessibilityRole="header">
-            {userName ? `${userName}님,\n` : ''}
-            <Text style={{ color: theme.primary }}>첫 캡처</Text>를 올려 볼까요?
+            {L(
+              <>
+                {userName ? `${userName}님,\n` : ''}
+                <Text style={{ color: theme.primary }}>첫 캡처</Text>를 올려 볼까요?
+              </>,
+              <>
+                {userName ? `Hi ${userName}!\n` : ''}Ready to upload your <Text style={{ color: theme.primary }}>first screenshot</Text>?
+              </>,
+            )}
           </Text>
-          <Text style={[styles.sub, { color: theme.textSecondary }]}>캡처 한 장이면 호칭·말투에 맞춘 답장 3가지와 호감 온도가 바로 나와요.</Text>
+          <Text style={[styles.sub, { color: theme.textSecondary }]}>
+            {L('캡처 한 장이면 호칭·말투에 맞춘 답장 3가지와 호감 온도가 바로 나와요.', 'One screenshot gets you 3 replies that match your tone, plus their interest level.')}
+          </Text>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(120).duration(420)} style={[styles.guide, card]}>
-          <Text style={[styles.guideLabel, { color: theme.textSecondary }]}>캡처하는 법</Text>
+          <Text style={[styles.guideLabel, { color: theme.textSecondary }]}>{L('캡처하는 법', 'How to take a screenshot')}</Text>
           {STEPS.map((s, i) => (
             <View key={s.title} style={styles.stepRow}>
               <View style={[styles.stepNum, { backgroundColor: theme.surface }]}>
@@ -223,7 +236,7 @@ export default function Start() {
 
         <Animated.View entering={FadeInDown.delay(180).duration(420)} style={styles.cta}>
           <GradientButton
-            title={busy ? '사진 여는 중…' : '대화 캡처 올리기'}
+            title={busy ? L('사진 여는 중…', 'Opening photos…') : L('대화 캡처 올리기', 'Upload a screenshot')}
             onPress={() => go('image')}
             disabled={busy}
             shine
@@ -235,7 +248,7 @@ export default function Start() {
           <Animated.View entering={FadeInDown.duration(260)} style={[styles.ask, card]} onLayout={(e) => (askY.current = e.nativeEvent.layout.y)}>
             <View style={styles.guideHead}>
               <Ionicons name="create-outline" size={16} color={theme.primary} />
-              <Text style={[styles.askTitle, { color: theme.text }]}>캡처 없이 상황만 적기</Text>
+              <Text style={[styles.askTitle, { color: theme.text }]}>{L('캡처 없이 상황만 적기', 'Describe it instead')}</Text>
             </View>
             <TextInput
               value={situation}
@@ -244,9 +257,9 @@ export default function Start() {
                 setFromExample(false);
                 setPrefilled(false);
               }}
-              placeholder={'예) 소개팅 다음 날인데 먼저 연락해도 될까?\n상대가 한 말을 그대로 적어도 좋아요'}
+              placeholder={L('예) 소개팅 다음 날인데 먼저 연락해도 될까?\n상대가 한 말을 그대로 적어도 좋아요', 'e.g. Should I text first the day after a blind date?\nYou can paste exactly what they said, too')}
               placeholderTextColor={theme.textTertiary}
-              accessibilityLabel="지금 상황 적기"
+              accessibilityLabel={L('지금 상황 적기', 'Describe your situation')}
               ref={askInput}
               onFocus={revealAsk}
               multiline
@@ -265,36 +278,40 @@ export default function Start() {
               ))}
             </View>
             <Button
-              title="답장·조언 받기"
+              title={L('답장·조언 받기', 'Get reply ideas')}
               variant={typed ? 'brand' : 'secondary'}
               onPress={() => go('text')}
               disabled={busy || !typed}
             />
           </Animated.View>
         ) : (
-          <PressableScale onPress={openWriting} style={[styles.writeRow, card]} accessibilityLabel="캡처 없이 상황만 적기">
+          <PressableScale onPress={openWriting} style={[styles.writeRow, card]} accessibilityLabel={L('캡처 없이 상황만 적기', 'No screenshot? Describe it instead')}>
             <Ionicons name="create-outline" size={20} color={theme.textSecondary} />
             <View style={styles.flex}>
-              <Text style={[styles.writeTitle, { color: theme.text }]}>캡처가 없다면? 상황만 적어도 돼요</Text>
-              <Text style={[styles.writeBody, { color: theme.textSecondary }]}>「소개팅 다음 날 먼저 연락해도 될까?」처럼</Text>
+              <Text style={[styles.writeTitle, { color: theme.text }]}>{L('캡처가 없다면? 상황만 적어도 돼요', 'No screenshot? Just describe what’s up')}</Text>
+              <Text style={[styles.writeBody, { color: theme.textSecondary }]}>{L('「소개팅 다음 날 먼저 연락해도 될까?」처럼', 'Like “Should I text first after a blind date?”')}</Text>
             </View>
             <Ionicons name="chevron-down" size={18} color={theme.textTertiary} />
           </PressableScale>
         )}
 
         <Animated.View entering={FadeInDown.delay(260).duration(500)} style={styles.reel}>
-          <Text style={[styles.reelLabel, { color: theme.textTertiary }]}>이렇게 나와요</Text>
+          <Text style={[styles.reelLabel, { color: theme.textTertiary }]}>{L('이렇게 나와요', 'Here’s what you get')}</Text>
           <DemoReel />
         </Animated.View>
 
         <Text style={[styles.notice, { color: theme.textTertiary }]}>
-          앱을 쓰는 동안 화면·버튼 이용 기록이 서비스 제공·개선을 위해 자동으로 수집돼요 (만 14세 미만 제외).{' '}
+          {L(
+            '앱을 쓰는 동안 화면·버튼 이용 기록이 서비스 제공·개선을 위해 자동으로 수집돼요 (만 14세 미만 제외).',
+            'While you use the app, screen and button usage is collected automatically to provide and improve the service (not collected for users under 14).',
+          )}{' '}
+          {/* 영어판 처리방침·약관 주소는 APP_CONFIG 가 /en/ 문서로 바꿔 준다 */}
           <Text style={[styles.link, { color: theme.primary }]} accessibilityRole="link" onPress={() => Linking.openURL(privacyUrl('analytics'))}>
-            개인정보 처리방침
+            {L('개인정보 처리방침', 'Privacy Policy')}
           </Text>
           {' · '}
           <Text style={[styles.link, { color: theme.primary }]} accessibilityRole="link" onPress={() => Linking.openURL(APP_CONFIG.termsUrl)}>
-            이용약관
+            {L('이용약관', 'Terms of Use')}
           </Text>
         </Text>
       </ScrollView>

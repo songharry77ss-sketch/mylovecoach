@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/ui/app-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { L } from '@/lib/i18n';
 import { toneLabel } from '@/lib/labels';
 import type { ChatMessage } from '@/lib/types';
 
@@ -28,14 +29,14 @@ export function UserBubble({ message, onPressImage }: UserBubbleProps) {
     <View style={styles.wrap}>
       {message.imageUri ? (
         broken ? (
-          <View style={[styles.image, styles.broken, { backgroundColor: theme.surface, borderColor: theme.border }]} accessibilityLabel="불러오지 못한 대화 캡처">
+          <View style={[styles.image, styles.broken, { backgroundColor: theme.surface, borderColor: theme.border }]} accessibilityLabel={L('불러오지 못한 대화 캡처', 'Screenshot couldn’t load')}>
             <Ionicons name="image-outline" size={28} color={theme.textTertiary} />
             <AppText variant="caption" color="textTertiary" align="center">
-              캡처를 불러오지 못했어요
+              {L('캡처를 불러오지 못했어요', 'Couldn’t load screenshot')}
             </AppText>
           </View>
         ) : (
-          <Pressable accessibilityRole="imagebutton" accessibilityLabel="업로드한 대화 캡처 크게 보기" onPress={() => onPressImage?.(message.imageUri!)}>
+          <Pressable accessibilityRole="imagebutton" accessibilityLabel={L('업로드한 대화 캡처 크게 보기', 'View uploaded screenshot')} onPress={() => onPressImage?.(message.imageUri!)}>
             <Image source={{ uri: message.imageUri }} style={[styles.image, { backgroundColor: theme.surface, borderColor: theme.border }]} contentFit="cover" transition={120} onError={() => setBroken(true)} />
           </Pressable>
         )
@@ -46,7 +47,7 @@ export function UserBubble({ message, onPressImage }: UserBubbleProps) {
           <View style={[styles.autoChip, { backgroundColor: theme.surface }]}>
             <Ionicons name="refresh" size={13} color={theme.textSecondary} />
             <AppText variant="caption" color="textSecondary" weight="600">
-              다른 답장 더 보기
+              {L('다른 답장 더 보기', 'More replies')}
             </AppText>
           </View>
         ) : (
@@ -57,7 +58,7 @@ export function UserBubble({ message, onPressImage }: UserBubbleProps) {
       ) : null}
       {message.tone && !auto ? (
         <AppText variant="caption" color="textTertiary">
-          {toneLabel(message.tone).label} 톤으로 요청
+          {L(`${toneLabel(message.tone).label} 톤으로 요청`, `Asked for: ${toneLabel(message.tone).label}`)}
         </AppText>
       ) : null}
     </View>

@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Screen, useScreenTopInset } from '@/components/ui/screen';
 import { useToast } from '@/components/ui/toast';
 import { Brand, Radius, Spacing } from '@/constants/theme';
-import { RESEARCH_SHORT } from '@/constants/brand';
+import { RESEARCH_SHORT, RESEARCH_SHORT_EN } from '@/constants/brand';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
 import { paywallClosed } from '@/hooks/use-resume-after-paywall';
@@ -21,13 +21,15 @@ import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { STORE_LABEL, STORE_URL, downloadDevice, type DownloadStore } from '@/lib/app-download';
 import { couponSupported } from '@/lib/billing/coupon';
+import { fallbackPrice } from '@/lib/billing/fallback-price';
 import { billingSupported, lastStoreProblem, purchasePlan, restorePremium, type PlanProduct } from '@/lib/billing/iap';
 import { storeFixHint } from '@/lib/billing/store-hint';
-import { CREDITS_PER_PACK, FALLBACK_PRICES, PRODUCT_IDS, SELLING_PLANS, SIGNUP_BONUS, freeRules, isConsumablePlan, yearPassEnd, type PlanKey } from '@/lib/billing/plans';
-import { PREMIUM_PLAN_NAMES, formatDateKo, formatPassEnd, isPremiumActive, passEndIfBoughtNow, premiumUntilSentence, quotaLabel, quotaStatus } from '@/lib/billing/quota';
+import { CREDITS_PER_PACK, PRODUCT_IDS, SELLING_PLANS, SIGNUP_BONUS, freeRules, isConsumablePlan, yearPassEnd, type PlanKey } from '@/lib/billing/plans';
+import { PREMIUM_PLAN_NAMES, formatDate, formatPassEnd, isPremiumActive, passEndIfBoughtNow, premiumUntilSentence, quotaLabel, quotaStatus } from '@/lib/billing/quota';
 import { isSaleActive, priceNumber, SALE_WINDOW_MS, saleAnchorAllowed, saleAudience, saleOffer, saleWindow, shouldStartSale } from '@/lib/billing/sale';
 import { APP_CONFIG } from '@/lib/config';
 import { haptic } from '@/lib/haptics';
+import { L, isKo } from '@/lib/i18n';
 import { authAvailable } from '@/lib/supabase';
 import { introUntil, useAppStore } from '@/store/app-store';
 
@@ -38,7 +40,7 @@ const AUTO_RELOADS = 2;
 /**
  * 들어온 곳마다 맨 위 제목 — 1.4 「깔끔하게」 개편: 한 줄 사실 문장(파란 강조·두 줄 큰 제목을 걷었다). 결제 화면 조사 R3.
  */
-const HEADLINES: Record<Reason, { title: string; subtitle: string }> = {
+const HEADLINES_KO: Record<Reason, { title: string; subtitle: string }> = {
   // 하루 이용권이 스토어에 있으면 화면에서 가격·충전 안내를 넣은 문구로 바꾼다
   quota: { title: '오늘 무료 코칭을 다 썼어요', subtitle: '이용권이면 횟수 제한 없이 지금 바로 이어서 코칭받을 수 있어요.' },
   regenerate: { title: '다른 답장도 더 볼까요?', subtitle: '이용권이면 마음에 드는 답장이 나올 때까지 넘겨 볼 수 있어요.' },
@@ -52,14 +54,29 @@ const HEADLINES: Record<Reason, { title: string; subtitle: string }> = {
   // 하루 이용권이 곧 끝날 때 채팅방 안내 줄에서 — 1년권을 먼저 고른다 (결제 루프, lib/billing/paywall-route)
   renew: { title: '하루 무제한이 곧 끝나요', subtitle: '자주 쓴다면 1년권이 훨씬 싸요. 자동 결제도 없어요.' },
 };
+const HEADLINES_EN: Record<Reason, { title: string; subtitle: string }> = {
+  quota: { title: "You're out of free coaching today", subtitle: 'Get a pass to keep going right now — no limits.' },
+  regenerate: { title: 'Want to see more replies?', subtitle: 'With a pass, keep swiping until you get a reply you love.' },
+  my: { title: 'Ask as much as you want', subtitle: 'Call on your coach whenever you get stuck.' },
+  banner: { title: 'Ask as much as you want', subtitle: 'Call on your coach whenever you get stuck.' },
+  upsell: { title: 'Keep going till you get the one', subtitle: 'With a pass, get as many reply ideas as you want.' },
+  report: { title: 'Open their crush report now?', subtitle: 'Personality, interest signals, game plan and compatibility — all in one place.' },
+  practice: { title: 'Keep practicing like it’s real', subtitle: 'With a pass, rehearse with your AI match as much as you want.' },
+  mind: { title: 'Want to dig deeper into their head?', subtitle: 'With a pass, ask about anything on your mind — no limits.' },
+  renew: { title: 'Your 24 hours are almost up', subtitle: 'Use it a lot? The 1-year pass is way cheaper. No auto-renewal.' },
+};
+const HEADLINES = L(HEADLINES_KO, HEADLINES_EN);
 
 /** 이용권으로 얻는 것 — 아이콘 타일 없이 체크 한 줄씩 (조사: 아이콘 타일 반복이 「AI 티」) */
-const BENEFITS = ['코칭 무제한 — 캡처마다 답장 3가지와 호감 온도', '속마음 풀이 · 다른 답장 더 보기', '상대 분석 보고서'];
+const BENEFITS = L(
+  ['코칭 무제한 — 캡처마다 답장 3가지와 호감 온도', '속마음 풀이 · 다른 답장 더 보기', '상대 분석 보고서'],
+  ['Unlimited coaching — 3 reply ideas + interest level for every screenshot', 'Read their mind · More reply ideas', 'Crush reports'],
+);
 
 /**
  * 이용권 줄 글 — 배지는 사실만(1.4 개편): 근거 없는 「인기」와 계산이 100원 틀린 「주간 구독 3주 가격」(29,800 ≠ 9,900×3)을 뺐다.
  */
-const PLAN_TEXT: Record<PlanKey, { title: string; caption: string }> = {
+const PLAN_TEXT_KO: Record<PlanKey, { title: string; caption: string }> = {
   day: { title: '하루 이용권', caption: '지금부터 24시간 무제한 · 자동 결제 없음' },
   weekly: { title: '주간 구독', caption: '매주 자동 결제 · 언제든 해지할 수 있어요' },
   year: { title: '1년권', caption: '결제한 날부터 1년 · 자동 결제 없음' },
@@ -67,12 +84,21 @@ const PLAN_TEXT: Record<PlanKey, { title: string; caption: string }> = {
   lifetime: { title: '평생권', caption: '판매 종료' },
   credits: { title: `횟수권 ${CREDITS_PER_PACK}회`, caption: '필요할 때만 한 번씩 · 기간 제한 없음' },
 };
+const PLAN_TEXT_EN: Record<PlanKey, { title: string; caption: string }> = {
+  day: { title: '24-hour pass', caption: 'Unlimited for 24 hours · No auto-renewal' },
+  weekly: { title: 'Weekly plan', caption: 'Renews weekly · Cancel anytime' },
+  year: { title: '1-year pass', caption: '1 year from purchase · No auto-renewal' },
+  lifetime: { title: 'Lifetime pass', caption: 'No longer sold' },
+  credits: { title: `${CREDITS_PER_PACK}-credit pack`, caption: 'Use only when you need it · Never expires' },
+};
+const PLAN_TEXT = L(PLAN_TEXT_KO, PLAN_TEXT_EN);
 
 /** 1년권이 하루에 얼마꼴인지 — 원화 스토어 가격 ÷ 365, 「약 82원」. 원화가 아니거나 모르면 null */
 export function perDayWon(display: string, price?: number | null): string | null {
   const n = typeof price === 'number' && price > 0 ? price : Number((/^\s*₩\s?([\d,]+)\s*$/.exec(display)?.[1] ?? '').replace(/,/g, ''));
   if (!n || !Number.isFinite(n) || !/₩/.test(display)) return null;
-  return `하루 약 ${Math.round(n / 365).toLocaleString('ko-KR')}원`;
+  const perDay = Math.round(n / 365).toLocaleString('ko-KR');
+  return L(`하루 약 ${perDay}원`, `About ₩${perDay}/day`);
 }
 
 /** 웹에서 결제 화면 모양을 확인·캡처하기 위한 개발용 플래그: ios | android (실제 결제는 되지 않음) */
@@ -84,7 +110,7 @@ const saleSupported = billingSupported && !previewStore;
 const DEFAULT_PRODUCTS: PlanProduct[] = SELLING_PLANS.map((plan) => ({
   plan,
   productId: PRODUCT_IDS[plan],
-  displayPrice: FALLBACK_PRICES[plan],
+  displayPrice: fallbackPrice(plan),
 }));
 
 /** 이름은 길면 줄인다 — 「{이름}님을 위한」이 한 줄에 들어가게 */
@@ -93,8 +119,9 @@ const shortName = (name: string) => {
   return chars.length > 10 ? `${chars.slice(0, 9).join('')}…` : chars.join('');
 };
 
-/** 「₩29,800」 → 큰 숫자 「29,800」 + 단위 「원」 (원화가 아니면 스토어 표시 그대로) */
+/** 「₩29,800」 → 큰 숫자 「29,800」 + 단위 「원」 (원화가 아니면 스토어 표시 그대로, 영어판은 늘 그대로) */
 function splitPrice(display: string): { value: string; unit: string } {
+  if (!isKo) return { value: display, unit: '' };
   const won = /^\s*₩\s?([\d,]+)\s*$/.exec(display);
   return won ? { value: won[1], unit: '원' } : { value: display, unit: '' };
 }
@@ -121,6 +148,9 @@ function useMinuteNow(): number {
 }
 
 type Done = { plan: PlanKey };
+
+/** 주간 구독 값 뒤의 「/주」 */
+const PER_WEEK = L('/주', '/wk');
 
 export default function Paywall() {
   const theme = useTheme();
@@ -167,7 +197,7 @@ export default function Paywall() {
   useEffect(() => () => paywallClosed(), []);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
-  const priceOf = (plan: PlanKey) => products?.find((p) => p.plan === plan && !p.sale)?.displayPrice ?? FALLBACK_PRICES[plan];
+  const priceOf = (plan: PlanKey) => products?.find((p) => p.plan === plan && !p.sale)?.displayPrice ?? fallbackPrice(plan);
   // 스토어에서 확인된 상품만 보여 준다. 스토어에 닿지 못했으면 이미 등록된 프리미엄(주간 구독·1년권)만 (미리보기·웹은 전부)
   // 하루 이용권 특가는 고르는 목록에 넣지 않는다 — 타임 세일 동안 하루 이용권 카드의 가격으로만 쓴다
   const confirmed = products?.some((p) => p.available === true) ?? false;
@@ -228,7 +258,9 @@ export default function Paywall() {
     const y = year ? priceNumber(year) : null;
     if (!d || !y || y <= d) return null;
     const times = Math.ceil(y / d);
-    return times * d > y ? `1년권은 하루 이용권 ${times}번 값보다 싸게 1년 내내 무제한이에요. 자동 결제도 없어요.` : null;
+    return times * d > y
+      ? L(`1년권은 하루 이용권 ${times}번 값보다 싸게 1년 내내 무제한이에요. 자동 결제도 없어요.`, `The 1-year pass costs less than ${times} 24-hour passes — unlimited all year. No auto-renewal.`)
+      : null;
   })();
   // 회원은 매일 무료가 다시 채워진다 — 무료로 기다리는 길을 돈 내는 길보다 먼저 적는다(피클 「사실 → 무료 길 → 유료 길」)
   const refills = (status.daily ?? 0) > 0;
@@ -236,11 +268,11 @@ export default function Paywall() {
     reason === 'renew' && yearAnchor
       ? yearAnchor
       : reason === 'quota' && refills
-        ? '무료 코칭은 내일 다시 채워져요. 지금 바로 이어서 하려면 이용권을 골라 주세요.'
+        ? L('무료 코칭은 내일 다시 채워져요. 지금 바로 이어서 하려면 이용권을 골라 주세요.', 'Free coaching refills tomorrow. To keep going now, pick a pass.')
         : reason === 'quota' && saleOn
-          ? '지금은 특가로 바로 이어서 코칭받을 수 있어요.'
+          ? L('지금은 특가로 바로 이어서 코칭받을 수 있어요.', 'Keep going right now at a special price.')
           : reason === 'quota' && dayPrice
-            ? `하루 이용권 ${priceText(dayPrice)}이면 바로 이어서 코칭받아요.`
+            ? L(`하루 이용권 ${priceText(dayPrice)}이면 바로 이어서 코칭받아요.`, `Keep going right now with a 24-hour pass for ${dayPrice}.`)
             : HEADLINES[reason].subtitle;
   useEffect(() => {
     if (!saleOn || visit.current.sale) return;
@@ -278,7 +310,7 @@ export default function Paywall() {
     if (shownSale && !stillOpen) {
       track('sale_offer_missed', { reason });
       // iOS 모달 위에서는 앱 토스트가 가려지므로 버튼 바로 위에 보여 준다 (다시 그리면서 화면이 정가로 바뀐다)
-      setNotice({ kind: 'info', text: '특가가 방금 끝났어요. 지금은 정가로 살 수 있어요.' });
+      setNotice({ kind: 'info', text: L('특가가 방금 끝났어요. 지금은 정가로 살 수 있어요.', 'The deal just ended. You can still get it at the regular price.') });
       return;
     }
     const useSale = shownSale && stillOpen && offer != null;
@@ -300,7 +332,7 @@ export default function Paywall() {
       celebrate({ kind: 'confetti', count: 32, haptic: false });
       setDone({ plan: outcome.status === 'granted' ? outcome.plan : outcome.premium.plan });
     } else if (outcome.status === 'pending') {
-      setNotice({ kind: 'info', text: '결제 승인을 기다리고 있어요. 승인되면 자동으로 적용돼요.' });
+      setNotice({ kind: 'info', text: L('결제 승인을 기다리고 있어요. 승인되면 자동으로 적용돼요.', 'Waiting for payment approval. It’ll kick in automatically once approved.') });
     } else if (outcome.status === 'error') {
       setNotice({ kind: 'error', text: outcome.message });
     }
@@ -317,10 +349,14 @@ export default function Paywall() {
     if (result) {
       visit.current.done = true;
       setPremium(result);
-      toast.show('구매 내역을 복원했어요.', 'success');
+      toast.show(L('구매 내역을 복원했어요.', 'Purchases restored.'), 'success');
       close();
     } else {
-      setNotice(result === null ? { kind: 'info', text: '복원할 구매 내역이 없어요.' } : { kind: 'error', text: '스토어에 연결하지 못했어요. 잠시 후 다시 시도해주세요.' });
+      setNotice(
+        result === null
+          ? { kind: 'info', text: L('복원할 구매 내역이 없어요.', 'No purchases to restore.') }
+          : { kind: 'error', text: L('스토어에 연결하지 못했어요. 잠시 후 다시 시도해주세요.', "Couldn't connect to the store. Try again in a moment.") },
+      );
     }
   };
 
@@ -328,12 +364,19 @@ export default function Paywall() {
 
   // 1년권이면 언제까지인지 붙인다 (Android 는 어림한 날짜라 「끝날 예정」)
   const until = premiumUntilSentence(premium);
+  const planName = PREMIUM_PLAN_NAMES[premium?.plan ?? 'weekly'];
   const headline = active
-    ? { title: '프리미엄 이용 중이에요', subtitle: `${PREMIUM_PLAN_NAMES[premium?.plan ?? 'weekly']}으로 모든 기능을 무제한으로 쓰고 있어요.${until ? ` ${until}` : ''}` }
+    ? {
+        title: L('프리미엄 이용 중이에요', "You're on Premium"),
+        subtitle: `${L(`${planName}으로 모든 기능을 무제한으로 쓰고 있어요.`, `Your ${planName} gives you unlimited access to everything.`)}${until ? ` ${until}` : ''}`,
+      }
     : offerSignup && status.kind === 'exhausted'
-      ? { title: '무료 맛보기를 다 썼어요', subtitle: `가입하면 무료 코칭 ${SIGNUP_BONUS}회를 더 드려요. 이용권으로 바로 이어서 할 수도 있어요.` }
+      ? {
+          title: L('무료 맛보기를 다 썼어요', "You've used your free trial"),
+          subtitle: L(`가입하면 무료 코칭 ${SIGNUP_BONUS}회를 더 드려요. 이용권으로 바로 이어서 할 수도 있어요.`, `Sign up and get ${SIGNUP_BONUS} more free sessions. Or keep going now with a pass.`),
+        }
       : reason === 'renew' && wallet.passUntil > minuteNow
-        ? { title: `하루 무제한이 ${formatPassEnd(wallet.passUntil, minuteNow)}에 끝나요`, subtitle }
+        ? { title: L(`하루 무제한이 ${formatPassEnd(wallet.passUntil, minuteNow)}에 끝나요`, `Your pass ends at ${formatPassEnd(wallet.passUntil, minuteNow)}`), subtitle }
         : { title: HEADLINES[reason].title, subtitle };
 
   const ready = showPlans && products != null && !active;
@@ -350,14 +393,17 @@ export default function Paywall() {
   const blocked = reason === 'quota' || reason === 'regenerate' || reason === 'report' || reason === 'practice' || reason === 'mind';
   const rowFor = (p: PlanProduct) => {
     if (p.plan === 'day') {
-      const dayTitle = name ? `${shortName(name)}님을 위한 하루 이용권` : PLAN_TEXT.day.title;
+      const dayTitle = name ? L(`${shortName(name)}님을 위한 하루 이용권`, `24-hour pass for ${shortName(name)}`) : PLAN_TEXT.day.title;
       return (
         <PlanRow
           key={p.plan}
           selected={chosen === 'day'}
           onPress={() => pick('day')}
           title={dayTitle}
-          caption={`${wallet.passUntil > minuteNow ? '지금 연장하면' : '지금 시작하면'} ${formatPassEnd(passEnd, minuteNow)}까지 무제한 · 자동 결제 없음`}
+          caption={L(
+            `${wallet.passUntil > minuteNow ? '지금 연장하면' : '지금 시작하면'} ${formatPassEnd(passEnd, minuteNow)}까지 무제한 · 자동 결제 없음`,
+            `${wallet.passUntil > minuteNow ? 'Extend now' : 'Start now'}: unlimited until ${formatPassEnd(passEnd, minuteNow)} · No auto-renewal`,
+          )}
           price={p.displayPrice}
           sale={saleOn && offer ? { price: offer.sale.displayPrice, regular: offer.regular.displayPrice, percent: offer.percent, left: sale.remainingMs, anchor: anchorOk } : null}
         />
@@ -370,7 +416,7 @@ export default function Paywall() {
           selected={chosen === 'year'}
           onPress={() => pick('year')}
           title={PLAN_TEXT.year.title}
-          caption={`${formatDateKo(yearPassEnd(minuteNow))}까지 무제한 · 자동 결제 없음`}
+          caption={L(`${formatDate(yearPassEnd(minuteNow))}까지 무제한 · 자동 결제 없음`, `Unlimited until ${formatDate(yearPassEnd(minuteNow))} · No auto-renewal`)}
           note={perDayWon(priceOf('year'), p.price) ?? undefined}
           price={priceOf('year')}
         />
@@ -384,7 +430,7 @@ export default function Paywall() {
         title={PLAN_TEXT[p.plan].title}
         caption={PLAN_TEXT[p.plan].caption}
         price={priceOf(p.plan)}
-        per={p.plan === 'weekly' ? '/주' : undefined}
+        per={p.plan === 'weekly' ? PER_WEEK : undefined}
       />
     );
   };
@@ -393,7 +439,7 @@ export default function Paywall() {
     <View style={[styles.flex, { backgroundColor: theme.background }]}>
       <Screen sheet safeTop safeBottom={!footer} contentStyle={styles.content}>
         <View style={styles.topBar}>
-          <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={close} hitSlop={8} style={[styles.close, { backgroundColor: theme.surface }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={L('닫기', 'Close')} onPress={close} hitSlop={8} style={[styles.close, { backgroundColor: theme.surface }]}>
             <Ionicons name="close" size={20} color={theme.textSecondary} />
           </Pressable>
         </View>
@@ -408,7 +454,7 @@ export default function Paywall() {
           </AppText>
           {!active && (status.kind === 'team' || status.kind === 'pass' || (status.credits ?? 0) > 0) ? (
             <AppText variant="caption" color="textSecondary" weight="600">
-              지금: {quotaLabel(status)}
+              {L('지금', 'Now')}: {quotaLabel(status)}
             </AppText>
           ) : null}
         </Animated.View>
@@ -421,7 +467,10 @@ export default function Paywall() {
               haptic.celebrate();
               celebrate({ kind: 'sparkles', count: 22, haptic: false });
               close();
-              toast.show(result.bonus ? `가입 완료! 무료 코칭 ${SIGNUP_BONUS}회를 받았어요` : '로그인했어요.', 'success');
+              toast.show(
+                result.bonus ? L(`가입 완료! 무료 코칭 ${SIGNUP_BONUS}회를 받았어요`, `You're in! ${SIGNUP_BONUS} free sessions added`) : L('로그인했어요.', 'Signed in.'),
+                'success',
+              );
             }}
           />
         ) : null}
@@ -433,7 +482,7 @@ export default function Paywall() {
           <View style={styles.loading}>
             <ActivityIndicator color={theme.primary} />
             <AppText variant="caption" color="textSecondary">
-              상품 정보를 불러오는 중…
+              {L('상품 정보를 불러오는 중…', 'Loading options…')}
             </AppText>
           </View>
         ) : null}
@@ -445,7 +494,7 @@ export default function Paywall() {
             {extraRows.length && !showExtras ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="다른 이용권 보기"
+                accessibilityLabel={L('다른 이용권 보기', 'See other passes')}
                 onPress={() => {
                   haptic.select();
                   track('paywall_more', { reason });
@@ -454,8 +503,13 @@ export default function Paywall() {
                 hitSlop={6}
                 style={styles.moreRow}>
                 <AppText variant="small" color="textSecondary" style={styles.flex} numberOfLines={2}>
-                  다른 이용권 보기 ·{' '}
-                  {extraRows.map((p) => `${PLAN_TEXT[p.plan].title} ${priceText(priceOf(p.plan))}${p.plan === 'weekly' ? '/주' : ''}`).join(' · ')}
+                  {L('다른 이용권 보기', 'See other passes')} ·{' '}
+                  {extraRows
+                    .map((p) => {
+                      const price = priceText(priceOf(p.plan));
+                      return `${PLAN_TEXT[p.plan].title}${price ? ` ${price}${p.plan === 'weekly' ? PER_WEEK : ''}` : ''}`;
+                    })
+                    .join(' · ')}
                 </AppText>
                 <Ionicons name="chevron-down" size={16} color={theme.textTertiary} />
               </Pressable>
@@ -466,15 +520,15 @@ export default function Paywall() {
         {ready && storeUnreachable ? (
           <Pressable accessibilityRole="button" onPress={() => setLoadAttempt((n) => n + 1)} hitSlop={8} style={styles.reload}>
             <AppText variant="caption" color="textSecondary" align="center">
-              {fixHint ?? '스토어 정보를 다 불러오지 못했어요'} ·{' '}
+              {fixHint ?? L('스토어 정보를 다 불러오지 못했어요', "Couldn't load everything from the store")} ·{' '}
               <AppText variant="caption" color="primary" weight="700">
-                다시 불러오기
+                {L('다시 불러오기', 'Try again')}
               </AppText>
             </AppText>
           </Pressable>
         ) : null}
 
-        {ready && chosen === 'year' ? <YearPassNote price={priceOf('year')} until={formatDateKo(yearPassEnd(minuteNow))} storeName={storeName} /> : null}
+        {ready && chosen === 'year' ? <YearPassNote price={priceOf('year')} until={formatDate(yearPassEnd(minuteNow))} storeName={storeName} /> : null}
 
         {!active && blocked ? <Benefits /> : null}
 
@@ -490,30 +544,30 @@ export default function Paywall() {
           {showPlans && !active ? (
             <Pressable accessibilityRole="button" onPress={restore} hitSlop={8} disabled={busy != null}>
               <AppText variant="caption" color="textSecondary">
-                {busy === 'restore' ? '복원 중…' : '구매 복원'}
+                {busy === 'restore' ? L('복원 중…', 'Restoring…') : L('구매 복원', 'Restore purchases')}
               </AppText>
             </Pressable>
           ) : null}
           {couponSupported && !active ? (
             <Pressable accessibilityRole="button" onPress={() => router.push('/coupon')} hitSlop={8}>
               <AppText variant="caption" color="textSecondary">
-                쿠폰 코드
+                {L('쿠폰 코드', 'Coupon code')}
               </AppText>
             </Pressable>
           ) : null}
           <Pressable accessibilityRole="link" onPress={() => Linking.openURL(APP_CONFIG.termsUrl)} hitSlop={8}>
             <AppText variant="caption" color="textSecondary">
-              이용약관
+              {L('이용약관', 'Terms')}
             </AppText>
           </Pressable>
           <Pressable accessibilityRole="link" onPress={() => Linking.openURL(APP_CONFIG.privacyUrl)} hitSlop={8}>
             <AppText variant="caption" color="textSecondary">
-              개인정보 처리방침
+              {L('개인정보 처리방침', 'Privacy Policy')}
             </AppText>
           </Pressable>
         </View>
         <AppText variant="caption" color="textTertiary" align="center" style={styles.research}>
-          {RESEARCH_SHORT}
+          {L(RESEARCH_SHORT, RESEARCH_SHORT_EN)}
         </AppText>
       </Screen>
 
@@ -527,14 +581,17 @@ export default function Paywall() {
             </View>
           ) : null}
           {active ? (
-            <Button variant="brand" title="확인" onPress={close} />
+            <Button variant="brand" title={L('확인', 'Done')} onPress={close} />
           ) : (
             <>
               {/* 화면에서 색이 찬 버튼은 이것 하나 — 무엇을 얼마에 사는지 버튼이 말한다(조사 R3) */}
               <GradientButton
                 haptic
                 title={buyTitle(chosen, chosenPrice, chosen === 'day' && salePrice != null)}
-                accessibilityLabel={`${buyTitle(chosen, chosenPrice, chosen === 'day' && salePrice != null)}, ${priceText(chosenPrice)} 결제`}
+                accessibilityLabel={L(
+                  `${buyTitle(chosen, chosenPrice, chosen === 'day' && salePrice != null)}, ${priceText(chosenPrice)} 결제`,
+                  `${buyTitle(chosen, chosenPrice, chosen === 'day' && salePrice != null)}${chosenPrice ? `, pay ${chosenPrice}` : ''}`,
+                )}
                 onPress={buy}
                 loading={busy === 'purchase'}
                 disabled={busy != null}
@@ -552,6 +609,7 @@ export default function Paywall() {
 
 /** 결제 버튼 — 금액을 넣어 무엇을 얼마에 사는지 말한다 */
 function buyTitle(plan: PlanKey, price: string, sale: boolean): string {
+  if (!isKo) return buyTitleEn(plan, price, sale);
   const won = priceText(price);
   switch (plan) {
     case 'day':
@@ -567,8 +625,26 @@ function buyTitle(plan: PlanKey, price: string, sale: boolean): string {
   }
 }
 
+/** 영어판 결제 버튼 — 스토어 가격을 아직 모르면(빈칸) 금액 없이 */
+function buyTitleEn(plan: PlanKey, price: string, sale: boolean): string {
+  switch (plan) {
+    case 'day':
+      if (sale) return price ? `Get the deal for ${price}` : 'Get the deal';
+      return price ? `Get 24 hours for ${price}` : 'Get 24 hours unlimited';
+    case 'weekly':
+      return price ? `Subscribe for ${price}/week` : 'Start weekly plan';
+    case 'year':
+      return price ? `Get 1 year for ${price}` : 'Get the 1-year pass';
+    case 'lifetime':
+      return 'Get lifetime pass';
+    case 'credits':
+      return price ? `Get ${CREDITS_PER_PACK} credits for ${price}` : `Get ${CREDITS_PER_PACK} credits`;
+  }
+}
+
 /** 결제 버튼 바로 아래 한 줄 — 무엇을 얼마에, 자동 결제가 있는지 */
 function footCaption(plan: PlanKey, price: string, sale: boolean): string {
+  if (!isKo) return footCaptionEn(plan, price, sale);
   const won = priceText(price);
   switch (plan) {
     case 'day':
@@ -584,7 +660,38 @@ function footCaption(plan: PlanKey, price: string, sale: boolean): string {
   }
 }
 
+/** 영어판 결제 버튼 아래 한 줄 */
+function footCaptionEn(plan: PlanKey, price: string, sale: boolean): string {
+  switch (plan) {
+    case 'day':
+      return `${sale ? 'Special price · ' : ''}One-time payment · Ends after 24 hours · No auto-renewal`;
+    case 'weekly':
+      return `${price ? `Renews at ${price}/week` : 'Renews weekly'} until you cancel · Cancel anytime`;
+    case 'year':
+      return 'One-time payment · Ends after 1 year · No auto-renewal';
+    case 'lifetime':
+      return `${price ? `${price} one-time` : 'One-time payment'} · No auto-renewal`;
+    case 'credits':
+      return `One-time payment · ${CREDITS_PER_PACK} sessions · Never expires`;
+  }
+}
+
+/** 영어판 결제 안내 (자동 결제·환불·기기 이동) */
+function fineTextEn(plan: PlanKey, price: string, storeName: string, sale: boolean): string {
+  const once = price ? `a one-time payment of ${price}` : 'a one-time payment';
+  if (plan === 'weekly')
+    return `The weekly plan renews automatically${price ? ` at ${price} per week` : ' every week'}, charged to your ${storeName} account, unless you cancel. You can cancel anytime in your ${storeName} account's subscription settings at least 24 hours before the current period ends.`;
+  if (plan === 'year')
+    return `The 1-year pass is ${once} for unlimited use for 1 year from the purchase date. It never renews or charges you again. After a year you go back to the free plan — just buy again if you want to keep going. On the same ${storeName} account, you can use it on a new device with “Restore purchases.”`;
+  const common = "It doesn't renew automatically and only works on this device (it can't be moved or restored to another device).";
+  if (plan === 'day' && sale)
+    return `The 24-hour pass deal is ${once} for 24 hours of unlimited use from purchase (same as the 24-hour pass). The deal opens once every 7 days for ${SALE_WINDOW_MS / 60_000} minutes. You can only get it before the countdown ends — after that, it's back to the regular price. If you already have a pass, 24 hours are added on. ${common}`;
+  if (plan === 'day') return `The 24-hour pass is ${once} for 24 hours of unlimited use from purchase. If you already have a pass, 24 hours are added on. ${common}`;
+  return `The credit pack is ${once} for ${CREDITS_PER_PACK} coaching sessions that never expire. Free sessions are used first, then credits. ${common}`;
+}
+
 function fineText(plan: PlanKey, display: string, storeName: string, sale = false): string {
+  if (!isKo) return fineTextEn(plan, display, storeName, sale);
   const price = priceText(display);
   if (plan === 'weekly')
     return `주간 구독은 해지하지 않으면 매주 ${price}이 ${storeName} 계정으로 자동 결제돼요. 현재 기간이 끝나기 24시간 전까지 ${storeName} 계정 설정의 구독 메뉴에서 언제든 해지할 수 있어요.`;
@@ -601,7 +708,7 @@ function fineText(plan: PlanKey, display: string, storeName: string, sale = fals
 function Benefits() {
   const theme = useTheme();
   return (
-    <View style={styles.benefits} accessibilityLabel={`이용권이면 ${BENEFITS.join(', ')}`}>
+    <View style={styles.benefits} accessibilityLabel={L(`이용권이면 ${BENEFITS.join(', ')}`, `With a pass: ${BENEFITS.join(', ')}`)}>
       {BENEFITS.map((b) => (
         <View key={b} style={styles.benefit}>
           <Ionicons name="checkmark" size={17} color={theme.text} />
@@ -632,7 +739,12 @@ function PlanRow({ selected, onPress, title, caption, note, price, per, sale }: 
   const theme = useTheme();
   const dark = useColorScheme() === 'dark';
   const shown = sale ? sale.price : price;
-  const spoken = sale ? `특가 ${priceText(sale.price)}${sale.anchor ? `, 정가 ${priceText(sale.regular)}` : ''}, 특가 마감까지 ${formatClock(sale.left)}` : `${priceText(price)}${per ? ` ${per}` : ''}`;
+  const spoken = sale
+    ? L(
+        `특가 ${priceText(sale.price)}${sale.anchor ? `, 정가 ${priceText(sale.regular)}` : ''}, 특가 마감까지 ${formatClock(sale.left)}`,
+        `Deal ${sale.price}${sale.anchor ? `, regular ${sale.regular}` : ''}, deal ends in ${formatClock(sale.left)}`,
+      )
+    : `${priceText(price)}${per ? L(` ${per}`, ' per week') : ''}`;
   return (
     <Pressable
       accessibilityRole="radio"
@@ -660,7 +772,7 @@ function PlanRow({ selected, onPress, title, caption, note, price, per, sale }: 
         ) : null}
         {sale ? (
           <AppText variant="caption" color="primary" weight="700" style={styles.saleClock}>
-            특가 마감까지 {formatClock(sale.left)}
+            {L('특가 마감까지', 'Deal ends in')} {formatClock(sale.left)}
           </AppText>
         ) : null}
       </View>
@@ -672,11 +784,11 @@ function PlanRow({ selected, onPress, title, caption, note, price, per, sale }: 
         </Text>
         {sale && sale.anchor ? (
           <AppText variant="caption" color="primary" weight="700">
-            {sale.percent}% 할인
+            {sale.percent}% {L('할인', 'off')}
           </AppText>
         ) : sale ? (
           <AppText variant="caption" color="primary" weight="700">
-            특가
+            {L('특가', 'Deal')}
           </AppText>
         ) : null}
       </View>
@@ -690,15 +802,23 @@ function PlanRow({ selected, onPress, title, caption, note, price, per, sale }: 
  */
 function YearPassNote({ price, until, storeName }: { price: string; until: string; storeName: string }) {
   const theme = useTheme();
-  const items = [
-    `지금 결제하면 ${until}까지 코칭·속마음·보고서 무제한`,
-    `${priceText(price)} 한 번 결제 · 자동 갱신·자동 결제 없음 · 따로 해지하지 않아도 돼요`,
-    '1년이 지나면 무료 이용으로 돌아가요 · 계속 쓰려면 그때 다시 결제하면 돼요',
-    `같은 ${storeName} 계정이면 기기를 바꿔도 「구매 복원」으로 다시 쓸 수 있어요`,
-  ];
+  const items = L(
+    [
+      `지금 결제하면 ${until}까지 코칭·속마음·보고서 무제한`,
+      `${priceText(price)} 한 번 결제 · 자동 갱신·자동 결제 없음 · 따로 해지하지 않아도 돼요`,
+      '1년이 지나면 무료 이용으로 돌아가요 · 계속 쓰려면 그때 다시 결제하면 돼요',
+      `같은 ${storeName} 계정이면 기기를 바꿔도 「구매 복원」으로 다시 쓸 수 있어요`,
+    ],
+    [
+      `Pay now for unlimited coaching, mind reads and reports until ${until}`,
+      `${price ? `${price} one-time` : 'One-time payment'} · No auto-renewal or auto-charge · Nothing to cancel`,
+      'After a year you go back to the free plan · Buy again anytime to keep going',
+      `On the same ${storeName} account, use “Restore purchases” to get it back on a new device`,
+    ],
+  );
   return (
-    <View style={[styles.promise, { borderColor: theme.separator }]} accessibilityLabel="1년권 안내">
-      <AppText variant="smallStrong">1년권 안내</AppText>
+    <View style={[styles.promise, { borderColor: theme.separator }]} accessibilityLabel={L('1년권 안내', 'About the 1-year pass')}>
+      <AppText variant="smallStrong">{L('1년권 안내', 'About the 1-year pass')}</AppText>
       {items.map((t) => (
         <View key={t} style={styles.promiseRow}>
           <Ionicons name="checkmark" size={15} color={theme.textSecondary} />
@@ -708,7 +828,7 @@ function YearPassNote({ price, until, storeName }: { price: string; until: strin
         </View>
       ))}
       <AppText variant="caption" color="primary" weight="700" accessibilityRole="link" onPress={() => Linking.openURL(`${APP_CONFIG.termsUrl}#year`)}>
-        1년권 약관 전문 보기 ›
+        {L('1년권 약관 전문 보기 ›', 'Read the full 1-year pass terms ›')}
       </AppText>
     </View>
   );
@@ -721,13 +841,22 @@ function PurchaseDone({ plan, onClose }: { plan: PlanKey; onClose: () => void })
   const top = useScreenTopInset(true);
   const passUntil = useAppStore((s) => s.wallet.passUntil);
   const [now] = useState(() => Date.now());
-  const text: Record<PlanKey, { title: string; body: string }> = {
-    day: { title: '하루 무제한 시작!', body: passUntil > now ? `${formatPassEnd(passUntil, now)}까지 마음껏 물어봐요.` : '지금부터 24시간 동안 마음껏 물어봐요.' },
-    weekly: { title: '주간 구독 시작!', body: '이제 횟수 걱정 없이 마음껏 물어봐요.' },
-    year: { title: '1년권 시작!', body: '이제 1년 동안 횟수 걱정 없이 마음껏 물어봐요.' },
-    lifetime: { title: '평생권 시작!', body: '이제 횟수 걱정 없이 마음껏 물어봐요.' }, // 판매 중지 — 결제로는 오지 않는다
-    credits: { title: `횟수권 ${CREDITS_PER_PACK}회 충전!`, body: '필요할 때 한 번씩 꺼내 써요.' },
-  };
+  const text: Record<PlanKey, { title: string; body: string }> = L(
+    {
+      day: { title: '하루 무제한 시작!', body: passUntil > now ? `${formatPassEnd(passUntil, now)}까지 마음껏 물어봐요.` : '지금부터 24시간 동안 마음껏 물어봐요.' },
+      weekly: { title: '주간 구독 시작!', body: '이제 횟수 걱정 없이 마음껏 물어봐요.' },
+      year: { title: '1년권 시작!', body: '이제 1년 동안 횟수 걱정 없이 마음껏 물어봐요.' },
+      lifetime: { title: '평생권 시작!', body: '이제 횟수 걱정 없이 마음껏 물어봐요.' }, // 판매 중지 — 결제로는 오지 않는다
+      credits: { title: `횟수권 ${CREDITS_PER_PACK}회 충전!`, body: '필요할 때 한 번씩 꺼내 써요.' },
+    },
+    {
+      day: { title: 'Your 24 hours start now!', body: passUntil > now ? `Ask away until ${formatPassEnd(passUntil, now)}.` : 'Ask away for the next 24 hours.' },
+      weekly: { title: 'Weekly plan is on!', body: 'No more limits — ask away.' },
+      year: { title: '1-year pass is on!', body: 'No limits for a whole year — ask away.' },
+      lifetime: { title: 'Lifetime pass is on!', body: 'No more limits — ask away.' },
+      credits: { title: `${CREDITS_PER_PACK} credits added!`, body: 'Use them whenever you need.' },
+    },
+  );
   return (
     <View style={[styles.flex, { backgroundColor: theme.background, paddingTop: top + Spacing.xxl, paddingBottom: insets.bottom + Spacing.lg }]}>
       <View style={styles.doneBody} accessibilityLiveRegion="polite">
@@ -737,7 +866,7 @@ function PurchaseDone({ plan, onClose }: { plan: PlanKey; onClose: () => void })
         </Animated.View>
         <Animated.View entering={FadeInDown.delay(120).duration(280)} style={styles.doneTexts}>
           <AppText variant="smallStrong" color="primary" align="center">
-            결제 완료
+            {L('결제 완료', 'Payment complete')}
           </AppText>
           <Text accessibilityRole="header" style={[styles.doneTitle, { color: theme.text }]}>
             {text[plan].title}
@@ -748,7 +877,7 @@ function PurchaseDone({ plan, onClose }: { plan: PlanKey; onClose: () => void })
         </Animated.View>
       </View>
       <Animated.View entering={FadeInDown.delay(200).duration(280)} style={styles.doneFoot}>
-        <GradientButton title="바로 이어서 하기" onPress={onClose} />
+        <GradientButton title={L('바로 이어서 하기', 'Keep going')} onPress={onClose} />
       </Animated.View>
     </View>
   );
@@ -767,17 +896,20 @@ function AppDownload({ reason }: { reason: Reason }) {
 
   const open = (store: DownloadStore) => {
     track('app_download_click', { store, reason });
-    Linking.openURL(STORE_URL[store]).catch(() => toast.show(`${STORE_LABEL[store]}를 열지 못했어요.`, 'error'));
+    Linking.openURL(STORE_URL[store]).catch(() => toast.show(L(`${STORE_LABEL[store]}를 열지 못했어요.`, `Couldn't open ${STORE_LABEL[store]}.`), 'error'));
   };
 
   return (
     <View style={styles.download}>
       <View style={[styles.webNotice, { backgroundColor: theme.surface }]}>
         <AppText variant="smallStrong" align="center">
-          이용권은 앱에서 결제할 수 있어요
+          {L('이용권은 앱에서 결제할 수 있어요', 'Passes are available in the app')}
         </AppText>
         <AppText variant="caption" color="textSecondary" align="center">
-          {desktop ? '휴대폰에 앱을 받아' : `${STORE_LABEL[device]}에서 앱을 받아`} 결제하면 횟수 제한 없이 바로 이어서 코칭받을 수 있어요.
+          {L(
+            `${desktop ? '휴대폰에 앱을 받아' : `${STORE_LABEL[device]}에서 앱을 받아`} 결제하면 횟수 제한 없이 바로 이어서 코칭받을 수 있어요.`,
+            `${desktop ? 'Get the app on your phone' : `Get the app on ${STORE_LABEL[device]}`} and grab a pass to keep coaching with no limits.`,
+          )}
         </AppText>
       </View>
       <View style={desktop ? styles.storeRow : null}>
@@ -785,7 +917,7 @@ function AppDownload({ reason }: { reason: Reason }) {
           <Button
             key={store}
             variant="brand"
-            title={desktop ? STORE_LABEL[store] : `${STORE_LABEL[store]}에서 앱 받기`}
+            title={desktop ? STORE_LABEL[store] : L(`${STORE_LABEL[store]}에서 앱 받기`, `Get it on ${STORE_LABEL[store]}`)}
             icon={<Ionicons name={store === 'ios' ? 'logo-apple' : 'logo-google-playstore'} size={18} color={Brand.onBrand} />}
             onPress={() => open(store)}
             style={desktop ? styles.storeButton : undefined}
@@ -794,12 +926,12 @@ function AppDownload({ reason }: { reason: Reason }) {
       </View>
       {desktop ? (
         <AppText variant="caption" color="textSecondary" align="center">
-          휴대폰에서 이 페이지를 열면 기기에 맞는 스토어로 바로 안내해 드려요.
+          {L('휴대폰에서 이 페이지를 열면 기기에 맞는 스토어로 바로 안내해 드려요.', "Open this page on your phone and we'll take you to the right store.")}
         </AppText>
       ) : null}
       {Platform.OS === 'web' ? (
         <AppText variant="caption" color="textTertiary" align="center">
-          웹에서도 {authAvailable ? '가입하면 ' : ''}매일 무료 코칭이 충전돼요.
+          {L(`웹에서도 ${authAvailable ? '가입하면 ' : ''}매일 무료 코칭이 충전돼요.`, `Free coaching refills daily on the web too${authAvailable ? ' when you sign up' : ''}.`)}
         </AppText>
       ) : null}
     </View>

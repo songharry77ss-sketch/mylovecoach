@@ -34,6 +34,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 import { useAppStore } from '@/store/app-store';
 
 import { glassColors, glassShadow, liquidGlass } from './glass-surface';
@@ -210,7 +211,7 @@ export function GlassTabBar({ state, descriptors, navigation }: TabBarProps) {
                   key={route.key}
                   accessibilityRole="tab"
                   accessibilityState={{ selected: isFocused }}
-                  accessibilityLabel={options.tabBarAccessibilityLabel ?? (dot ? `${label}, 새 기능 있음` : label)}
+                  accessibilityLabel={options.tabBarAccessibilityLabel ?? (dot ? L(`${label}, 새 기능 있음`, `${label}, new`) : label)}
                   testID={options.tabBarButtonTestID ?? `tab-${route.name}`}
                   onPress={onPress}
                   onLongPress={onLongPress}
@@ -250,8 +251,8 @@ function NewChatButton({ onPress, reduced }: { onPress: () => void; reduced: boo
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="새 채팅 시작"
-      accessibilityHint="새 채팅방을 만들어요"
+      accessibilityLabel={L('새 채팅 시작', 'Start new chat')}
+      accessibilityHint={L('새 채팅방을 만들어요', 'Creates a new chat')}
       testID="tab-new-chat"
       hitSlop={6}
       onPressIn={() => {

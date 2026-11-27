@@ -14,15 +14,16 @@ import { Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { haptic } from '@/lib/haptics';
+import { L, isKo } from '@/lib/i18n';
 import { CRUSH_STYLE_TAGS, GENDERS, MBTI_LIST, RELATIONSHIPS } from '@/lib/labels';
 import { customPersona } from '@/lib/practice';
 import type { Gender, Relationship } from '@/lib/types';
 import { useAppStore } from '@/store/app-store';
 
 const LEVELS = [
-  { key: 1, label: '쉬움' },
-  { key: 2, label: '보통' },
-  { key: 3, label: '어려움' },
+  { key: 1, label: L('쉬움', 'Easy') },
+  { key: 2, label: L('보통', 'Medium') },
+  { key: 3, label: L('어려움', 'Hard') },
 ] as const;
 
 /**
@@ -49,7 +50,7 @@ export default function CustomPersonaScreen() {
   const start = () => {
     if (!name.trim()) {
       haptic.warning();
-      setNameError('이름을 적어주세요.');
+      setNameError(L('이름을 적어주세요.', 'Add their name.'));
       return;
     }
     const parsedAge = Number(age);
@@ -60,7 +61,7 @@ export default function CustomPersonaScreen() {
       mbti,
       style,
       relationship,
-      scenario: scenario.trim() || '평소처럼 카톡을 주고받는 사이예요.',
+      scenario: scenario.trim() || L('평소처럼 카톡을 주고받는 사이예요.', 'We text each other pretty regularly.'),
       speech,
       difficulty,
     });
@@ -71,14 +72,14 @@ export default function CustomPersonaScreen() {
   return (
     <Screen sheet keyboard contentStyle={styles.content}>
       <View style={styles.intro}>
-        <AppText variant="title2">어떤 상대와 연습할까요?</AppText>
+        <AppText variant="title2">{L('어떤 상대와 연습할까요?', 'Who do you want to practice with?')}</AppText>
         <AppText variant="small" color="textSecondary">
-          실제 그 사람과 비슷하게 적을수록 연습이 실전 같아져요
+          {L('실제 그 사람과 비슷하게 적을수록 연습이 실전 같아져요', 'The closer this is to the real person, the more real the practice feels')}
         </AppText>
       </View>
       <TextField
-        label="상대 이름"
-        placeholder="예: 지우"
+        label={L('상대 이름', 'Their name')}
+        placeholder={L('예: 지우', 'e.g. Jordan')}
         value={name}
         onChangeText={(t) => {
           setName(t);
@@ -89,7 +90,7 @@ export default function CustomPersonaScreen() {
       />
       <View>
         <AppText variant="smallStrong" color="textSecondary" style={styles.label}>
-          성별
+          {L('성별', 'Gender')}
         </AppText>
         <View style={styles.chips}>
           {GENDERS.map((g) => (
@@ -98,12 +99,12 @@ export default function CustomPersonaScreen() {
         </View>
       </View>
       <View style={styles.twoCol}>
-        <TextField label="나이" value={age} onChangeText={setAge} keyboardType="number-pad" maxLength={2} containerStyle={styles.col} />
+        <TextField label={L('나이', 'Age')} value={age} onChangeText={setAge} keyboardType="number-pad" maxLength={2} containerStyle={styles.col} />
         <View style={styles.col}>
           <AppText variant="smallStrong" color="textSecondary" style={styles.label}>
             MBTI
           </AppText>
-          <Pressable accessibilityRole="button" accessibilityLabel={`MBTI ${mbti}, 바꾸기`} onPress={() => setMbtiOpen(true)} style={[styles.select, { backgroundColor: dark ? theme.surfaceElevated : theme.surface }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={L(`MBTI ${mbti}, 바꾸기`, `MBTI ${mbti}, change`)} onPress={() => setMbtiOpen(true)} style={[styles.select, { backgroundColor: dark ? theme.surfaceElevated : theme.surface }]}>
             <AppText variant="body">{mbti}</AppText>
             <Ionicons name="chevron-down" size={18} color={theme.textTertiary} />
           </Pressable>
@@ -111,7 +112,7 @@ export default function CustomPersonaScreen() {
       </View>
       <View>
         <AppText variant="smallStrong" color="textSecondary" style={styles.label}>
-          어떤 사이예요?
+          {L('어떤 사이예요?', "What's your situation?")}
         </AppText>
         <View style={styles.chips}>
           {RELATIONSHIPS.map((r) => (
@@ -119,18 +120,21 @@ export default function CustomPersonaScreen() {
           ))}
         </View>
       </View>
-      <View>
-        <AppText variant="smallStrong" color="textSecondary" style={styles.label}>
-          상대 말투
-        </AppText>
-        <View style={styles.chips}>
-          <Chip label="존댓말" selected={speech === 'polite'} onPress={() => setSpeech('polite')} />
-          <Chip label="반말" selected={speech === 'casual'} onPress={() => setSpeech('casual')} />
+      {/* 존댓말·반말은 영어에 없다 — 영어판은 숨기고 casual(처음 값) 그대로 */}
+      {isKo ? (
+        <View>
+          <AppText variant="smallStrong" color="textSecondary" style={styles.label}>
+            상대 말투
+          </AppText>
+          <View style={styles.chips}>
+            <Chip label="존댓말" selected={speech === 'polite'} onPress={() => setSpeech('polite')} />
+            <Chip label="반말" selected={speech === 'casual'} onPress={() => setSpeech('casual')} />
+          </View>
         </View>
-      </View>
+      ) : null}
       <View>
         <AppText variant="smallStrong" color="textSecondary" style={styles.label}>
-          난이도
+          {L('난이도', 'Difficulty')}
         </AppText>
         <View style={styles.chips}>
           {LEVELS.map((d) => (
@@ -140,22 +144,22 @@ export default function CustomPersonaScreen() {
       </View>
       <View>
         <AppText variant="smallStrong" color="textSecondary" style={styles.label}>
-          성향 (최대 4개)
+          {L('성향 (최대 4개)', 'Personality (up to 4)')}
         </AppText>
         <TagPicker options={CRUSH_STYLE_TAGS} value={style} onChange={setStyle} max={4} />
       </View>
       <TextField
-        label="상황 (선택)"
-        placeholder="예: 동아리 뒤풀이에서 처음 얘기했고, 오늘 처음 카톡해요."
+        label={L('상황 (선택)', 'Scenario (optional)')}
+        placeholder={L('예: 동아리 뒤풀이에서 처음 얘기했고, 오늘 처음 카톡해요.', "e.g. We first talked at a friend's party, and today's our first time texting.")}
         value={scenario}
         onChangeText={setScenario}
         multiline
         maxLength={200}
       />
-      <GradientButton title="연습 시작하기" onPress={start} />
+      <GradientButton title={L('연습 시작하기', 'Start practicing')} onPress={start} />
       <SelectSheet
         visible={mbtiOpen}
-        title="MBTI 선택"
+        title={L('MBTI 선택', 'Choose MBTI')}
         columns={4}
         options={MBTI_LIST.map((m) => ({ key: m, label: m }))}
         value={mbti}

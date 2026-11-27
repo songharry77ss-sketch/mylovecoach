@@ -6,6 +6,7 @@ import { beginAiRequest } from '@/lib/ai-request-lifetime';
 import { currentQuota } from '@/lib/billing/gate';
 import { paywallTarget, type PaywallReason } from '@/lib/billing/paywall-route';
 import { aiRouteOf, CoachError, requireAiConsent, type AiFeature } from '@/lib/coach-client';
+import { errorText } from '@/lib/format';
 import { useAppStore } from '@/store/app-store';
 import { loadApiKey } from '@/store/storage';
 
@@ -74,7 +75,8 @@ export function useAiAction() {
         track(`${name}_success`);
         return result;
       } catch (e) {
-        const message = e instanceof CoachError ? e.message : e instanceof Error ? e.message : '알 수 없는 오류가 발생했어요.';
+        // 영어판인데 아직 한국어인 오류 글이면 영어 안내로 (errorText)
+        const message = errorText(e, '알 수 없는 오류가 발생했어요.', 'Something went wrong. Please try again.');
         if (!controller.signal.aborted) setError(message);
         track(`${name}_error`, { code: e instanceof CoachError ? e.code : 'server' });
         return null;

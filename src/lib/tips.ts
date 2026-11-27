@@ -1,3 +1,4 @@
+import { L } from '@/lib/i18n';
 import { MIND_CARDS, type MindCard } from '@/lib/mind-cards';
 
 /**
@@ -14,7 +15,7 @@ export interface Tip {
   body: string;
 }
 
-export const TIPS: Tip[] = [
+const TIPS_KO: Tip[] = [
   { id: 'start-1', category: '시작', emoji: '👋', title: '첫 메시지는 "공통점 + 가벼운 질문"', body: '소개팅·모임에서 만났다면 그날 나눈 얘기를 살짝 꺼내고, 답하기 쉬운 질문 하나로 끝내 봐요. "오늘 얘기한 그 카페 진짜 가봤어요?" 같은 식이면 부담이 덜해요.' },
   { id: 'start-2', category: '시작', emoji: '📸', title: '프로필 사진·스토리는 좋은 대화 소재', body: '상대 스토리에 반응하는 건 자연스러운 시작이에요. 다만 평가("예쁘다")보다 상황("여기 어디예요? 분위기 좋다")에 반응하는 쪽이 훨씬 덜 부담스러워요.' },
   { id: 'talk-1', category: '대화', emoji: '🏓', title: '대화는 탁구처럼, 질문은 한 번에 하나', body: '질문을 두세 개 몰아 보내면 취조처럼 느껴질 수 있어요. 상대 답에 리액션 한 줄 + 새 질문 하나. 이 리듬이 오래 가요.' },
@@ -41,6 +42,36 @@ export const TIPS: Tip[] = [
   { id: 'ex-1', category: '위기', emoji: '🕊️', title: '재회 연락은 짧고 담백하게', body: '헤어진 이유를 먼저 인정하는 짧은 연락이 부담이 덜해요. 매달리거나 미안함을 자극하는 말은 오히려 멀어지게 할 수 있어요.' },
   { id: 'ex-2', category: '위기', emoji: '⌛', title: '보내기 전에 하루만 두고 보기', body: '밤늦게, 술 마시고 쓴 연락은 다음 날 후회하기 쉬워요. 써 둔 글을 하루 뒤에 다시 읽어 보고 보내도 늦지 않아요.' },
 ];
+
+/** 영어판 팁 — 한국어판과 id·분류·이모지·순서가 같다 (카톡·소개팅 같은 말은 해외 데이트 문화에 맞게 바꿨다) */
+const TIPS_EN: Tip[] = [
+  { id: 'start-1', category: '시작', emoji: '👋', title: 'First text: something in common + an easy question', body: 'If you met on a date or through friends, bring up something you talked about and end with one easy question. Something like "Did you ever try that café we talked about?" keeps it low-pressure.' },
+  { id: 'start-2', category: '시작', emoji: '📸', title: 'Their photos and stories are great openers', body: 'Replying to their story is a natural way in. Just react to the moment ("wait, where is this? looks so good") instead of rating them ("you\'re so pretty") — it feels way less intense.' },
+  { id: 'talk-1', category: '대화', emoji: '🏓', title: 'Keep it a rally: one question at a time', body: 'Firing off two or three questions at once can feel like an interview. React to their answer in one line, then ask one new question. That rhythm lasts.' },
+  { id: 'talk-2', category: '대화', emoji: '🪞', title: 'Mirror their texting style', body: 'If they send "hahaha," you can too. If they barely use emoji, tone yours down. When your texting vibes match, things just feel easier.' },
+  { id: 'talk-3', category: '대화', emoji: '⏱️', title: 'Reply in about 1–1.5x their time', body: 'If they take 10 minutes, take 10 to 15. Too fast can look eager, too slow can look uninterested. But if timing your replies kills the convo, you\'ve missed the point!' },
+  { id: 'talk-4', category: '대화', emoji: '🎯', title: 'Specific compliments stick', body: 'Instead of "you\'re funny," try "that joke earlier killed me, where do you even come up with that?" Pointing to a real moment makes it feel genuine.' },
+  { id: 'date-1', category: '약속', emoji: '📅', title: 'Ask with a "when + what"', body: '"We should hang out sometime" tends to fade. Suggest a day and a plan, like "Want to check out that exhibit with me this Saturday?" Even if they can\'t, it\'s easy to pick another day.' },
+  { id: 'date-2', category: '약속', emoji: '🍜', title: 'Keep first dates to 1–2 hours', body: 'Coffee or a casual meal is perfect. If it\'s going well, extend it naturally. If it\'s not clicking, it\'s easy to wrap up.' },
+  { id: 'temp-1', category: '온도', emoji: '🔥', title: 'Signs they\'re into you', body: 'They text first / keep the convo going with questions / share details about themselves / use emoji or nicknames / bring up seeing you again. Three or more? There\'s a good chance the interest is real.' },
+  { id: 'temp-2', category: '온도', emoji: '🧊', title: 'Dry texts on repeat? Take a breather', body: 'If it\'s short replies, slow replies, and no questions over and over, don\'t push — take a few days off. If they reach out first, that\'s a good sign. If not, it might be time to open up to someone new.' },
+  { id: 'crisis-1', category: '위기', emoji: '🙏', title: 'Messed up? Keep it short and honest', body: 'Skip the long explanation. One line like "That was thoughtless of me, I\'m sorry" repairs things way faster. Then give them room to respond.' },
+  { id: 'crisis-2', category: '위기', emoji: '🚪', title: 'Respecting a no is the best look', body: 'Whether they turn you down gently or directly, respect their choice. Bowing out gracefully actually leaves a good impression.' },
+
+  { id: 'reply-1', category: '대화', emoji: '💭', title: 'Left on read? Don\'t chase — change the subject', body: '"Why aren\'t you answering?" can push them further away. Give it a day, then reach out with something light and unrelated. It\'s way less awkward.' },
+  { id: 'talk-5', category: '대화', emoji: '🔑', title: 'Keep it going with open questions', body: 'Instead of yes-or-no questions, ask things like "What do you usually get up to on weekends?" They give the conversation room to grow.' },
+  { id: 'some-1', category: '온도', emoji: '👀', title: 'Watch what they do, not what they say', body: 'Whether they text first, keep plans, and make time for you often says more than "I\'m not looking for anything right now."' },
+  { id: 'some-2', category: '온도', emoji: '☕', title: 'Have the "what are we" talk in person', body: '"So what are we?" lands softer face to face than over text. Instead of pushing for an answer, show a little of how you feel first.' },
+  { id: 'date-3', category: '약속', emoji: '⏰', title: 'Ask on a day the convo is flowing', body: 'Asking while you\'re on a good roll feels natural. If you\'ve had three or four fun conversations, it\'s okay to float the idea.' },
+  { id: 'after-1', category: '약속', emoji: '🌙', title: 'Check in the same night', body: 'Within an hour or two of saying bye, "Get home okay? I had a really good time tonight" is plenty. A short one-liner beats a long message.' },
+  { id: 'after-2', category: '약속', emoji: '✉️', title: 'Asking for date two: one feeling + one plan', body: 'Keep it short: "Had so much fun talking today. Let\'s try that pasta place next week." Suggesting the next date feels more natural than a long, serious confession.' },
+  { id: 'fight-1', category: '위기', emoji: '🗣️', title: 'Start with "I" when you\'re hurt', body: 'Instead of "Why do you always do that," try "I felt hurt when…" They\'re more likely to listen than get defensive.' },
+  { id: 'fight-2', category: '위기', emoji: '⏸️', title: 'Don\'t fight over text — take a beat', body: 'Trading long texts while you\'re upset tends to blow things up. Say "let\'s talk a little later," then sort it out on a call or in person once you\'ve cooled down.' },
+  { id: 'ex-1', category: '위기', emoji: '🕊️', title: 'Keep texts to an ex short and simple', body: 'A short message that first owns why things ended feels less heavy. Pleading or guilt-tripping usually pushes them further away.' },
+  { id: 'ex-2', category: '위기', emoji: '⌛', title: 'Sleep on it before you send', body: 'Texts written late at night or after a few drinks are easy to regret. Reread it tomorrow — it\'s not too late to send it then.' },
+];
+
+export const TIPS: Tip[] = L(TIPS_KO, TIPS_EN);
 
 export const TIP_CATEGORIES = ['전체', '시작', '대화', '약속', '온도', '위기'] as const;
 
@@ -70,8 +101,7 @@ export interface Worry {
   ask: string;
 }
 
-/** 묶음표 — 순서가 탐색 탭 고민 카드 순서다 (자주 묻는 것부터) */
-export const WORRIES: Worry[] = [
+const WORRIES_KO: Worry[] = [
   {
     id: 'late-reply',
     title: '답장이 늦어요',
@@ -187,6 +217,130 @@ export const WORRIES: Worry[] = [
     ask: '헤어진 사람한테 다시 연락하고 싶어요. 해도 될까요? 뭐라고 보내면 좋을까요?',
   },
 ];
+
+/**
+ * 영어판 고민 — 한국어판과 id·순서·묶은 팁·속마음 카드가 같다.
+ * 제목은 탐색 탭 고민 버튼(두 칸, 한 줄)에 들어가게 18자 안으로 짧게.
+ */
+const WORRIES_EN: Worry[] = [
+  {
+    id: 'late-reply',
+    title: 'Slow replies',
+    keywords: 'Left on read · Dry texts',
+    answer: 'Don\'t chase. Match their pace, and if a day goes by, reopen with something light and new.',
+    steps: [
+      { title: 'Don\'t jump to conclusions', body: 'They might be busy, or still figuring out what to say. One or two slow replies don\'t tell you how they feel.' },
+      { title: 'Match their pace', body: 'If they take an hour, you can too. Replying instantly every single time can come off a little eager.' },
+      { title: 'After a day, start fresh', body: 'Skip the "why aren\'t you answering?" and reopen with one easy, low-key question.' },
+      { title: 'Been days? Step back', body: 'If it\'s short replies, slow replies, and no questions for days, give it a rest and see if they reach out first.' },
+    ],
+    tips: ['talk-3', 'reply-1', 'temp-2'],
+    minds: ['text-1', 'text-2', 'text-3'],
+    ask: 'They keep taking forever to reply. Should I text again? What should I say?',
+  },
+  {
+    id: 'some',
+    title: 'Are we a thing?',
+    keywords: 'Signs of interest · What are we',
+    answer: 'Watch what they do, not just what they say. If they text first and make time for you, there\'s a good chance they\'re into you.',
+    steps: [
+      { title: 'Count the signs', body: 'Do they text first, keep the convo going with questions, bring up hanging out again? Check them off one by one.' },
+      { title: 'Trust actions over words', body: 'If they say they\'re "not looking for anything" but text you every day, trust the steady behavior over one line.' },
+      { title: 'Ask in person, keep it light', body: 'Still unclear after a few dates? Face to face, show a little of how you feel first.' },
+    ],
+    tips: ['temp-1', 'some-1', 'some-2'],
+    minds: ['some-1', 'some-2', 'some-3', 'some-4', 'some-5', 'some-6', 'some-8', 'text-4', 'text-5'],
+    ask: 'I can\'t tell if we\'re a thing or just friends. What do you think they\'re feeling?',
+  },
+  {
+    id: 'first-text',
+    title: 'Texting first',
+    keywords: 'First message · Opening line',
+    answer: 'No need for anything big. One thing you have in common and one easy question is plenty.',
+    steps: [
+      { title: 'Pick one thing to bring up', body: 'Something you talked about, their story, a place you both know — pick one thing to build on.' },
+      { title: 'Just one question', body: 'End with one easy question so they can answer without overthinking it.' },
+      { title: 'Make compliments specific', body: 'Instead of "you look great," try "that photo has such a vibe, where is that?"' },
+    ],
+    tips: ['start-1', 'start-2', 'talk-4'],
+    minds: ['text-6'],
+    ask: 'I want to text someone I like first. What should my first message be?',
+  },
+  {
+    id: 'talk-dies',
+    title: 'Convo keeps dying',
+    keywords: 'Nothing to say · Dry texts',
+    answer: 'React first, then ask one question. Keep it going back and forth like a rally.',
+    steps: [
+      { title: 'React first', body: 'Start with a reaction like "wait, seriously? lol". Feeling heard is what keeps people talking.' },
+      { title: 'One open question', body: 'Add one question they can\'t answer with just a yes or no.' },
+      { title: 'Match their energy', body: 'Mirror how they text — how much they laugh, how many emoji, how long their messages are.' },
+    ],
+    tips: ['talk-1', 'talk-5', 'talk-2'],
+    minds: ['text-7'],
+    ask: 'Our texts keep fizzling out. How do I keep the conversation going?',
+  },
+  {
+    id: 'ask-out',
+    title: 'Asking them out',
+    keywords: 'Date invite · First date',
+    answer: 'Skip "we should hang out sometime." Suggest a day and a plan, and it gets way easier for them to say yes.',
+    steps: [
+      { title: 'Ask when the vibe is good', body: 'On a day the convo is flowing, ride that energy. It feels natural.' },
+      { title: 'Say "when + what"', body: 'Be specific, like "Want to check out that exhibit with me this Saturday?"' },
+      { title: 'Keep the first date short', body: 'An hour or two over coffee or a meal is low-pressure for both of you. If it\'s going well, stretch it out.' },
+    ],
+    tips: ['date-1', 'date-3', 'date-2'],
+    minds: ['some-7', 'text-8', 'date-4', 'date-7'],
+    ask: 'I want to ask them out. When should I do it, and what should I say?',
+  },
+  {
+    id: 'after-date',
+    title: 'Second date?',
+    keywords: 'After a first date · Next plans',
+    answer: 'Send a short text that same day, then bring up the next plan lightly, with a little warmth.',
+    steps: [
+      { title: 'Text that same night', body: '"Get home okay? I had a really good time" is plenty.' },
+      { title: 'Read their response', body: 'Do they ask questions back? Bring up something from the date?' },
+      { title: 'Keep the ask short and specific', body: 'Add one line about how you felt, then suggest the next plan.' },
+    ],
+    tips: ['after-1', 'after-2', 'temp-1'],
+    minds: ['date-1', 'date-2', 'date-3', 'date-5', 'date-6', 'date-8'],
+    ask: 'Our first date is over and I can\'t read the vibe. Should I ask for a second date? What should I text?',
+  },
+  {
+    id: 'fight',
+    title: 'We had a fight',
+    keywords: 'Hurt feelings · Making up',
+    answer: 'Don\'t try to win. Apologize briefly, and share what hurt with "I" statements.',
+    steps: [
+      { title: 'Take a beat', body: 'Long texts sent while you\'re heated tend to make things worse. Talk once you\'ve cooled down a little.' },
+      { title: 'Own your part, briefly', body: 'Before any explanation, one line like "That was thoughtless of me, I\'m sorry" comes first.' },
+      { title: 'Start with "I felt"', body: 'Instead of "why do you always…", try "I felt hurt when…" It\'s easier for them to hear.' },
+      { title: 'Made up? Plan something', body: 'Once you\'re good again, make one small plan together to reset the mood.' },
+    ],
+    tips: ['crisis-1', 'fight-1', 'fight-2'],
+    minds: ['couple-1', 'couple-2', 'couple-3', 'couple-4', 'couple-5', 'couple-6', 'couple-7', 'couple-8'],
+    ask: 'I had a fight with my partner. What should I text first?',
+  },
+  {
+    id: 'ex',
+    title: 'Texting my ex',
+    keywords: 'Breakup · Getting back together',
+    answer: 'Sleep on it before you send, and keep the message short and simple.',
+    steps: [
+      { title: 'Wait a day before sending', body: 'Late-night or after-drinks texts are easy to regret in the morning.' },
+      { title: 'Own why it ended', body: 'Instead of pleading, a line or two that calmly acknowledges what happened feels less heavy.' },
+      { title: 'No reply? Respect it', body: 'If they keep their distance, respect that. Stepping back gracefully leaves a good memory too.' },
+    ],
+    tips: ['ex-2', 'ex-1', 'crisis-2'],
+    minds: ['ex-1', 'ex-2', 'ex-3', 'ex-4', 'ex-5', 'ex-6', 'ex-7', 'ex-8'],
+    ask: 'I want to reach out to my ex. Should I? What should I say?',
+  },
+];
+
+/** 묶음표 — 순서가 탐색 탭 고민 카드 순서다 (자주 묻는 것부터) */
+export const WORRIES: Worry[] = L(WORRIES_KO, WORRIES_EN);
 
 /** 주소의 고민 id 로 찾는다 (없으면 undefined) */
 export function worryById(id: string | undefined): Worry | undefined {

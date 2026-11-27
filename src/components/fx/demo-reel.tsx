@@ -25,6 +25,7 @@ import { AppText } from '@/components/ui/app-text';
 import { APP_NAME } from '@/constants/brand';
 import { Brand, BrandShadow, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { isEn, L } from '@/lib/i18n';
 import type { Gender } from '@/lib/types';
 import { useAppStore } from '@/store/app-store';
 
@@ -55,6 +56,10 @@ export interface DemoPartner {
  * 남성·아직 모름 → 「민지 누나」, 여성 → 「준호 선배」, 기타 → 호칭 없이 이름만(「지우」, 서로 존댓말).
  */
 export function demoPartner(gender: Gender | null | undefined): DemoPartner {
+  return isEn ? demoPartnerEn(gender) : demoPartnerKo(gender);
+}
+
+function demoPartnerKo(gender: Gender | null | undefined): DemoPartner {
   if (gender === 'female') {
     return {
       title: '준호 선배',
@@ -91,6 +96,19 @@ export function demoPartner(gender: Gender | null | undefined): DemoPartner {
   };
 }
 
+/** 영어판 예시 상대 — 호칭·존댓말이 없어 이름만 (남성·아직 모름 → Emma, 여성 → Jake, 기타 → Jordan) */
+function demoPartnerEn(gender: Gender | null | undefined): DemoPartner {
+  const replies = [
+    { text: 'No plans yet! What about you? 😊', rate: 81 },
+    { text: 'Wanna check out that café on Saturday? ☕️', rate: 88 },
+  ];
+  const thinking = 'Your coach is reading the vibe';
+  const message = 'What are you up to this weekend? 😄';
+  if (gender === 'female') return { title: 'Jake', initial: 'J', message, thinking, replies };
+  if (gender === 'other') return { title: 'Jordan', initial: 'J', message, thinking, replies };
+  return { title: 'Emma', initial: 'E', message, thinking, replies };
+}
+
 export function DemoReel() {
   const theme = useTheme();
   const partner = demoPartner(useAppStore((s) => s.user?.gender));
@@ -113,7 +131,7 @@ export function DemoReel() {
   const replyIndex = phase >= 4 ? 1 : 0;
 
   return (
-    <View style={[styles.phone, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]} accessibilityLabel="앱 사용 예시 영상">
+    <View style={[styles.phone, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]} accessibilityLabel={L('앱 사용 예시 영상', 'App demo video')}>
       <View style={[styles.topBar, { borderBottomColor: theme.border }]}>
         <View style={[styles.avatar, { backgroundColor: theme.accentSoft }]}>
           <Text style={[styles.avatarText, { color: theme.accent }]}>{partner.initial}</Text>
@@ -121,7 +139,7 @@ export function DemoReel() {
         <AppText variant="smallStrong">{partner.title}</AppText>
         <View style={[styles.sample, { backgroundColor: theme.primarySoft }]}>
           <AppText variant="caption" color="primary" weight="700">
-            예시
+            {L('예시', 'Demo')}
           </AppText>
         </View>
       </View>
@@ -151,7 +169,7 @@ export function DemoReel() {
                 <Animated.View key={replyIndex} entering={SlideInRight.duration(320)} exiting={SlideOutLeft.duration(260)} style={[styles.reply, { backgroundColor: theme.bubbleUser }]}>
                   <AppText variant="small">{replies[replyIndex].text}</AppText>
                   <AppText variant="caption" color="primary" weight="700">
-                    성공 확률 {replies[replyIndex].rate}%
+                    {L(`성공 확률 ${replies[replyIndex].rate}%`, `${replies[replyIndex].rate}% success chance`)}
                   </AppText>
                 </Animated.View>
                 <View style={styles.dots}>
@@ -160,7 +178,7 @@ export function DemoReel() {
                   ))}
                   <AppText variant="caption" color="textTertiary">
                     {' '}
-                    3가지 중 골라 복사
+                    {L('3가지 중 골라 복사', 'Pick one of 3 & copy')}
                   </AppText>
                 </View>
               </View>
@@ -173,7 +191,7 @@ export function DemoReel() {
           <Animated.View entering={ZoomIn.springify().damping(12)} style={[styles.toast, BrandShadow]}>
             <LinearGradient colors={Brand.button} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.toastFill}>
               <Ionicons name="checkmark-circle" size={15} color={Brand.onBrand} />
-              <Text style={styles.toastText}>복사했어요 · 카톡에 붙여넣기만 하면 끝</Text>
+              <Text style={styles.toastText}>{L('복사했어요 · 카톡에 붙여넣기만 하면 끝', 'Copied · Just paste it in your chat')}</Text>
             </LinearGradient>
           </Animated.View>
         ) : null}
@@ -201,13 +219,13 @@ function Thermo() {
     <View style={styles.thermo}>
       <View style={styles.thermoRow}>
         <AppText variant="caption" color="textSecondary" weight="700">
-          호감 온도
+          {L('호감 온도', 'Interest level')}
         </AppText>
         <View style={styles.thermoValue}>
           {n >= DEMO_HEAT ? (
             <View style={[styles.rise, { backgroundColor: theme.accentSoft }]}>
               <AppText variant="caption" color="accent" weight="700">
-                ▲ 올랐어요
+                {L('▲ 올랐어요', '▲ Up')}
               </AppText>
             </View>
           ) : null}

@@ -9,13 +9,14 @@ import { FullWindowOverlay } from 'react-native-screens';
 import { GradientButton, SenditLogo } from '@/components/brand/brand';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
-import { APP_NAME } from '@/constants/brand';
+import { APP_NAME, APP_NAME_EN } from '@/constants/brand';
 import { Brand, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { compareVersions, currentVersion, fetchAppUpdate, openStore, setUpdateRequestHandler, UPDATE_RETRY_MS, UPDATE_SNOOZE_MS, type AppUpdate } from '@/lib/app-update';
 import { subscriptionStoreName } from '@/lib/billing/plans';
+import { L, LANG } from '@/lib/i18n';
 import { useAppStore } from '@/store/app-store';
 
 /** 권하는 안내는 탭 첫 화면에서만 띄운다 — 시작 화면·결제·가입·로그인 복귀·코칭 중인 화면을 가리지 않게 */
@@ -133,10 +134,12 @@ export function UpdateSheet({ update, onUpdate, onLater }: { update: AppUpdate; 
         <View style={[styles.handle, { backgroundColor: theme.border }]} />
         <SenditLogo size="sm" />
         <AppText variant="title2" accessibilityRole="header">
-          새로워진 {APP_NAME}이 나왔어요
+          {L(`새로워진 ${APP_NAME}이 나왔어요`, `A new ${APP_NAME_EN} is here`)}
         </AppText>
         <AppText variant="small" color="textSecondary">
-          {notes.length ? '이번 버전에서 이렇게 좋아졌어요. 채팅방과 기록은 그대로 남아요.' : `더 좋아진 ${APP_NAME}으로 업데이트해 보세요. 채팅방과 기록은 그대로 남아요.`}
+          {notes.length
+            ? L('이번 버전에서 이렇게 좋아졌어요. 채팅방과 기록은 그대로 남아요.', 'Here’s what’s better in this version. Your chats and history stay put.')
+            : L(`더 좋아진 ${APP_NAME}으로 업데이트해 보세요. 채팅방과 기록은 그대로 남아요.`, `Update to the latest ${APP_NAME_EN}. Your chats and history stay put.`)}
         </AppText>
         {notes.length ? (
           <View style={styles.notes}>
@@ -152,16 +155,16 @@ export function UpdateSheet({ update, onUpdate, onLater }: { update: AppUpdate; 
         ) : null}
         <View style={[styles.versions, { backgroundColor: fill }]}>
           <AppText variant="caption" color="textSecondary">
-            지금 버전 {current}
+            {L(`지금 버전 ${current}`, `Current ${current}`)}
           </AppText>
           <Ionicons name="arrow-forward" size={14} color={theme.textSecondary} />
           <AppText variant="smallStrong" color="primary">
-            새 버전 {update.latest}
+            {L(`새 버전 ${update.latest}`, `New ${update.latest}`)}
           </AppText>
         </View>
         <View style={styles.actions}>
-          <GradientButton title="업데이트하기" onPress={onUpdate} />
-          <Button title="나중에" variant="ghost" size="md" onPress={onLater} />
+          <GradientButton title={L('업데이트하기', 'Update')} onPress={onUpdate} />
+          <Button title={L('나중에', 'Later')} variant="ghost" size="md" onPress={onLater} />
         </View>
       </View>
     </View>
@@ -170,7 +173,10 @@ export function UpdateSheet({ update, onUpdate, onLater }: { update: AppUpdate; 
 
 const appMark = require('../../../assets/images/sendit-mark.png');
 /** 업데이트해도 잃는 것이 없다는 약속 — 꼭 해야 하는 업데이트 화면 아래쪽 */
-const PROMISES = [{ text: '채팅방 그대로' }, { text: '1분이면 끝' }, { text: '이용권도 그대로' }] as const;
+const PROMISES = L(
+  [{ text: '채팅방 그대로' }, { text: '1분이면 끝' }, { text: '이용권도 그대로' }],
+  [{ text: 'Chats stay' }, { text: 'Takes 1 min' }, { text: 'Passes stay' }],
+);
 
 /**
  * 꼭 해야 하는 업데이트 — 닫을 수 없는 전체 화면 (흰 바탕 · 앱 아이콘 · 파란 버튼 하나). 1.4 개편: 그림자·그라데이션 배지·아이콘 타일을 걷었다.
@@ -181,7 +187,7 @@ export function RequiredUpdate({ update, onUpdate }: { update: AppUpdate; onUpda
   const fill = useColorScheme() === 'dark' ? theme.surfaceElevated : theme.surface;
   const insets = useSafeAreaInsets();
   const notes = update.notes ?? [];
-  const store = subscriptionStoreName(Platform.OS);
+  const store = subscriptionStoreName(Platform.OS, LANG);
   return (
     <View accessibilityViewIsModal style={[StyleSheet.absoluteFill, { backgroundColor: theme.background }]}>
       <View style={styles.flex}>
@@ -202,10 +208,13 @@ export function RequiredUpdate({ update, onUpdate }: { update: AppUpdate; onUpda
             </AppText>
           </View>
           <AppText variant="title1" align="center" accessibilityRole="header">
-            업데이트가 필요해요
+            {L('업데이트가 필요해요', 'Update required')}
           </AppText>
           <AppText variant="body" color="textSecondary" align="center" style={styles.requiredLead}>
-            새로워진 {APP_NAME}이 기다리고 있어요.{'\n'}지금 버전으로는 더 이상 코칭을 받을 수 없어요.
+            {L(
+              `새로워진 ${APP_NAME}이 기다리고 있어요.\n지금 버전으로는 더 이상 코칭을 받을 수 없어요.`,
+              `A new ${APP_NAME_EN} is waiting for you.\nThis version can’t get coaching anymore.`,
+            )}
           </AppText>
           {/* 잃는 것이 없다는 약속을 먼저 — 좋아진 점이 길어 작은 화면에서 아래가 가려져도 이 줄은 보이게 (아이콘 타일 없이 한 줄) */}
           <View style={styles.promises}>
@@ -221,7 +230,7 @@ export function RequiredUpdate({ update, onUpdate }: { update: AppUpdate; onUpda
           {notes.length ? (
             <View style={[styles.notesCard, { backgroundColor: fill }]}>
               <AppText variant="smallStrong" color="textSecondary">
-                이번 버전에서 좋아진 점
+                {L('이번 버전에서 좋아진 점', 'What’s new')}
               </AppText>
               {notes.map((note) => (
                 <View key={note} style={styles.note}>
@@ -235,9 +244,9 @@ export function RequiredUpdate({ update, onUpdate }: { update: AppUpdate; onUpda
           ) : null}
         </ScrollView>
         <View style={[styles.requiredFooter, { paddingBottom: insets.bottom + Spacing.lg }]}>
-          <GradientButton title="업데이트하기" onPress={onUpdate} />
+          <GradientButton title={L('업데이트하기', 'Update')} onPress={onUpdate} />
           <AppText variant="caption" color="textSecondary" align="center">
-            {store}에서 업데이트한 뒤 앱을 다시 열어 주세요
+            {L(`${store}에서 업데이트한 뒤 앱을 다시 열어 주세요`, `Update on ${store}, then reopen the app`)}
           </AppText>
         </View>
       </View>

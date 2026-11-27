@@ -12,6 +12,7 @@ import { AI_REPORT_CONTENT_MAX, AI_REPORT_NOTE_MAX, type AiReportMode, type AiRe
 import { aiRouteOf } from '@/lib/coach-client';
 import { APP_CONFIG } from '@/lib/config';
 import { isDemoMode } from '@/lib/demo';
+import { isEn, L } from '@/lib/i18n';
 import type { CoachAnalysis, CrushReport, MindReading, PracticeTurn } from '@/lib/types';
 
 /** 신고를 받을 서버가 있는지 — 데모이거나 서버 없이 개인 키로만 쓰는 빌드면 신고 버튼을 숨긴다 */
@@ -51,17 +52,79 @@ export async function sendAiReport(input: AiReportRequest): Promise<void> {
       signal: controller.signal,
     });
   } catch {
-    throw new Error('네트워크 연결을 확인하고 다시 신고해 주세요.');
+    throw new Error(L('네트워크 연결을 확인하고 다시 신고해 주세요.', 'Check your connection and try reporting again.'));
   } finally {
     clearTimeout(timer);
   }
   if (res.ok) return;
   const json = (await res.json().catch(() => null)) as { error?: string } | null;
-  throw new Error(json?.error ?? `신고를 보내지 못했어요 (${res.status}). 잠시 후 다시 시도해주세요.`);
+  // 서버 문구는 한국어라 영어판은 우리 영어 문구로
+  const serverText = isEn && json?.error && /[\uAC00-\uD7A3]/.test(json.error) ? undefined : json?.error;
+  throw new Error(serverText ?? L(`신고를 보내지 못했어요 (${res.status}). 잠시 후 다시 시도해주세요.`, `Couldn’t send your report (${res.status}). Please try again in a moment.`));
 }
 
 const clip = (text: string) => text.trim().slice(0, AI_REPORT_CONTENT_MAX);
 const lines = (list: (string | null | false | undefined)[]) => clip(list.filter(Boolean).join('\n'));
+
+/** 신고 내용의 항목 이름 — 신고 시트에 그대로 보이므로 영어판은 영어 (운영자는 둘 다 읽는다) */
+const T = L(
+  {
+    summary: '요약',
+    nextStep: '다음 스텝',
+    reply: '답장',
+    expected: '예상 반응',
+    why: '고른 이유',
+    insight: '읽어낸 포인트',
+    warning: '주의할 점',
+    headline: '한 줄 요약',
+    keywords: '키워드',
+    compatibility: (n: number) => `대화 궁합 ${n}점`,
+    personality: '성향',
+    texting: '연락 스타일',
+    green: '호감 신호',
+    red: '주의할 신호',
+    interests: '대화 소재',
+    strategy: '공략법',
+    roadmap: '로드맵',
+    inner: '속마음(추측)',
+    situation: '상황',
+    innerVoice: '속마음',
+    conclusion: '결론',
+    advice: '이렇게 해보세요',
+    sample: '보낼 메시지 예시',
+    partner: (name: string) => `연습 상대 「${name}」`,
+    feedback: '코치 피드백',
+    better: '더 좋은 메시지',
+  },
+  {
+    summary: 'Summary',
+    nextStep: 'Next step',
+    reply: 'Reply',
+    expected: 'Likely reaction',
+    why: 'Why this one',
+    insight: 'What I noticed',
+    warning: 'Watch out',
+    headline: 'In one line',
+    keywords: 'Keywords',
+    compatibility: (n: number) => `Chat chemistry ${n}/100`,
+    personality: 'Personality',
+    texting: 'Texting style',
+    green: 'Green flag',
+    red: 'Red flag',
+    interests: 'Things to talk about',
+    strategy: 'Strategy',
+    roadmap: 'Roadmap',
+    inner: 'What they might be thinking (guess)',
+    situation: 'Situation',
+    innerVoice: 'Inner voice',
+    conclusion: 'Bottom line',
+    advice: 'Try this',
+    sample: 'Message you could send',
+    partner: (name: string) => `Practice match “${name}”`,
+    feedback: 'Coach feedback',
+    better: 'Better message',
+  },
+);
 
 /**
  * 코칭 결과 — 카드에 보이는 AI 글: 요약, 지금 보고 있는 답장과 그 예상 반응·고른 이유, 읽어낸 포인트·다음 스텝·주의할 점
@@ -69,53 +132,53 @@ const lines = (list: (string | null | false | undefined)[]) => clip(list.filter(
  */
 export function coachReportContent(analysis: CoachAnalysis, replyIndex: number): string {
   const reply = analysis.replies[replyIndex];
-  if (!reply) return lines([analysis.summary && `요약: ${analysis.summary}`, analysis.nextStep && `다음 스텝: ${analysis.nextStep}`]);
+  if (!reply) return lines([analysis.summary && `${T.summary}: ${analysis.summary}`, analysis.nextStep && `${T.nextStep}: ${analysis.nextStep}`]);
   return lines([
-    analysis.summary && `요약: ${analysis.summary}`,
-    `답장${analysis.replies.length > 1 ? ` ${replyIndex + 1}` : ''}: ${reply.text}`,
-    reply.expectedReaction && `예상 반응: ${reply.expectedReaction}`,
-    reply.why && `고른 이유: ${reply.why}`,
-    ...analysis.insights.map((s) => `읽어낸 포인트: ${s}`),
-    analysis.nextStep && `다음 스텝: ${analysis.nextStep}`,
-    ...analysis.warnings.map((s) => `주의할 점: ${s}`),
+    analysis.summary && `${T.summary}: ${analysis.summary}`,
+    `${T.reply}${analysis.replies.length > 1 ? ` ${replyIndex + 1}` : ''}: ${reply.text}`,
+    reply.expectedReaction && `${T.expected}: ${reply.expectedReaction}`,
+    reply.why && `${T.why}: ${reply.why}`,
+    ...analysis.insights.map((s) => `${T.insight}: ${s}`),
+    analysis.nextStep && `${T.nextStep}: ${analysis.nextStep}`,
+    ...analysis.warnings.map((s) => `${T.warning}: ${s}`),
   ]);
 }
 
 /** 상대 분석 보고서 — 화면에 보이는 항목 */
 export function crushReportContent(r: CrushReport): string {
   return lines([
-    `한 줄 요약: ${r.headline}`,
-    r.keywords.length > 0 && `키워드: ${r.keywords.join(', ')}`,
-    `대화 궁합 ${r.compatibility}점: ${r.compatibilityNote}`,
-    `성향: ${r.personality}`,
-    `연락 스타일: ${r.textingStyle}`,
-    ...r.greenFlags.map((s) => `호감 신호: ${s}`),
-    ...r.redFlags.map((s) => `주의할 신호: ${s}`),
-    r.interests.length > 0 && `대화 소재: ${r.interests.join(', ')}`,
-    ...r.strategy.map((s, i) => `공략법 ${i + 1}: ${s}`),
-    ...r.roadmap.map((s, i) => `로드맵 ${i + 1}: ${s.title} — ${s.action}`),
-    r.innerThought && `속마음(추측): ${r.innerThought}`,
+    `${T.headline}: ${r.headline}`,
+    r.keywords.length > 0 && `${T.keywords}: ${r.keywords.join(', ')}`,
+    `${T.compatibility(r.compatibility)}: ${r.compatibilityNote}`,
+    `${T.personality}: ${r.personality}`,
+    `${T.texting}: ${r.textingStyle}`,
+    ...r.greenFlags.map((s) => `${T.green}: ${s}`),
+    ...r.redFlags.map((s) => `${T.red}: ${s}`),
+    r.interests.length > 0 && `${T.interests}: ${r.interests.join(', ')}`,
+    ...r.strategy.map((s, i) => `${T.strategy} ${i + 1}: ${s}`),
+    ...r.roadmap.map((s, i) => `${T.roadmap} ${i + 1}: ${s.title} — ${s.action}`),
+    r.innerThought && `${T.inner}: ${r.innerThought}`,
   ]);
 }
 
 /** 속마음 풀이 — 물어본 상황과 풀이 */
 export function mindReportContent(situation: string, m: MindReading): string {
   return lines([
-    situation && `상황: ${situation}`,
-    `속마음: ${m.innerVoice}`,
-    `결론: ${m.headline}`,
+    situation && `${T.situation}: ${situation}`,
+    `${T.innerVoice}: ${m.innerVoice}`,
+    `${T.conclusion}: ${m.headline}`,
     ...m.possibilities.map((p) => `${p.label} ${p.percent}%: ${p.reason}`),
-    m.advice && `이렇게 해보세요: ${m.advice}`,
-    m.sampleReply && `보낼 메시지 예시: ${m.sampleReply}`,
+    m.advice && `${T.advice}: ${m.advice}`,
+    m.sampleReply && `${T.sample}: ${m.sampleReply}`,
   ]);
 }
 
 /** 연애 연습 — 상대역의 말풍선 하나 (또는 한 번에 보낸 말풍선 묶음) */
 export function practiceReportContent(partnerName: string, text: string): string {
-  return lines([`연습 상대 「${partnerName}」: ${text}`]);
+  return lines([`${T.partner(partnerName)}: ${text}`]);
 }
 
 /** 연애 연습 — 내 메시지에 붙은 코치 피드백과 「이렇게 보내면 더 좋아요」 (내가 보낸 메시지는 넣지 않음) */
 export function practiceFeedbackReportContent(turn: Pick<PracticeTurn, 'feedback' | 'better'>): string {
-  return lines([turn.feedback && `코치 피드백: ${turn.feedback}`, turn.better && `더 좋은 메시지: ${turn.better}`]);
+  return lines([turn.feedback && `${T.feedback}: ${turn.feedback}`, turn.better && `${T.better}: ${turn.better}`]);
 }

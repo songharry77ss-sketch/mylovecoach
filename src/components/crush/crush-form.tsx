@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { isUnnamedCrush } from '@/components/crush/crush-name';
 import { AppText } from '@/components/ui/app-text';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,9 @@ import { TextField } from '@/components/ui/text-field';
 import { useToast } from '@/components/ui/toast';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { errorText } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
+import { isEn, isKo, L } from '@/lib/i18n';
 import { pickImage } from '@/lib/images';
 import { CRUSH_GOALS, CRUSH_STYLE_TAGS, GENDERS, MBTI_LIST, RELATIONSHIPS, SPEECH_OPTIONS } from '@/lib/labels';
 import type { Crush, Gender, Relationship, SpeechPref } from '@/lib/types';
@@ -48,7 +51,9 @@ export function CrushForm({ initial, submitTitle, onSubmit }: CrushFormProps) {
   const fill = useInsetFill();
   const card = useCardStyle();
   const toast = useToast();
-  const [name, setName] = useState(initial?.name ?? '');
+  // 영어판: 이름 없는 상대(저장값 '상대')는 빈칸으로 보여 주고, 비운 채 저장하면 그대로 「이름 없음」으로 둔다
+  const unnamed = isEn && isUnnamedCrush(initial?.name);
+  const [name, setName] = useState(unnamed ? '' : (initial?.name ?? ''));
   const [gender, setGender] = useState<Gender>(initial?.gender ?? 'female');
   const [age, setAge] = useState(initial?.age ? String(initial.age) : '');
   const [mbti, setMbti] = useState<string | undefined>(initial?.mbti);
@@ -69,18 +74,19 @@ export function CrushForm({ initial, submitTitle, onSubmit }: CrushFormProps) {
       const picked = await pickImage('photo');
       if (picked) setPhotoUri(picked.uri);
     } catch (e) {
-      toast.show(e instanceof Error ? e.message : '사진을 불러오지 못했어요.', 'error');
+      toast.show(errorText(e, '사진을 불러오지 못했어요.', 'Couldn’t load the photo.'), 'error');
     }
   };
 
   const submit = () => {
-    if (!name.trim()) {
-      setNameError('이름 또는 별명을 입력해주세요.');
+    const finalName = name.trim() || (unnamed && initial?.name ? initial.name : '');
+    if (!finalName) {
+      setNameError(L('이름 또는 별명을 입력해주세요.', 'Enter a name or nickname.'));
       return;
     }
     const parsedAge = age.trim() ? Number(age) : undefined;
     onSubmit({
-      name: name.trim(),
+      name: finalName,
       gender,
       age: parsedAge && Number.isFinite(parsedAge) ? parsedAge : undefined,
       mbti,
@@ -102,7 +108,7 @@ export function CrushForm({ initial, submitTitle, onSubmit }: CrushFormProps) {
   return (
     <View style={styles.wrap}>
       <View style={styles.photoRow}>
-        <Pressable accessibilityRole="button" accessibilityLabel="상대 사진 선택" onPress={choosePhoto} style={({ pressed }) => [styles.photo, pressed ? styles.pressed : null]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={L('상대 사진 선택', 'Choose their photo')} onPress={choosePhoto} style={({ pressed }) => [styles.photo, pressed ? styles.pressed : null]}>
           {photoUri || name.trim() ? (
             // 옅은 얼굴 원이 옅은 바탕(canvas)에 묻히지 않게 가는 테두리
             <View style={[styles.photoRing, { borderColor: theme.border }]}>
@@ -121,14 +127,14 @@ export function CrushForm({ initial, submitTitle, onSubmit }: CrushFormProps) {
           ) : null}
         </Pressable>
         <AppText variant="caption" color="textSecondary">
-          사진은 선택이에요. 기기에만 저장돼요.
+          {L('사진은 선택이에요. 기기에만 저장돼요.', 'Photo is optional. It stays on your device.')}
         </AppText>
       </View>
 
-      <CardSection title="기본 정보">
+      <CardSection title={L('기본 정보', 'Basics')}>
         <TextField
-          label="이름 / 별명"
-          placeholder="예: 민지"
+          label={L('이름 / 별명', 'Name / nickname')}
+          placeholder={L('예: 민지', 'e.g. Emma')}
           value={name}
           onChangeText={(t) => {
             setName(t);
@@ -138,58 +144,70 @@ export function CrushForm({ initial, submitTitle, onSubmit }: CrushFormProps) {
           maxLength={20}
           returnKeyType="done"
         />
-        <FormField label="성별">
+        <FormField label={L('성별', 'Gender')}>
           <ChoiceChips options={GENDERS} value={gender} onChange={(g) => g && setGender(g)} fill />
         </FormField>
-        <FormField label="지금 어떤 사이예요?">
+        <FormField label={L('지금 어떤 사이예요?', 'What are you two?')}>
           <ChoiceChips options={RELATIONSHIPS} value={relationship} onChange={(r) => r && setRelationship(r)} />
         </FormField>
         {more ? (
           <View style={styles.twoCol}>
-            <TextField label="나이 (선택)" placeholder="예: 26" value={age} onChangeText={setAge} keyboardType="number-pad" maxLength={2} containerStyle={styles.col} />
-            <SelectField label="MBTI (선택)" value={mbti} onPress={() => setMbtiOpen(true)} accessibilityLabel={`MBTI ${mbti ?? '선택 안 함'}, 바꾸기`} style={styles.col} />
+            <TextField label={L('나이 (선택)', 'Age (optional)')} placeholder={L('예: 26', 'e.g. 26')} value={age} onChangeText={setAge} keyboardType="number-pad" maxLength={2} containerStyle={styles.col} />
+            <SelectField
+              label={L('MBTI (선택)', 'MBTI (optional)')}
+              value={mbti}
+              onPress={() => setMbtiOpen(true)}
+              accessibilityLabel={L(`MBTI ${mbti ?? '선택 안 함'}, 바꾸기`, `MBTI ${mbti ?? 'not set'}, change`)}
+              style={styles.col}
+            />
           </View>
         ) : null}
       </CardSection>
 
       {more ? (
         <>
-          <CardSection title="이 사람과의 목표 (선택)">
+          <CardSection title={L('이 사람과의 목표 (선택)', 'Your goal with them (optional)')}>
             <ChoiceChips options={GOAL_OPTIONS} value={goal} onChange={setGoal} allowEmpty />
           </CardSection>
 
-          <CardSection title="답장 말투 맞추기">
+          <CardSection title={L('답장 말투 맞추기', 'Match your texting style')}>
             <TextField
-              label="내가 부르는 호칭 (선택)"
-              placeholder="예: 언니, 오빠, 선배님, 민지야"
+              label={L('내가 부르는 호칭 (선택)', 'What you call them (optional)')}
+              placeholder={L('예: 언니, 오빠, 선배님, 민지야', 'e.g. babe, Em, Mr. Smith')}
               value={callName}
               onChangeText={setCallName}
               maxLength={12}
               helper={
                 initial?.detected?.callName && !callName.trim()
-                  ? `캡처에서 읽은 호칭 「${initial.detected.callName}」을 쓰고 있어요. 비워 두면 계속 알아서 읽어요.`
-                  : '비워 두면 대화 캡처에서 알아서 읽어요. 답장도 같은 호칭으로 나와요.'
+                  ? L(
+                      `캡처에서 읽은 호칭 「${initial.detected.callName}」을 쓰고 있어요. 비워 두면 계속 알아서 읽어요.`,
+                      `Using “${initial.detected.callName}” from your screenshot. Leave blank and I’ll keep picking it up.`,
+                    )
+                  : L('비워 두면 대화 캡처에서 알아서 읽어요. 답장도 같은 호칭으로 나와요.', 'Leave blank and I’ll pick it up from your screenshots. Replies will use the same name.')
               }
             />
-            <FormField label="답장 말투">
-              <ChoiceChips options={SPEECH_CHOICES} value={speech} onChange={(s) => s && setSpeech(s)} />
-              <AppText variant="caption" color="textSecondary" style={styles.helper}>
-                {speech === 'auto'
-                  ? initial?.detected?.speech
-                    ? `캡처에서 ${initial.detected.speech === 'polite' ? '존댓말' : '반말'}을 쓰고 있어서 그대로 이어가요.`
-                    : '존댓말을 쓰던 사이면 존댓말로, 반말이면 반말로 이어가요.'
-                  : SPEECH_OPTIONS.find((o) => o.key === speech)?.description}
-              </AppText>
-            </FormField>
+            {/* 존댓말·반말은 영어에 없는 구분이라 영어판에서는 숨긴다 (값은 auto 그대로 저장) */}
+            {isKo ? (
+              <FormField label="답장 말투">
+                <ChoiceChips options={SPEECH_CHOICES} value={speech} onChange={(s) => s && setSpeech(s)} />
+                <AppText variant="caption" color="textSecondary" style={styles.helper}>
+                  {speech === 'auto'
+                    ? initial?.detected?.speech
+                      ? `캡처에서 ${initial.detected.speech === 'polite' ? '존댓말' : '반말'}을 쓰고 있어서 그대로 이어가요.`
+                      : '존댓말을 쓰던 사이면 존댓말로, 반말이면 반말로 이어가요.'
+                    : SPEECH_OPTIONS.find((o) => o.key === speech)?.description}
+                </AppText>
+              </FormField>
+            ) : null}
           </CardSection>
 
-          <CardSection title="상대에 대해">
-            <FormField label="상대 스타일" hint="최대 6개 · 코치가 참고해요">
+          <CardSection title={L('상대에 대해', 'About them')}>
+            <FormField label={L('상대 스타일', 'Their vibe')} hint={L('최대 6개 · 코치가 참고해요', 'Up to 6 · Your coach uses these')}>
               <TagPicker options={CRUSH_STYLE_TAGS} value={style} onChange={setStyle} max={6} />
             </FormField>
             <TextField
-              label="메모 (선택)"
-              placeholder="어떻게 알게 됐는지, 최근 있었던 일, 상대가 좋아하는 것 등"
+              label={L('메모 (선택)', 'Notes (optional)')}
+              placeholder={L('어떻게 알게 됐는지, 최근 있었던 일, 상대가 좋아하는 것 등', 'How you met, what happened lately, things they like…')}
               value={notes}
               onChangeText={setNotes}
               multiline
@@ -201,14 +219,14 @@ export function CrushForm({ initial, submitTitle, onSubmit }: CrushFormProps) {
         // 새 채팅방 — 나머지는 접어 두고, 방 안 「상대 정보」에서도 언제든 채울 수 있다
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="더 알려 주기, 나이·MBTI·목표·호칭·말투·상대 스타일·메모"
+          accessibilityLabel={L('더 알려 주기, 나이·MBTI·목표·호칭·말투·상대 스타일·메모', 'Add more: age, MBTI, goal, nickname, their vibe, notes')}
           accessibilityState={{ expanded: false }}
           onPress={openMore}
           style={({ pressed }) => [styles.moreRow, card, pressed ? { backgroundColor: fill } : null]}>
           <View style={styles.flex}>
-            <AppText variant="bodyStrong">더 알려 주기 (선택)</AppText>
+            <AppText variant="bodyStrong">{L('더 알려 주기 (선택)', 'Add more (optional)')}</AppText>
             <AppText variant="small" color="textSecondary" style={styles.moreHint}>
-              나이·MBTI·목표·호칭·말투·상대 스타일·메모 — 안 적어도 캡처에서 알아서 읽어요
+              {L('나이·MBTI·목표·호칭·말투·상대 스타일·메모 — 안 적어도 캡처에서 알아서 읽어요', 'Age, MBTI, goal, nickname, their vibe, notes — or skip it, I’ll read your screenshots')}
             </AppText>
           </View>
           <Ionicons name="chevron-down" size={18} color={theme.textSecondary} />
@@ -219,9 +237,9 @@ export function CrushForm({ initial, submitTitle, onSubmit }: CrushFormProps) {
 
       <SelectSheet
         visible={mbtiOpen}
-        title="MBTI 선택"
+        title={L('MBTI 선택', 'Choose MBTI')}
         columns={4}
-        options={[{ key: '__none', label: '모름' }, ...MBTI_LIST.map((m) => ({ key: m, label: m }))]}
+        options={[{ key: '__none', label: L('모름', 'Not sure') }, ...MBTI_LIST.map((m) => ({ key: m, label: m }))]}
         value={mbti ?? '__none'}
         onSelect={(k) => setMbti(k === '__none' ? undefined : k)}
         onClose={() => setMbtiOpen(false)}

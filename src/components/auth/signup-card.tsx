@@ -12,6 +12,7 @@ import { appleSignInAvailable, AuthCancelled, signInWithApple, signInWithGoogle,
 import { SIGNUP_BONUS } from '@/lib/billing/plans';
 import { APP_CONFIG } from '@/lib/config';
 import { haptic } from '@/lib/haptics';
+import { L, isKo } from '@/lib/i18n';
 
 interface Props {
   /** 가입·로그인을 마쳤을 때 (웹 OAuth는 /auth/callback 에서 마무리하므로 불리지 않는다) */
@@ -39,7 +40,7 @@ export function SignupCard({ onDone, title, subtitle, heading = true }: Props) {
     try {
       await Linking.openURL(url);
     } catch {
-      setError('안내 페이지를 열지 못했어요. 잠시 후 다시 시도해주세요.');
+      setError(L('안내 페이지를 열지 못했어요. 잠시 후 다시 시도해주세요.', "Couldn't open the page. Try again in a moment."));
     }
   };
 
@@ -62,7 +63,7 @@ export function SignupCard({ onDone, title, subtitle, heading = true }: Props) {
       const result = await signIn();
       if (result) onDone(result);
     } catch (e) {
-      if (!(e instanceof AuthCancelled)) setError(e instanceof Error ? e.message : '가입을 마치지 못했어요. 잠시 후 다시 시도해주세요.');
+      if (!(e instanceof AuthCancelled)) setError(e instanceof Error ? e.message : L('가입을 마치지 못했어요. 잠시 후 다시 시도해주세요.', "Couldn't finish signing up. Try again in a moment."));
     } finally {
       setBusy(null);
     }
@@ -73,10 +74,10 @@ export function SignupCard({ onDone, title, subtitle, heading = true }: Props) {
       {heading ? (
         <View style={styles.texts}>
           <AppText variant="title3" align="center" weight="700">
-            {title ?? `가입하고 무료 코칭 ${SIGNUP_BONUS}회 더 받기`}
+            {title ?? L(`가입하고 무료 코칭 ${SIGNUP_BONUS}회 더 받기`, `Sign up for ${SIGNUP_BONUS} more free sessions`)}
           </AppText>
           <AppText variant="small" color="textSecondary" align="center">
-            {subtitle ?? '사용 중인 계정으로 간편하게 가입하세요. 매일 무료 코칭 1회도 충전돼요.'}
+            {subtitle ?? L('사용 중인 계정으로 간편하게 가입하세요. 매일 무료 코칭 1회도 충전돼요.', 'Sign up with an account you already use. You’ll also get 1 free session every day.')}
           </AppText>
         </View>
       ) : null}
@@ -95,28 +96,31 @@ export function SignupCard({ onDone, title, subtitle, heading = true }: Props) {
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Google로 계속하기"
+        accessibilityLabel={L('Google로 계속하기', 'Continue with Google')}
         disabled={busy != null}
         onPress={() => run('google')}
         style={({ pressed }) => [styles.button, styles.google, { opacity: pressed || (busy && busy !== 'google') ? 0.6 : 1 }]}>
         <Image source={require('../../../assets/auth/google-g.png')} style={styles.googleLogo} resizeMode="contain" accessibilityIgnoresInvertColors />
         <AppText color="#1F1F1F" style={[styles.googleText, googleFontLoaded ? { fontFamily: 'GoogleSansMedium' } : null]}>
-          Google로 계속하기
+          {L('Google로 계속하기', 'Continue with Google')}
         </AppText>
         {busy === 'google' ? <ActivityIndicator color="#1F1F1F" style={styles.googleBusy} /> : null}
       </Pressable>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="카카오로 시작하기"
-        disabled={busy != null}
-        onPress={() => run('kakao')}
-        style={({ pressed }) => [styles.button, styles.kakao, { opacity: pressed || (busy && busy !== 'kakao') ? 0.6 : 1 }]}>
-        {busy === 'kakao' ? <ActivityIndicator color="#191919" /> : <Ionicons name="chatbubble" size={18} color="#191919" />}
-        <AppText variant="bodyStrong" color="#191919">
-          카카오로 시작하기
-        </AppText>
-      </Pressable>
+      {/* 카카오 로그인은 한국 서비스라 영어판에서는 숨긴다 (Google·Apple 만) */}
+      {isKo && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="카카오로 시작하기"
+          disabled={busy != null}
+          onPress={() => run('kakao')}
+          style={({ pressed }) => [styles.button, styles.kakao, { opacity: pressed || (busy && busy !== 'kakao') ? 0.6 : 1 }]}>
+          {busy === 'kakao' ? <ActivityIndicator color="#191919" /> : <Ionicons name="chatbubble" size={18} color="#191919" />}
+          <AppText variant="bodyStrong" color="#191919">
+            카카오로 시작하기
+          </AppText>
+        </Pressable>
+      )}
 
       {error ? (
         <AppText variant="small" color="danger" align="center" accessibilityLiveRegion="polite">
@@ -124,14 +128,17 @@ export function SignupCard({ onDone, title, subtitle, heading = true }: Props) {
         </AppText>
       ) : null}
       <AppText variant="caption" color="textTertiary" align="center">
-        가입하면 이용약관과 개인정보 처리방침에 동의하는 것으로 봐요. 마이 탭에서 언제든 탈퇴할 수 있어요.
+        {L(
+          '가입하면 이용약관과 개인정보 처리방침에 동의하는 것으로 봐요. 마이 탭에서 언제든 탈퇴할 수 있어요.',
+          'By signing up, you agree to our Terms and Privacy Policy. You can delete your account anytime in the Me tab.',
+        )}
       </AppText>
       <View style={styles.policyLinks}>
-        <Pressable accessibilityRole="link" accessibilityLabel="이용약관 보기" {...policyProps(APP_CONFIG.termsUrl)} hitSlop={8}>
-          <AppText variant="caption" color="primary" style={styles.policyLink}>이용약관</AppText>
+        <Pressable accessibilityRole="link" accessibilityLabel={L('이용약관 보기', 'View Terms')} {...policyProps(APP_CONFIG.termsUrl)} hitSlop={8}>
+          <AppText variant="caption" color="primary" style={styles.policyLink}>{L('이용약관', 'Terms')}</AppText>
         </Pressable>
-        <Pressable accessibilityRole="link" accessibilityLabel="개인정보 처리방침 보기" {...policyProps(APP_CONFIG.privacyUrl)} hitSlop={8}>
-          <AppText variant="caption" color="primary" style={styles.policyLink}>개인정보 처리방침</AppText>
+        <Pressable accessibilityRole="link" accessibilityLabel={L('개인정보 처리방침 보기', 'View Privacy Policy')} {...policyProps(APP_CONFIG.privacyUrl)} hitSlop={8}>
+          <AppText variant="caption" color="primary" style={styles.policyLink}>{L('개인정보 처리방침', 'Privacy Policy')}</AppText>
         </Pressable>
       </View>
     </View>

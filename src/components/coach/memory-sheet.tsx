@@ -5,6 +5,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } f
 import Animated, { FadeIn, FadeOutLeft, LinearTransition, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { isUnnamedCrush } from '@/components/crush/crush-name';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { GlassSurface } from '@/components/ui/glass-surface';
@@ -15,6 +16,7 @@ import { Brand, CardShadow, MaxContentWidth, Radius, Spacing } from '@/constants
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { haptic } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 import { MEMORY_NOTICE } from '@/lib/privacy-copy';
 import { useAppStore } from '@/store/app-store';
 
@@ -49,7 +51,7 @@ export function MemoryCard({ count, onPress, inline = false }: { count: number; 
   return (
     <Animated.View style={[inline ? styles.cardInline : styles.cardWrap, pop]}>
       <PressableScale
-        accessibilityLabel={`${APP_NAME}이 기억하는 이야기 ${count}개 보기`}
+        accessibilityLabel={L(`${APP_NAME}이 기억하는 이야기 ${count}개 보기`, `See what your coach remembers (${count})`)}
         feedback="tap"
         onPress={onPress}
         style={[styles.card, dark ? null : CardShadow]}>
@@ -58,9 +60,9 @@ export function MemoryCard({ count, onPress, inline = false }: { count: number; 
           <Ionicons name="bookmark-outline" size={15} color={theme.textSecondary} />
         </View>
         <AppText variant="smallStrong" style={styles.cardText} numberOfLines={1}>
-          {APP_NAME}이 기억하는 이야기{' '}
+          {L(`${APP_NAME}이 기억하는 이야기`, 'Coach remembers')}{' '}
           <AppText variant="smallStrong" color="primary">
-            {count}개
+            {L(`${count}개`, `${count} ${count === 1 ? 'thing' : 'things'}`)}
           </AppText>
         </AppText>
         <Animated.View style={plusStyle} pointerEvents="none">
@@ -100,27 +102,31 @@ export function MemorySheet({ crushId, partnerName, visible, onClose }: { crushI
     haptic.tap();
     const left = facts.length - 1;
     forget(crushId, [facts[index]]);
-    toast.show(left ? '그 이야기는 잊었어요. 다시 기억하지 않을게요.' : '기억을 모두 지웠어요. 다시 기억하지 않을게요.');
+    toast.show(
+      left
+        ? L('그 이야기는 잊었어요. 다시 기억하지 않을게요.', 'Forgotten. I won’t remember that again.')
+        : L('기억을 모두 지웠어요. 다시 기억하지 않을게요.', 'All cleared. I won’t remember these again.'),
+    );
   };
   const clearAll = () => {
     haptic.heavy();
     forget(crushId);
-    toast.show('기억을 모두 지웠어요. 다시 기억하지 않을게요.');
+    toast.show(L('기억을 모두 지웠어요. 다시 기억하지 않을게요.', 'All cleared. I won’t remember these again.'));
     onClose();
   };
   const clearForgottenList = () => {
     haptic.tap();
     clearForgotten(crushId);
-    toast.show('잊은 이야기 목록을 비웠어요.');
+    toast.show(L('잊은 이야기 목록을 비웠어요.', 'Forgotten list cleared.'));
     if (!facts.length) onClose();
   };
 
-  const who = partnerName && partnerName !== '상대' ? `${partnerName}님과의` : '이 채팅방의';
+  const named = partnerName && !isUnnamedCrush(partnerName) ? partnerName : null;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.root}>
-        <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={onClose} style={[StyleSheet.absoluteFill, styles.backdrop]} />
+        <Pressable accessibilityRole="button" accessibilityLabel={L('닫기', 'Close')} onPress={onClose} style={[StyleSheet.absoluteFill, styles.backdrop]} />
         <View
           accessibilityViewIsModal
           onAccessibilityEscape={onClose}
@@ -130,13 +136,16 @@ export function MemorySheet({ crushId, partnerName, visible, onClose }: { crushI
           <View style={styles.head}>
             <View style={styles.flex}>
               <AppText variant="title2" accessibilityRole="header">
-                {APP_NAME}이 기억하는 이야기
+                {L(`${APP_NAME}이 기억하는 이야기`, 'What your coach remembers')}
               </AppText>
               <AppText variant="small" color="textSecondary">
-                {who} 지난 대화에서 기억해 둔 거예요. 다음 답장부터 이어서 써요.
+                {L(
+                  `${named ? `${named}님과의` : '이 채팅방의'} 지난 대화에서 기억해 둔 거예요. 다음 답장부터 이어서 써요.`,
+                  `${named ? `From your past chats with ${named}.` : 'From past chats here.'} I’ll use these in your next replies.`,
+                )}
               </AppText>
             </View>
-            <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={onClose} hitSlop={6} style={({ pressed }) => [styles.close, { backgroundColor: fill, opacity: pressed ? 0.6 : 1 }]}>
+            <Pressable accessibilityRole="button" accessibilityLabel={L('닫기', 'Close')} onPress={onClose} hitSlop={6} style={({ pressed }) => [styles.close, { backgroundColor: fill, opacity: pressed ? 0.6 : 1 }]}>
               <Ionicons name="close" size={18} color={theme.textSecondary} />
             </Pressable>
           </View>
@@ -153,12 +162,12 @@ export function MemorySheet({ crushId, partnerName, visible, onClose }: { crushI
                   <View style={styles.rowTexts}>
                     {i === facts.length - 1 ? (
                       <AppText variant="caption" color="primary" weight="600">
-                        가장 최근
+                        {L('가장 최근', 'Most recent')}
                       </AppText>
                     ) : null}
                     <AppText variant="body">{fact}</AppText>
                   </View>
-                  <Pressable accessibilityRole="button" accessibilityLabel={`「${fact}」 잊기`} onPress={() => remove(i)} hitSlop={4} style={({ pressed }) => [styles.remove, { opacity: pressed ? 0.5 : 1 }]}>
+                  <Pressable accessibilityRole="button" accessibilityLabel={L(`「${fact}」 잊기`, `Forget “${fact}”`)} onPress={() => remove(i)} hitSlop={4} style={({ pressed }) => [styles.remove, { opacity: pressed ? 0.5 : 1 }]}>
                     <Ionicons name="close" size={18} color={theme.textTertiary} />
                   </Pressable>
                 </Animated.View>
@@ -167,7 +176,7 @@ export function MemorySheet({ crushId, partnerName, visible, onClose }: { crushI
 
             {!facts.length ? (
               <AppText variant="small" color="textSecondary" align="center">
-                지금 기억하는 이야기는 없어요.
+                {L('지금 기억하는 이야기는 없어요.', 'Nothing remembered yet.')}
               </AppText>
             ) : null}
 
@@ -176,11 +185,11 @@ export function MemorySheet({ crushId, partnerName, visible, onClose }: { crushI
               <View style={[styles.forgotten, { backgroundColor: fill }]}>
                 <View style={styles.forgottenHead}>
                   <AppText variant="smallStrong" color="textSecondary" style={styles.flex}>
-                    다시 기억하지 않을 이야기 {forgotten.length}개
+                    {L(`다시 기억하지 않을 이야기 ${forgotten.length}개`, `Won’t remember again (${forgotten.length})`)}
                   </AppText>
-                  <Pressable accessibilityRole="button" accessibilityLabel="다시 기억하지 않을 이야기 목록 비우기" onPress={clearForgottenList} hitSlop={10} style={styles.textButton}>
+                  <Pressable accessibilityRole="button" accessibilityLabel={L('다시 기억하지 않을 이야기 목록 비우기', 'Clear the forgotten list')} onPress={clearForgottenList} hitSlop={10} style={styles.textButton}>
                     <AppText variant="smallStrong" color="primary">
-                      비우기
+                      {L('비우기', 'Clear')}
                     </AppText>
                   </Pressable>
                 </View>
@@ -191,7 +200,7 @@ export function MemorySheet({ crushId, partnerName, visible, onClose }: { crushI
                 ))}
                 {forgotten.length > 3 ? (
                   <AppText variant="caption" color="textSecondary">
-                    외 {forgotten.length - 3}개
+                    {L(`외 ${forgotten.length - 3}개`, `+${forgotten.length - 3} more`)}
                   </AppText>
                 ) : null}
               </View>
@@ -211,15 +220,15 @@ export function MemorySheet({ crushId, partnerName, visible, onClose }: { crushI
               {confirm ? (
                 <Animated.View entering={FadeIn.duration(160)} style={styles.confirm}>
                   <AppText variant="smallStrong" align="center">
-                    기억 {facts.length}개를 모두 지울까요? 되돌릴 수 없어요.
+                    {L(`기억 ${facts.length}개를 모두 지울까요? 되돌릴 수 없어요.`, `Delete all ${facts.length} memories? This can’t be undone.`)}
                   </AppText>
                   <View style={styles.confirmRow}>
-                    <Button title="취소" variant="secondary" size="md" onPress={() => setConfirm(false)} style={styles.flex} />
-                    <Button title="모두 지우기" variant="danger" size="md" onPress={clearAll} style={styles.flex} />
+                    <Button title={L('취소', 'Cancel')} variant="secondary" size="md" onPress={() => setConfirm(false)} style={styles.flex} />
+                    <Button title={L('모두 지우기', 'Delete all')} variant="danger" size="md" onPress={clearAll} style={styles.flex} />
                   </View>
                 </Animated.View>
               ) : (
-                <Button title="모두 지우기" variant="ghost" size="md" onPress={() => setConfirm(true)} />
+                <Button title={L('모두 지우기', 'Delete all')} variant="ghost" size="md" onPress={() => setConfirm(true)} />
               )}
             </View>
           ) : null}

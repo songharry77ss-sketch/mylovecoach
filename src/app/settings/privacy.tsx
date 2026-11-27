@@ -7,15 +7,23 @@ import { ListRow } from '@/components/ui/list-row';
 import { Screen } from '@/components/ui/screen';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/toast';
+import { APP_NAME_EN } from '@/constants/brand';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { APP_CONFIG } from '@/lib/config';
 import { haptic } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 import { BASIC_LOG_DETAIL, BASIC_LOG_NOTICE, CONTENT_CONSENT_DETAIL, CONTENT_CONSENT_SUMMARY, CONTENT_CONSENT_TITLE, MEMORY_NOTICE, optOutMailUrl, privacyUrl } from '@/lib/privacy-copy';
 import { useAppStore } from '@/store/app-store';
 
-const LEGACY_DELETE_MESSAGE = '예전 버전에서 보낸 이 기기의 기록(코칭 내용 포함)을 서버에서 모두 지울까요? 앱 안의 채팅방·프로필은 그대로 남아요.';
+const LEGACY_DELETE_MESSAGE = L(
+  '예전 버전에서 보낸 이 기기의 기록(코칭 내용 포함)을 서버에서 모두 지울까요? 앱 안의 채팅방·프로필은 그대로 남아요.',
+  'Delete all records this device sent from older versions (including coaching data) from our server? Chats and your profile in the app will stay.',
+);
+
+/** 「(선택)」 표시 */
+const OPTIONAL = L('(선택)', '(optional)');
 
 /**
  * 마이 → 개인정보 설정.
@@ -38,26 +46,32 @@ export default function PrivacySettings() {
   const toggleContent = (on: boolean) => {
     setContentConsent(on);
     track('content_consent', { agreed: on, from: 'settings' });
-    toast.show(on ? '코칭 내용 저장에 동의했어요.' : '코칭 내용 저장을 껐어요. 서버에 저장된 코칭 내용도 지울게요.');
+    toast.show(
+      on
+        ? L('코칭 내용 저장에 동의했어요.', 'You opted in to saving coaching data.')
+        : L('코칭 내용 저장을 껐어요. 서버에 저장된 코칭 내용도 지울게요.', "Saving coaching data is off. We'll also delete coaching data stored on our server."),
+    );
   };
 
   const requestOptOut = () =>
-    Linking.openURL(optOutMailUrl(deviceId)).catch(() => toast.show(`메일 앱을 열지 못했어요. ${APP_CONFIG.supportEmail} 로 기기 ID와 함께 보내 주세요.`, 'error'));
+    Linking.openURL(optOutMailUrl(deviceId)).catch(() =>
+      toast.show(L(`메일 앱을 열지 못했어요. ${APP_CONFIG.supportEmail} 로 기기 ID와 함께 보내 주세요.`, `Couldn't open your mail app. Email ${APP_CONFIG.supportEmail} with your device ID.`), 'error'),
+    );
 
   // 예전 첫 화면(미리 체크된 동의)으로 보낸 기록 — 그 동의는 유효한 동의로 보지 않아 서버에 남은 기록을 따로 지우게 한다
   const confirmLegacyDelete = () => {
     const run = () => {
       useAppStore.getState().requestServerDeletion();
       haptic.tap();
-      toast.show('서버에 남은 이 기기의 기록을 지울게요.');
+      toast.show(L('서버에 남은 이 기기의 기록을 지울게요.', "We'll delete this device's records from our server."));
     };
     if (Platform.OS === 'web') {
       if (globalThis.confirm?.(LEGACY_DELETE_MESSAGE)) run();
       return;
     }
-    Alert.alert('서버 기록 지우기', LEGACY_DELETE_MESSAGE, [
-      { text: '취소', style: 'cancel' },
-      { text: '지우기', style: 'destructive', onPress: run },
+    Alert.alert(L('서버 기록 지우기', 'Delete server records'), LEGACY_DELETE_MESSAGE, [
+      { text: L('취소', 'Cancel'), style: 'cancel' },
+      { text: L('지우기', 'Delete'), style: 'destructive', onPress: run },
     ]);
   };
 
@@ -67,7 +81,7 @@ export default function PrivacySettings() {
       <Stack.Screen options={{ headerStyle: { backgroundColor: theme.canvas } }} />
 
       {/* 1.4 개편: 고지문은 줄이지 않고 읽기 쉽게만 — 작은 옅은 글자(대비 3:1)를 14·13pt 진한 회색으로, 문단 사이를 띄웠다 */}
-      <ListGroup title="서비스 이용 기록" subtitle="자동 수집 · 만 14세 이상">
+      <ListGroup title={L('서비스 이용 기록', 'Usage data')} subtitle={L('자동 수집 · 만 14세 이상', 'Collected automatically · Ages 14+')}>
         <View style={styles.notice}>
           <AppText variant="small" style={styles.noticeText}>
             {BASIC_LOG_NOTICE}
@@ -76,17 +90,28 @@ export default function PrivacySettings() {
             {BASIC_LOG_DETAIL}
           </AppText>
         </View>
-        <ListRow title="처리 정지·삭제 요청" subtitle="메일 앱이 열려요 · 이 기기의 ID가 함께 적혀요" onPress={requestOptOut} />
-        <ListRow title="개인정보 처리방침 보기" onPress={() => Linking.openURL(privacyUrl('analytics')).catch(() => toast.show('처리방침을 열지 못했어요. 잠시 후 다시 시도해 주세요.', 'error'))} />
+        <ListRow
+          title={L('처리 정지·삭제 요청', 'Ask us to stop or delete')}
+          subtitle={L('메일 앱이 열려요 · 이 기기의 ID가 함께 적혀요', 'Opens your mail app · Includes this device’s ID')}
+          onPress={requestOptOut}
+        />
+        <ListRow
+          title={L('개인정보 처리방침 보기', 'View Privacy Policy')}
+          onPress={() =>
+            Linking.openURL(privacyUrl('analytics')).catch(() => toast.show(L('처리방침을 열지 못했어요. 잠시 후 다시 시도해 주세요.', "Couldn't open the Privacy Policy. Try again in a moment."), 'error'))
+          }
+        />
       </ListGroup>
 
-      <ListGroup title="선택 동의" footer={underAge ? '프로필 나이가 만 14세 미만이라 켜 두어도 저장하지 않아요.' : undefined}>
+      <ListGroup
+        title={L('선택 동의', 'Optional consent')}
+        footer={underAge ? L('프로필 나이가 만 14세 미만이라 켜 두어도 저장하지 않아요.', 'Your profile age is under 14, so nothing is saved even if this is on.') : undefined}>
         {/* 스위치 줄에는 한 줄 요약만, 무엇을·얼마나·누가 처리하는지는 바로 아래 문단에 전부 (예전엔 9줄이 작은 옅은 글자였다) — 한 항목이라 사이에 선을 넣지 않는다 */}
         <View>
           <ListRow
-            title={`${CONTENT_CONSENT_TITLE} (선택)`}
+            title={`${CONTENT_CONSENT_TITLE} ${OPTIONAL}`}
             subtitle={CONTENT_CONSENT_SUMMARY}
-            right={<Switch accessibilityLabel={`${CONTENT_CONSENT_TITLE} (선택)`} value={contentConsent === true} onValueChange={toggleContent} />}
+            right={<Switch accessibilityLabel={`${CONTENT_CONSENT_TITLE} ${OPTIONAL}`} value={contentConsent === true} onValueChange={toggleContent} />}
           />
           <View style={[styles.notice, styles.noticeAfterRow]}>
             <AppText variant="small" color="textSecondary" style={styles.detail}>
@@ -96,21 +121,27 @@ export default function PrivacySettings() {
         </View>
         {legacyServerRecords ? (
           <ListRow
-            title="예전에 보낸 이용 기록 지우기"
-            subtitle="예전 버전 첫 화면에 미리 체크돼 있던 동의로 보낸 기록(코칭 내용 포함)이 서버에 남아 있을 수 있어요. 누르면 서버에 남은 이 기기의 기록을 모두 지워요."
+            title={L('예전에 보낸 이용 기록 지우기', 'Delete usage data sent earlier')}
+            subtitle={L(
+              '예전 버전 첫 화면에 미리 체크돼 있던 동의로 보낸 기록(코칭 내용 포함)이 서버에 남아 있을 수 있어요. 누르면 서버에 남은 이 기기의 기록을 모두 지워요.',
+              "Records sent under a pre-checked consent on an older version's first screen (including coaching data) may still be on our server. Tap to delete all of this device's records there.",
+            )}
             onPress={confirmLegacyDelete}
           />
         ) : null}
       </ListGroup>
 
-      <CardSection title="센딧이 기억하는 이야기" subtitle="채팅방마다 · 기기에만 저장">
+      <CardSection title={L('센딧이 기억하는 이야기', `What ${APP_NAME_EN} remembers`)} subtitle={L('채팅방마다 · 기기에만 저장', 'Per chat · Stored only on this device')}>
         <AppText variant="small" style={styles.noticeText}>
           {MEMORY_NOTICE}
         </AppText>
       </CardSection>
 
       <AppText variant="caption" color="textSecondary" style={styles.note}>
-        AI 분석 동의와 모든 데이터 삭제는 마이 → 개인정보에서, 회원 탈퇴는 마이 → 이용권·계정에서 할 수 있어요.
+        {L(
+          'AI 분석 동의와 모든 데이터 삭제는 마이 → 개인정보에서, 회원 탈퇴는 마이 → 이용권·계정에서 할 수 있어요.',
+          'Manage AI analysis consent or delete all data in Me → Privacy. Delete your account in Me → Passes & account.',
+        )}
       </AppText>
     </Screen>
   );

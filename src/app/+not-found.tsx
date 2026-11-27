@@ -6,6 +6,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
+import { L } from '@/lib/i18n';
 
 export default function NotFound() {
   const router = useRouter();
@@ -15,12 +16,12 @@ export default function NotFound() {
       <View style={styles.center}>
         <Icon3D name="send" size={96} float />
         <AppText variant="title2" align="center">
-          페이지를 찾을 수 없어요
+          {L('페이지를 찾을 수 없어요', 'Page not found')}
         </AppText>
         <AppText variant="small" color="textSecondary" align="center">
-          주소가 잘못됐거나 삭제된 채팅방이에요.
+          {L('주소가 잘못됐거나 삭제된 채팅방이에요.', 'The link is wrong, or this chat was deleted.')}
         </AppText>
-        <Button title="홈으로 가기" variant="brand" onPress={() => router.replace('/(tabs)')} style={styles.home} />
+        <Button title={L('홈으로 가기', 'Go home')} variant="brand" onPress={() => router.replace('/(tabs)')} style={styles.home} />
       </View>
     </Screen>
   );

@@ -3,6 +3,7 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { Platform } from 'react-native';
 
+import { L } from '@/lib/i18n';
 import { createId } from '@/lib/id';
 
 export interface PickedImage {
@@ -53,7 +54,7 @@ function ensureDir(name: string): Directory {
 export async function pickImage(kind: 'screenshot' | 'photo'): Promise<PickedImage | null> {
   const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!permission.granted && permission.canAskAgain === false) {
-    throw new Error('사진 접근 권한이 필요해요. 설정에서 권한을 허용해주세요.');
+    throw new Error(L('사진 접근 권한이 필요해요. 설정에서 권한을 허용해주세요.', 'Photo access is needed. Please allow it in Settings.'));
   }
   if (!permission.granted) return null;
 
@@ -93,9 +94,9 @@ export async function persistImage(sourceUri: string, dirName: string, width: nu
 }
 
 /** 저장해 둔 캡처 파일이 없거나 비었을 때 (예전 판에서 복사가 덜 끝난 캡처 포함) */
-export const IMAGE_MISSING_MESSAGE = '캡처 파일을 찾지 못했어요. 캡처를 다시 올려 주세요.';
+export const IMAGE_MISSING_MESSAGE = L('캡처 파일을 찾지 못했어요. 캡처를 다시 올려 주세요.', 'Couldn’t find the screenshot file. Please upload it again.');
 /** 사진을 읽지 못했을 때 (지원하지 않는 형식·깨진 파일) */
-export const IMAGE_UNREADABLE_MESSAGE = '이 사진을 읽지 못했어요. 다른 캡처로 다시 올려 주세요.';
+export const IMAGE_UNREADABLE_MESSAGE = L('이 사진을 읽지 못했어요. 다른 캡처로 다시 올려 주세요.', 'Couldn’t read this photo. Please try a different screenshot.');
 
 /** 캡처를 읽지 못해 코칭을 보낼 수 없을 때 — 같은 파일로 다시 해도 안 되므로 「캡처 다시 올리기」를 권한다 */
 export class ImageReadError extends Error {
@@ -181,7 +182,7 @@ async function encodeResized(uri: string, width?: number): Promise<EncodedImage>
     image = target ? await context.resize({ width: target }).renderAsync() : (measured ?? (await context.renderAsync()));
     const saved = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.75, base64: true });
     deleteCacheCopy(saved.uri);
-    if (!saved.base64) throw new Error('이미지를 준비하지 못했어요.');
+    if (!saved.base64) throw new Error(L('이미지를 준비하지 못했어요.', 'Couldn’t prepare the image.'));
     return { base64: saved.base64, mediaType: 'image/jpeg' };
   } finally {
     if (measured && measured !== image) measured.release();

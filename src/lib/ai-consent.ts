@@ -10,6 +10,7 @@
  * - 답을 Claude 가 먼저 만들게 되면서(2026-11-26) 「Google 먼저」 동의('relay')도 「Claude 먼저」 동의('relay2')를 대신하지 않는다 — 한 번 다시 묻는다
  */
 import { track } from '@/lib/analytics';
+import { L } from '@/lib/i18n';
 import { useAppStore } from '@/store/app-store';
 
 /**
@@ -32,10 +33,10 @@ export interface AiRoute {
   via: 'relay' | 'direct';
 }
 
-/** 화면에 쓰는 회사·AI 이름 */
+/** 화면에 쓰는 회사·AI 이름 (영어판은 가운뎃점 대신 쉼표) */
 export const AI_PROVIDER_LABEL: Record<AiProvider, { company: string; ai: string }> = {
-  relay2: { company: 'Anthropic·OpenAI·Google', ai: 'Claude·GPT·Gemini' },
-  relay: { company: 'Google·Anthropic·OpenAI', ai: 'Gemini·Claude·GPT' },
+  relay2: { company: L('Anthropic·OpenAI·Google', 'Anthropic, OpenAI, Google'), ai: L('Claude·GPT·Gemini', 'Claude, GPT, Gemini') },
+  relay: { company: L('Google·Anthropic·OpenAI', 'Google, Anthropic, OpenAI'), ai: L('Gemini·Claude·GPT', 'Gemini, Claude, GPT') },
   google: { company: 'Google', ai: 'Gemini' },
   anthropic: { company: 'Anthropic', ai: 'Claude' },
 };

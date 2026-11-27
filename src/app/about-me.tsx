@@ -9,12 +9,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GradientButton } from '@/components/brand/brand';
 import { AppText } from '@/components/ui/app-text';
 import { useInsetFill } from '@/components/ui/list-group';
-import { APP_NAME } from '@/constants/brand';
+import { APP_NAME, APP_NAME_EN } from '@/constants/brand';
 import { Brand, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useKeyboardVisible } from '@/hooks/use-keyboard';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 import { josa } from '@/lib/kkti';
 import { MBTI_LIST, MY_GOALS, VIBE_TAGS } from '@/lib/labels';
 import type { Gender, UserProfile } from '@/lib/types';
@@ -49,8 +50,14 @@ const MAX_VIBES = 3;
 
 function introOf(knownName: string | undefined): string[] {
   return knownName
-    ? [`다시 반가워요, ${knownName}님!`, '답장을 더 「나답게」 만들려고 몇 가지만 더 물어볼게요. 모르는 건 건너뛰어도 돼요.']
-    : [`안녕하세요! 오늘부터 함께할 연애 코치, ${APP_NAME}이에요.`, '답장을 「나답게」 만들려고 몇 가지만 물어볼게요. 30초면 끝나고, 모르는 건 건너뛰어도 돼요.'];
+    ? L(
+        [`다시 반가워요, ${knownName}님!`, '답장을 더 「나답게」 만들려고 몇 가지만 더 물어볼게요. 모르는 건 건너뛰어도 돼요.'],
+        [`Welcome back, ${knownName}!`, 'Just a few more quick questions so your replies sound even more like you. Skip anything you’re not sure about.'],
+      )
+    : L(
+        [`안녕하세요! 오늘부터 함께할 연애 코치, ${APP_NAME}이에요.`, '답장을 「나답게」 만들려고 몇 가지만 물어볼게요. 30초면 끝나고, 모르는 건 건너뛰어도 돼요.'],
+        ['Hey! I’m your new dating coach.', 'A few quick questions so your replies sound like you. Takes 30 seconds, and you can skip anything.'],
+      );
 }
 
 /** 이미 알고 있는 항목 — 홈·마이에서 다시 열면 묻지 않는다 */
@@ -75,17 +82,17 @@ function knownOf(step: Step, user: UserProfile | null): boolean {
 function questionOf(step: Step, a: Answers): string {
   switch (step) {
     case 'name':
-      return '뭐라고 불러 드릴까요?';
+      return L('뭐라고 불러 드릴까요?', 'What should I call you?');
     case 'gender':
-      return a.name ? `반가워요, ${a.name}님!\n성별을 알려 주실래요?` : '성별을 알려 주실래요?';
+      return a.name ? L(`반가워요, ${a.name}님!\n성별을 알려 주실래요?`, `Nice to meet you, ${a.name}!\nWhat’s your gender?`) : L('성별을 알려 주실래요?', 'What’s your gender?');
     case 'age':
-      return '나이는요? 또래 말투에 맞춰 답장을 만드는 데 써요.';
+      return L('나이는요? 또래 말투에 맞춰 답장을 만드는 데 써요.', 'How old are you? It helps me match how people your age text.');
     case 'mbti':
-      return 'MBTI 알고 있어요? 몰라도 괜찮아요.';
+      return L('MBTI 알고 있어요? 몰라도 괜찮아요.', 'Know your MBTI? No worries if not.');
     case 'vibes':
-      return `상대에게 어떤 사람으로 보이고 싶어요?\n${MAX_VIBES}개까지 골라 주세요.`;
+      return L(`상대에게 어떤 사람으로 보이고 싶어요?\n${MAX_VIBES}개까지 골라 주세요.`, `How do you want to come across?\nPick up to ${MAX_VIBES}.`);
     case 'goal':
-      return '마지막이에요! 지금 연애 목표는요?';
+      return L('마지막이에요! 지금 연애 목표는요?', 'Last one! What’s your dating goal right now?');
   }
 }
 
@@ -93,9 +100,16 @@ const filledCount = (a: Answers) => [a.name, a.gender, a.age, a.mbti, a.vibes?.l
 
 function endingOf(a: Answers, fromHome: boolean, knownName: string | undefined): string[] {
   const name = a.name ?? knownName;
-  const who = name ? `, ${name}님` : '';
-  if (filledCount(a) === 0) return ['괜찮아요! 언제든 마이 → 내 프로필에서 알려 주세요.', ...(fromHome ? [] : ['그럼 바로 답장이 고민되는 대화를 보여 주세요.'])];
-  return [`좋아요${who}! 알려 주신 대로 「나다운」 말투로 답장을 만들어 드릴게요.`, fromHome ? '다음 답장부터 바로 반영돼요.' : '이제 답장이 고민되는 대화를 보여 주세요.'];
+  const who = name ? L(`, ${name}님`, `, ${name}`) : '';
+  if (filledCount(a) === 0)
+    return [
+      L('괜찮아요! 언제든 마이 → 내 프로필에서 알려 주세요.', 'No problem! You can fill this in anytime from your profile.'),
+      ...(fromHome ? [] : [L('그럼 바로 답장이 고민되는 대화를 보여 주세요.', 'So go ahead and show me a chat you’re not sure how to answer.')]),
+    ];
+  return [
+    L(`좋아요${who}! 알려 주신 대로 「나다운」 말투로 답장을 만들어 드릴게요.`, `Got it${who}! I’ll write replies that sound like you.`),
+    fromHome ? L('다음 답장부터 바로 반영돼요.', 'You’ll see it in your very next reply.') : L('이제 답장이 고민되는 대화를 보여 주세요.', 'Now show me a chat you’re stuck on.'),
+  ];
 }
 
 /**
@@ -174,7 +188,7 @@ export default function AboutMe() {
     haptic.select();
     const next = { ...answers, ...patch };
     setAnswers(next);
-    push('me', display ?? '건너뛸게요', display == null);
+    push('me', display ?? L('건너뛸게요', 'Skip this one'), display == null);
     // 「잘 몰라요」처럼 값 없이 답한 것도 건너뛴 것으로 센다
     track('onboarding', { step: 'profile_q', q: current, action: Object.keys(patch).length ? 'answer' : 'skip' });
     setDraft('');
@@ -224,10 +238,11 @@ export default function AboutMe() {
   const sendText = () => {
     const value = draft.trim();
     if (!value) return;
-    if (current === 'name') answer(`${value}${josa(value, '이라고', '라고')} 불러 주세요`, { name: value.slice(0, 20) });
+    // 「~이라고/라고」 조사는 한국어에만
+    if (current === 'name') answer(L(`${value}${josa(value, '이라고', '라고')} 불러 주세요`, `Call me ${value}`), { name: value.slice(0, 20) });
     else if (current === 'age') {
       const age = Number(value);
-      if (Number.isFinite(age) && age > 0) answer(`${age}살이에요`, { age });
+      if (Number.isFinite(age) && age > 0) answer(L(`${age}살이에요`, `I’m ${age}`), { age });
     }
   };
 
@@ -245,22 +260,22 @@ export default function AboutMe() {
             <View style={styles.coachId}>
               <CoachAvatar size={36} />
               <View>
-                <Text style={[styles.coachName, { color: theme.text }]}>{APP_NAME}</Text>
-                <Text style={[styles.coachSub, { color: typing ? theme.primary : theme.textSecondary }]}>{typing ? '입력 중…' : '30초면 끝나요'}</Text>
+                <Text style={[styles.coachName, { color: theme.text }]}>{L(APP_NAME, APP_NAME_EN)}</Text>
+                <Text style={[styles.coachSub, { color: typing ? theme.primary : theme.textSecondary }]}>{typing ? L('입력 중…', 'typing…') : L('30초면 끝나요', 'Takes 30 seconds')}</Text>
               </View>
             </View>
             {!done ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="나에 대해 알려주기 나중에 하기"
+                accessibilityLabel={L('나에 대해 알려주기 나중에 하기', 'Do this later')}
                 onPress={() => finish('later')}
                 hitSlop={12}
                 style={({ pressed }) => [styles.skip, pressed && styles.pressed]}>
-                <Text style={[styles.skipText, { color: theme.textSecondary }]}>나중에 할게요</Text>
+                <Text style={[styles.skipText, { color: theme.textSecondary }]}>{L('나중에 할게요', 'Maybe later')}</Text>
               </Pressable>
             ) : null}
           </View>
-          <View style={styles.progress} accessibilityLabel={`질문 ${steps.length}개 중 ${Math.min(step, steps.length)}개 답함`}>
+          <View style={styles.progress} accessibilityLabel={L(`질문 ${steps.length}개 중 ${Math.min(step, steps.length)}개 답함`, `${Math.min(step, steps.length)} of ${steps.length} questions answered`)}>
             {/* 답한 칸만 파랑 단색, 나머지는 회색 */}
             {steps.map((s, i) => (
               <View key={s} style={[styles.seg, { backgroundColor: i < step ? theme.primary : theme.border }]} />
@@ -301,7 +316,7 @@ export default function AboutMe() {
           {typing ? (
             <View style={styles.coachRow}>
               {lines[lines.length - 1]?.from === 'coach' ? <View style={styles.avatarGap} /> : <CoachAvatar />}
-              <View style={[styles.bubble, styles.coachBubble, styles.typingBubble, { backgroundColor: fill }]} accessibilityLabel="코치가 입력 중">
+              <View style={[styles.bubble, styles.coachBubble, styles.typingBubble, { backgroundColor: fill }]} accessibilityLabel={L('코치가 입력 중', 'Coach is typing')}>
                 {[0, 1, 2].map((d) => (
                   <TypingDot key={d} index={d} color={theme.textSecondary} />
                 ))}
@@ -313,18 +328,18 @@ export default function AboutMe() {
         <View style={[styles.dock, { backgroundColor: theme.background, borderTopColor: theme.separator, paddingBottom: (keyboardVisible ? 0 : insets.bottom) + Spacing.md }]}>
           {ready && current === 'name' ? (
             <Animated.View entering={FadeInUp.duration(220)} style={styles.dockInner}>
-              <InputRow value={draft} onChange={setDraft} onSend={sendText} placeholder="이름이나 별명 (예: 지은)" label="부를 이름" maxLength={20} />
+              <InputRow value={draft} onChange={setDraft} onSend={sendText} placeholder={L('이름이나 별명 (예: 지은)', 'Name or nickname (e.g. Emma)')} label={L('부를 이름', 'Your name')} maxLength={20} />
               <SkipChip onPress={() => answer(null)} />
             </Animated.View>
           ) : ready && current === 'gender' ? (
             <Animated.View entering={FadeInUp.duration(220)} style={[styles.dockInner, styles.wrap]}>
-              <Choice label="여자예요" big onPress={() => answer('여자예요', { gender: 'female' })} />
-              <Choice label="남자예요" big onPress={() => answer('남자예요', { gender: 'male' })} />
+              <Choice label={L('여자예요', 'I’m a woman')} big onPress={() => answer(L('여자예요', 'I’m a woman'), { gender: 'female' })} />
+              <Choice label={L('남자예요', 'I’m a man')} big onPress={() => answer(L('남자예요', 'I’m a man'), { gender: 'male' })} />
               <SkipChip onPress={() => answer(null)} />
             </Animated.View>
           ) : ready && current === 'age' ? (
             <Animated.View entering={FadeInUp.duration(220)} style={styles.dockInner}>
-              <InputRow value={draft} onChange={(v) => setDraft(v.replace(/[^0-9]/g, '').replace(/^0+/, ''))} onSend={sendText} placeholder="예: 25" label="나이" maxLength={2} numeric />
+              <InputRow value={draft} onChange={(v) => setDraft(v.replace(/[^0-9]/g, '').replace(/^0+/, ''))} onSend={sendText} placeholder={L('예: 25', 'e.g. 25')} label={L('나이', 'Age')} maxLength={2} numeric />
               <SkipChip onPress={() => answer(null)} />
             </Animated.View>
           ) : ready && current === 'mbti' ? (
@@ -334,7 +349,7 @@ export default function AboutMe() {
                   <Choice key={m} label={m} grid onPress={() => answer(m, { mbti: m })} />
                 ))}
               </View>
-              <Choice label="잘 몰라요" onPress={() => answer('잘 몰라요')} wide />
+              <Choice label={L('잘 몰라요', 'Not sure')} onPress={() => answer(L('잘 몰라요', 'Not sure'))} wide />
             </Animated.View>
           ) : ready && current === 'vibes' ? (
             <Animated.View entering={FadeInUp.duration(220)} style={styles.dockInner}>
@@ -348,7 +363,7 @@ export default function AboutMe() {
                 <SkipChip onPress={() => answer(null)} />
                 <View style={styles.flex}>
                   <GradientButton
-                    title={vibes.length ? `${vibes.length}개 골랐어요` : `${MAX_VIBES}개까지 골라 주세요`}
+                    title={vibes.length ? L(`${vibes.length}개 골랐어요`, `Done · ${vibes.length} picked`) : L(`${MAX_VIBES}개까지 골라 주세요`, `Pick up to ${MAX_VIBES}`)}
                     size="md"
                     disabled={!vibes.length}
                     onPress={() => answer(vibes.join(' · '), { vibes })}
@@ -365,9 +380,9 @@ export default function AboutMe() {
             </Animated.View>
           ) : ready && done ? (
             <Animated.View entering={FadeInUp.duration(260)} style={styles.dockInner}>
-              <GradientButton title={fromHome ? '완료' : '첫 캡처 올리러 가기'} onPress={() => finish('done')} />
+              <GradientButton title={fromHome ? L('완료', 'Done') : L('첫 캡처 올리러 가기', 'Upload my first screenshot')} onPress={() => finish('done')} />
               <AppText color="textSecondary" style={styles.footnote}>
-                알려 주신 내용은 마이 → 내 프로필에서 언제든 바꿀 수 있어요
+                {L('알려 주신 내용은 마이 → 내 프로필에서 언제든 바꿀 수 있어요', 'You can change this anytime in your profile')}
               </AppText>
             </Animated.View>
           ) : (
@@ -416,7 +431,7 @@ function InputRow({ value, onChange, onSend, placeholder, label, maxLength, nume
         accessibilityLabel={label}
         style={[styles.input, { backgroundColor: fill, color: theme.text }]}
       />
-      <Pressable accessibilityRole="button" accessibilityLabel="보내기" accessibilityState={{ disabled: !can }} onPress={onSend} disabled={!can} style={({ pressed }) => [styles.send, pressed && styles.pressed]}>
+      <Pressable accessibilityRole="button" accessibilityLabel={L('보내기', 'Send')} accessibilityState={{ disabled: !can }} onPress={onSend} disabled={!can} style={({ pressed }) => [styles.send, pressed && styles.pressed]}>
         <View style={[StyleSheet.absoluteFill, { backgroundColor: can ? Brand.blue : fill }]} />
         <Ionicons name="arrow-up" size={20} color={can ? Brand.onBrand : theme.textTertiary} />
       </Pressable>
@@ -427,8 +442,8 @@ function InputRow({ value, onChange, onSend, placeholder, label, maxLength, nume
 function SkipChip({ onPress }: { onPress: () => void }) {
   const theme = useTheme();
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel="이 질문 건너뛰기" onPress={onPress} hitSlop={6} style={({ pressed }) => [styles.skipChip, pressed && styles.pressed]}>
-      <Text style={[styles.skipChipText, { color: theme.textSecondary }]}>건너뛰기</Text>
+    <Pressable accessibilityRole="button" accessibilityLabel={L('이 질문 건너뛰기', 'Skip this question')} onPress={onPress} hitSlop={6} style={({ pressed }) => [styles.skipChip, pressed && styles.pressed]}>
+      <Text style={[styles.skipChipText, { color: theme.textSecondary }]}>{L('건너뛰기', 'Skip')}</Text>
     </Pressable>
   );
 }

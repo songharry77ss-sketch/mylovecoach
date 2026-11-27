@@ -1,0 +1,10 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "Love Coach",
+    "NSPhotoLibraryUsageDescription": "Photo library access is needed to load chat screenshots and photos of the other person. Photos are stored only on your device and used only for coaching requests.",
+    "NSCameraUsageDescription": "Camera access is needed to take a profile photo of the other person."
+  },
+  "android": {
+    "app_name": "Love Coach"
+  }
+}

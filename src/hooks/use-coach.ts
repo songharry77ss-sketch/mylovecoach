@@ -5,6 +5,8 @@ import { beginAiRequest } from '@/lib/ai-request-lifetime';
 import { currentQuota } from '@/lib/billing/gate';
 import { aiRouteOf, CoachError, requestCoaching, requireAiConsent } from '@/lib/coach-client';
 import { crushToRequest, todayLabel, userToRequest } from '@/lib/coach-schema';
+import { errorText } from '@/lib/format';
+import { L } from '@/lib/i18n';
 import { encodeForModel, ImageReadError, type PickedImage } from '@/lib/images';
 import type { EmojiPref, KktiSaved, Tone } from '@/lib/types';
 import { analysisCacheKey, analyzedCaptureBefore, buildEarlierNotes, buildHistory, lastRequestAt, memoryAfterResult, quickHash, useAppStore } from '@/store/app-store';
@@ -59,7 +61,7 @@ export function useCoach() {
       crushId: crush.id,
       role: 'user',
       imageUri: input.variationOf ? undefined : (input.image?.uri ?? undefined),
-      text: input.variationOf ? '🔄 다른 답장 더 보기' : input.text || undefined,
+      text: input.variationOf ? L('🔄 다른 답장 더 보기', '🔄 More replies') : input.text || undefined,
       tone: input.tone,
       emoji: input.emoji,
       toneChosen: input.toneChosen,
@@ -93,10 +95,14 @@ export function useCoach() {
         // 누른 카드의 답장을 그대로 적어 보낸다 — 「직전 답장」이 누른 카드가 아닐 수도 있으므로
         const target = past.find((m) => m.id === input.variationOf)?.analysis;
         const before = (target?.replies ?? [])
-          .map((r, i) => (r.text?.trim() ? `버전${i + 1} "${Array.from(r.text.trim()).slice(0, 200).join('')}"` : ''))
+          .map((r, i) => (r.text?.trim() ? L(`버전${i + 1} "${Array.from(r.text.trim()).slice(0, 200).join('')}"`, `Version ${i + 1} "${Array.from(r.text.trim()).slice(0, 200).join('')}"`) : ''))
           .filter(Boolean)
           .join(' ');
-        noteParts.push(before ? `바꿀 답장(${before})과 겹치지 않는 다른 각도의 새로운 답장 3개를 제안해주세요.` : '이전에 제안한 답장과는 다른 각도의 새로운 답장 3개를 제안해주세요.');
+        noteParts.push(
+          before
+            ? L(`바꿀 답장(${before})과 겹치지 않는 다른 각도의 새로운 답장 3개를 제안해주세요.`, `Suggest 3 new replies from a different angle that don't overlap with these (${before}).`)
+            : L('이전에 제안한 답장과는 다른 각도의 새로운 답장 3개를 제안해주세요.', 'Suggest 3 new replies from a different angle than the ones you suggested before.'),
+        );
       }
       const text = noteParts.filter(Boolean).join(' ');
 
@@ -160,7 +166,8 @@ export function useCoach() {
       );
     } catch (e) {
       if (!request.active()) return 'skipped';
-      const message = e instanceof CoachError ? e.message : e instanceof Error ? e.message : '알 수 없는 오류가 발생했어요.';
+      // 영어판인데 아직 한국어인 오류 글이면 영어 안내로 (errorText)
+      const message = errorText(e, '알 수 없는 오류가 발생했어요.', 'Something went wrong. Please try again.');
       // 캡처를 읽지 못한 경우는 「캡처 다시 올리기」를 띄우도록 따로 표시한다 (원래 오류 문장 대신 안내 문장)
       const code = e instanceof CoachError ? e.code : e instanceof ImageReadError ? 'image' : 'server';
       if (coachMessageId) useAppStore.getState().updateMessage(crush.id, coachMessageId, { pending: false, error: message, text: code });
@@ -169,7 +176,7 @@ export function useCoach() {
     } finally {
       request.finish();
       if (controller.signal.aborted && coachMessageId && useAppStore.getState().crushes[crush.id]) {
-        useAppStore.getState().updateMessage(crush.id, coachMessageId, { pending: false, error: '요청이 취소됐어요. 다시 시도해주세요.', text: 'cancelled' });
+        useAppStore.getState().updateMessage(crush.id, coachMessageId, { pending: false, error: L('요청이 취소됐어요. 다시 시도해주세요.', 'Request canceled. Please try again.'), text: 'cancelled' });
       }
       if (abortRef.current === controller) {
         abortRef.current = null;

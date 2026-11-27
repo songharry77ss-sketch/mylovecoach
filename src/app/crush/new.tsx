@@ -4,6 +4,7 @@ import { CrushForm } from '@/components/crush/crush-form';
 import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { L } from '@/lib/i18n';
 import { useAppStore } from '@/store/app-store';
 
 export default function NewCrush() {
@@ -15,7 +16,7 @@ export default function NewCrush() {
     <Screen sheet keyboard background={theme.canvas} contentStyle={{ paddingTop: Spacing.sm }}>
       <Stack.Screen options={{ headerStyle: { backgroundColor: theme.canvas } }} />
       <CrushForm
-        submitTitle="채팅방 만들기"
+        submitTitle={L('채팅방 만들기', 'Create chat')}
         onSubmit={(value) => {
           const crush = addCrush(value);
           router.dismissTo?.('/(tabs)');

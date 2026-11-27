@@ -19,7 +19,8 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
-import { renderSituation, themLabel } from '@/lib/mind-cards';
+import { L } from '@/lib/i18n';
+import { fillThem, renderSituation, themLabel } from '@/lib/mind-cards';
 import { mindsOf, tipsOf, worryById } from '@/lib/tips';
 import { sortCrushes, useAppStore } from '@/store/app-store';
 
@@ -48,19 +49,28 @@ export default function WorryScreen() {
   const [whoOpen, setWhoOpen] = useState(false);
   const tips = useMemo(() => (worry ? tipsOf(worry) : []), [worry]);
   const minds = useMemo(() => (worry ? mindsOf(worry) : []), [worry]);
-  const mindCost = useCostNote('볼 때');
-  const askCost = useCostNote('물어볼 때');
+  const mindCost = useCostNote(L('볼 때', 'to view'));
+  const askCost = useCostNote(L('물어볼 때', 'to ask'));
 
   if (!worry) {
     return (
       <Screen>
-        <EmptyState emoji="🤔" title="찾는 고민이 없어요" description="탐색에서 다른 고민을 골라 봐요." actionTitle="돌아가기" onAction={() => router.back()} />
+        <EmptyState
+          emoji="🤔"
+          title={L('찾는 고민이 없어요', "Couldn't find that one")}
+          description={L('탐색에서 다른 고민을 골라 봐요.', 'Pick another topic from Explore.')}
+          actionTitle={L('돌아가기', 'Go back')}
+          onAction={() => router.back()}
+        />
       </Screen>
     );
   }
 
   const them = themLabel(perspective);
-  const askTitle = `이 상황, ${APP_NAME}에게 물어보기`;
+  // 영어판에는 앱 이름(센딧)을 쓰지 않는다
+  const askTitle = L(`이 상황, ${APP_NAME}에게 물어보기`, 'Ask your coach about this');
+  // 영어판은 대명사(his·her·their)를 성별에 맞게
+  const readMind = L('속마음 보기', fillThem('Read {their} mind', perspective));
 
   /** 고른 채팅방으로 — 홈의 openRoom 과 같은 규칙(새로운 사람은 늘 새 방, 방이 하나도 없으면 quickStart) */
   const openRoom = (target: WhoTarget) => {
@@ -72,7 +82,7 @@ export default function WorryScreen() {
         : target.kind === 'secret'
           ? s.createSecretChat()
           : hasRoom
-            ? s.addCrush({ name: '상대', gender: 'female', relationship: 'talking', style: [], notes: '' }).id
+            ? s.addCrush({ name: L('상대', 'Them'), gender: 'female', relationship: 'talking', style: [], notes: '' }).id
             : s.quickStart();
     track('tipbook_ask', { worry: worry.id, target: target.kind, rooms: rooms.length });
     router.push({ pathname: '/crush/[id]', params: { id, pendingText: worry.ask } });
@@ -95,7 +105,7 @@ export default function WorryScreen() {
         <Animated.View entering={enter(0)} style={styles.head}>
           {/* 화면의 작은 라벨은 이것 하나(회색) — 연애팁 백서 · 찾는 말 */}
           <AppText variant="smallStrong" color="textSecondary">
-            연애팁 백서 · {worry.keywords}
+            {L('연애팁 백서', 'Dating playbook')} · {worry.keywords}
           </AppText>
           <Text style={[styles.title, { color: theme.text }]} accessibilityRole="header">
             {worry.title}
@@ -109,12 +119,12 @@ export default function WorryScreen() {
 
         {/* 해결 단계 — 회색 번호 동그라미를 가는 선으로 잇는다 */}
         <Animated.View entering={enter(2)}>
-          <SectionHeader title="이렇게 해 봐요" style={styles.sectionHeader} />
+          <SectionHeader title={L('이렇게 해 봐요', 'Try this')} style={styles.sectionHeader} />
           <View accessibilityRole="list">
             {worry.steps.map((step, i) => {
               const last = i === worry.steps.length - 1;
               return (
-                <View key={step.title} style={styles.step} accessible accessibilityLabel={`${i + 1}단계, ${step.title}. ${step.body}`}>
+                <View key={step.title} style={styles.step} accessible accessibilityLabel={L(`${i + 1}단계, ${step.title}. ${step.body}`, `Step ${i + 1}, ${step.title}. ${step.body}`)}>
                   <View style={styles.stepRail}>
                     <View style={[styles.stepNum, { backgroundColor: fill }]}>
                       <AppText style={[styles.stepNumText, { color: theme.text }]}>{i + 1}</AppText>
@@ -136,7 +146,7 @@ export default function WorryScreen() {
         {/* 같이 보면 좋은 팁 — 상자 대신 가는 선으로 나눈 줄 */}
         {tips.length ? (
           <Animated.View entering={enter(3)}>
-            <SectionHeader title="같이 보면 좋은 팁" style={styles.sectionHeader} />
+            <SectionHeader title={L('같이 보면 좋은 팁', 'Related tips')} style={styles.sectionHeader} />
             {tips.map((tip, i) => (
               <View key={tip.id} style={[styles.tip, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.separator }]}>
                 <AppText variant="bodyStrong">{tip.title}</AppText>
@@ -151,7 +161,11 @@ export default function WorryScreen() {
         {/* 이럴 때 그 사람 속마음 — 누르면 속마음 풀이(무료 1회) */}
         {minds.length ? (
           <Animated.View entering={enter(4)}>
-            <SectionHeader title={`이럴 때 ${them} 속마음은?`} subtitle={mindCost.note ?? undefined} style={styles.sectionHeader} />
+            <SectionHeader
+              title={L(`이럴 때 ${them} 속마음은?`, fillThem("What's going through {their} head?", perspective))}
+              subtitle={mindCost.note ?? undefined}
+              style={styles.sectionHeader}
+            />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.mindsWrap} contentContainerStyle={styles.minds}>
               {minds.map((m) => {
                 const situation = renderSituation(m, perspective);
@@ -161,15 +175,16 @@ export default function WorryScreen() {
                     pressedScale={0.97}
                     feedback={false}
                     onPress={() => openMind(situation)}
-                    accessibilityLabel={`${situation} ${them} 속마음 보기`}
-                    accessibilityHint={mindCost.suffix ? '무료 코칭 1회를 써요' : undefined}
+                    accessibilityLabel={L(`${situation} ${them} 속마음 보기`, `${situation} ${readMind}`)}
+                    accessibilityHint={mindCost.suffix ? L('무료 코칭 1회를 써요', 'Uses 1 free coaching') : undefined}
                     style={[styles.mind, minds.length === 1 && styles.mindWide, { backgroundColor: fill }]}>
                     <AppText variant="smallStrong" numberOfLines={4}>
                       {situation}
                     </AppText>
                     <View style={styles.mindGo}>
                       <AppText variant="small" color="primary" weight="600">
-                        속마음 보기{mindCost.suffix}
+                        {readMind}
+                        {mindCost.suffix}
                       </AppText>
                       <Ionicons name="chevron-forward" size={14} color={theme.primary} />
                     </View>
@@ -197,7 +212,7 @@ export default function WorryScreen() {
       <WhoSheet
         visible={whoOpen}
         crushes={rooms}
-        subtitle="고르면 이 고민으로 바로 물어봐요"
+        subtitle={L('고르면 이 고민으로 바로 물어봐요', "Pick a chat and we'll ask about this right away")}
         onPick={(target) => {
           haptic.select();
           setWhoOpen(false);

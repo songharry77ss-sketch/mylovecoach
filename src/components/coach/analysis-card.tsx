@@ -7,6 +7,7 @@ import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withDel
 import { CountUp } from '@/components/coach/count-up';
 import { HeatGauge } from '@/components/coach/heat-gauge';
 import { ReplyCards } from '@/components/coach/reply-cards';
+import { isUnnamedCrush } from '@/components/crush/crush-name';
 import { useCelebrate } from '@/components/fx/celebration';
 import { AppText } from '@/components/ui/app-text';
 import { PressableScale } from '@/components/ui/pressable-scale';
@@ -17,6 +18,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { coachReportContent } from '@/lib/ai-report';
 import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { haptic } from '@/lib/haptics';
+import { isKo, L } from '@/lib/i18n';
 import { TEMPERATURES } from '@/lib/labels';
 import { noteWinAndMaybeAskReview } from '@/lib/store-review';
 import type { ChatMessage, CoachAnalysis, Tone } from '@/lib/types';
@@ -46,7 +48,8 @@ interface AnalysisCardProps {
   latest?: boolean;
 }
 
-const SPEECH_CHIP = { polite: '존댓말 유지', casual: '반말 유지', mixed: '말투 섞임', unknown: null } as const;
+// 존댓말·반말 칩은 한국어판에만 (영어에는 없는 구분)
+const SPEECH_CHIP_KO = { polite: '존댓말 유지', casual: '반말 유지', mixed: '말투 섞임', unknown: null } as const;
 /** 한 번 숫자 세기·축하를 보여 준 결과는 목록이 다시 그려져도 다시 하지 않는다 */
 const revealedCards = new Set<string>();
 /** 신고 내용 상한 (서버와 같은 4,000자) */
@@ -78,13 +81,13 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
   const replies = analysis.replies;
   const isLocked = (i: number) => lockedFrom != null && i >= lockedFrom && Boolean(onUnlock);
   const vibe = TEMPERATURES[analysis.temperature];
-  const speechChip = analysis.speechLevel ? SPEECH_CHIP[analysis.speechLevel] : null;
+  const speechChip = isKo && analysis.speechLevel ? SPEECH_CHIP_KO[analysis.speechLevel] : null;
   // 알아챈 호칭·말투 — 색 칩 대신 회색 한 줄
-  const detected = [analysis.callName ? `호칭 「${analysis.callName}」 그대로` : null, speechChip].filter(Boolean).join(' · ');
+  const detected = [analysis.callName ? L(`호칭 「${analysis.callName}」 그대로`, `Using “${analysis.callName}” like you do`) : null, speechChip].filter(Boolean).join(' · ');
   // 회색 말풍선 안의 흰 카드 (다크는 한 단계 밝은 면)
   const innerFill = dark ? theme.surfaceElevated : theme.card;
   const score = analysis.temperature === 'unknown' ? null : analysis.interestScore;
-  const named = partnerName && partnerName !== '상대' ? partnerName : null;
+  const named = partnerName && !isUnnamedCrush(partnerName) ? partnerName : null;
   const why = replies.map((r, i) => (r.why?.trim() && !isLocked(i) ? { i, text: r.why.trim() } : null)).filter((x): x is { i: number; text: string } => Boolean(x));
   // 11/12 회의 13번 「답이 너무 김」 — 기본 화면은 요약·관심도·답장·다음 단계만, 주의할 점·포인트·이유는 접어 둔다
   const hasDetails = analysis.insights.length > 0 || why.length > 0 || analysis.warnings.length > 0;
@@ -106,7 +109,7 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
     setCopied(index);
     onSelectReply(index);
     celebrate({ kind: 'sparkles', x: at?.x, y: at?.y, count: 14, haptic: false });
-    toast.show('복사했어요. 카톡에 붙여넣기만 하면 끝!', 'success');
+    toast.show(L('복사했어요. 카톡에 붙여넣기만 하면 끝!', 'Copied! Just paste it in your chat.'), 'success');
     // 가장 만족한 순간 — 여러 번 쌓이면 가끔 스토어 별점을 부탁한다
     noteWinAndMaybeAskReview('reply_copy');
   };
@@ -129,12 +132,18 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
   const reportAnswer = () => {
     const first = selectedReplyIndex != null && !isLocked(selectedReplyIndex) ? selectedReplyIndex : 0;
     const others = replies
-      .map((r, i) => (i !== first && !isLocked(i) ? `답장 ${i + 1}: ${r.text}${r.expectedReaction ? ` (예상 반응: ${r.expectedReaction})` : ''}` : ''))
+      .map((r, i) => (i !== first && !isLocked(i) ? L(`답장 ${i + 1}: ${r.text}${r.expectedReaction ? ` (예상 반응: ${r.expectedReaction})` : ''}`, `Reply ${i + 1}: ${r.text}${r.expectedReaction ? ` (Likely reaction: ${r.expectedReaction})` : ''}`) : ''))
       .filter(Boolean);
     onReport?.([coachReportContent(analysis, first), ...others].join('\n').slice(0, REPORT_MAX));
   };
 
-  const heatCaption = heat ? (heat.delta > 0 ? '이번 대화로 따뜻해졌어요' : heat.delta < 0 ? '이번 대화로 조금 식었어요' : '이번 대화로는 그대로예요') : undefined;
+  const heatCaption = heat
+    ? heat.delta > 0
+      ? L('이번 대화로 따뜻해졌어요', 'This chat warmed things up')
+      : heat.delta < 0
+        ? L('이번 대화로 조금 식었어요', 'This chat cooled things a bit')
+        : L('이번 대화로는 그대로예요', 'No change from this chat')
+    : undefined;
   let step = 0;
   const enter = () => (reveal ? FadeInDown.delay(80 + step++ * 70).duration(320) : undefined);
 
@@ -153,10 +162,10 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
       {/* 답장 3가지 — 결과의 주인공이라 맨 위에 */}
       {replies.length ? (
         <Animated.View entering={enter()} style={styles.block}>
-          <AppText variant="bodyStrong">이렇게 답장해 봐요</AppText>
+          <AppText variant="bodyStrong">{L('이렇게 답장해 봐요', 'Try replying like this')}</AppText>
           {lockedFrom != null && onUnlock && replies.length > lockedFrom ? (
             <AppText variant="caption" color="primary" weight="600">
-              답장 {replies.length - lockedFrom}개가 더 있어요 · 가입하면 바로 보여요
+              {L(`답장 ${replies.length - lockedFrom}개가 더 있어요 · 가입하면 바로 보여요`, `${replies.length - lockedFrom} more ${replies.length - lockedFrom === 1 ? 'reply' : 'replies'} · Sign up to see them`)}
             </AppText>
           ) : null}
           <ReplyCards
@@ -180,9 +189,9 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
             <View ref={anchor} style={styles.metric}>
               <View style={styles.rowBetween}>
                 <View style={styles.flexShrink}>
-                  <AppText variant="bodyStrong">관심 있을 가능성</AppText>
+                  <AppText variant="bodyStrong">{L('관심 있을 가능성', 'Chance they’re into you')}</AppText>
                   <AppText variant="caption" color="textSecondary">
-                    이번 대화 분위기 · {vibe.label}
+                    {L('이번 대화 분위기', 'Chat vibe')} · {vibe.label}
                   </AppText>
                 </View>
                 <CountUp value={score} animate={reveal} delay={250} duration={1000} ticks suffix="%" style={[styles.bigNumber, { color: theme.primary }]} suffixStyle={[styles.bigUnit, { color: theme.primary }]} onDone={sparkle} />
@@ -196,7 +205,7 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
             // 관심도 점수가 없는 예전 결과 — 예전처럼 이번 대화의 호감 온도(분위기)는 보여 준다
             <View style={styles.rowBetween}>
               <View style={styles.flexShrink}>
-                <AppText variant="bodyStrong">이번 대화 호감 온도</AppText>
+                <AppText variant="bodyStrong">{L('이번 대화 호감 온도', 'Interest level in this chat')}</AppText>
                 <AppText variant="caption" color="textSecondary">
                   {vibe.description}
                 </AppText>
@@ -208,7 +217,7 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
           ) : null}
           {heat ? (
             <View style={score != null || analysis.temperature !== 'unknown' ? [styles.heatBox, { borderTopColor: theme.separator }] : null}>
-              <HeatGauge value={heat.after} from={heat.before} delta={heat.delta} revealKey={revealKey} compact title={named ? `${named}님과의 호감 온도` : '호감 온도'} caption={heatCaption} />
+              <HeatGauge value={heat.after} from={heat.before} delta={heat.delta} revealKey={revealKey} compact title={named ? L(`${named}님과의 호감 온도`, `Interest level with ${named}`) : L('호감 온도', 'Interest level')} caption={heatCaption} />
             </View>
           ) : null}
         </Animated.View>
@@ -219,7 +228,7 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
         <Animated.View entering={enter()} style={styles.nextRow}>
           <Ionicons name="arrow-forward-circle-outline" size={18} color={theme.textSecondary} style={styles.nextIcon} />
           <AppText variant="small" style={styles.flexShrink}>
-            <AppText variant="smallStrong">다음 단계 </AppText>
+            <AppText variant="smallStrong">{L('다음 단계 ', 'Next step ')}</AppText>
             {analysis.nextStep}
           </AppText>
         </Animated.View>
@@ -238,15 +247,19 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
             hitSlop={8}
             style={styles.moreRow}>
             <AppText variant="smallStrong" color="textSecondary">
-              {open ? '설명 접기' : analysis.warnings.length ? '왜 이렇게 답할까? · 주의할 점' : '왜 이렇게 답할까? · 읽어낸 포인트'}
+              {open
+                ? L('설명 접기', 'Hide details')
+                : analysis.warnings.length
+                  ? L('왜 이렇게 답할까? · 주의할 점', 'Why these replies? · Watch out')
+                  : L('왜 이렇게 답할까? · 읽어낸 포인트', 'Why these replies? · What I noticed')}
             </AppText>
             <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={15} color={theme.textTertiary} />
           </Pressable>
           {open ? (
             <Animated.View entering={FadeInDown.duration(220)} style={styles.details}>
-              {analysis.warnings.length ? <Detail title="주의할 점" lines={analysis.warnings} /> : null}
-              {analysis.insights.length ? <Detail title="읽어낸 포인트" lines={analysis.insights} /> : null}
-              {why.length ? <Detail title="답장을 고른 이유" lines={why.map((w) => `${w.i + 1}번 · ${w.text}`)} /> : null}
+              {analysis.warnings.length ? <Detail title={L('주의할 점', 'Watch out')} lines={analysis.warnings} /> : null}
+              {analysis.insights.length ? <Detail title={L('읽어낸 포인트', 'What I noticed')} lines={analysis.insights} /> : null}
+              {why.length ? <Detail title={L('답장을 고른 이유', 'Why these replies')} lines={why.map((w) => L(`${w.i + 1}번 · ${w.text}`, `#${w.i + 1} · ${w.text}`))} /> : null}
             </Animated.View>
           ) : null}
         </View>
@@ -257,19 +270,19 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
         <View style={styles.footer}>
           {onRegenerate ? (
             <PressableScale
-              accessibilityLabel="다른 답장 더 보기"
-              accessibilityHint={regenCosts ? '무료 코칭 1회를 써요' : undefined}
+              accessibilityLabel={L('다른 답장 더 보기', 'More replies')}
+              accessibilityHint={regenCosts ? L('무료 코칭 1회를 써요', 'Uses 1 free coaching') : undefined}
               accessibilityState={{ disabled: regenerating }}
               feedback="tap"
               onPress={() => onRegenerate()}
               disabled={regenerating}
               style={[styles.again, { backgroundColor: innerFill, opacity: regenerating ? 0.6 : 1 }]}>
               <Ionicons name="refresh" size={15} color={theme.text} />
-              <AppText variant="smallStrong">{regenerating ? '새로 만드는 중…' : '다른 답장 더 보기'}</AppText>
+              <AppText variant="smallStrong">{regenerating ? L('새로 만드는 중…', 'Making new ones…') : L('다른 답장 더 보기', 'More replies')}</AppText>
               {/* 무료 1회를 쓰는 버튼은 누르기 전에 알린다 (「모르는 새 닳았다」 방지) */}
               {regenCosts && !regenerating ? (
                 <AppText variant="caption" color="textTertiary">
-                  · 1회
+                  {L('· 1회', '· 1 use')}
                 </AppText>
               ) : null}
             </PressableScale>
@@ -277,10 +290,10 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
             <View />
           )}
           {onReport ? (
-            <Pressable accessibilityRole="button" accessibilityLabel="이 답변 신고하기" onPress={reportAnswer} hitSlop={10} style={styles.report}>
+            <Pressable accessibilityRole="button" accessibilityLabel={L('이 답변 신고하기', 'Report this AI answer')} onPress={reportAnswer} hitSlop={10} style={styles.report}>
               <Ionicons name="flag-outline" size={14} color={theme.textTertiary} />
               <AppText variant="caption" color="textTertiary">
-                신고
+                {L('신고', 'Report')}
               </AppText>
             </Pressable>
           ) : null}

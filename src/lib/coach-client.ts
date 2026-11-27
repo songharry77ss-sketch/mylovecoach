@@ -234,6 +234,7 @@ async function postToServer(feature: AiFeature, body: unknown, extraHeaders: Rec
     // 서버가 「앱을 업데이트해 주세요」로 거절함 — 새 버전 안내를 바로 띄운다 (오류 문구는 서버가 준 것을 그대로 보여 준다)
     if (res.status === 426) requestUpdatePrompt();
     const code = res.status === 401 || res.status === 403 ? 'auth' : res.status === 429 ? 'rate_limit' : res.status === 422 ? 'refused' : res.status === 413 ? 'too_large' : 'server';
+    if (res.status === 426 && isEn) throw new CoachError('Please update My Love Coach to the latest version to keep going.', code);
     throw new CoachError(errorText((json as { error?: string })?.error ?? (isEn ? undefined : `서버 오류 (${res.status})`), code), code);
   }
   return json;

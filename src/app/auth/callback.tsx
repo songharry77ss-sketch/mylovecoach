@@ -13,6 +13,7 @@ import { authErrorMessage, linkMember } from '@/lib/auth';
 import { takeAuthReturn } from '@/lib/auth-return';
 import { SIGNUP_BONUS } from '@/lib/billing/plans';
 import { haptic } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -49,7 +50,7 @@ export default function AuthCallback() {
         const result = await linkMember();
         if (!alive) return;
         haptic.celebrate();
-        toast.show(result.bonus ? `가입 완료! 무료 코칭 ${SIGNUP_BONUS}회를 받았어요 🎁` : '로그인했어요.', 'success');
+        toast.show(result.bonus ? L(`가입 완료! 무료 코칭 ${SIGNUP_BONUS}회를 받았어요 🎁`, `You're in! ${SIGNUP_BONUS} free sessions added 🎁`) : L('로그인했어요.', 'Signed in.'), 'success');
         // 웹에서 채팅방의 「가입하고 보기」로 왔으면 그 채팅방으로 돌아간다 (뒤로 가면 홈)
         const back = takeAuthReturn();
         if (back) {
@@ -76,19 +77,19 @@ export default function AuthCallback() {
           <>
             <Icon3D name="heart" size={88} />
             <AppText variant="title2" align="center">
-              가입을 마치지 못했어요
+              {L('가입을 마치지 못했어요', "Couldn't finish signing up")}
             </AppText>
             <AppText variant="small" color="textSecondary" align="center">
               {error}
             </AppText>
-            <Button title="돌아가기" variant="brand" onPress={() => router.replace('/(tabs)/my')} style={styles.back} />
+            <Button title={L('돌아가기', 'Go back')} variant="brand" onPress={() => router.replace('/(tabs)/my')} style={styles.back} />
           </>
         ) : (
           <>
             <SenditLogo size="lg" subtitle />
             <ActivityIndicator color={theme.primary} style={styles.spinner} />
             <AppText variant="small" color="textSecondary" align="center">
-              가입을 마무리하는 중…
+              {L('가입을 마무리하는 중…', 'Finishing sign-up…')}
             </AppText>
           </>
         )}

@@ -16,18 +16,34 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
-import { drawMindCard, renderSituation, themLabel } from '@/lib/mind-cards';
+import { L, isKo } from '@/lib/i18n';
+import { kktiCopy } from '@/lib/kkti-en';
+import { drawMindCard, mindCategoryLabel, renderSituation, themLabel } from '@/lib/mind-cards';
 import { WORRIES, type Worry } from '@/lib/tips';
 import type { Gender } from '@/lib/types';
 import { useAppStore } from '@/store/app-store';
 
 /** 등장 — 위에서부터 짧게 (1.4 개편: 튕김 없이 300ms) */
 const enter = (step: number) => FadeInDown.delay(step * 40).duration(300);
-const PERSPECTIVES: { key: Gender; label: string }[] = [
-  { key: 'male', label: '남자 속마음' },
-  { key: 'female', label: '여자 속마음' },
-  { key: 'other', label: '성별 무관' },
-];
+const PERSPECTIVES: { key: Gender; label: string }[] = L(
+  [
+    { key: 'male', label: '남자 속마음' },
+    { key: 'female', label: '여자 속마음' },
+    { key: 'other', label: '성별 무관' },
+  ],
+  [
+    { key: 'male', label: 'His side' },
+    { key: 'female', label: 'Her side' },
+    { key: 'other', label: 'Any gender' },
+  ],
+);
+
+/** 영어판 속마음 문장 — 영어는 he/she/they 에 따라 동사가 달라 「{them}는」 끼워 넣기 대신 통째로 고른다 */
+const MIND_EN: Record<Gender, { side: string; question: string; reveal: string; ask: string; example: string }> = {
+  male: { side: 'His side', question: "What's he really thinking here?", reveal: 'Read his mind', ask: "Ask what he's thinking", example: 'e.g. He watches my stories but never texts' },
+  female: { side: 'Her side', question: "What's she really thinking here?", reveal: 'Read her mind', ask: "Ask what she's thinking", example: 'e.g. She watches my stories but never texts' },
+  other: { side: 'Their side', question: 'What are they really thinking here?', reveal: 'Read their mind', ask: "Ask what they're thinking", example: 'e.g. They watch my stories but never text' },
+};
 /** 연애 연습 빨간 점 — 그 줄이 이만큼 화면에 보였으면 「봤다」로 친다 (탐색 탭을 떠날 때 지운다) */
 const PRACTICE_DOT_VIEW_MS = 2000;
 const PRACTICE_DOT_POLL_MS = 500;
@@ -51,9 +67,11 @@ export default function MindTab() {
   const practiceDotSeen = useAppStore((s) => s.practiceDotSeen);
   const seePracticeDot = useAppStore((s) => s.seePracticeDot);
   const kkti = useAppStore((s) => s.kkti);
+  // 저장된 KKTI 결과를 지금 언어의 이름·코드로 (한국어판은 저장값 그대로)
+  const kktiView = kkti ? kktiCopy.saved(kkti) : null;
   const history = useAppStore((s) => s.mindHistory);
   const defaultPerspective = useDefaultPerspective();
-  const cost = useCostNote('볼 때');
+  const cost = useCostNote(L('볼 때', 'when viewing'));
   const [perspective, setPerspective] = useState<Gender>(defaultPerspective);
   const [card, setCard] = useState(() => drawMindCard());
   const [seen, setSeen] = useState<string[]>([]);
@@ -64,6 +82,7 @@ export default function MindTab() {
 
   const situation = renderSituation(card, perspective);
   const them = themLabel(perspective);
+  const mindEn = MIND_EN[perspective] ?? MIND_EN.other;
   const shown = history.slice(0, 3);
 
   // 연애 연습 빨간 점: 누르면 바로, 아니면 그 줄이 화면에 2초 넘게 보인 뒤 탐색 탭을 떠날 때 지운다
@@ -131,16 +150,16 @@ export default function MindTab() {
   const ownReady = own.trim().length > 0;
 
   return (
-    <Screen safeTop tab keyboard title="탐색" background={theme.background} contentStyle={styles.content}>
+    <Screen safeTop tab keyboard title={L('탐색', 'Explore')} background={theme.background} contentStyle={styles.content}>
       <Animated.View entering={enter(0)} style={styles.head}>
         <Text style={[styles.title, { color: theme.text }]} accessibilityRole="header">
-          탐색
+          {L('탐색', 'Explore')}
         </Text>
       </Animated.View>
 
       {/* 연애팁 백서 — 이 탭의 주인공. 고민 8개를 아이콘 없는 2열 글자 버튼으로(예전 타일 438pt → 약 230pt) */}
       <Animated.View entering={enter(1)} style={styles.section}>
-        <SectionHeader title="어떤 고민이 있어요?" style={styles.sectionHeader} />
+        <SectionHeader title={L('어떤 고민이 있어요?', "What's on your mind?")} style={styles.sectionHeader} />
         <View style={styles.grid}>
           {WORRIES.map((w) => (
             <View key={w.id} style={styles.gridItem}>
@@ -152,32 +171,45 @@ export default function MindTab() {
 
       {/* 더 해 볼 것 — 흰 바탕 위 줄 셋(카드·아이콘 없이). 연애 연습은 기본으로 숨긴 탭이라 여기서 늘 보이게 둔다 */}
       <Animated.View entering={enter(2)} style={styles.section}>
-        <SectionHeader title="더 해 볼 것" style={styles.sectionHeader} />
+        <SectionHeader title={L('더 해 볼 것', 'More to try')} style={styles.sectionHeader} />
         <View style={styles.list}>
           <ExploreRow
             rowRef={practiceRow}
-            title="연애 연습"
+            title={L('연애 연습', 'Practice chat')}
             dot={!practiceDotSeen}
-            note={practiceDotSeen ? undefined : '이런 기능도 있어요'}
-            subtitle={practiceDotSeen ? 'AI 상대와 카톡으로 미리 연습해요' : '카톡 리허설'}
-            accessibilityLabel={practiceDotSeen ? '연애 연습, AI 상대와 카톡 리허설' : '연애 연습, 새 기능, AI 상대와 카톡 리허설'}
+            note={practiceDotSeen ? undefined : L('이런 기능도 있어요', 'Try this')}
+            subtitle={practiceDotSeen ? L('AI 상대와 카톡으로 미리 연습해요', 'Practice texting with an AI match') : L('카톡 리허설', 'Texting rehearsal')}
+            accessibilityLabel={
+              practiceDotSeen
+                ? L('연애 연습, AI 상대와 카톡 리허설', 'Practice chat, rehearse texting with an AI match')
+                : L('연애 연습, 새 기능, AI 상대와 카톡 리허설', 'Practice chat, new, rehearse texting with an AI match')
+            }
             onPress={() => openFeature('practice')}
             divider
           />
           <ExploreRow
-            title={kkti ? `내 KKTI · ${kkti.code}` : 'KKTI 테스트'}
-            subtitle={kkti ? `${kkti.name} · 다시 해 보기` : '카톡 습관 속 나의 연애 유형'}
-            accessibilityLabel={kkti ? `내 KKTI ${kkti.code} ${kkti.name}, 다시 해 보기` : 'KKTI 테스트, 카톡 습관 속 나의 연애 유형'}
+            title={kkti ? L(`내 KKTI · ${kktiView?.code}`, `My Texting Type · ${kktiView?.code}`) : L('KKTI 테스트', 'Texting Type Test')}
+            subtitle={kkti ? L(`${kktiView?.name} · 다시 해 보기`, `${kktiView?.name} · Retake`) : L('카톡 습관 속 나의 연애 유형', 'Your dating type, based on how you text')}
+            accessibilityLabel={
+              kkti
+                ? L(`내 KKTI ${kktiView?.code} ${kktiView?.name}, 다시 해 보기`, `My Texting Type ${kktiView?.code} ${kktiView?.name}, retake`)
+                : L('KKTI 테스트, 카톡 습관 속 나의 연애 유형', 'Texting Type Test, your dating type based on how you text')
+            }
             onPress={() => openFeature('kkti')}
             divider
           />
-          <ExploreRow title="비밀 상담" subtitle="나가면 대화·캡처가 바로 지워져요" accessibilityLabel="비밀 상담, 기록이 남지 않아요" onPress={() => openFeature('secret')} />
+          <ExploreRow
+            title={L('비밀 상담', 'Private chat')}
+            subtitle={L('나가면 대화·캡처가 바로 지워져요', 'Chats and screenshots are deleted when you leave')}
+            accessibilityLabel={L('비밀 상담, 기록이 남지 않아요', 'Private chat, nothing is saved')}
+            onPress={() => openFeature('secret')}
+          />
         </View>
       </Animated.View>
 
       {/* 속마음 카드 — 무작위 상황(열 때마다 새로 뽑는다), 뒤집히며 바뀐다 */}
       <Animated.View entering={enter(3)} style={styles.section}>
-        <SectionHeader title="속마음 카드" style={styles.sectionHeader} />
+        <SectionHeader title={L('속마음 카드', 'Mind cards')} style={styles.sectionHeader} />
         <View style={styles.perspective}>
           {PERSPECTIVES.map((p) => (
             <Chip key={p.key} label={p.label} selected={perspective === p.key} onPress={() => setPerspective(p.key)} />
@@ -187,27 +219,27 @@ export default function MindTab() {
 
       <Animated.View entering={enter(4)} style={[styles.card, { backgroundColor: fill }, flipStyle]}>
         <AppText variant="caption" color="textSecondary" weight="600">
-          {card.category}
+          {mindCategoryLabel(card.category)}
         </AppText>
         <AppText variant="title3" weight="700" style={styles.situation}>
           {situation}
         </AppText>
         <AppText variant="small" color="textSecondary">
-          이 상황에서 {them}는 진짜 무슨 생각일까요?
+          {isKo ? `이 상황에서 ${them}는 진짜 무슨 생각일까요?` : mindEn.question}
         </AppText>
         <View style={styles.cardActions}>
-          <PressableScale feedback={false} onPress={shuffle} accessibilityLabel="다른 상황 뽑기" style={[styles.shuffle, { backgroundColor: innerFill }]}>
+          <PressableScale feedback={false} onPress={shuffle} accessibilityLabel={L('다른 상황 뽑기', 'Draw another situation')} style={[styles.shuffle, { backgroundColor: innerFill }]}>
             <Ionicons name="refresh" size={16} color={theme.text} />
-            <AppText variant="smallStrong">다른 상황</AppText>
+            <AppText variant="smallStrong">{L('다른 상황', 'Shuffle')}</AppText>
           </PressableScale>
           <PressableScale
             feedback={false}
             onPress={() => ask(situation)}
-            accessibilityLabel={`${them} 속마음 보기`}
-            accessibilityHint={cost.suffix ? '무료 코칭 1회를 써요' : undefined}
+            accessibilityLabel={isKo ? `${them} 속마음 보기` : mindEn.reveal}
+            accessibilityHint={cost.suffix ? L('무료 코칭 1회를 써요', 'Uses 1 free session') : undefined}
             style={styles.reveal}>
-            <Text style={styles.revealText}>속마음 보기</Text>
-            {cost.suffix ? <Text style={styles.revealCost}>· 1회</Text> : null}
+            <Text style={styles.revealText}>{L('속마음 보기', 'Read their mind')}</Text>
+            {cost.suffix ? <Text style={styles.revealCost}>{L('· 1회', '· 1 use')}</Text> : null}
           </PressableScale>
         </View>
         {cost.note ? (
@@ -228,7 +260,7 @@ export default function MindTab() {
           }}
           style={styles.ownHead}>
           <AppText variant="bodyStrong" style={styles.flex}>
-            내 상황 직접 물어보기
+            {L('내 상황 직접 물어보기', 'Ask about your own situation')}
           </AppText>
           <Ionicons name={ownOpen ? 'chevron-up' : 'chevron-down'} size={18} color={theme.textTertiary} />
         </Pressable>
@@ -237,8 +269,8 @@ export default function MindTab() {
             <TextInput
               value={own}
               onChangeText={setOwn}
-              accessibilityLabel="내 상황 적기"
-              placeholder={`예: ${them}가 스토리는 보는데 카톡은 안 해요`}
+              accessibilityLabel={L('내 상황 적기', 'Describe your situation')}
+              placeholder={isKo ? `예: ${them}가 스토리는 보는데 카톡은 안 해요` : mindEn.example}
               placeholderTextColor={theme.textTertiary}
               multiline
               maxLength={400}
@@ -251,10 +283,11 @@ export default function MindTab() {
               onPress={() => ask(own)}
               disabled={!ownReady}
               accessibilityState={{ disabled: !ownReady }}
-              accessibilityHint={cost.suffix ? '무료 코칭 1회를 써요' : undefined}
+              accessibilityHint={cost.suffix ? L('무료 코칭 1회를 써요', 'Uses 1 free session') : undefined}
               style={[styles.ownBtn, { backgroundColor: ownReady ? theme.text : innerFill }]}>
               <AppText variant="smallStrong" color={ownReady ? theme.background : theme.textTertiary}>
-                {them} 속마음 물어보기{cost.suffix}
+                {isKo ? `${them} 속마음 물어보기` : mindEn.ask}
+                {cost.suffix}
               </AppText>
             </PressableScale>
           </Animated.View>
@@ -263,7 +296,9 @@ export default function MindTab() {
 
       {shown.length ? (
         <View style={styles.section}>
-          <SectionHeader title="최근에 본 속마음" subtitle="다시 볼 때는 횟수를 쓰지 않아요" style={styles.sectionHeader} />
+          <SectionHeader
+            title={L('최근에 본 속마음', 'Recently read')}
+            subtitle={L('다시 볼 때는 횟수를 쓰지 않아요', 'Viewing again is free')} style={styles.sectionHeader} />
           {/* 흰 바탕 위 줄 목록 — 카드 없이 */}
           <View style={styles.list}>
             {shown.map((h, i) => (
@@ -276,7 +311,7 @@ export default function MindTab() {
                 }}
                 style={({ pressed }) => [styles.historyRow, { backgroundColor: pressed ? fill : 'transparent' }]}>
                 <AppText variant="caption" color="textSecondary" weight="600">
-                  {themLabel(h.perspective)} 속마음
+                  {isKo ? `${themLabel(h.perspective)} 속마음` : (MIND_EN[h.perspective] ?? MIND_EN.other).side}
                 </AppText>
                 <AppText variant="bodyStrong" numberOfLines={1}>
                   {h.situation}

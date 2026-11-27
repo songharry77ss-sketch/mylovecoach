@@ -8,9 +8,13 @@ import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { AppleRevocationError, AuthCancelled, deleteAccount, SessionMissing } from '@/lib/auth';
 import { subscriptionStoreName } from '@/lib/billing/plans';
+import { L, LANG } from '@/lib/i18n';
 
 const APPLE_HELP_URL = 'https://support.apple.com/102571';
-const MANUAL_NOTICE = 'Apple 연결은 자동 해제되지 않으며 안내대로 직접 해제해야 해요.';
+const MANUAL_NOTICE = L(
+  'Apple 연결은 자동 해제되지 않으며 안내대로 직접 해제해야 해요.',
+  "Your Apple connection won't be removed automatically — you'll need to remove it yourself using the steps below.",
+);
 
 interface DeletionFeedback {
   memberId?: string;
@@ -52,14 +56,16 @@ export function useAccountDeletion({ memberId, getCurrentMemberId, subscribeToMe
       if (changedAccount || identityRevision.current !== revision || (currentId !== undefined && currentId !== memberId)) return;
       setShowHelp(false);
       onDeleted(result.appleRevocation === 'manual'
-        ? '회원 정보는 삭제했어요. Apple 연결은 자동 해제되지 않았으니 안내대로 직접 해제해 주세요.'
-        : result.appleRevocation === 'revoked' ? '탈퇴하고 Apple 연결을 해제했어요.' : '탈퇴했어요. 그동안 고마웠어요.');
+        ? L('회원 정보는 삭제했어요. Apple 연결은 자동 해제되지 않았으니 안내대로 직접 해제해 주세요.', "Your account was deleted. Your Apple connection wasn't removed automatically, so please remove it using the steps.")
+        : result.appleRevocation === 'revoked'
+          ? L('탈퇴하고 Apple 연결을 해제했어요.', 'Account deleted and Apple connection removed.')
+          : L('탈퇴했어요. 그동안 고마웠어요.', 'Your account was deleted. Thanks for being here.'));
     } catch (error) {
       if (changedAccount || identityRevision.current !== revision || getCurrentMemberId() !== memberId) return;
       if (error instanceof AppleRevocationError) setShowHelp(true);
       else if (error instanceof AuthCancelled) { setShowHelp(false); onCancelled(); }
       else if (error instanceof SessionMissing) { setShowHelp(false); onSessionMissing(); }
-      else onError(error instanceof Error ? error.message : '탈퇴를 마치지 못했어요. 잠시 후 다시 시도해주세요.');
+      else onError(error instanceof Error ? error.message : L('탈퇴를 마치지 못했어요. 잠시 후 다시 시도해주세요.', "Couldn't delete your account. Try again in a moment."));
     } finally {
       unsubscribe();
       inFlight.current = false;
@@ -91,36 +97,39 @@ function AppleDeletionHelp({ busy, onCancel, onRetry, onManualDelete }: { busy: 
       <View style={styles.backdrop}>
         <View accessibilityViewIsModal onAccessibilityEscape={close} style={[styles.sheet, { backgroundColor: theme.background, maxHeight: height - insets.top - insets.bottom - Spacing.lg }]}>
           <ScrollView contentContainerStyle={styles.content}>
-            <AppText variant="title2" accessibilityRole="header">{confirming ? '회원 정보를 삭제할까요?' : 'Apple 연결 해제를 확인하지 못했어요'}</AppText>
+            <AppText variant="title2" accessibilityRole="header">{confirming ? L('회원 정보를 삭제할까요?', 'Delete your account?') : L('Apple 연결 해제를 확인하지 못했어요', "Couldn't confirm your Apple connection was removed")}</AppText>
             {confirming ? (
               <>
-                <AppText variant="body">회원 정보와 서버 이용 기록을 삭제하며 되돌릴 수 없어요. 이 기기의 채팅방은 남아 있어요.</AppText>
+                <AppText variant="body">{L('회원 정보와 서버 이용 기록을 삭제하며 되돌릴 수 없어요. 이 기기의 채팅방은 남아 있어요.', "This deletes your account and server usage history, and it can't be undone. Chats on this device will stay.")}</AppText>
                 <AppText variant="bodyStrong">{MANUAL_NOTICE}</AppText>
-                <AppText variant="small" color="textSecondary">{`스토어 구독도 취소되지 않아요. ${subscriptionStoreName(Platform.OS)}에서 구독을 별도로 취소해 주세요.`}</AppText>
-                <Button title="회원 정보 삭제" variant="danger" disabled={!acknowledged || busy} loading={busy} onPress={() => { if (acknowledged && !busy) onManualDelete(); }} />
-                <Button title="안내로 돌아가기" variant="soft" disabled={busy} onPress={() => setConfirming(false)} />
+                <AppText variant="small" color="textSecondary">{L(
+                  `스토어 구독도 취소되지 않아요. ${subscriptionStoreName(Platform.OS)}에서 구독을 별도로 취소해 주세요.`,
+                  `This doesn't cancel store subscriptions. Cancel them separately in ${subscriptionStoreName(Platform.OS, LANG)}.`,
+                )}</AppText>
+                <Button title={L('회원 정보 삭제', 'Delete account')} variant="danger" disabled={!acknowledged || busy} loading={busy} onPress={() => { if (acknowledged && !busy) onManualDelete(); }} />
+                <Button title={L('안내로 돌아가기', 'Back to steps')} variant="soft" disabled={busy} onPress={() => setConfirming(false)} />
               </>
             ) : (
               <>
-                <AppText variant="body">회원 정보는 아직 삭제하지 않았어요. Apple 연결 해제를 다시 시도하거나, 아래 안내를 확인한 뒤 회원 정보 삭제를 계속할 수 있어요.</AppText>
-                <Button title="Apple 연결 해제 다시 시도" disabled={busy} loading={busy} onPress={onRetry} />
+                <AppText variant="body">{L('회원 정보는 아직 삭제하지 않았어요. Apple 연결 해제를 다시 시도하거나, 아래 안내를 확인한 뒤 회원 정보 삭제를 계속할 수 있어요.', "Your account hasn't been deleted yet. Try removing the Apple connection again, or read the steps below and continue deleting your account.")}</AppText>
+                <Button title={L('Apple 연결 해제 다시 시도', 'Retry removing Apple connection')} disabled={busy} loading={busy} onPress={onRetry} />
                 <View style={[styles.guide, { backgroundColor: theme.surface }]}>
-                  <AppText variant="bodyStrong">Apple 연결을 직접 해제하는 방법</AppText>
-                  <AppText variant="small">iPhone 설정 → 내 이름 → Apple로 로그인에서 이 앱 또는 개발자를 선택하고, 삭제 안내에 따라 연결을 해제하세요.</AppText>
-                  <AppText variant="small">웹에서는 account.apple.com → 로그인 및 보안 → Apple로 로그인에서 관리할 수 있어요.</AppText>
+                  <AppText variant="bodyStrong">{L('Apple 연결을 직접 해제하는 방법', 'How to remove the Apple connection yourself')}</AppText>
+                  <AppText variant="small">{L('iPhone 설정 → 내 이름 → Apple로 로그인에서 이 앱 또는 개발자를 선택하고, 삭제 안내에 따라 연결을 해제하세요.', 'On iPhone, go to Settings → your name → Sign in with Apple, choose this app or developer, and follow the steps to remove it.')}</AppText>
+                  <AppText variant="small">{L('웹에서는 account.apple.com → 로그인 및 보안 → Apple로 로그인에서 관리할 수 있어요.', 'On the web, go to account.apple.com → Sign-In and Security → Sign in with Apple.')}</AppText>
                   <AppText variant="smallStrong">{MANUAL_NOTICE}</AppText>
-                  <AppText variant="small" color="textSecondary">회원 삭제를 먼저 완료한 뒤 Apple 연결을 해제해 주세요. 같은 개발자의 앱이 묶여 있다면 다른 앱에도 영향을 줄 수 있으니 Apple 화면의 대상을 확인하세요.</AppText>
-                  <AppText {...linkProps} accessibilityRole="link" accessibilityLabel="Apple 공식 연결 해제 안내" variant="smallStrong" color="primary" style={styles.link}>Apple 공식 안내 보기 ↗</AppText>
-                  {linkError ? <AppText variant="caption" color="danger" accessibilityLiveRegion="polite">안내 페이지를 열지 못했어요. 위 설정 경로에서 직접 확인할 수 있어요.</AppText> : null}
+                  <AppText variant="small" color="textSecondary">{L('회원 삭제를 먼저 완료한 뒤 Apple 연결을 해제해 주세요. 같은 개발자의 앱이 묶여 있다면 다른 앱에도 영향을 줄 수 있으니 Apple 화면의 대상을 확인하세요.', "Finish deleting your account first, then remove the Apple connection. If other apps from the same developer are linked, this may affect them too — check what's listed on Apple's screen.")}</AppText>
+                  <AppText {...linkProps} accessibilityRole="link" accessibilityLabel={L('Apple 공식 연결 해제 안내', "Apple's official guide to removing the connection")} variant="smallStrong" color="primary" style={styles.link}>{L('Apple 공식 안내 보기 ↗', "View Apple's guide ↗")}</AppText>
+                  {linkError ? <AppText variant="caption" color="danger" accessibilityLiveRegion="polite">{L('안내 페이지를 열지 못했어요. 위 설정 경로에서 직접 확인할 수 있어요.', "Couldn't open the page. You can follow the Settings path above instead.")}</AppText> : null}
                 </View>
-                <Pressable accessibilityRole="checkbox" accessibilityLabel="Apple 연결을 직접 해제해야 한다는 안내를 확인했어요" accessibilityState={{ checked: acknowledged, disabled: busy }} disabled={busy} onPress={() => setAcknowledged((checked) => !checked)} style={styles.checkbox}>
+                <Pressable accessibilityRole="checkbox" accessibilityLabel={L('Apple 연결을 직접 해제해야 한다는 안내를 확인했어요', 'I understand I need to remove the Apple connection myself')} accessibilityState={{ checked: acknowledged, disabled: busy }} disabled={busy} onPress={() => setAcknowledged((checked) => !checked)} style={styles.checkbox}>
                   <AppText color="primary">{acknowledged ? '☑' : '□'}</AppText>
-                  <AppText variant="small" style={styles.checkLabel}>Apple 연결을 직접 해제해야 한다는 안내를 확인했어요</AppText>
+                  <AppText variant="small" style={styles.checkLabel}>{L('Apple 연결을 직접 해제해야 한다는 안내를 확인했어요', 'I understand I need to remove the Apple connection myself')}</AppText>
                 </Pressable>
-                <Button title="안내 확인 후 탈퇴 계속" variant="danger" disabled={!acknowledged || busy} onPress={() => { if (acknowledged && !busy) setConfirming(true); }} />
+                <Button title={L('안내 확인 후 탈퇴 계속', 'Continue deleting account')} variant="danger" disabled={!acknowledged || busy} onPress={() => { if (acknowledged && !busy) setConfirming(true); }} />
               </>
             )}
-            <Button title="탈퇴 취소" variant="ghost" disabled={busy} onPress={close} />
+            <Button title={L('탈퇴 취소', 'Cancel')} variant="ghost" disabled={busy} onPress={close} />
           </ScrollView>
         </View>
       </View>

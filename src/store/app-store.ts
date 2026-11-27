@@ -7,6 +7,7 @@ import { track, type Acquisition } from '@/lib/analytics';
 import type { AppUpdate } from '@/lib/app-update';
 import { consumeOne, EMPTY_USAGE, EMPTY_WALLET, grantConsumable, grantCoupon, grantSignupBonus, type PremiumState, type TeamState, type UsageState, type WalletState } from '@/lib/billing/quota';
 import { MEMORY_FORGOTTEN_MAX, cleanMemory, memoryKey, type CoachRequest } from '@/lib/coach-schema';
+import { L } from '@/lib/i18n';
 import { createId } from '@/lib/id';
 import { authAvailable } from '@/lib/supabase';
 import type {
@@ -273,7 +274,7 @@ const LEGACY_CONSENT_VERSION = 2;
 export const PRIVACY_NOTICE_VERSION = 5;
 
 /** 「분석 중」인 채로 저장돼 있던 코치 말풍선을 앱을 다시 켤 때 바꿔 읽는 안내 (「다시 시도」 버튼이 뜬다) */
-const STALLED_ERROR = '분석이 중간에 멈췄어요. 다시 시도해주세요.';
+const STALLED_ERROR = L('분석이 중간에 멈췄어요. 다시 시도해주세요.', 'The analysis stopped partway. Please try again.');
 
 /** 예전 판의 저장값 (지금은 쓰지 않는 칸 — 읽어서 옮기기만 한다) */
 interface LegacySaved {
@@ -413,7 +414,7 @@ export const useAppStore = create<AppState>()(
           .sort((a, b) => a.createdAt - b.createdAt)[0];
         if (!s.user) set({ user: { name: '', gender: 'other', style: [], defaultTone: 'natural', emoji: 'on', createdAt: Date.now() } });
         if (existing) return existing.id;
-        return s.addCrush({ name: '상대', gender: 'female', relationship: 'talking', style: [], notes: '' }).id;
+        return s.addCrush({ name: L('상대', 'Them'), gender: 'female', relationship: 'talking', style: [], notes: '' }).id;
       },
       createSecretChat: () => {
         const s = get();

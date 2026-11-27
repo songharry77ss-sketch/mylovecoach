@@ -4,6 +4,7 @@ import { track } from '@/lib/analytics';
 import { quotaEnforced } from '@/lib/billing/gate';
 import { couponUsed, formatPassEnd } from '@/lib/billing/quota';
 import { APP_CONFIG } from '@/lib/config';
+import { L, isKo } from '@/lib/i18n';
 import { useAppStore } from '@/store/app-store';
 
 /**
@@ -17,6 +18,14 @@ export const couponSupported = quotaEnforced && Platform.OS !== 'ios';
 
 const TIMEOUT_MS = 8000;
 
+/** 영어판 — 서버(api/team.ts)의 한국어 오류 대신 응답 코드로 고른 영어 문구 */
+const COUPON_ERRORS_EN: Record<number, string> = {
+  400: 'Enter a coupon code.',
+  404: "That code doesn't exist. Check the spelling.",
+  410: 'This coupon has expired.',
+  429: 'Too many tries. Try again in 10 minutes.',
+};
+
 /** 입력 정리 — 서버와 같은 규칙 (영문·숫자만, 대문자, 24자까지) */
 export function normalizeCoupon(input: string): string {
   return input.normalize('NFKC').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 24);
@@ -26,7 +35,7 @@ export type CouponResult = { ok: true; code: string; days: number; until: number
 
 /** 서버에 코드를 확인받는다 */
 async function checkOnServer(code: string): Promise<{ ok: true; code: string; days: number } | { ok: false; message: string }> {
-  if (!(APP_CONFIG.apiUrl || APP_CONFIG.apiSameOrigin)) return { ok: false, message: '지금은 쿠폰을 쓸 수 없어요.' };
+  if (!(APP_CONFIG.apiUrl || APP_CONFIG.apiSameOrigin)) return { ok: false, message: L('지금은 쿠폰을 쓸 수 없어요.', "Coupons aren't available right now.") };
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
@@ -40,9 +49,11 @@ async function checkOnServer(code: string): Promise<{ ok: true; code: string; da
     if (res.ok && data.ok && typeof data.code === 'string' && typeof data.days === 'number' && data.days > 0) {
       return { ok: true, code: data.code, days: data.days };
     }
-    return { ok: false, message: typeof data.error === 'string' && data.error ? data.error : '쿠폰을 확인하지 못했어요. 잠시 후 다시 시도해주세요.' };
+    const fallback = L('쿠폰을 확인하지 못했어요. 잠시 후 다시 시도해주세요.', "Couldn't check that coupon. Try again in a moment.");
+    if (!isKo) return { ok: false, message: COUPON_ERRORS_EN[res.status] ?? fallback };
+    return { ok: false, message: typeof data.error === 'string' && data.error ? data.error : fallback };
   } catch {
-    return { ok: false, message: '인터넷 연결을 확인하고 다시 시도해주세요.' };
+    return { ok: false, message: L('인터넷 연결을 확인하고 다시 시도해주세요.', 'Check your connection and try again.') };
   } finally {
     clearTimeout(timer);
   }
@@ -51,15 +62,15 @@ async function checkOnServer(code: string): Promise<{ ok: true; code: string; da
 /** 쿠폰 쓰기 — 확인되면 이 기기에 바로 지급하고 끝나는 때를 돌려준다 */
 export async function redeemCoupon(input: string): Promise<CouponResult> {
   const typed = normalizeCoupon(input);
-  if (!typed) return { ok: false, message: '쿠폰 코드를 입력해주세요.' };
-  if (couponUsed(useAppStore.getState().wallet, typed)) return { ok: false, message: '이 기기에서 이미 쓴 쿠폰이에요.' };
+  if (!typed) return { ok: false, message: L('쿠폰 코드를 입력해주세요.', 'Enter a coupon code.') };
+  if (couponUsed(useAppStore.getState().wallet, typed)) return { ok: false, message: L('이 기기에서 이미 쓴 쿠폰이에요.', 'This coupon was already used on this device.') };
   const checked = await checkOnServer(typed);
   if (!checked.ok) {
     track('coupon_result', { result: 'rejected' });
     return checked;
   }
   const until = useAppStore.getState().grantCoupon(checked.code, checked.days);
-  if (until == null) return { ok: false, message: '이 기기에서 이미 쓴 쿠폰이에요.' };
+  if (until == null) return { ok: false, message: L('이 기기에서 이미 쓴 쿠폰이에요.', 'This coupon was already used on this device.') };
   track('coupon_result', { result: 'granted', code: checked.code, days: checked.days });
   return { ok: true, code: checked.code, days: checked.days, until, label: formatPassEnd(until, Date.now()) };
 }
