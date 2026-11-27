@@ -1,14 +1,18 @@
 {
-  "at": "2026-11-23T14:38:46.569Z",
-  "mode": "stills",
+  "at": "2026-11-27T07:06:03.693Z",
+  "mode": "stills+motion",
   "seconds": 12,
-  "note": "AI로 만든 가상 인물 그림(Codex) — 영상에 「AI로 만든 장면」 표시",
+  "note": "AI로 만든 가상 인물 그림(Codex) + 그 그림을 움직인 토막(Wan 2.2) — 영상에 「AI로 만든 장면」 표시",
   "stills": [
     {
       "file": "tools/social-make/samples/late-reply/jiwoo-ep1-a.jpg",
       "sha": "9ce5939958fd219d",
       "seconds": 4,
-      "punch": false
+      "punch": false,
+      "motion": {
+        "file": "tools/social-make/samples/late-reply/motion/jiwoo-ep1-a.mp4",
+        "sha": "62e7c74aabab30dc"
+      }
     },
     {
       "file": "tools/social-make/samples/late-reply/jiwoo-ep1-b.jpg",

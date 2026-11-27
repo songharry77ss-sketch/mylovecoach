@@ -1,28 +1,6 @@
 {
-  "at": "2026-11-23T14:38:55.268Z",
-  "note": "운영 코치 서버(/api/coach)가 돌려준 실제 결과 — app-reel 녹화에 넣음",
-  "request": {
-    "crush": {
-      "name": "도윤",
-      "gender": "male",
-      "relationship": "talking",
-      "style": [],
-      "notes": "",
-      "heat": 0
-    },
-    "user": {
-      "name": "",
-      "gender": "female",
-      "style": []
-    },
-    "tone": "natural",
-    "emoji": "on",
-    "toneChosen": false,
-    "emojiChosen": false,
-    "text": "나: 오늘 점심 뭐 먹었어?\n도윤: 아 미안 ㅠㅠ 이제 봤어\n도윤: 오늘 하루 종일 정신없었다\n도윤: 너는 저녁 먹었어?",
-    "history": [],
-    "today": "11/23(월)"
-  },
+  "at": "2026-11-23T14:38:55.268Z 운영 코치 서버(/api/coach) 실제 결과 — 같은 대화로 다시 받지 않고 그대로 씀",
+  "note": "창고 항목에 보관한 운영 코치 서버(/api/coach)의 실제 결과 — 다시 받지 않고 그대로 씀",
   "analysis": {
     "callName": null,
     "speechLevel": "casual",
@@ -61,5 +39,27 @@
     "memory": [
       "11/23(월) 도윤이 하루 종일 바빠 답장이 늦었지만 미안해하며 나의 저녁 안부를 먼저 물어봄."
     ]
+  },
+  "request": {
+    "crush": {
+      "name": "도윤",
+      "gender": "male",
+      "relationship": "talking",
+      "style": [],
+      "notes": "",
+      "heat": 0
+    },
+    "user": {
+      "name": "",
+      "gender": "female",
+      "style": []
+    },
+    "tone": "natural",
+    "emoji": "on",
+    "toneChosen": false,
+    "emojiChosen": false,
+    "text": "나: 오늘 점심 뭐 먹었어?\n도윤: 아 미안 ㅠㅠ 이제 봤어\n도윤: 오늘 하루 종일 정신없었다\n도윤: 너는 저녁 먹었어?",
+    "history": [],
+    "today": "11/23(월)"
   }
 }
