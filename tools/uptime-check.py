@@ -123,6 +123,32 @@ def main():
             else:
                 print(f'{label} 정상 ({sec:.1f}초, 답장 {replies}개, 답한 AI {provider or "?"})')
 
+        # 영어판(My Love Coach, 2026-11-27~) — 설명은 영어, 답장은 대화 언어(여기선 영어)로 오는지. 한글이 섞이면 문제로 본다
+        if hourly or os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch':
+            en = {
+                'crush': {'name': 'Emma', 'gender': 'female', 'relationship': 'talking', 'style': [], 'notes': ''},
+                'user': {'name': '', 'gender': 'male', 'style': []},
+                'tone': 'natural',
+                'text': "Me: are you free this friday? there's a new rooftop bar i wanna try\nEmma: haha maybe 👀\nEmma: depends who's asking",
+                'remember': False,
+                'lang': 'en',
+            }
+            status, _, body, sec = call('/api/coach', 'POST', en, {'x-app-token': APP_TOKEN, 'x-ai-consent': 'anthropic,openai,google', 'x-app-lang': 'en'}, timeout=90)
+            analysis = {}
+            try:
+                analysis = json.loads(body).get('analysis') or {}
+            except Exception:
+                pass
+            replies = analysis.get('replies') or []
+            hangul = any('가' <= ch <= '힣' for ch in json.dumps(analysis, ensure_ascii=False))
+            if status != 200 or not replies or hangul:
+                problems.append(f'영어판 AI 코칭 {status}' + (' · 한글 섞임' if hangul else '') + ('' if replies else ' · 답장 없음'))
+            else:
+                print(f'영어판 AI 코칭 정상 ({sec:.1f}초, 답장 {len(replies)}개)')
+                print(f'  요약: {str(analysis.get("summary") or "")[:160]}')
+                for r in replies[:3]:
+                    print(f'  - {str(r.get("text") or "")[:120]}')
+
     now = time.strftime('%m-%d %H:%M', time.gmtime(time.time() + 9 * 3600))
     if problems:
         print('문제:', ' / '.join(problems))
