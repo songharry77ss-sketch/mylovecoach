@@ -3,11 +3,13 @@ import { Platform, Pressable, StyleSheet, View, type GestureResponderEvent, type
 import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 
 import { CountUp } from '@/components/coach/count-up';
+import { isUnnamedCrush } from '@/components/crush/crush-name';
 import { AppText } from '@/components/ui/app-text';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { Brand, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
+import { L } from '@/lib/i18n';
 import { toneLabel } from '@/lib/labels';
 import type { CoachReply } from '@/lib/types';
 
@@ -59,7 +61,7 @@ export function ReplyCards({ replies, partnerName, copiedIndex, selectedIndex, o
 }
 
 /** 가린 답장 자리 — 실제 글 대신 같은 길이의 글자 모양을 흐리게 그린다 (글이 화면 코드에 남지 않게) */
-const veil = (text: string) => text.replace(/\S/g, '가').slice(0, 120);
+const veil = (text: string) => text.replace(/\S/g, L('가', 'a')).slice(0, 120);
 /** 흐린 글씨 그림자 — 웹은 CSS text-shadow 한 줄로, 앱은 textShadow* 로 (웹은 textShadow* 를 무시한다) */
 const veilShadow = (color: string) =>
   Platform.OS === 'web'
@@ -85,9 +87,12 @@ function ReplyCard({ reply, index, best, copied, chosen, partnerName, locked, re
   const dark = useColorScheme() === 'dark';
   const tone = toneLabel(reply.tone);
   const rate = reply.successRate;
-  const who = partnerName?.trim() && partnerName !== '상대' ? partnerName.trim() : '상대';
+  const named = partnerName?.trim() && !isUnnamedCrush(partnerName) ? partnerName.trim() : null;
   // 답장 글을 읽을 때 몇 번째·말투·성공 확률을 같이 읽어 준다 (복사는 바로 옆 「복사」 버튼으로)
-  const label = `답장 ${index + 1}, ${tone.label}${rate != null ? `, 성공 확률 ${rate}%` : ''}: ${reply.text}`;
+  const label = L(
+    `답장 ${index + 1}, ${tone.label}${rate != null ? `, 성공 확률 ${rate}%` : ''}: ${reply.text}`,
+    `Reply ${index + 1}, ${tone.label}${rate != null ? `, ${rate}% success chance` : ''}: ${reply.text}`,
+  );
   // 회색 결과 말풍선 안의 흰 카드 (다크는 한 단계 밝은 면)
   const fill = dark ? theme.surfaceElevated : theme.card;
   return (
@@ -108,14 +113,14 @@ function ReplyCard({ reply, index, best, copied, chosen, partnerName, locked, re
           </AppText>
           {best ? (
             <AppText variant="caption" color="primary" weight="600">
-              추천
+              {L('추천', 'Top pick')}
             </AppText>
           ) : null}
         </View>
         {rate != null ? (
           <View style={styles.rate}>
             <AppText variant="caption" color="textSecondary">
-              성공 확률
+              {L('성공 확률', 'Success')}
             </AppText>
             <CountUp
               value={rate}
@@ -130,7 +135,7 @@ function ReplyCard({ reply, index, best, copied, chosen, partnerName, locked, re
       </View>
 
       {locked ? (
-        <AppText accessibilityLabel={`답장 ${index + 1}: 가입하면 볼 수 있어요`} style={[styles.replyText, styles.veiled, veilShadow(theme.text)]}>
+        <AppText accessibilityLabel={L(`답장 ${index + 1}: 가입하면 볼 수 있어요`, `Reply ${index + 1}: sign up to see it`)} style={[styles.replyText, styles.veiled, veilShadow(theme.text)]}>
           {veil(reply.text)}
         </AppText>
       ) : (
@@ -143,13 +148,13 @@ function ReplyCard({ reply, index, best, copied, chosen, partnerName, locked, re
         {reply.expectedReaction ? (
           <View style={styles.reaction}>
             {locked ? (
-              <AppText variant="caption" color="textSecondary" accessibilityLabel="가려진 예상 반응" style={[styles.veiled, veilShadow(theme.text)]} numberOfLines={2}>
+              <AppText variant="caption" color="textSecondary" accessibilityLabel={L('가려진 예상 반응', 'Hidden likely reaction')} style={[styles.veiled, veilShadow(theme.text)]} numberOfLines={2}>
                 {veil(reply.expectedReaction)}
               </AppText>
             ) : (
               <AppText variant="caption" color="textSecondary" numberOfLines={2}>
                 <AppText variant="caption" color="textSecondary" weight="600">
-                  {`${who} 예상 반응 `}
+                  {L(`${named ?? '상대'} 예상 반응 `, named ? `${named}’s likely reaction: ` : 'Likely reaction: ')}
                 </AppText>
                 {reply.expectedReaction}
               </AppText>
@@ -160,20 +165,20 @@ function ReplyCard({ reply, index, best, copied, chosen, partnerName, locked, re
         )}
 
         {locked ? (
-          <PressableScale accessibilityLabel={`버전 ${index + 1} 가입하고 보기`} feedback="tap" onPress={onUnlock} style={[styles.copyPill, { backgroundColor: theme.primary }]}>
+          <PressableScale accessibilityLabel={L(`버전 ${index + 1} 가입하고 보기`, `Sign up to see reply ${index + 1}`)} feedback="tap" onPress={onUnlock} style={[styles.copyPill, { backgroundColor: theme.primary }]}>
             <Ionicons name="lock-open" size={14} color={Brand.onBrand} />
             <AppText variant="smallStrong" color={Brand.onBrand}>
-              가입하고 보기
+              {L('가입하고 보기', 'Sign up to see')}
             </AppText>
           </PressableScale>
         ) : (
           <View style={styles.actions}>
-            <PressableScale accessibilityLabel={`답장 ${index + 1} 공유하기`} feedback="tap" onPress={onShare} hitSlop={6} style={styles.round}>
+            <PressableScale accessibilityLabel={L(`답장 ${index + 1} 공유하기`, `Share reply ${index + 1}`)} feedback="tap" onPress={onShare} hitSlop={6} style={styles.round}>
               <Ionicons name="share-outline" size={18} color={theme.textSecondary} />
             </PressableScale>
             {/* 카드마다 색이 찬 버튼은 「복사」 하나 — 검정 알약, 복사하면 센딧 파랑 */}
             <PressableScale
-              accessibilityLabel={copied ? `답장 ${index + 1} 복사했어요` : `답장 ${index + 1} 복사하기`}
+              accessibilityLabel={copied ? L(`답장 ${index + 1} 복사했어요`, `Reply ${index + 1} copied`) : L(`답장 ${index + 1} 복사하기`, `Copy reply ${index + 1}`)}
               feedback={false}
               hitSlop={6}
               onPress={(e) => onCopy(e)}
@@ -184,7 +189,7 @@ function ReplyCard({ reply, index, best, copied, chosen, partnerName, locked, re
                 </Animated.View>
               ) : null}
               <AppText variant="smallStrong" color={copied ? Brand.onBrand : theme.background}>
-                {copied ? '복사했어요' : '복사'}
+                {copied ? L('복사했어요', 'Copied') : L('복사', 'Copy')}
               </AppText>
             </PressableScale>
           </View>

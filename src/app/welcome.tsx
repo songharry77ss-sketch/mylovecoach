@@ -11,12 +11,13 @@ import { BrandPill, GradientButton, SenditLogo } from '@/components/brand/brand'
 import { StartConsentSheet, type StartConsentAnswer } from '@/components/consent/start-consent-sheet';
 import { GuidePhone } from '@/components/guide/guide-phone';
 import { GUIDE_STEPS, type GuideStep } from '@/components/guide/guide-steps';
-import { APP_NAME, APP_SUBTITLE, RESEARCH_LINE } from '@/constants/brand';
+import { APP_NAME, APP_NAME_EN, APP_SUBTITLE, APP_SUBTITLE_EN, RESEARCH_LINE, RESEARCH_LINE_EN } from '@/constants/brand';
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 import { homeRoute } from '@/lib/intro-paths';
 import { GUIDE_VERSION, useAppStore } from '@/store/app-store';
 
@@ -28,16 +29,22 @@ export type GuideMode = 'fresh' | 'update' | 'intro' | 'replay';
 
 type Page = { kind: 'cover' } | { kind: 'step'; step: GuideStep };
 
+/** 영어판 이름·부제·연구진 문구 (constants/brand 는 서버도 써서 i18n 을 못 불러 여기서 고른다) */
+const NAME = L(APP_NAME, APP_NAME_EN);
+const SUBTITLE = L(APP_SUBTITLE, APP_SUBTITLE_EN);
+const RESEARCH = L(RESEARCH_LINE, RESEARCH_LINE_EN);
+
 const COVER = {
   fresh: {
     pill: null,
-    title: `뭐라고 보낼지,\n${APP_NAME}이 같이 골라 줄게요`,
-    body: '대화 캡처 한 장이면 답장 3가지와 호감 온도가 바로 나와요. 쓰는 법을 30초만 볼까요?',
+    title: L(`뭐라고 보낼지,\n${APP_NAME}이 같이 골라 줄게요`, "Not sure what to text?\nLet's figure it out together"),
+    body: L('대화 캡처 한 장이면 답장 3가지와 호감 온도가 바로 나와요. 쓰는 법을 30초만 볼까요?', 'One chat screenshot gets you 3 reply ideas and their interest level, instantly. Take a 30-second tour?'),
   },
+  // 영어판은 이름이 바뀐 적이 없어(예전 「나만의 연애코치」 = My Love Coach) 「새 모습」만 알린다
   update: {
-    pill: '새 이름 · 새 모습',
-    title: `나만의 연애 코치가\n${APP_NAME}으로 새로워졌어요`,
-    body: '채팅방과 기록은 그대로예요. 새로워진 사용법을 30초만 보고 갈까요?',
+    pill: L('새 이름 · 새 모습', 'All-new look'),
+    title: L(`나만의 연애 코치가\n${APP_NAME}으로 새로워졌어요`, `${APP_NAME_EN}\nhas a fresh new look`),
+    body: L('채팅방과 기록은 그대로예요. 새로워진 사용법을 30초만 보고 갈까요?', 'Your chats and history are all still here. Take a quick 30-second tour?'),
   },
 } as const;
 
@@ -160,7 +167,7 @@ export default function Welcome() {
   }, []);
 
   const onCover = pages[page]?.kind === 'cover';
-  const closeLabel = mode === 'fresh' ? '건너뛰기' : '닫기';
+  const closeLabel = mode === 'fresh' ? L('건너뛰기', 'Skip') : L('닫기', 'Close');
 
   return (
     <View style={[styles.root, { backgroundColor: theme.background }]}>
@@ -168,7 +175,7 @@ export default function Welcome() {
         <View style={styles.topLogo}>{onCover ? null : <SenditLogo size="sm" />}</View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={mode === 'fresh' ? '소개 건너뛰기' : '사용법 닫기'}
+          accessibilityLabel={mode === 'fresh' ? L('소개 건너뛰기', 'Skip intro') : L('사용법 닫기', 'Close guide')}
           onPress={skip}
           hitSlop={12}
           style={({ pressed }) => [styles.skip, { backgroundColor: theme.surface }, pressed && styles.pressed]}>
@@ -183,7 +190,7 @@ export default function Welcome() {
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={onScrollEnd}
         style={[styles.pager, { width }]}
-        accessibilityLabel={`${APP_NAME} 사용법`}>
+        accessibilityLabel={L(`${APP_NAME} 사용법`, `How to use ${APP_NAME_EN}`)}>
         {pages.map((p, i) =>
           p.kind === 'cover' ? (
             <CoverPage key="cover" width={width} mode={mode === 'update' ? 'update' : 'fresh'} />
@@ -194,12 +201,12 @@ export default function Welcome() {
       </ScrollView>
 
       <View style={[styles.bottom, { paddingBottom: insets.bottom + Spacing.lg, width }]}>
-        <View style={styles.dots} accessibilityLabel={`${pages.length}장 중 ${page + 1}번째`}>
+        <View style={styles.dots} accessibilityLabel={L(`${pages.length}장 중 ${page + 1}번째`, `Page ${page + 1} of ${pages.length}`)}>
           {pages.map((p, i) => (
             <View key={p.kind === 'cover' ? 'cover' : p.step.key} style={[styles.dot, { backgroundColor: i === page ? theme.primary : theme.border }, i === page && styles.dotOn]} />
           ))}
         </View>
-        <GradientButton title={last ? (mode === 'fresh' ? '시작하기' : '다 봤어요') : '다음'} onPress={next} />
+        <GradientButton title={last ? (mode === 'fresh' ? L('시작하기', 'Get started') : L('다 봤어요', 'Done')) : L('다음', 'Next')} onPress={next} />
       </View>
 
       <StartConsentSheet visible={asking} onAgree={onAgree} onClose={() => setAsking(false)} />
@@ -240,11 +247,11 @@ function CoverPage({ width, mode }: { width: number; mode: 'fresh' | 'update' })
       <View style={styles.coverBody}>
         <Animated.View entering={FadeInUp.delay(120).duration(420)} style={styles.coverInner}>
           <Image source={require('../../assets/images/sendit-mark.png')} style={styles.mark} contentFit="contain" accessibilityIgnoresInvertColors />
-          <View style={styles.wordmark} accessible accessibilityRole="header" accessibilityLabel={`${APP_NAME}, ${APP_SUBTITLE}`}>
-            <Text style={[styles.wordmarkName, { color: theme.text }]}>{APP_NAME}</Text>
-            <Text style={[styles.wordmarkSub, { color: theme.textSecondary }]}>{APP_SUBTITLE}</Text>
+          <View style={styles.wordmark} accessible accessibilityRole="header" accessibilityLabel={`${NAME}, ${SUBTITLE}`}>
+            <Text style={[styles.wordmarkName, { color: theme.text }]}>{NAME}</Text>
+            <Text style={[styles.wordmarkSub, { color: theme.textSecondary }]}>{SUBTITLE}</Text>
           </View>
-          <Text style={[styles.research, { color: theme.textSecondary }]}>{RESEARCH_LINE}</Text>
+          <Text style={[styles.research, { color: theme.textSecondary }]}>{RESEARCH}</Text>
         </Animated.View>
         {practiceNew ? <PracticeTeaser /> : null}
       </View>
@@ -263,18 +270,18 @@ function PracticeTeaser() {
     <Animated.View
       entering={FadeInUp.delay(220).duration(520)}
       accessible
-      accessibilityLabel="이런 기능도 있어요. 연애 연습, AI 상대와 카톡으로 미리 연습해요. 탐색 탭에서 해 볼 수 있어요"
+      accessibilityLabel={L('이런 기능도 있어요. 연애 연습, AI 상대와 카톡으로 미리 연습해요. 탐색 탭에서 해 볼 수 있어요', 'Also try: Practice chat. Rehearse texting with an AI match. Tap the compass in the tab bar to try it.')}
       style={[styles.teaser, { backgroundColor: dark ? theme.surfaceElevated : theme.surface }]}>
       <View style={styles.teaserIcon}>
         <Ionicons name="compass-outline" size={24} color={theme.text} />
         <View style={[styles.teaserDot, { backgroundColor: theme.danger, borderColor: dark ? theme.surfaceElevated : theme.surface }]} />
       </View>
       <View style={styles.teaserTexts}>
-        <Text style={[styles.teaserEyebrow, { color: theme.textTertiary }]}>이런 기능도 있어요</Text>
+        <Text style={[styles.teaserEyebrow, { color: theme.textTertiary }]}>{L('이런 기능도 있어요', 'Also try')}</Text>
         <Text style={[styles.teaserTitle, { color: theme.text }]}>
-          연애 연습 <Text style={[styles.teaserBody, { color: theme.textSecondary }]}>— AI 상대와 카톡으로 미리 연습해요</Text>
+          {L('연애 연습', 'Practice chat')} <Text style={[styles.teaserBody, { color: theme.textSecondary }]}>{L('— AI 상대와 카톡으로 미리 연습해요', '— rehearse texting with an AI match')}</Text>
         </Text>
-        <Text style={[styles.teaserBody, { color: theme.textSecondary }]}>탐색 탭에서 해 볼 수 있어요</Text>
+        <Text style={[styles.teaserBody, { color: theme.textSecondary }]}>{L('탐색 탭에서 해 볼 수 있어요', 'Tap the compass in the tab bar to try it')}</Text>
       </View>
     </Animated.View>
   );
@@ -298,7 +305,7 @@ function StepPage({ width, step, active }: { width: number; step: GuideStep; act
       <View style={styles.cardWrap}>
         <View style={[styles.card, { backgroundColor: dark ? theme.surfaceElevated : theme.surface }]}>
           {/* 휴대폰은 카드 위쪽에 붙고, 화면이 길면 카드 아래로 잘려 이어진다 */}
-          <View style={styles.phoneArea} onLayout={onLayout} accessibilityLabel={`${step.title} — 실제 앱 화면`} accessible>
+          <View style={styles.phoneArea} onLayout={onLayout} accessibilityLabel={L(`${step.title} — 실제 앱 화면`, `${step.title} — app screen`)} accessible>
             {area ? <GuidePhone shot={step.shot} area={{ width: area.width, height: area.height - Spacing.xl }} active={active} /> : null}
           </View>
         </View>

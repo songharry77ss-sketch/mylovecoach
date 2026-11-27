@@ -11,6 +11,7 @@ import { Brand, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { APP_CONFIG } from '@/lib/config';
 import { haptic } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 import { BASIC_LOG_NOTICE, CONTENT_CONSENT_DETAIL, CONTENT_CONSENT_SUMMARY, CONTENT_CONSENT_TITLE, privacyUrl } from '@/lib/privacy-copy';
 
 /** 동의 창의 답 — all 은 「모두 동의하고 시작」으로 시작했는지 (이용 기록용) */
@@ -36,11 +37,16 @@ interface Item {
   link: { label: string; url: string };
 }
 
+// 영어판 약관·처리방침 주소는 APP_CONFIG 가 같은 사이트의 /en/ 문서로 바꿔 준다
 const ITEMS: Item[] = [
-  { key: 'terms', required: true, title: '이용약관 동의', link: { label: '보기', url: APP_CONFIG.termsUrl } },
-  { key: 'privacy', required: true, title: '개인정보 처리방침 확인', body: BASIC_LOG_NOTICE, link: { label: '보기', url: privacyUrl('analytics') } },
-  { key: 'content', required: false, title: `${CONTENT_CONSENT_TITLE} — ${CONTENT_CONSENT_SUMMARY}`, body: CONTENT_CONSENT_DETAIL, link: { label: '자세히', url: privacyUrl('content') } },
+  { key: 'terms', required: true, title: L('이용약관 동의', 'I agree to the Terms of Use'), link: { label: L('보기', 'View'), url: APP_CONFIG.termsUrl } },
+  { key: 'privacy', required: true, title: L('개인정보 처리방침 확인', 'I’ve read the Privacy Policy'), body: BASIC_LOG_NOTICE, link: { label: L('보기', 'View'), url: privacyUrl('analytics') } },
+  { key: 'content', required: false, title: `${CONTENT_CONSENT_TITLE} — ${CONTENT_CONSENT_SUMMARY}`, body: CONTENT_CONSENT_DETAIL, link: { label: L('자세히', 'Details'), url: privacyUrl('content') } },
 ];
+
+/** 체크 칸 앞 (필수)·(선택) */
+const REQUIRED_TAG = L('필수', 'Required');
+const OPTIONAL_TAG = L('선택', 'Optional');
 
 const NONE: Record<Key, boolean> = { terms: false, privacy: false, content: false };
 
@@ -98,7 +104,7 @@ function Sheet({ onAgree, onClose }: Omit<Props, 'visible'>) {
 
   return (
     <View style={[StyleSheet.absoluteFill, styles.root]}>
-      <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={onClose} style={[StyleSheet.absoluteFill, styles.backdrop]} />
+      <Pressable accessibilityRole="button" accessibilityLabel={L('닫기', 'Close')} onPress={onClose} style={[StyleSheet.absoluteFill, styles.backdrop]} />
       <View
         accessibilityViewIsModal
         // VoiceOver 닫기 제스처(두 손가락 문지르기)는 닫기 — 안드로이드 뒤로 가기·웹 Esc 와 같다
@@ -106,20 +112,20 @@ function Sheet({ onAgree, onClose }: Omit<Props, 'visible'>) {
         style={[styles.sheet, { backgroundColor: theme.background, paddingBottom: insets.bottom + Spacing.lg, maxHeight: height - insets.top - Spacing.lg }]}>
         <View style={styles.head}>
           <AppText variant="title2" accessibilityRole="header" style={styles.headTitle}>
-            시작하기 전에 확인해 주세요
+            {L('시작하기 전에 확인해 주세요', 'Before you start')}
           </AppText>
-          <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={onClose} hitSlop={12} style={[styles.close, { backgroundColor: theme.surface }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={L('닫기', 'Close')} onPress={onClose} hitSlop={12} style={[styles.close, { backgroundColor: theme.surface }]}>
             <Ionicons name="close" size={18} color={theme.textSecondary} />
           </Pressable>
         </View>
         <ScrollView ref={scrollRef} style={styles.scroll} contentContainerStyle={styles.body}>
           <AppText variant="small" color="textSecondary">
-            필수 항목에 동의하면 바로 시작할 수 있어요. 선택 항목은 동의하지 않아도 모든 기능을 쓸 수 있어요.
+            {L('필수 항목에 동의하면 바로 시작할 수 있어요. 선택 항목은 동의하지 않아도 모든 기능을 쓸 수 있어요.', 'Agree to the required items to get started. You can use every feature even if you skip the optional one.')}
           </AppText>
           <View style={styles.items}>
             {ITEMS.map((item, i) => {
               const on = checked[item.key];
-              const label = `(${item.required ? '필수' : '선택'}) ${item.title}`;
+              const label = `(${item.required ? REQUIRED_TAG : OPTIONAL_TAG}) ${item.title}`;
               return (
                 <View key={item.key} style={[styles.item, i > 0 ? { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.separator } : null]}>
                   <View style={styles.itemHead}>
@@ -136,7 +142,7 @@ function Sheet({ onAgree, onClose }: Omit<Props, 'visible'>) {
                       </View>
                       <AppText variant="smallStrong" style={styles.checkText}>
                         <AppText variant="smallStrong" color={item.required ? 'primary' : 'textSecondary'}>
-                          ({item.required ? '필수' : '선택'})
+                          ({item.required ? REQUIRED_TAG : OPTIONAL_TAG})
                         </AppText>{' '}
                         {item.title}
                       </AppText>
@@ -146,7 +152,7 @@ function Sheet({ onAgree, onClose }: Omit<Props, 'visible'>) {
                       variant="caption"
                       color="primary"
                       accessibilityRole="link"
-                      accessibilityLabel={`${item.title} ${item.link.label}`}
+                      accessibilityLabel={L(`${item.title} ${item.link.label}`, `${item.link.label}: ${item.title}`)}
                       onPress={() => Linking.openURL(item.link.url).catch(() => {})}
                       style={styles.link}>
                       {item.link.label} ›
@@ -164,8 +170,8 @@ function Sheet({ onAgree, onClose }: Omit<Props, 'visible'>) {
           </View>
         </ScrollView>
         <View style={styles.actions}>
-          <GradientButton title="모두 동의하고 시작" onPress={agreeAll} />
-          <Button title="선택한 항목으로 시작" variant="ghost" size="md" disabled={!requiredDone} onPress={agreeChosen} />
+          <GradientButton title={L('모두 동의하고 시작', 'Agree to all and start')} onPress={agreeAll} />
+          <Button title={L('선택한 항목으로 시작', 'Start with selected')} variant="ghost" size="md" disabled={!requiredDone} onPress={agreeChosen} />
         </View>
       </View>
     </View>

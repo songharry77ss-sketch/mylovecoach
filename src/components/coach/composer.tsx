@@ -16,6 +16,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useKeyboardVisible } from '@/hooks/use-keyboard';
 import { useTheme } from '@/hooks/use-theme';
 import { haptic } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 import type { PickedImage } from '@/lib/images';
 import { TONES } from '@/lib/labels';
 import type { EmojiPref, Tone } from '@/lib/types';
@@ -48,7 +49,10 @@ interface ComposerProps {
 }
 
 const EMOJI_NEXT: Record<EmojiPref, EmojiPref> = { on: 'off', off: 'auto', auto: 'on' };
-const EMOJI_LABEL: Record<EmojiPref, string> = { on: '이모지 넣기', off: '이모지 빼기', auto: '이모지 자동' };
+const EMOJI_LABEL: Record<EmojiPref, string> = L(
+  { on: '이모지 넣기', off: '이모지 빼기', auto: '이모지 자동' },
+  { on: 'Emoji on', off: 'Emoji off', auto: 'Emoji auto' },
+);
 
 /** 떠 있는 유리 알약 — 한 줄일 때 높이 (모서리는 이 높이의 절반) */
 export const PILL_HEIGHT = 52;
@@ -141,7 +145,7 @@ export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPi
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.rowScroll} contentContainerStyle={styles.rowContent} keyboardShouldPersistTaps="handled">
           {onShuffleQuestions ? (
             <PressableScale
-              accessibilityLabel="다른 질문 보기"
+              accessibilityLabel={L('다른 질문 보기', 'Shuffle questions')}
               feedback="select"
               pressedScale={0.88}
               onPress={onShuffleQuestions}
@@ -186,12 +190,12 @@ export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPi
           <GlassSurface radius={18} floating={false} style={styles.preview}>
             <Image source={{ uri: image.uri }} style={[styles.previewImage, { backgroundColor: theme.surface }]} contentFit="cover" />
             <View style={styles.previewTexts}>
-              <AppText variant="smallStrong">캡처 1장 첨부됨</AppText>
+              <AppText variant="smallStrong">{L('캡처 1장 첨부됨', '1 screenshot attached')}</AppText>
               <AppText variant="caption" color="textSecondary">
-                호칭과 말투도 같이 읽어요
+                {L('호칭과 말투도 같이 읽어요', 'I’ll match how you two talk')}
               </AppText>
             </View>
-            <Pressable accessibilityRole="button" accessibilityLabel="캡처 제거" onPress={onClearImage} hitSlop={8} style={({ pressed }) => [styles.previewClose, { backgroundColor: theme.surface, opacity: pressed ? 0.6 : 1 }]}>
+            <Pressable accessibilityRole="button" accessibilityLabel={L('캡처 제거', 'Remove screenshot')} onPress={onClearImage} hitSlop={8} style={({ pressed }) => [styles.previewClose, { backgroundColor: theme.surface, opacity: pressed ? 0.6 : 1 }]}>
               <Ionicons name="close" size={16} color={theme.textSecondary} />
             </Pressable>
           </GlassSurface>
@@ -200,7 +204,7 @@ export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPi
 
       <GlassSurface radius={PILL_HEIGHT / 2} style={styles.pill}>
         <PressableScale
-          accessibilityLabel="대화 캡처 올리기"
+          accessibilityLabel={L('대화 캡처 올리기', 'Upload a screenshot')}
           accessibilityState={{ disabled: sending }}
           feedback="tap"
           pressedScale={0.88}
@@ -217,12 +221,12 @@ export function Composer({ tone, onToneChange, emoji, onEmojiChange, image, onPi
             setText(value);
             onEdit?.();
           }}
-          placeholder={image ? '덧붙일 상황 (선택)' : '캡처나 상황을 보내 주세요'}
+          placeholder={image ? L('덧붙일 상황 (선택)', 'Add context (optional)') : L('캡처나 상황을 보내 주세요', 'Send a screenshot or describe it')}
           maxLength={800}
           editable={!sending}
         />
         <Animated.View style={sendStyle}>
-          <SendOrb active={canSend} onPress={submit} accessibilityLabel="코치에게 보내기" />
+          <SendOrb active={canSend} onPress={submit} accessibilityLabel={L('코치에게 보내기', 'Send to coach')} />
         </Animated.View>
       </GlassSurface>
     </View>
@@ -317,7 +321,7 @@ export function SendOrb({ active, onPress, accessibilityLabel, size = ORB, style
 /** 안내 줄 남은 시간 — 이 글자만 1초마다 다시 그린다 */
 function NoticeCountdown({ until }: { until: number }) {
   const left = useRemaining(until);
-  return <>{` · ${formatClock(left)} 남았어요`}</>;
+  return <>{L(` · ${formatClock(left)} 남았어요`, ` · ${formatClock(left)} left`)}</>;
 }
 
 const styles = StyleSheet.create({

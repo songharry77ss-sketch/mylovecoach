@@ -4,6 +4,7 @@ import { Tabs } from 'expo-router';
 import { GlassTabBar } from '@/components/ui/glass-tab-bar';
 import { useTheme } from '@/hooks/use-theme';
 import { haptic } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 import { useAppStore } from '@/store/app-store';
 
 /**
@@ -30,19 +31,19 @@ export default function TabsLayout() {
       }}>
       <Tabs.Screen
         name="index"
-        options={{ title: '홈', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline'} size={24} color={color} allowFontScaling={false} /> }}
+        options={{ title: L('홈', 'Home'), tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline'} size={24} color={color} allowFontScaling={false} /> }}
       />
       <Tabs.Screen
         name="practice"
-        options={{ title: '연애 연습', href: practiceEnabled ? undefined : null, tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'game-controller' : 'game-controller-outline'} size={24} color={color} allowFontScaling={false} /> }}
+        options={{ title: L('연애 연습', 'Practice'), href: practiceEnabled ? undefined : null, tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'game-controller' : 'game-controller-outline'} size={24} color={color} allowFontScaling={false} /> }}
       />
       <Tabs.Screen
         name="tips"
-        options={{ title: '탐색', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'compass' : 'compass-outline'} size={24} color={color} allowFontScaling={false} /> }}
+        options={{ title: L('탐색', 'Explore'), tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'compass' : 'compass-outline'} size={24} color={color} allowFontScaling={false} /> }}
       />
       <Tabs.Screen
         name="my"
-        options={{ title: '마이', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} allowFontScaling={false} /> }}
+        options={{ title: L('마이', 'Me'), tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} allowFontScaling={false} /> }}
       />
     </Tabs>
   );

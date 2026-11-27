@@ -4,6 +4,11 @@
  */
 import { Platform } from 'react-native';
 
+import { isEn } from '@/lib/i18n';
+
+/** 영어판은 같은 사이트의 /en/ 아래 영어 문서 (site/en/*.html) */
+const enDoc = (url: string) => (isEn ? url.replace(/\/([a-z-]+\.html)$/, '/en/$1') : url);
+
 /**
  * 코치 API 주소.
  * - 네이티브 앱: EXPO_PUBLIC_API_URL (Vercel 배포 주소)
@@ -29,6 +34,6 @@ export const APP_CONFIG = {
    */
   googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '134476362186-jf8fu8rjro34fj0afghm6l38h4hfsd9p.apps.googleusercontent.com',
   supportEmail: process.env.EXPO_PUBLIC_SUPPORT_EMAIL ?? 'contact@craving.win',
-  privacyUrl: process.env.EXPO_PUBLIC_PRIVACY_URL ?? 'https://mylovecoach.vercel.app/privacy.html',
-  termsUrl: process.env.EXPO_PUBLIC_TERMS_URL ?? 'https://mylovecoach.vercel.app/terms.html',
+  privacyUrl: enDoc(process.env.EXPO_PUBLIC_PRIVACY_URL ?? 'https://mylovecoach.vercel.app/privacy.html'),
+  termsUrl: enDoc(process.env.EXPO_PUBLIC_TERMS_URL ?? 'https://mylovecoach.vercel.app/terms.html'),
 };

@@ -1,4 +1,5 @@
 import { CREDITS_PER_PACK, DAY_PASS_MS, DEFAULT_RULES, SIGNUP_BONUS, type ConsumablePlanKey, type FreeRules, type PremiumPlanKey } from '@/lib/billing/plans';
+import { L, isKo } from '@/lib/i18n';
 
 /** 기기에 저장해 두는 프리미엄 상태 (스토어 조회 결과의 캐시) */
 export interface PremiumState {
@@ -83,6 +84,20 @@ export function formatDateKo(at: number): string {
   return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
 }
 
+const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** 영어판 날짜 「Nov 7, 2027」 (기기 현지 날짜) */
+export function formatDateEn(at: number): string {
+  const d = new Date(at);
+  return `${MONTHS_EN[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+}
+
+/** 지금 언어의 날짜 — 「2027년 11월 7일」 · 「Nov 7, 2027」 */
+export const formatDate = (at: number): string => (isKo ? formatDateKo(at) : formatDateEn(at));
+
+/** 영어 복수형 — 「1 credit」 · 「3 credits」 */
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
 /**
  * 1년권이 언제까지인지 짧게 — iOS 「2027년 11월 7일까지」(앱이 판정하는 확정 날짜),
  * Android 「2027년 11월 7일 끝날 예정」(스토어가 끝나는 날을 알려 주지 않아 결제 시각 + 1년으로 어림한 날짜).
@@ -90,19 +105,24 @@ export function formatDateKo(at: number): string {
  */
 export function premiumUntilLabel(premium: PremiumState | null | undefined): string | null {
   if (premium?.plan !== 'year' || premium.expiresAt == null) return null;
-  const date = formatDateKo(premium.expiresAt);
+  const date = formatDate(premium.expiresAt);
+  if (!isKo) return premium.expiresEstimated ? `Ends ${date} (est.)` : `Until ${date}`;
   return premium.expiresEstimated ? `${date} 끝날 예정` : `${date}까지`;
 }
 
 /** 같은 내용을 문장으로 — 「2027년 11월 7일까지 쓸 수 있어요.」 · 「2027년 11월 7일에 끝날 예정이에요.」 */
 export function premiumUntilSentence(premium: PremiumState | null | undefined): string | null {
   if (premium?.plan !== 'year' || premium.expiresAt == null) return null;
-  const date = formatDateKo(premium.expiresAt);
+  const date = formatDate(premium.expiresAt);
+  if (!isKo) return premium.expiresEstimated ? `It's set to end on ${date}.` : `Good until ${date}.`;
   return premium.expiresEstimated ? `${date}에 끝날 예정이에요.` : `${date}까지 쓸 수 있어요.`;
 }
 
 /** 프리미엄 요금제의 화면 이름 */
-export const PREMIUM_PLAN_NAMES: Record<PremiumPlanKey, string> = { weekly: '주간 구독', year: '1년권', lifetime: '평생권' };
+export const PREMIUM_PLAN_NAMES: Record<PremiumPlanKey, string> = L(
+  { weekly: '주간 구독', year: '1년권', lifetime: '평생권' },
+  { weekly: 'Weekly plan', year: '1-year pass', lifetime: 'Lifetime pass' },
+);
 
 export function isTeamActive(team: TeamState | null | undefined, now: number): boolean {
   return team != null && now - team.verifiedAt < TEAM_TRUST_MS;
@@ -226,14 +246,18 @@ export function grantCoupon(wallet: WalletState, code: string, days: number, now
  */
 export const passEndIfBoughtNow = (passUntil: number, now: number): number => Math.max(now, passUntil) + DAY_PASS_MS;
 
+/** 「오후 3:42」 · 영어판 「3:42 PM」 */
 const clock = (at: number) => {
   const d = new Date(at);
   const h = d.getHours();
-  return `${h < 12 ? '오전' : '오후'} ${h % 12 === 0 ? 12 : h % 12}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const hm = `${h % 12 === 0 ? 12 : h % 12}:${String(d.getMinutes()).padStart(2, '0')}`;
+  if (!isKo) return `${hm} ${h < 12 ? 'AM' : 'PM'}`;
+  return `${h < 12 ? '오전' : '오후'} ${hm}`;
 };
 
-/** 「11월 22일 오후 3:42」 (기기 현지 시간) */
-export const dateClock = (at: number) => `${new Date(at).getMonth() + 1}월 ${new Date(at).getDate()}일 ${clock(at)}`;
+/** 「11월 22일 오후 3:42」 · 영어판 「Nov 22, 3:42 PM」 (기기 현지 시간) */
+export const dateClock = (at: number) =>
+  isKo ? `${new Date(at).getMonth() + 1}월 ${new Date(at).getDate()}일 ${clock(at)}` : `${MONTHS_EN[new Date(at).getMonth()]} ${new Date(at).getDate()}, ${clock(at)}`;
 
 /** 「오늘 오후 3:42」 · 「내일 오후 3:42」 · 「모레 …」 · 그 뒤는 「11월 9일 오후 3:42」 (기기 현지 시간) */
 export function formatPassEnd(at: number, now: number): string {
@@ -243,12 +267,15 @@ export function formatPassEnd(at: number, now: number): string {
   };
   const diff = Math.round((day(at) - day(now)) / DAY_MS);
   const d = new Date(at);
+  // 영어판: 「3:42 PM today」 · 「3:42 PM tomorrow」 · 그 뒤는 「Nov 9, 3:42 PM」
+  if (!isKo) return diff === 0 ? `${clock(at)} today` : diff === 1 ? `${clock(at)} tomorrow` : dateClock(at);
   const label = diff === 0 ? '오늘' : diff === 1 ? '내일' : diff === 2 ? '모레' : `${d.getMonth() + 1}월 ${d.getDate()}일`;
   return `${label} ${clock(at)}`;
 }
 
 /** 화면에 보여 줄 남은 횟수 안내 문구 */
 export function quotaLabel(status: QuotaStatus): string {
+  if (!isKo) return quotaLabelEn(status);
   const creditNote = `${status.bonus && status.kind !== 'bonus' ? ` · 가입 보너스 ${status.bonus}회` : ''}${status.credits ? ` · 횟수권 ${status.credits}회` : ''}`;
   switch (status.kind) {
     case 'premium':
@@ -270,5 +297,31 @@ export function quotaLabel(status: QuotaStatus): string {
       return `코칭 횟수권 ${status.remaining}회 남았어요`;
     case 'exhausted':
       return status.daily === 0 ? `무료 맛보기를 다 썼어요 · 가입하면 무료 ${SIGNUP_BONUS}회 더` : '오늘의 무료 코칭을 다 썼어요 · 내일 다시 충전돼요';
+  }
+}
+
+/** 영어판 남은 횟수 안내 — 한국어와 같은 「 · 」 구분(마이 탭·보고서가 앞 문장만 잘라 쓴다) */
+function quotaLabelEn(status: QuotaStatus): string {
+  const creditNote = `${status.bonus && status.kind !== 'bonus' ? ` · ${status.bonus} bonus` : ''}${status.credits ? ` · ${plural(status.credits, 'credit')}` : ''}`;
+  switch (status.kind) {
+    case 'premium':
+      return 'Premium · Unlimited';
+    case 'team':
+      return 'Team · Unlimited';
+    case 'pass':
+      if (status.long && status.until) return `Unlimited pass · Until ${dateClock(status.until)}`;
+      return `24-hour pass · Unlimited${status.until ? ` until ${clock(status.until)}` : ''}`;
+    case 'intro':
+      return `Unlimited trial · ${status.until ? `Until ${clock(status.until)}` : 'For a little while'}`;
+    case 'trial':
+      return `${plural(status.free ?? status.remaining, 'free session')} left${creditNote}`;
+    case 'daily':
+      return `${plural(status.free ?? status.remaining, 'free session')} left today${creditNote}`;
+    case 'bonus':
+      return `${plural(status.bonus ?? status.remaining, 'bonus session')} left${status.credits ? ` · ${plural(status.credits, 'credit')}` : ''}`;
+    case 'credits':
+      return `${plural(status.remaining, 'credit')} left`;
+    case 'exhausted':
+      return status.daily === 0 ? `Free trial used up · Sign up for ${SIGNUP_BONUS} more free` : 'Out of free sessions today · Refills tomorrow';
   }
 }

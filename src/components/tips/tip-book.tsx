@@ -9,6 +9,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { isUnlimited, useQuota } from '@/lib/billing/gate';
 import { haptic } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 import type { Worry } from '@/lib/tips';
 import type { Gender } from '@/lib/types';
 import { useAppStore } from '@/store/app-store';
@@ -40,9 +41,10 @@ export function useDefaultPerspective(): Gender {
 export function useCostNote(when: string): { note: string | null; left: string | null; out: boolean; suffix: string } {
   const quota = useQuota();
   if (!quota.enforced || isUnlimited(quota)) return { note: null, left: null, out: false, suffix: '' };
-  if (quota.remaining <= 0) return { note: '무료 횟수를 다 썼어요 · 이용권이 있으면 바로 이어서 돼요', left: null, out: true, suffix: '' };
-  const left = `${quota.remaining}회 남았어요`;
-  return { note: `${left} · ${when} 1회 써요`, left, out: false, suffix: ' · 1회' };
+  if (quota.remaining <= 0) return { note: L('무료 횟수를 다 썼어요 · 이용권이 있으면 바로 이어서 돼요', "You're out of free sessions · with a pass, you can keep going right away"), left: null, out: true, suffix: '' };
+  const left = L(`${quota.remaining}회 남았어요`, `${quota.remaining} free ${quota.remaining === 1 ? 'use' : 'uses'} left`);
+  // 영어판은 「언제 쓰는지(when)」를 적지 않는다 — 부르는 화면마다 한국어 when 을 넘기므로 영어 문장에 섞이지 않게
+  return { note: L(`${left} · ${when} 1회 써요`, `${left} · this uses 1`), left, out: false, suffix: L(' · 1회', ' · 1 use') };
 }
 
 /** 탐색 탭의 고민 버튼 — 아이콘 없는 회색 글자 버튼(높이 52). 찾는 말(키워드)은 화면 읽기에만 */

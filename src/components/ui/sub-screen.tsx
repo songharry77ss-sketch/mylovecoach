@@ -22,6 +22,7 @@ import { Screen, useScreenTopInset } from '@/components/ui/screen';
 import { useScrolledPast } from '@/components/ui/system-bars';
 import { Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { L } from '@/lib/i18n';
 
 /** 큰 제목(위 46 아래에서 시작, 38 높이)이 머리말 띠 뒤로 다 들어가는 스크롤 위치 */
 const TITLE_GONE = 40;
@@ -74,7 +75,7 @@ export function SubScreen({ title, children, contentStyle }: SubScreenProps) {
         </Animated.View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="뒤로"
+          accessibilityLabel={L('뒤로', 'Back')}
           onPress={back}
           hitSlop={6}
           style={({ pressed }) => [styles.back, { top: top + (GLASS_HEADER_BAR - 44) / 2, opacity: pressed ? 0.45 : 1 }]}>

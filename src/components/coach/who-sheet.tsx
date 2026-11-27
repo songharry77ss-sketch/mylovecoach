@@ -5,11 +5,13 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RoomAvatar } from '@/components/crush/crush-list-item';
+import { crushDisplayName } from '@/components/crush/crush-name';
 import { AppText } from '@/components/ui/app-text';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { relativeTime } from '@/lib/format';
+import { L } from '@/lib/i18n';
 import { josa } from '@/lib/kkti';
 import { relationshipLabel } from '@/lib/labels';
 import type { Crush } from '@/lib/types';
@@ -38,17 +40,20 @@ export function WhoSheet({ visible, crushes, imageUri, onPick, onClose, subtitle
   const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="닫기" />
+      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel={L('닫기', 'Close')} />
       <View style={[styles.sheet, { backgroundColor: theme.background, paddingBottom: insets.bottom + Spacing.lg }]}>
         <View style={[styles.handle, { backgroundColor: theme.surfaceSelected }]} />
         <View style={styles.head}>
           {imageUri ? <Image source={{ uri: imageUri }} style={[styles.thumb, { backgroundColor: theme.surface, borderColor: theme.border }]} contentFit="cover" /> : null}
           <View style={styles.flex}>
             <AppText variant="title1" accessibilityRole="header">
-              누구와의 대화예요?
+              {L('누구와의 대화예요?', 'Who’s this chat with?')}
             </AppText>
             <AppText variant="small" color="textSecondary">
-              {subtitle ?? (imageUri ? '고르면 바로 분석을 시작해요' : '고르면 그 채팅방에서 바로 적을 수 있어요')}
+              {subtitle ??
+                (imageUri
+                  ? L('고르면 바로 분석을 시작해요', 'Pick one and I’ll start right away')
+                  : L('고르면 그 채팅방에서 바로 적을 수 있어요', 'Pick one to start typing in that chat'))}
             </AppText>
           </View>
         </View>
@@ -61,17 +66,17 @@ export function WhoSheet({ visible, crushes, imageUri, onPick, onClose, subtitle
                 <PressableScale
                   feedback={false}
                   pressedScale={0.97}
-                  accessibilityLabel={`${c.name}${josa(c.name, '과', '와')}의 대화`}
+                  accessibilityLabel={L(`${c.name}${josa(c.name, '과', '와')}의 대화`, `Chat with ${crushDisplayName(c.name)}`)}
                   onPress={() => onPick({ kind: 'crush', id: c.id })}
                   style={[styles.row, { backgroundColor: theme.surface }]}>
                   <RoomAvatar crush={c} size={44} />
                   <View style={styles.flex}>
                     <AppText variant="bodyStrong" numberOfLines={1}>
-                      {c.name}
+                      {crushDisplayName(c.name)}
                     </AppText>
                     <AppText variant="caption" color="textTertiary" numberOfLines={1}>
                       {rel.label}
-                      {c.lastMessageAt ? ` · ${relativeTime(c.lastMessageAt)}` : ' · 새 채팅방'}
+                      {c.lastMessageAt ? ` · ${relativeTime(c.lastMessageAt)}` : L(' · 새 채팅방', ' · New chat')}
                     </AppText>
                   </View>
                   <Text style={[styles.heat, { color: heat >= 50 ? theme.accent : theme.primary }]}>{heat}°</Text>
@@ -80,26 +85,26 @@ export function WhoSheet({ visible, crushes, imageUri, onPick, onClose, subtitle
             );
           })}
           <Animated.View entering={FadeInDown.delay(40 * Math.min(crushes.length, 6)).duration(260)} style={styles.extra}>
-            <PressableScale feedback={false} pressedScale={0.97} accessibilityLabel="새로운 사람" onPress={() => onPick({ kind: 'new' })} style={[styles.row, styles.outline, { borderColor: theme.border }]}>
+            <PressableScale feedback={false} pressedScale={0.97} accessibilityLabel={L('새로운 사람', 'Someone new')} onPress={() => onPick({ kind: 'new' })} style={[styles.row, styles.outline, { borderColor: theme.border }]}>
               <View style={[styles.icon, { backgroundColor: theme.primarySoft }]}>
                 <Ionicons name="person-add" size={20} color={theme.primary} />
               </View>
               <View style={styles.flex}>
-                <AppText variant="bodyStrong">새로운 사람</AppText>
+                <AppText variant="bodyStrong">{L('새로운 사람', 'Someone new')}</AppText>
                 <AppText variant="caption" color="textTertiary">
-                  새 채팅방을 열어요 · 정보는 나중에 채워도 돼요
+                  {L('새 채팅방을 열어요 · 정보는 나중에 채워도 돼요', 'Start a new chat · Add details later')}
                 </AppText>
               </View>
               <Ionicons name="chevron-forward" size={18} color={theme.textTertiary} />
             </PressableScale>
-            <PressableScale feedback={false} pressedScale={0.97} accessibilityLabel="비밀 상담" onPress={() => onPick({ kind: 'secret' })} style={[styles.row, styles.outline, { borderColor: theme.border }]}>
+            <PressableScale feedback={false} pressedScale={0.97} accessibilityLabel={L('비밀 상담', 'Private chat')} onPress={() => onPick({ kind: 'secret' })} style={[styles.row, styles.outline, { borderColor: theme.border }]}>
               <View style={[styles.icon, { backgroundColor: theme.text }]}>
                 <Ionicons name="glasses" size={20} color={theme.background} />
               </View>
               <View style={styles.flex}>
-                <AppText variant="bodyStrong">비밀 상담</AppText>
+                <AppText variant="bodyStrong">{L('비밀 상담', 'Private chat')}</AppText>
                 <AppText variant="caption" color="textTertiary">
-                  기기에 남지 않고, 나가면 지워져요
+                  {L('기기에 남지 않고, 나가면 지워져요', 'Not saved — gone when you leave')}
                 </AppText>
               </View>
               <Ionicons name="chevron-forward" size={18} color={theme.textTertiary} />

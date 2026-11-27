@@ -21,11 +21,15 @@ import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
 import { useResumeAfterPaywall } from '@/hooks/use-resume-after-paywall';
 import { useTheme } from '@/hooks/use-theme';
 import { haptic } from '@/lib/haptics';
-import { themLabel } from '@/lib/mind-cards';
+import { L } from '@/lib/i18n';
+import { fillThem, themLabel } from '@/lib/mind-cards';
 import type { Gender } from '@/lib/types';
 import { useAppStore } from '@/store/app-store';
 
-const PHRASES = ['그 사람 입장이 되어 보는 중…', '흔한 경우의 수를 따져 보는 중…', '속마음을 받아 적는 중…', '가능성을 계산하는 중…', '거의 다 됐어요!'];
+const PHRASES = L(
+  ['그 사람 입장이 되어 보는 중…', '흔한 경우의 수를 따져 보는 중…', '속마음을 받아 적는 중…', '가능성을 계산하는 중…', '거의 다 됐어요!'],
+  ['Putting myself in their shoes…', 'Weighing the usual possibilities…', "Writing down what they're thinking…", 'Crunching the odds…', 'Almost there!'],
+);
 
 /** 결과가 나오면 두근, 실패하면 툭 */
 const feel = (outcome: MindOutcome) => {
@@ -49,7 +53,7 @@ export default function MindScreen() {
   const history = useAppStore((s) => s.mindHistory);
   const hasDayPass = onSalePrice(usePlanProducts(), 'day') != null;
   // 「다시 풀이」가 무료 1회를 쓰는지 — 남았으면 버튼에 「· 1회」, 0회면 「무료 횟수를 다 썼어요」(예전엔 0회에도 「1회가 차감돼요」였다)
-  const again = useCostNote('다시 풀면');
+  const again = useCostNote(L('다시 풀면', 'to read again'));
   // 기록에서 연 풀이는 처음 연 그 기록을 계속 보여 준다 (다시 풀면 기록 순서가 바뀌어도 화면이 다른 기록으로 넘어가지 않게)
   const [fromHistory] = useState(() => (params.history != null ? history[Number(params.history)] : undefined));
   const perspective: Gender = fromHistory?.perspective ?? (params.perspective === 'female' || params.perspective === 'other' ? params.perspective : 'male');
@@ -89,16 +93,18 @@ export default function MindScreen() {
     haptic.success();
     setCopiedText(reading.sampleReply);
     celebrate({ kind: 'sparkles', count: 12, haptic: false });
-    toast.show('복사했어요. 카톡에 붙여넣기만 하면 끝!', 'success');
+    toast.show(L('복사했어요. 카톡에 붙여넣기만 하면 끝!', 'Copied! Just paste it in your chat.'), 'success');
   };
 
   const who = themLabel(perspective);
+  // 영어판 머리말 — 성별에 맞춰 What he's / she's / they're thinking
+  const voiceLabel = L(`${who}의 속마음`, fillThem("What {they're} thinking", perspective));
 
   return (
     <Screen contentStyle={styles.content}>
       {/* 내 질문 — 채팅방의 내 말풍선과 같은 모양 */}
-      <Animated.View entering={FadeInDown.duration(300)} style={[styles.mine, { backgroundColor: theme.bubbleUser }]} accessibilityLabel={`물어본 상황: ${situation || '없음'}`}>
-        <AppText variant="body">{situation || '물어볼 상황이 없어요.'}</AppText>
+      <Animated.View entering={FadeInDown.duration(300)} style={[styles.mine, { backgroundColor: theme.bubbleUser }]} accessibilityLabel={L(`물어본 상황: ${situation || '없음'}`, `You asked: ${situation || 'nothing yet'}`)}>
+        <AppText variant="body">{situation || L('물어볼 상황이 없어요.', 'No situation to read yet.')}</AppText>
       </Animated.View>
 
       {busy ? <PendingBubble phrases={PHRASES} /> : null}
@@ -107,16 +113,21 @@ export default function MindScreen() {
       {blocked && !reading ? (
         <Animated.View entering={FadeInDown.duration(300)} style={[styles.card, { backgroundColor: bubble }]}>
           <View style={styles.block}>
-            <AppText variant="bodyStrong">무료 횟수를 다 썼어요</AppText>
+            <AppText variant="bodyStrong">{L('무료 횟수를 다 썼어요', "You're out of free sessions")}</AppText>
             <AppText variant="small" color="textSecondary">
-              {hasDayPass ? '하루 이용권이면 지금부터 24시간 동안 속마음을 마음껏 물어볼 수 있어요.' : '이용권이면 횟수 걱정 없이 속마음을 마음껏 물어볼 수 있어요.'}
+              {hasDayPass
+                ? L('하루 이용권이면 지금부터 24시간 동안 속마음을 마음껏 물어볼 수 있어요.', 'With a 24-hour pass, you can read their mind as much as you want for the next 24 hours.')
+                : L('이용권이면 횟수 걱정 없이 속마음을 마음껏 물어볼 수 있어요.', 'With a pass, you can read their mind as much as you want — no limits.')}
             </AppText>
           </View>
           <View style={[styles.inner, { backgroundColor: inner }]}>
             <AppText variant="caption" color="textSecondary" weight="600">
-              풀이에 나오는 것
+              {L('풀이에 나오는 것', "What you'll get")}
             </AppText>
-            {['그 사람의 속마음 한마디', '가능성 세 가지와 그 숫자', '바로 보낼 수 있는 문장'].map((line) => (
+            {L(
+              ['그 사람의 속마음 한마디', '가능성 세 가지와 그 숫자', '바로 보낼 수 있는 문장'],
+              ["What they're really thinking, in one line", 'Three possibilities, with odds', 'A message you can send right away'],
+            ).map((line) => (
               <View key={line} style={styles.checkRow}>
                 <Ionicons name="checkmark" size={16} color={theme.textSecondary} />
                 <AppText variant="small">{line}</AppText>
@@ -124,11 +135,11 @@ export default function MindScreen() {
             ))}
           </View>
           <AppText variant="caption" color="textSecondary">
-            최근에 본 속마음은 횟수 없이 계속 볼 수 있어요
+            {L('최근에 본 속마음은 횟수 없이 계속 볼 수 있어요', "Readings you've seen recently stay free to revisit")}
           </AppText>
           <View style={styles.pills}>
-            <Pill title="이용권 보기" tone="blue" onPress={() => openPaywall('mind')} />
-            <Pill title="다시 시도" tone="white" fill={inner} onPress={() => retry().then(feel)} />
+            <Pill title={L('이용권 보기', 'See passes')} tone="blue" onPress={() => openPaywall('mind')} />
+            <Pill title={L('다시 시도', 'Try again')} tone="white" fill={inner} onPress={() => retry().then(feel)} />
           </View>
         </Animated.View>
       ) : null}
@@ -139,7 +150,7 @@ export default function MindScreen() {
             {error}
           </AppText>
           <View style={styles.pills}>
-            <Pill title="다시 시도" tone="white" fill={inner} onPress={() => retry().then(feel)} />
+            <Pill title={L('다시 시도', 'Try again')} tone="white" fill={inner} onPress={() => retry().then(feel)} />
           </View>
         </View>
       ) : null}
@@ -148,14 +159,14 @@ export default function MindScreen() {
         <>
           {reused ? (
             <AppText variant="caption" color="textSecondary" align="center">
-              전에 풀어 본 상황이라 저장된 풀이를 보여 드려요
+              {L('전에 풀어 본 상황이라 저장된 풀이를 보여 드려요', "You've asked about this before, so here's your saved reading")}
             </AppText>
           ) : null}
 
           {/* 그 사람의 속마음 한마디 — 왼쪽 회색 말풍선 */}
           <Animated.View entering={ZoomIn.duration(280)} style={[styles.voice, { backgroundColor: bubble }]}>
             <AppText variant="caption" color="textSecondary" weight="600">
-              {who}의 속마음
+              {voiceLabel}
             </AppText>
             <AppText variant="title3" weight="700" style={styles.voiceText}>
               {reading.innerVoice}
@@ -166,19 +177,19 @@ export default function MindScreen() {
           <Animated.View entering={FadeInDown.delay(160).duration(320)} style={[styles.card, { backgroundColor: bubble }]}>
             {reading.sampleReply ? (
               <View style={styles.block}>
-                <AppText variant="bodyStrong">이렇게 보내 봐요</AppText>
+                <AppText variant="bodyStrong">{L('이렇게 보내 봐요', 'Try sending this')}</AppText>
                 <PressableScale
                   feedback={false}
                   pressedScale={0.98}
                   onPress={copySample}
-                  accessibilityLabel={copied ? '보낼 메시지 복사했어요' : `보낼 메시지 예시 복사: ${reading.sampleReply}`}
+                  accessibilityLabel={copied ? L('보낼 메시지 복사했어요', 'Message copied') : L(`보낼 메시지 예시 복사: ${reading.sampleReply}`, `Copy suggested message: ${reading.sampleReply}`)}
                   style={[styles.inner, { backgroundColor: inner, borderColor: copied ? theme.primary : 'transparent' }]}>
                   <AppText style={[styles.sampleText, { color: theme.text }]}>{reading.sampleReply}</AppText>
                   {/* 카드마다 색이 찬 버튼은 「복사」 하나 — 검정 알약, 복사하면 센딧 파랑(채팅방 답장 카드와 같다) */}
                   <View style={[styles.copyPill, { backgroundColor: copied ? theme.primary : theme.text }]}>
                     {copied ? <Ionicons name="checkmark" size={15} color={Brand.onBrand} /> : null}
                     <AppText variant="smallStrong" color={copied ? Brand.onBrand : theme.background}>
-                      {copied ? '복사했어요' : '복사'}
+                      {copied ? L('복사했어요', 'Copied') : L('복사', 'Copy')}
                     </AppText>
                   </View>
                 </PressableScale>
@@ -194,7 +205,7 @@ export default function MindScreen() {
             </View>
 
             <View style={styles.block}>
-              <AppText variant="smallStrong">이렇게 해 봐요</AppText>
+              <AppText variant="smallStrong">{L('이렇게 해 봐요', 'What to do')}</AppText>
               <AppText variant="small" color="textSecondary" style={styles.advice}>
                 {reading.advice}
               </AppText>
@@ -202,9 +213,16 @@ export default function MindScreen() {
 
             <View style={styles.footer}>
               <View style={styles.pills}>
-                <Pill title="다른 상황 물어보기" tone="white" fill={inner} onPress={() => router.back()} />
+                <Pill title={L('다른 상황 물어보기', 'Ask about something else')} tone="white" fill={inner} onPress={() => router.back()} />
                 {/* 저장된 풀이 대신 AI 에게 새로 묻는다 — 무료 1회를 쓰면 누르기 전에 「· 1회」 */}
-                <Pill title={`다시 풀이${again.suffix}`} a11y="다시 풀이" hint={again.suffix ? '무료 코칭 1회를 써요' : undefined} tone="white" fill={inner} onPress={() => ask(true).then(feel)} />
+                <Pill
+                  title={`${L('다시 풀이', 'Read again')}${again.suffix}`}
+                  a11y={L('다시 풀이', 'Read again')}
+                  hint={again.suffix ? L('무료 코칭 1회를 써요', 'Uses 1 free coaching') : undefined}
+                  tone="white"
+                  fill={inner}
+                  onPress={() => ask(true).then(feel)}
+                />
               </View>
             </View>
             {again.out && again.note ? (
@@ -215,7 +233,7 @@ export default function MindScreen() {
           </Animated.View>
 
           <View style={styles.report}>
-            <AiReportLink mode="mind" situation={situation} reading={reading} label="이 풀이 신고" />
+            <AiReportLink mode="mind" situation={situation} reading={reading} label={L('이 풀이 신고', 'Report this reading')} />
           </View>
         </>
       ) : null}

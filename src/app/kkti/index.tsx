@@ -27,8 +27,10 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 import { countKkti } from '@/lib/kkti-stat';
 import { KKTI_AXES, KKTI_QUESTIONS, codeLetters, computeKkti, kktiFromCode, readableTextOn, toSaved, type KktiResult } from '@/lib/kkti';
+import { kktiCopy } from '@/lib/kkti-en';
 import { useAppStore } from '@/store/app-store';
 
 /**
@@ -47,12 +49,12 @@ const TOTAL = KKTI_QUESTIONS.length;
 const EXAMPLE_ANSWER = 1;
 const AXIS_INDEX = KKTI_QUESTIONS.map((q) => KKTI_AXES.findIndex((a) => a.key === q.axis));
 const LETTERS = ['A', 'B', 'C', 'D'];
-const CHAT_TIMES = ['오후 10:42', '오후 11:07', '오전 1:13', '오후 9:58', '오후 7:21'];
+const CHAT_TIMES = L(['오후 10:42', '오후 11:07', '오전 1:13', '오후 9:58', '오후 7:21'], ['10:42 PM', '11:07 PM', '1:13 AM', '9:58 PM', '7:21 PM']);
 /** 「결과 분석 중…」 연출 시간 */
 const ANALYZE_MS = 2100;
 
 /** 결과에 나오는 것 — 한 줄 글로(예전 2×2 아이콘 타일). 12문항의 답 조합 1,677만 개를 모두 계산해 보면 서로 다른 색이 5,610,943가지 나온다 */
-const PERKS = '16가지 연애 유형 · 카톡 속 진짜 MBTI · 애니어그램 · 560만 가지 연애 컬러';
+const PERKS = L('16가지 연애 유형 · 카톡 속 진짜 MBTI · 애니어그램 · 560만 가지 연애 컬러', '16 dating types · Your texting MBTI · Enneagram · 5.6M+ love colors');
 /** 입구의 결과 예시 — 실제 계산한 유형 카드(모든 문항에서 둘째 답 — 직진 불도저 · 살구 젤리) */
 const EXAMPLE = computeKkti(KKTI_QUESTIONS.map(() => EXAMPLE_ANSWER));
 
@@ -98,7 +100,7 @@ export default function KktiTestScreen() {
 
   return (
     <View style={[styles.flex, styles.clip, { backgroundColor: theme.background }]}>
-      <Stack.Screen options={{ headerShown: false, title: 'KKTI · 카톡으로 보는 진짜 연애 MBTI' }} />
+      <Stack.Screen options={{ headerShown: false, title: L('KKTI · 카톡으로 보는 진짜 연애 MBTI', 'Texting Type Test · What your texts say about you') }} />
       {phase === 'intro' ? <Intro friend={friend} onStart={start} onClose={close} /> : null}
       {phase === 'quiz' ? <Quiz onExit={() => setPhase('intro')} onComplete={finish} /> : null}
       {phase === 'analyzing' ? <Analyzing color={finalColor} /> : null}
@@ -119,7 +121,7 @@ function Intro({ friend, onStart, onClose }: { friend: KktiResult | null; onStar
   return (
     <View style={[styles.flex, { backgroundColor: theme.background }]}>
       <View style={[styles.topBar, { paddingTop: insets.top + Spacing.sm }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={onClose} hitSlop={10} style={[styles.iconCircle, { backgroundColor: fill }]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={L('닫기', 'Close')} onPress={onClose} hitSlop={10} style={[styles.iconCircle, { backgroundColor: fill }]}>
           <Ionicons name="close" size={20} color={theme.text} />
         </Pressable>
       </View>
@@ -132,9 +134,11 @@ function Intro({ friend, onStart, onClose }: { friend: KktiResult | null; onStar
                 <AppText style={styles.friendEmoji}>{friend.type.emoji}</AppText>
               </View>
               <View style={styles.flexShrink}>
-                <AppText variant="smallStrong">「{friend.type.name}」 친구가 기다리고 있어요</AppText>
+                <AppText variant="smallStrong">
+                  {L(`「${friend.type.name}」 친구가 기다리고 있어요`, `Your friend (${kktiCopy.type(friend.code)?.name ?? friend.type.name}) is waiting`)}
+                </AppText>
                 <AppText variant="caption" color="textSecondary">
-                  테스트를 끝내면 둘의 카톡 궁합이 나와요
+                  {L('테스트를 끝내면 둘의 카톡 궁합이 나와요', 'Finish the test to see how your texting styles match')}
                 </AppText>
               </View>
             </Animated.View>
@@ -143,13 +147,13 @@ function Intro({ friend, onStart, onClose }: { friend: KktiResult | null; onStar
           {/* 큰 문장 두 줄 + 무엇·얼마나·무료 */}
           <Animated.View entering={enter(1)} style={styles.introHead}>
             <AppText variant="smallStrong" color="textSecondary">
-              KKTI
+              {kktiCopy.testName}
             </AppText>
             <AppText style={[styles.introTitle, { color: theme.text }]} accessibilityRole="header">
-              {'카톡으로 보는\n진짜 연애 MBTI'}
+              {L('카톡으로 보는\n진짜 연애 MBTI', 'Your texts reveal\nyour real dating type')}
             </AppText>
             <AppText variant="body" color="textSecondary">
-              1분이면 끝 · 12문항 · 무료
+              {L('1분이면 끝 · 12문항 · 무료', '1 minute · 12 questions · Free')}
             </AppText>
           </Animated.View>
 
@@ -160,7 +164,7 @@ function Intro({ friend, onStart, onClose }: { friend: KktiResult | null; onStar
 
           <Animated.View entering={enter(3)} style={styles.introNotes}>
             <AppText variant="small" color="textSecondary">
-              선톡, 답장 속도, 이모지 습관만 봐도 다 보여요.
+              {L('선톡, 답장 속도, 이모지 습관만 봐도 다 보여요.', 'Who texts first, reply speed, emoji habits: they say it all.')}
             </AppText>
             <AppText variant="small" color="textSecondary">
               {PERKS}
@@ -169,7 +173,7 @@ function Intro({ friend, onStart, onClose }: { friend: KktiResult | null; onStar
               <View style={styles.lastResult}>
                 <View style={[styles.lastDot, { backgroundColor: saved.color }]} />
                 <AppText variant="small" color="textSecondary" style={styles.flexShrink}>
-                  지난 결과 {saved.name} ({saved.code}) · 다시 해 볼까요?
+                  {L(`지난 결과 ${saved.name} (${saved.code}) · 다시 해 볼까요?`, `Last result: ${kktiCopy.saved(saved).name} (${kktiCopy.saved(saved).code}) · Take it again?`)}
                 </AppText>
               </View>
             ) : null}
@@ -178,9 +182,11 @@ function Intro({ friend, onStart, onClose }: { friend: KktiResult | null; onStar
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + Spacing.lg }]}>
-        <GradientButton title={friend ? '테스트하고 궁합 보기' : '테스트 시작하기'} haptic={false} onPress={onStart} />
+        <GradientButton title={friend ? L('테스트하고 궁합 보기', 'Take it & see your match') : L('테스트 시작하기', 'Start the test')} haptic={false} onPress={onStart} />
         <AppText variant="caption" color="textSecondary" align="center">
-          {friend ? '가입 없이 바로 · 1분이면 둘의 궁합이 나와요' : '가입 없이 바로 · 결과를 친구에게 보내면 둘의 궁합이 나와요'}
+          {friend
+            ? L('가입 없이 바로 · 1분이면 둘의 궁합이 나와요', 'No sign-up · See your match in 1 minute')
+            : L('가입 없이 바로 · 결과를 친구에게 보내면 둘의 궁합이 나와요', 'No sign-up · Send your result to a friend to see your match')}
         </AppText>
       </View>
     </View>
@@ -189,7 +195,8 @@ function Intro({ friend, onStart, onClose }: { friend: KktiResult | null; onStar
 
 /** 결과 예시 카드 — 결과 화면 맨 위 유형 카드를 작게(유형색 면 + 네 글자 + 이름 + 한 줄). 색은 공유 그림의 내용이라 남긴다 */
 function ExampleCard() {
-  const { type, color } = EXAMPLE;
+  const { color } = EXAMPLE;
+  const type = kktiCopy.type(EXAMPLE.code) ?? EXAMPLE.type;
   const ink = readableTextOn(color.hex);
   const inkSoft = ink === '#FFFFFF' ? 'rgba(255,255,255,0.86)' : 'rgba(20,21,24,0.74)';
   const glass = ink === '#FFFFFF' ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.5)';
@@ -197,19 +204,19 @@ function ExampleCard() {
     <View
       style={[styles.example, { backgroundColor: color.hex }]}
       accessible
-      accessibilityLabel={`결과 예시: ${type.name}, ${EXAMPLE.code}. ${type.oneLiner}`}>
+      accessibilityLabel={L(`결과 예시: ${type.name}, ${EXAMPLE.code}. ${type.oneLiner}`, `Example result: ${type.name}, ${type.code}. ${type.oneLiner}`)}>
       <View style={styles.exampleTop}>
         <View style={[styles.examplePill, { backgroundColor: glass }]}>
           <AppText variant="caption" weight="700" color={ink}>
-            예시
+            {L('예시', 'Example')}
           </AppText>
         </View>
         <AppText variant="caption" weight="600" color={inkSoft}>
-          KKTI 연애 유형
+          {L('KKTI 연애 유형', 'Your texting type')}
         </AppText>
       </View>
       <View style={styles.exampleLetters}>
-        {codeLetters(EXAMPLE.code).map((letter, i) => (
+        {codeLetters(kktiCopy.code(EXAMPLE.code)).map((letter, i) => (
           <View key={i} style={[styles.exampleLetter, { backgroundColor: glass }]}>
             <AppText style={[styles.exampleLetterText, { color: ink }]}>{letter}</AppText>
           </View>
@@ -290,8 +297,8 @@ function Quiz({ onComplete, onExit }: { onComplete: (answers: number[]) => void;
         return;
       }
       const upcoming = index + 1;
-      if (upcoming === TOTAL / 2) showCheer('벌써 절반!');
-      else if (upcoming === TOTAL - 1) showCheer('마지막 문제예요');
+      if (upcoming === TOTAL / 2) showCheer(L('벌써 절반!', 'Halfway there!'));
+      else if (upcoming === TOTAL - 1) showCheer(L('마지막 문제예요', 'Last one!'));
       direction.current = 1;
       setIndex(upcoming);
     });
@@ -334,13 +341,15 @@ function Quiz({ onComplete, onExit }: { onComplete: (answers: number[]) => void;
 
   const question = KKTI_QUESTIONS[index];
   const axis = KKTI_AXES[AXIS_INDEX[index]];
+  // 화면에 보이는 문구만 지금 언어로 (선택지 순서·점수는 kkti.ts 그대로)
+  const copy = kktiCopy.question(question);
 
   return (
     <View style={[styles.flex, styles.clip, { backgroundColor: theme.background }]}>
       <View style={[styles.quizHeader, { paddingTop: insets.top + Spacing.sm }]}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={index === 0 ? '처음 화면으로' : '이전 문제'}
+          accessibilityLabel={index === 0 ? L('처음 화면으로', 'Back to start') : L('이전 문제', 'Previous question')}
           onPress={back}
           hitSlop={10}
           style={[styles.iconCircle, { backgroundColor: fill }]}>
@@ -370,16 +379,16 @@ function Quiz({ onComplete, onExit }: { onComplete: (answers: number[]) => void;
 
         <Animated.View style={[styles.card, cardStyle]}>
           <AppText variant="caption" color="textSecondary" weight="600">
-            Q{index + 1} · {axis.label}
+            Q{index + 1} · {kktiCopy.axisLabel(axis.key)}
           </AppText>
 
-          {question.bubble ? <ChatBubble text={question.bubble} time={CHAT_TIMES[index % CHAT_TIMES.length]} /> : null}
+          {copy.bubble ? <ChatBubble text={copy.bubble} time={CHAT_TIMES[index % CHAT_TIMES.length]} /> : null}
 
-          <AppText variant="title2">{question.prompt}</AppText>
+          <AppText variant="title2">{copy.prompt}</AppText>
 
           <View style={styles.options}>
-            {question.options.map((o, i) => (
-              <OptionButton key={`${question.id}-${i}`} letter={LETTERS[i] ?? String(i + 1)} label={o.label} selected={answers[index] === i} onPress={() => choose(i)} />
+            {copy.options.map((label, i) => (
+              <OptionButton key={`${question.id}-${i}`} letter={LETTERS[i] ?? String(i + 1)} label={label} selected={answers[index] === i} onPress={() => choose(i)} />
             ))}
           </View>
         </Animated.View>
@@ -395,11 +404,11 @@ function ChatBubble({ text, time }: { text: string; time: string }) {
   return (
     <View style={styles.chatRow}>
       <View style={[styles.chatAvatar, { backgroundColor: theme.primarySoft }]}>
-        <AppText style={[styles.chatAvatarText, { color: theme.primary }]}>그</AppText>
+        <AppText style={[styles.chatAvatarText, { color: theme.primary }]}>{L('그', 'C')}</AppText>
       </View>
       <View style={styles.chatBody}>
         <AppText variant="caption" color="textSecondary">
-          그 사람
+          {L('그 사람', 'Your crush')}
         </AppText>
         <View style={styles.chatLine}>
           <View style={[styles.chatBubble, { backgroundColor: fill }]}>
@@ -440,7 +449,10 @@ function OptionButton({ letter, label, selected, onPress }: { letter: string; la
 
 // ───────────────────────── 결과 분석 중 ─────────────────────────
 
-const STEPS = ['선톡 습관 살펴보는 중…', '답장 속도 재는 중…', '이모지 개수 세는 중…', '밀당 지수 계산 중…', '나만의 연애 컬러 조색 중…'];
+const STEPS = L(
+  ['선톡 습관 살펴보는 중…', '답장 속도 재는 중…', '이모지 개수 세는 중…', '밀당 지수 계산 중…', '나만의 연애 컬러 조색 중…'],
+  ['Checking who texts first…', 'Timing your replies…', 'Counting your emojis…', 'Measuring your push and pull…', 'Mixing your love color…'],
+);
 
 /** 두근두근 — 심장이 뛰고, 회색에서 내 연애 컬러로 물든다 */
 function Analyzing({ color }: { color: string }) {
@@ -492,7 +504,7 @@ function Analyzing({ color }: { color: string }) {
         </Animated.View>
       </View>
       <AppText variant="title1" align="center">
-        결과 분석 중…
+        {L('결과 분석 중…', 'Analyzing your results…')}
       </AppText>
       <PopIn key={step} from={0.85}>
         <AppText variant="body" color="textSecondary" align="center">

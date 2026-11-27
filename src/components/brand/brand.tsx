@@ -9,11 +9,12 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 
-import { APP_NAME, APP_SUBTITLE, RESEARCH_SHORT } from '@/constants/brand';
+import { APP_NAME, APP_NAME_EN, APP_SUBTITLE, APP_SUBTITLE_EN, RESEARCH_SHORT, RESEARCH_SHORT_EN } from '@/constants/brand';
 import { Brand, Radius, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { haptic as feedback } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -125,18 +126,23 @@ export function HeroCard({
   );
 }
 
-/** 앱 로고(아이콘) + 「센딧」 글자 (+ 부제) */
+/** 영어판 이름·부제·연구진 배지 (서버도 쓰는 constants/brand 는 i18n 을 못 불러 여기서 고른다) */
+const NAME = L(APP_NAME, APP_NAME_EN);
+const SUBTITLE = L(APP_SUBTITLE, APP_SUBTITLE_EN);
+const RESEARCH = L(RESEARCH_SHORT, RESEARCH_SHORT_EN);
+
+/** 앱 로고(아이콘) + 「센딧」 글자 (+ 부제). 영어판은 「My Love Coach」 */
 export function SenditLogo({ size = 'md', subtitle = false, tone = 'ink' }: { size?: 'sm' | 'md' | 'lg'; subtitle?: boolean; tone?: 'ink' | 'white' }) {
   const theme = useTheme();
   const mark = { sm: 24, md: 32, lg: 56 }[size];
   const font = { sm: 17, md: 21, lg: 34 }[size];
   const color = tone === 'white' ? Brand.onBrand : theme.text;
   return (
-    <View style={styles.logoRow} accessibilityRole="header" accessibilityLabel={subtitle ? `${APP_NAME}, ${APP_SUBTITLE}` : APP_NAME}>
+    <View style={styles.logoRow} accessibilityRole="header" accessibilityLabel={subtitle ? `${NAME}, ${SUBTITLE}` : NAME}>
       <Image source={require('../../../assets/images/sendit-mark.png')} style={{ width: mark, height: mark, borderRadius: mark * 0.24 }} contentFit="contain" />
       <View>
-        <Text style={[styles.logoText, { fontSize: font, color }]}>{APP_NAME}</Text>
-        {subtitle ? <Text style={[styles.logoSub, { color: tone === 'white' ? Brand.onBrandDim : theme.textSecondary }]}>{APP_SUBTITLE}</Text> : null}
+        <Text style={[styles.logoText, { fontSize: font, color }]}>{NAME}</Text>
+        {subtitle ? <Text style={[styles.logoSub, { color: tone === 'white' ? Brand.onBrandDim : theme.textSecondary }]}>{SUBTITLE}</Text> : null}
       </View>
     </View>
   );
@@ -149,7 +155,7 @@ export function ResearchBadge({ tone = 'soft', style }: { tone?: 'soft' | 'glass
   return (
     <View style={[styles.badge, glass ? styles.badgeGlass : { backgroundColor: theme.primarySoft }, style]}>
       <Ionicons name="school" size={13} color={glass ? Brand.onBrand : theme.primary} />
-      <Text style={[styles.badgeText, { color: glass ? Brand.onBrand : theme.primary }]}>{RESEARCH_SHORT}</Text>
+      <Text style={[styles.badgeText, { color: glass ? Brand.onBrand : theme.primary }]}>{RESEARCH}</Text>
     </View>
   );
 }

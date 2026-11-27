@@ -23,6 +23,7 @@ import { dateClock, PREMIUM_PLAN_NAMES, formatPassEnd, premiumUntilLabel, quotaL
 import { refreshTeam } from '@/lib/billing/team';
 import { isDemoMode } from '@/lib/demo';
 import { haptic } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 import { genderLabel, toneLabel } from '@/lib/labels';
 import { authAvailable } from '@/lib/supabase';
 import { useAppStore } from '@/store/app-store';
@@ -60,7 +61,7 @@ export default function MyScreen() {
   const products = usePlanProducts();
   const dayPrice = onSalePrice(products, 'day');
   const weeklyPrice = onSalePrice(products, 'weekly');
-  const fromPrice = dayPrice ? `하루 ${dayPrice}부터` : weeklyPrice ? `주 ${weeklyPrice}부터` : undefined;
+  const fromPrice = dayPrice ? L(`하루 ${dayPrice}부터`, `From ${dayPrice}/day`) : weeklyPrice ? L(`주 ${weeklyPrice}부터`, `From ${weeklyPrice}/week`) : undefined;
 
   // 관리자가 방금 팀원으로 등록했어도 마이 탭을 열면 바로 반영되도록
   useFocusEffect(
@@ -71,39 +72,59 @@ export default function MyScreen() {
 
   // 프리미엄이 실제로 이용 중일 때만 그 이름을 쓴다 (끝난 1년권·주간 구독이 저장돼 있어도 팀원·하루 이용권 이름이 가려지지 않게)
   const premiumOn = quota.kind === 'premium' && premium != null;
-  const planValue = premiumOn ? PREMIUM_PLAN_NAMES[premium.plan] : quota.kind === 'team' ? '팀원 무제한' : quota.kind === 'pass' ? (quota.long ? '무제한 이용권' : '하루 이용권') : '';
+  const planValue = premiumOn
+    ? PREMIUM_PLAN_NAMES[premium.plan]
+    : quota.kind === 'team'
+      ? L('팀원 무제한', 'Team unlimited')
+      : quota.kind === 'pass'
+        ? quota.long
+          ? L('무제한 이용권', 'Unlimited pass')
+          : L('하루 이용권', '24-hour pass')
+        : '';
   // 1년권: 「2027년 11월 7일까지」 (Android 는 어림한 날짜라 「… 끝날 예정」)
   const yearUntil = premiumOn ? premiumUntilLabel(premium) : null;
-  const walletNote = wallet.credits > 0 ? `횟수권 ${wallet.credits}회` : '';
+  const walletNote = wallet.credits > 0 ? L(`횟수권 ${wallet.credits}회`, `${wallet.credits} ${wallet.credits === 1 ? 'credit' : 'credits'}`) : '';
   // 산 이용권으로 무제한인지 — 「처음 5분」 무료 체험은 산 게 아니라서 「이용권 보기」 그대로 (남은 시간은 설명 줄에)
   const owned = isUnlimited(quota) && quota.kind !== 'intro';
 
-  const profileInfo = [user && user.gender !== 'other' ? genderLabel(user.gender) : null, user?.age ? `${user.age}세` : null, user?.mbti].filter(Boolean).join(' · ');
+  const profileInfo = [user && user.gender !== 'other' ? genderLabel(user.gender) : null, user?.age ? L(`${user.age}세`, `Age ${user.age}`) : null, user?.mbti].filter(Boolean).join(' · ');
   const tone = toneLabel(user?.defaultTone ?? 'natural');
   // 코칭에 쓰이는 내 정보 — 예전 아이콘 알약 셋을 회색 한 줄로
-  const profileExtra = [user?.vibes?.length ? `추구미 ${user.vibes.join(', ')}` : `기본 톤 ${tone.label}`, `채팅방 ${crushCount}개`, user?.goal ? `목표 ${user.goal}` : null].filter(Boolean).join(' · ');
+  const profileExtra = [
+    user?.vibes?.length ? L(`추구미 ${user.vibes.join(', ')}`, `Vibe: ${user.vibes.join(', ')}`) : L(`기본 톤 ${tone.label}`, `Tone: ${tone.label}`),
+    L(`채팅방 ${crushCount}개`, `${crushCount} ${crushCount === 1 ? 'chat' : 'chats'}`),
+    user?.goal ? L(`목표 ${user.goal}`, `Goal: ${user.goal}`) : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   // 큰 주제 줄 — 오른쪽에 지금 상태를 짧게 (뜻이 약한 「진동 켬」은 뺐다)
   const hasBilling = quota.enforced && billingSupported;
-  const accountTitle = hasBilling && authAvailable ? '이용권·계정' : hasBilling ? '이용권' : authAvailable ? '계정' : null;
-  const accountValue = member ? `${providerLabel(member.provider)} 계정` : authAvailable ? '가입 전' : planValue || undefined;
-  const privacyValue = isDemoMode ? undefined : aiConsent === true ? 'AI 동의함' : 'AI 동의 전';
-  const helpValue = appUpdate ? '새 버전 있어요' : (Constants.expoConfig?.version ?? '1.0.0');
+  const accountTitle = hasBilling && authAvailable ? L('이용권·계정', 'Passes & account') : hasBilling ? L('이용권', 'Passes') : authAvailable ? L('계정', 'Account') : null;
+  const accountValue = member ? L(`${providerLabel(member.provider)} 계정`, `${providerLabel(member.provider)} account`) : authAvailable ? L('가입 전', 'Not signed up') : planValue || undefined;
+  const privacyValue = isDemoMode ? undefined : aiConsent === true ? L('AI 동의함', 'AI: allowed') : L('AI 동의 전', 'AI: not yet');
+  const helpValue = appUpdate ? L('새 버전 있어요', 'Update available') : (Constants.expoConfig?.version ?? '1.0.0');
 
   // 이용권 상태판 글 — 산 이용권이면 이름 + 끝나는 시각, 아니면 남은 무료 횟수(quotaLabel 의 앞 문장) + 나머지·가격
   const now = Date.now();
   const ownedDetail =
     quota.kind === 'team'
-      ? { strong: '', rest: `관리자가 허용한 팀원 기기 · ${team?.label ?? '팀원'}` }
+      ? { strong: '', rest: L(`관리자가 허용한 팀원 기기 · ${team?.label ?? '팀원'}`, `Team device approved by admin · ${team?.label ?? 'Team'}`) }
       : quota.kind === 'pass' && quota.until
-        ? { strong: `${quota.long ? dateClock(quota.until) : formatPassEnd(quota.until, now)}까지`, rest: ' · 무제한' }
+        ? {
+            strong: L(`${quota.long ? dateClock(quota.until) : formatPassEnd(quota.until, now)}까지`, `Until ${quota.long ? dateClock(quota.until) : formatPassEnd(quota.until, now)}`),
+            rest: L(' · 무제한', ' · Unlimited'),
+          }
         : yearUntil
-          ? { strong: yearUntil, rest: ' · 무제한' }
-          : { strong: '', rest: premium?.plan === 'weekly' ? '무제한 · 매주 자동 결제' : '무제한' };
+          ? { strong: yearUntil, rest: L(' · 무제한', ' · Unlimited') }
+          : { strong: '', rest: premium?.plan === 'weekly' ? L('무제한 · 매주 자동 결제', 'Unlimited · Renews weekly') : L('무제한', 'Unlimited') };
   const [quotaHead, ...quotaRest] = quotaLabel(quota).split(' · ');
   const freeDetail = [...quotaRest, fromPrice].filter(Boolean).join(' · ');
   const passLabel = owned
-    ? `${planValue || '프리미엄'} 이용 중, ${ownedDetail.strong}${ownedDetail.rest}${walletNote ? ` · ${walletNote}` : ''}`
+    ? L(
+        `${planValue || '프리미엄'} 이용 중, ${ownedDetail.strong}${ownedDetail.rest}${walletNote ? ` · ${walletNote}` : ''}`,
+        `${planValue || 'Premium'} active, ${ownedDetail.strong}${ownedDetail.rest}${walletNote ? ` · ${walletNote}` : ''}`,
+      )
     : `${quotaHead}${freeDetail ? `, ${freeDetail}` : ''}`;
   const openPaywall = () => {
     haptic.thud();
@@ -120,16 +141,16 @@ export default function MyScreen() {
       setPracticeEnabled(true);
       track('practice_toggle', { on: true });
       haptic.celebrate();
-      toast.show('연애 연습을 켰어요. 아래 탭에도 생겼어요', 'success');
+      toast.show(L('연애 연습을 켰어요. 아래 탭에도 생겼어요', 'Practice chat is on. Find it in the tab bar too'), 'success');
     }
     router.push('/(tabs)/practice');
   };
 
   return (
-    <Screen safeTop tab title="마이" contentStyle={styles.content}>
+    <Screen safeTop tab title={L('마이', 'Me')} contentStyle={styles.content}>
       <Animated.View entering={enter(0)}>
         <Text style={[styles.title, { color: theme.text }]} accessibilityRole="header">
-          마이
+          {L('마이', 'Me')}
         </Text>
       </Animated.View>
 
@@ -140,9 +161,9 @@ export default function MyScreen() {
             <>
               <View style={styles.passTexts} accessible accessibilityLabel={passLabel}>
                 <AppText variant="smallStrong" color="primary">
-                  이용 중
+                  {L('이용 중', 'Active')}
                 </AppText>
-                <AppText style={styles.passHead}>{planValue || '프리미엄'}</AppText>
+                <AppText style={styles.passHead}>{planValue || L('프리미엄', 'Premium')}</AppText>
                 <AppText variant="small" color="textSecondary">
                   {ownedDetail.strong ? (
                     <AppText variant="smallStrong" color="text">
@@ -156,11 +177,11 @@ export default function MyScreen() {
               {/* 이미 산 사람에게는 파란 글자 줄로 조용히 */}
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="이용권 보기"
+                accessibilityLabel={L('이용권 보기', 'See passes')}
                 onPress={openPaywall}
                 style={({ pressed }) => [styles.passLink, { borderTopColor: theme.separator, opacity: pressed ? 0.6 : 1 }]}>
                 <AppText variant="bodyStrong" color="primary" style={styles.flex}>
-                  이용권 보기
+                  {L('이용권 보기', 'See passes')}
                 </AppText>
                 <Ionicons name="chevron-forward" size={16} color={theme.primary} />
               </Pressable>
@@ -177,8 +198,8 @@ export default function MyScreen() {
                   </AppText>
                 ) : null}
               </View>
-              <PressableScale feedback={false} pressedScale={0.98} accessibilityLabel="이용권 보기" onPress={openPaywall} style={styles.passButton}>
-                <Text style={styles.passButtonText}>이용권 보기</Text>
+              <PressableScale feedback={false} pressedScale={0.98} accessibilityLabel={L('이용권 보기', 'See passes')} onPress={openPaywall} style={styles.passButton}>
+                <Text style={styles.passButtonText}>{L('이용권 보기', 'See passes')}</Text>
               </PressableScale>
             </>
           )}
@@ -189,7 +210,7 @@ export default function MyScreen() {
       <Animated.View entering={enter(2)}>
         <PressableScale
           pressedScale={0.98}
-          accessibilityLabel={user?.name ? `${user.name}, 내 프로필 고치기` : '나에 대해 알려주세요'}
+          accessibilityLabel={user?.name ? L(`${user.name}, 내 프로필 고치기`, `${user.name}, edit my profile`) : L('나에 대해 알려주세요', 'Tell us about you')}
           onPress={() => (profileThin ? router.push({ pathname: '/about-me', params: { from: 'my' } }) : router.push('/settings/profile'))}
           style={[styles.profile, card]}>
           {user?.name?.trim() ? (
@@ -199,10 +220,10 @@ export default function MyScreen() {
           )}
           <View style={styles.profileTexts}>
             <AppText variant="title3" weight="700" numberOfLines={1}>
-              {user?.name || '나에 대해 알려주세요'}
+              {user?.name || L('나에 대해 알려주세요', 'Tell us about you')}
             </AppText>
             <AppText variant="small" color="textSecondary" numberOfLines={1}>
-              {profileInfo || '알려 줄수록 「나다운」 답장이 나와요'}
+              {profileInfo || L('알려 줄수록 「나다운」 답장이 나와요', 'The more you share, the more the replies sound like you')}
             </AppText>
             <AppText variant="small" color="textSecondary" numberOfLines={2} style={styles.profileExtra}>
               {profileExtra}
@@ -215,11 +236,17 @@ export default function MyScreen() {
       {/* 자주 쓰는 것 셋만 바로 — 연애 연습은 아직 안 켰으면 빨간 점 「새 기능」(11/12 회의 3번). 아이콘은 타일 없이 회색 선 아이콘 */}
       <Animated.View entering={enter(3)}>
         <View style={[styles.quick, card]}>
-          <QuickAction icon="flash-outline" label="빠른 코칭" caption="복사한 대화로" onPress={() => router.push('/quick')} />
+          <QuickAction icon="flash-outline" label={L('빠른 코칭', 'Quick coach')} caption={L('복사한 대화로', 'From copied text')} onPress={() => router.push('/quick')} />
           <View style={[styles.quickDivider, { backgroundColor: theme.separator }]} />
-          <QuickAction icon="glasses-outline" label="비밀 상담" caption="기록 안 남아요" onPress={openSecret} />
+          <QuickAction icon="glasses-outline" label={L('비밀 상담', 'Private chat')} caption={L('기록 안 남아요', 'Not saved')} onPress={openSecret} />
           <View style={[styles.quickDivider, { backgroundColor: theme.separator }]} />
-          <QuickAction icon="chatbubbles-outline" label="연애 연습" caption={practiceEnabled ? '탭에서 이어서' : 'AI랑 리허설'} isNew={!practiceDotSeen} onPress={openPractice} />
+          <QuickAction
+            icon="chatbubbles-outline"
+            label={L('연애 연습', 'Practice chat')}
+            caption={practiceEnabled ? L('탭에서 이어서', 'Continue in tab') : L('AI랑 리허설', 'Rehearse with AI')}
+            isNew={!practiceDotSeen}
+            onPress={openPractice}
+          />
         </View>
       </Animated.View>
 
@@ -227,22 +254,24 @@ export default function MyScreen() {
       <Animated.View entering={enter(4)}>
         <ListGroup>
           {accountTitle ? <ListRow title={accountTitle} value={accountValue} onPress={() => router.push('/settings/account')} /> : null}
-          <ListRow title="앱 설정" onPress={() => router.push('/settings/app')} />
-          <ListRow title="개인정보" value={privacyValue} onPress={() => router.push('/settings/data')} />
-          <ListRow title="도움말·정보" value={helpValue} onPress={() => router.push('/settings/help')} />
+          <ListRow title={L('앱 설정', 'App settings')} onPress={() => router.push('/settings/app')} />
+          <ListRow title={L('개인정보', 'Privacy')} value={privacyValue} onPress={() => router.push('/settings/data')} />
+          <ListRow title={L('도움말·정보', 'Help & about')} value={helpValue} onPress={() => router.push('/settings/help')} />
         </ListGroup>
       </Animated.View>
     </Screen>
   );
 }
 
-/** 「무료 코칭 2회 남았어요」의 「2회」만 파랑 — 화면의 핵심 숫자 */
+/** 「무료 코칭 2회 남았어요」의 「2회」만 파랑 — 화면의 핵심 숫자 (영어판은 「3 free sessions left」의 「3」) */
+const COUNT_SPLIT = L(/(\d+회)/, /(\d+)/);
+const COUNT_PART = L(/^\d+회$/, /^\d+$/);
 function CountHighlight({ text }: { text: string }) {
-  const parts = text.split(/(\d+회)/);
+  const parts = text.split(COUNT_SPLIT);
   return (
     <>
       {parts.map((part, i) =>
-        /^\d+회$/.test(part) ? (
+        COUNT_PART.test(part) ? (
           <AppText key={i} color="primary" style={styles.passHeadNumber}>
             {part}
           </AppText>
@@ -269,7 +298,7 @@ function ProfileBlank() {
 function QuickAction({ icon, label, caption, isNew, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; caption: string; isNew?: boolean; onPress: () => void }) {
   const theme = useTheme();
   return (
-    <PressableScale pressedScale={0.96} onPress={onPress} accessibilityLabel={isNew ? `${label}, 새 기능` : `${label}, ${caption}`} style={styles.quickCell}>
+    <PressableScale pressedScale={0.96} onPress={onPress} accessibilityLabel={isNew ? L(`${label}, 새 기능`, `${label}, new`) : `${label}, ${caption}`} style={styles.quickCell}>
       <Ionicons name={icon} size={22} color={theme.textSecondary} />
       <AppText variant="smallStrong" numberOfLines={1} style={styles.quickLabel}>
         {label}
@@ -278,7 +307,7 @@ function QuickAction({ icon, label, caption, isNew, onPress }: { icon: keyof typ
         <View style={styles.newRow}>
           <View style={[styles.newDot, { backgroundColor: theme.danger }]} />
           <AppText variant="caption" color="textSecondary" numberOfLines={1}>
-            새 기능
+            {L('새 기능', 'New')}
           </AppText>
         </View>
       ) : (

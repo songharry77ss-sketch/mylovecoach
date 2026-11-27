@@ -1,0 +1,8 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "센딧"
+  },
+  "android": {
+    "app_name": "센딧"
+  }
+}

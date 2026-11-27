@@ -9,8 +9,15 @@
  * 3. 장마다 crop(틀 안에 보일 세로 범위), spots(누르는 곳 — 점), boxes(보는 곳 — 상자)를 그림에 맞춘다.
  *    좌표는 모두 그림 전체 기준 0~1 비율: 「픽셀 위치 ÷ 그림 가로(세로) 크기」. 예: 786×1704 그림의 (393, 640) → x 0.5, y 0.376.
  *    crop 범위가 좁을수록 휴대폰이 크게 보인다 (세로 0.55~0.65 범위면 카드 폭의 70% 안팎).
+ *
+ * 영어판 그림 (2026-11-27~): 영어 화면(데모 웹 `?lang=en`)을 같은 크기로 찍어 assets/images/guide/en/step-N.png 로 넣고,
+ * 아래 GUIDE_STEPS 의 `pick(require(한국어))` 를 `pick(require(한국어), require('../../../assets/images/guide/en/step-N.png'))` 로 바꾼다.
+ * 아직 그 파일이 없어 영어판도 한국어 그림을 쓴다 (없는 파일을 require 하면 빌드가 깨진다).
+ * 영어 화면은 글자 길이가 달라 강조 위치가 어긋날 수 있다 — 그림을 넣으면 spots·boxes 도 `L(한국어 값, 영어 값)` 으로 다시 잰다.
  */
 import type { ImageSourcePropType } from 'react-native';
+
+import { L } from '@/lib/i18n';
 
 /** 그림의 픽셀 크기 (가로 · 세로) — 화면 비율만 쓴다 */
 export const SHOT_WIDTH = 786;
@@ -69,57 +76,60 @@ export interface GuideStep {
 
 const shot = (image: ImageSourcePropType, rest: Omit<GuideShot, 'image' | 'width' | 'height'>): GuideShot => ({ image, width: SHOT_WIDTH, height: SHOT_HEIGHT, ...rest });
 
+/** 언어별 그림 — 영어 그림(en)을 아직 넣지 않았으면 영어판도 한국어 그림 */
+const pick = (ko: ImageSourcePropType, en?: ImageSourcePropType): ImageSourcePropType => L(ko, en ?? ko);
+
 export const GUIDE_STEPS: GuideStep[] = [
   {
     key: 'capture',
-    pill: '1 · 캡처 올리기',
-    title: '카톡 캡처 한 장 올리기',
-    body: '답장이 고민되는 대화를 캡처해서 올려요. 캡처가 없으면 상황만 적어도 돼요.',
-    // 홈 — 「캡처 올리기」 버튼과 「상황만 적기」 칸
-    shot: shot(require('../../../assets/images/guide/step-1.png'), {
+    pill: L('1 · 캡처 올리기', '1 · Upload a screenshot'),
+    title: L('카톡 캡처 한 장 올리기', 'Upload one chat screenshot'),
+    body: L('답장이 고민되는 대화를 캡처해서 올려요. 캡처가 없으면 상황만 적어도 돼요.', "Screenshot the chat you're stuck on and upload it. No screenshot? Just describe what's going on."),
+    // 홈 — 「캡처 올리기」 버튼과 「상황만 적기」 칸 (영어 그림: assets/images/guide/en/step-1.png)
+    shot: shot(pick(require('../../../assets/images/guide/step-1.png')), {
       crop: { top: 0.125, bottom: 0.748 },
       spots: [
-        { x: 0.68, y: 0.366, label: '여기를 눌러요', side: 'bottom' },
-        { x: 0.893, y: 0.469, label: '상황만 적어도 돼요', side: 'bottom' },
+        { x: 0.68, y: 0.366, label: L('여기를 눌러요', 'Tap here'), side: 'bottom' },
+        { x: 0.893, y: 0.469, label: L('상황만 적어도 돼요', 'Or just describe it'), side: 'bottom' },
       ],
     }),
   },
   {
     key: 'replies',
-    pill: '2 · 답장 고르기',
-    title: '답장 3가지 중 골라 복사',
-    body: '내 말투를 살린 답장 3가지를 성공 확률과 함께 보여 줘요. 마음에 드는 걸 누르면 복사돼요.',
-    // 채팅방 — 답장 카드의 성공 확률과 「복사」
-    shot: shot(require('../../../assets/images/guide/step-2.png'), {
+    pill: L('2 · 답장 고르기', '2 · Pick a reply'),
+    title: L('답장 3가지 중 골라 복사', 'Pick 1 of 3 replies and copy'),
+    body: L('내 말투를 살린 답장 3가지를 성공 확률과 함께 보여 줘요. 마음에 드는 걸 누르면 복사돼요.', 'Get 3 replies in your own voice, each with its success chance. Tap the one you like to copy it.'),
+    // 채팅방 — 답장 카드의 성공 확률과 「복사」 (영어 그림: assets/images/guide/en/step-2.png)
+    shot: shot(pick(require('../../../assets/images/guide/step-2.png')), {
       crop: { top: 0, bottom: 0.62 },
-      boxes: [{ x: 0.659, y: 0.45, w: 0.239, h: 0.035, label: '성공 확률', side: 'top' }],
-      spots: [{ x: 0.809, y: 0.577, label: '누르면 복사', side: 'bottom' }],
+      boxes: [{ x: 0.659, y: 0.45, w: 0.239, h: 0.035, label: L('성공 확률', 'Success chance'), side: 'top' }],
+      spots: [{ x: 0.809, y: 0.577, label: L('누르면 복사', 'Tap to copy'), side: 'bottom' }],
     }),
   },
   {
     key: 'mind',
-    pill: '3 · 마음 읽기',
-    title: '속마음과 호감 온도까지',
-    body: '대화를 올릴 때마다 호감 온도가 오르내리고, 그 사람이 관심 있을 가능성도 짚어 줘요.',
-    // 채팅방 — 머리의 호감 온도와 결과 아래 관심 있을 가능성(1.4: 답장 3가지 아래 흰 카드)
-    shot: shot(require('../../../assets/images/guide/step-3.png'), {
+    pill: L('3 · 마음 읽기', '3 · Read their mind'),
+    title: L('속마음과 호감 온도까지', 'See how into you they are'),
+    body: L('대화를 올릴 때마다 호감 온도가 오르내리고, 그 사람이 관심 있을 가능성도 짚어 줘요.', 'Their interest level moves with every chat you upload, and your coach tells you how likely they are to be into you.'),
+    // 채팅방 — 머리의 호감 온도와 결과 아래 관심 있을 가능성(1.4: 답장 3가지 아래 흰 카드) (영어 그림: assets/images/guide/en/step-3.png)
+    shot: shot(pick(require('../../../assets/images/guide/step-3.png')), {
       crop: { top: 0, bottom: 0.62 },
       boxes: [
-        { x: 0.341, y: 0.107, w: 0.164, h: 0.028, label: '호감 온도', side: 'bottom' },
-        { x: 0.076, y: 0.384, w: 0.847, h: 0.124, label: '그 사람 마음', side: 'top' },
+        { x: 0.341, y: 0.107, w: 0.164, h: 0.028, label: L('호감 온도', 'Interest level'), side: 'bottom' },
+        { x: 0.076, y: 0.384, w: 0.847, h: 0.124, label: L('그 사람 마음', 'How they feel'), side: 'top' },
       ],
       spots: [],
     }),
   },
   {
     key: 'memory',
-    pill: '4 · 기억',
-    title: '지난 대화도 센딧이 기억해요',
-    body: '나눈 이야기를 「센딧이 기억하는 이야기」에 모아 두고, 다음 답장에 살려 줘요.',
-    // 채팅방 맨 위 — 「센딧이 기억하는 이야기」
-    shot: shot(require('../../../assets/images/guide/step-4.png'), {
+    pill: L('4 · 기억', '4 · Memory'),
+    title: L('지난 대화도 센딧이 기억해요', 'Your coach remembers past chats'),
+    body: L('나눈 이야기를 「센딧이 기억하는 이야기」에 모아 두고, 다음 답장에 살려 줘요.', 'Key details from your chats are saved under “Coach remembers” and used in your next replies.'),
+    // 채팅방 맨 위 — 「센딧이 기억하는 이야기」 (영어 그림: assets/images/guide/en/step-4.png)
+    shot: shot(pick(require('../../../assets/images/guide/step-4.png')), {
       crop: { top: 0, bottom: 0.5 },
-      spots: [{ x: 0.898, y: 0.174, label: '눌러서 보기', side: 'bottom' }],
+      spots: [{ x: 0.898, y: 0.174, label: L('눌러서 보기', 'Tap to view'), side: 'bottom' }],
     }),
   },
 ];

@@ -21,6 +21,7 @@ import { refreshTeam } from '@/lib/billing/team';
 import { linkMember } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { haptic, setHapticsEnabled } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 import { isDemoMode } from '@/lib/demo';
 import { cleanupOrphanImages, clearImageCaches } from '@/lib/images';
 import { skipIntroForPath } from '@/lib/intro-paths';
@@ -264,32 +265,32 @@ export default function RootLayout() {
               <Stack.Screen name="about-me" options={{ headerShown: false, gestureEnabled: false }} />
               <Stack.Screen name="start" options={{ headerShown: false, gestureEnabled: false }} />
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="crush/new" options={{ title: '새 채팅방', presentation: 'modal', ...ANDROID_MODAL }} />
+              <Stack.Screen name="crush/new" options={{ title: L('새 채팅방', 'New chat'), presentation: 'modal', ...ANDROID_MODAL }} />
               <Stack.Screen name="crush/[id]/index" options={{ title: '' }} />
-              <Stack.Screen name="crush/[id]/edit" options={{ title: '상대 정보 수정', presentation: 'modal', ...ANDROID_MODAL }} />
-              <Stack.Screen name="crush/[id]/report" options={{ title: '상대 분석 보고서' }} />
+              <Stack.Screen name="crush/[id]/edit" options={{ title: L('상대 정보 수정', 'Edit their info'), presentation: 'modal', ...ANDROID_MODAL }} />
+              <Stack.Screen name="crush/[id]/report" options={{ title: L('상대 분석 보고서', 'Crush report') }} />
               <Stack.Screen name="practice/[id]" options={{ title: '' }} />
-              <Stack.Screen name="practice/custom" options={{ title: '연습 상대 만들기', presentation: 'modal', ...ANDROID_MODAL }} />
-              <Stack.Screen name="mind" options={{ title: '속마음 풀이' }} />
+              <Stack.Screen name="practice/custom" options={{ title: L('연습 상대 만들기', 'Create a practice match'), presentation: 'modal', ...ANDROID_MODAL }} />
+              <Stack.Screen name="mind" options={{ title: L('속마음 풀이', 'Read their mind') }} />
               <Stack.Screen name="tips/[topic]" options={{ title: '' }} />
-              <Stack.Screen name="quick" options={{ title: '빠른 코칭', presentation: 'modal', ...ANDROID_MODAL }} />
+              <Stack.Screen name="quick" options={{ title: L('빠른 코칭', 'Quick coaching'), presentation: 'modal', ...ANDROID_MODAL }} />
               <Stack.Screen name="kkti/index" options={{ headerShown: false }} />
               <Stack.Screen name="kkti/result" options={{ headerShown: false }} />
-              <Stack.Screen name="settings/profile" options={{ title: '내 프로필' }} />
-              <Stack.Screen name="settings/api-key" options={{ title: 'AI 코치 연결' }} />
-              <Stack.Screen name="settings/privacy" options={{ title: '개인정보 설정' }} />
+              <Stack.Screen name="settings/profile" options={{ title: L('내 프로필', 'My profile') }} />
+              <Stack.Screen name="settings/api-key" options={{ title: L('AI 코치 연결', 'Connect AI coach') }} />
+              <Stack.Screen name="settings/privacy" options={{ title: L('개인정보 설정', 'Privacy settings') }} />
               {/* 마이 → 큰 주제 4개 (11/12 회의 4번). 큰 제목·뒤로 가기·유리 머리말은 화면이 직접 그린다 (components/ui/sub-screen) */}
-              <Stack.Screen name="settings/account" options={{ title: '이용권·계정', headerShown: false }} />
-              <Stack.Screen name="settings/app" options={{ title: '앱 설정', headerShown: false }} />
-              <Stack.Screen name="settings/data" options={{ title: '개인정보', headerShown: false }} />
-              <Stack.Screen name="settings/help" options={{ title: '도움말·정보', headerShown: false }} />
-              <Stack.Screen name="coupon" options={{ title: '쿠폰 코드', headerShown: false }} />
+              <Stack.Screen name="settings/account" options={{ title: L('이용권·계정', 'Plan & account'), headerShown: false }} />
+              <Stack.Screen name="settings/app" options={{ title: L('앱 설정', 'App settings'), headerShown: false }} />
+              <Stack.Screen name="settings/data" options={{ title: L('개인정보', 'Privacy'), headerShown: false }} />
+              <Stack.Screen name="settings/help" options={{ title: L('도움말·정보', 'Help & info'), headerShown: false }} />
+              <Stack.Screen name="coupon" options={{ title: L('쿠폰 코드', 'Coupon code'), headerShown: false }} />
               <Stack.Screen name="paywall" options={{ headerShown: false, presentation: 'modal', ...ANDROID_MODAL }} />
               {/* 무료를 다 써서 막힌 순간 아래에서 올라오는 타임어택 특가 시트 (lib/billing/paywall-route) */}
               <Stack.Screen name="sale" options={{ headerShown: false, presentation: 'transparentModal', animation: 'fade', contentStyle: { backgroundColor: 'transparent' } }} />
               <Stack.Screen name="signup" options={{ headerShown: false, presentation: 'modal', ...ANDROID_MODAL }} />
               <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
-              <Stack.Screen name="+not-found" options={{ title: '페이지를 찾을 수 없어요' }} />
+              <Stack.Screen name="+not-found" options={{ title: L('페이지를 찾을 수 없어요', 'Page not found') }} />
             </Stack>
             </SystemBarsReady.Provider>
             </CelebrationProvider>

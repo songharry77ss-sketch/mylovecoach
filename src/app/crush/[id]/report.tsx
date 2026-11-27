@@ -8,6 +8,7 @@ import { AiReportLink } from '@/components/coach/ai-report-sheet';
 import { CountUp } from '@/components/coach/count-up';
 import { heatMeta } from '@/components/coach/heat-gauge';
 import { PendingBubble } from '@/components/coach/pending-bubble';
+import { crushDisplayName, isUnnamedCrush } from '@/components/crush/crush-name';
 import { useCelebrate } from '@/components/fx/celebration';
 import { AppText } from '@/components/ui/app-text';
 import { Avatar } from '@/components/ui/avatar';
@@ -27,17 +28,29 @@ import { requestAi } from '@/lib/coach-client';
 import { crushToRequest, userToRequest } from '@/lib/coach-schema';
 import { relativeTime } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 import { relationshipLabel } from '@/lib/labels';
 import type { CrushReport, HeatPoint } from '@/lib/types';
 import { buildReportSessions, reportProfileKey, reportRefresh, useAppStore, type ReportRefresh } from '@/store/app-store';
 
-const REPORT_PHRASES = ['지금까지의 대화를 모으는 중…', '호감 신호를 고르는 중…', '그 사람의 연락 패턴을 보는 중…', '공략법을 정리하는 중…', '궁합 점수를 계산하는 중…', '거의 다 됐어요!'];
+const REPORT_PHRASES = L(
+  ['지금까지의 대화를 모으는 중…', '호감 신호를 고르는 중…', '그 사람의 연락 패턴을 보는 중…', '공략법을 정리하는 중…', '궁합 점수를 계산하는 중…', '거의 다 됐어요!'],
+  ['Gathering your chats so far…', 'Picking out interest signals…', 'Looking at how they text…', 'Building your game plan…', 'Scoring your compatibility…', 'Almost there!'],
+);
 
 /** 보고서에 담기는 것 — 만들기 전에 이름만 보여 준다 (내용을 지어내지 않는다) */
-const REPORT_ITEMS = ['한 줄 요약 · 대화 궁합 점수', '잘 먹히는 공략법', '호감 신호 · 주의할 신호', '성향 · 연락 스타일 · 대화 소재', '목표까지 로드맵 · 속마음 (추측)'];
+const REPORT_ITEMS = L(
+  ['한 줄 요약 · 대화 궁합 점수', '잘 먹히는 공략법', '호감 신호 · 주의할 신호', '성향 · 연락 스타일 · 대화 소재', '목표까지 로드맵 · 속마음 (추측)'],
+  ['One-line summary · compatibility score', 'What works on them', 'Green flags · red flags', 'Personality · texting style · topics', 'Roadmap to your goal · what they’re thinking (a guess)'],
+);
 
 /** 「다시 분석하기」 버튼 글 — 왜 다시 만들 수 있는지 알려 준다 (막혔거나 예전 보고서면 그냥 「다시 분석하기」) */
-const refreshTitle = (refresh: ReportRefresh) => (refresh === 'sessions' ? '새 대화까지 반영해 다시 분석' : refresh === 'profile' ? '바뀐 정보로 다시 분석' : '다시 분석하기');
+const refreshTitle = (refresh: ReportRefresh) =>
+  refresh === 'sessions'
+    ? L('새 대화까지 반영해 다시 분석', 'Update with new chats')
+    : refresh === 'profile'
+      ? L('바뀐 정보로 다시 분석', 'Update with new info')
+      : L('다시 분석하기', 'Analyze again');
 
 /**
  * 상대 분석 보고서 — 이용권 혜택 가운데 하나라 「읽을거리」로 보이게(1.4 「깔끔하게」 개편, 점검 5.7).
@@ -71,8 +84,8 @@ export default function CrushReportScreen() {
   if (!crush || !user) {
     return (
       <Screen>
-        <Stack.Screen options={{ title: '상대 분석 보고서' }} />
-        <EmptyState emoji="🫥" title="채팅방을 찾을 수 없어요" actionTitle="홈으로" onAction={() => router.dismissTo?.('/(tabs)')} />
+        <Stack.Screen options={{ title: L('상대 분석 보고서', 'Crush report') }} />
+        <EmptyState emoji="🫥" title={L('채팅방을 찾을 수 없어요', 'Chat not found')} actionTitle={L('홈으로', 'Go home')} onAction={() => router.dismissTo?.('/(tabs)')} />
       </Screen>
     );
   }
@@ -88,8 +101,16 @@ export default function CrushReportScreen() {
   // 지난 보고서 뒤로 새 코칭 기록도, 바뀐 프로필(관계 단계·목표·MBTI·메모·내 정보 등)도 없으면 다시 분석해도 같은 입력이라 막는다 (첫 보고서는 언제나 만들 수 있다)
   const refresh = reportRefresh(report, messages ?? [], profileKey);
   const rel = relationshipLabel(crush.relationship);
-  const who = [rel.label, crush.mbti, crush.age ? `${crush.age}세` : null, crush.goal ? `목표 ${crush.goal}` : null].filter(Boolean).join(' · ');
-  const heatNote = [heatMeta(heat).label, lastDelta ? `지난번보다 ${lastDelta > 0 ? '+' : '−'}${Math.abs(lastDelta)}°` : null].filter(Boolean).join(' · ');
+  const who = [rel.label, crush.mbti, crush.age ? L(`${crush.age}세`, `${crush.age}`) : null, crush.goal ? L(`목표 ${crush.goal}`, `Goal: ${crush.goal}`) : null].filter(Boolean).join(' · ');
+  const heatNote = [
+    heatMeta(heat).label,
+    lastDelta ? L(`지난번보다 ${lastDelta > 0 ? '+' : '−'}${Math.abs(lastDelta)}°`, `${lastDelta > 0 ? '+' : '−'}${Math.abs(lastDelta)}° since last time`) : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  /** 화면에 보일 이름 (영어판은 이름 없는 상대를 「Your crush」로) · 영어 문장 속 이름 (없으면 null) */
+  const name = crushDisplayName(crush.name);
+  const nameEn = isUnnamedCrush(crush.name) ? null : crush.name;
 
   const generate = async () => {
     if (!refresh) return;
@@ -121,24 +142,24 @@ export default function CrushReportScreen() {
 
   return (
     <Screen contentStyle={styles.content}>
-      <Stack.Screen options={{ title: '상대 분석 보고서' }} />
+      <Stack.Screen options={{ title: L('상대 분석 보고서', 'Crush report') }} />
 
       {/* 상대 한 줄 + 지금 호감 온도 한 줄 — 화면의 큰 숫자는 온도 하나 */}
       <Animated.View entering={FadeInDown.duration(300)} style={styles.head}>
         <View style={styles.who}>
-          <Avatar name={crush.name} uri={crush.photoUri} size={48} seed={crush.id} />
+          <Avatar name={name} uri={crush.photoUri} size={48} seed={crush.id} />
           <View style={styles.flex}>
             <AppText variant="title2" numberOfLines={1}>
-              {crush.name}
+              {name}
             </AppText>
             <AppText variant="small" color="textSecondary" numberOfLines={1}>
               {who}
             </AppText>
           </View>
         </View>
-        <View style={styles.heatRow} accessible accessibilityLabel={`지금 호감 온도 ${heat}도, ${heatNote}`}>
+        <View style={styles.heatRow} accessible accessibilityLabel={L(`지금 호감 온도 ${heat}도, ${heatNote}`, `Current interest level ${heat} degrees, ${heatNote}`)}>
           <View style={styles.flex}>
-            <AppText variant="bodyStrong">지금 호감 온도</AppText>
+            <AppText variant="bodyStrong">{L('지금 호감 온도', 'Current interest level')}</AppText>
             <AppText variant="small" color="textSecondary">
               {heatNote}
             </AppText>
@@ -147,17 +168,17 @@ export default function CrushReportScreen() {
         </View>
         {log.length > 3 ? (
           <AppText variant="small" color="textSecondary">
-            분석 {analyzed}회 · 최고 {peak}°
+            {L(`분석 ${analyzed}회 · 최고 ${peak}°`, `${analyzed} ${analyzed === 1 ? 'analysis' : 'analyses'} · Peak ${peak}°`)}
           </AppText>
         ) : null}
       </Animated.View>
 
-      <Block title="호감 온도 기록" delay={60}>
+      <Block title={L('호감 온도 기록', 'Interest history')} delay={60}>
         {log.length ? (
           <HeatChart log={log} />
         ) : (
           <AppText variant="small" color="textSecondary">
-            아직 기록이 없어요. 대화 캡처를 올리면 0°에서부터 온도가 움직여요.
+            {L('아직 기록이 없어요. 대화 캡처를 올리면 0°에서부터 온도가 움직여요.', 'No history yet. Upload a chat screenshot and it’ll start moving from 0°.')}
           </AppText>
         )}
       </Block>
@@ -168,11 +189,14 @@ export default function CrushReportScreen() {
       ) : report ? (
         <ReportBody report={report.data} partnerName={crush.name} countUp={fresh} />
       ) : (
-        <Block title={`${crush.name}님 분석 보고서`} delay={120}>
+        <Block title={L(`${crush.name}님 분석 보고서`, nameEn ? `${nameEn}’s crush report` : 'Crush report')} delay={120}>
           <AppText variant="small" color="textSecondary">
             {analyzed
-              ? `지금까지 ${analyzed}번의 코칭 기록으로 정리해요.`
-              : '아직 코칭 기록이 없어 프로필만으로 분석해요. 대화를 몇 번 올린 뒤에 하면 훨씬 정확해요.'}
+              ? L(`지금까지 ${analyzed}번의 코칭 기록으로 정리해요.`, `Built from your ${analyzed} coaching ${analyzed === 1 ? 'session' : 'sessions'} so far.`)
+              : L(
+                  '아직 코칭 기록이 없어 프로필만으로 분석해요. 대화를 몇 번 올린 뒤에 하면 훨씬 정확해요.',
+                  'No coaching history yet, so this uses their profile only. It’s way more accurate after a few chats.',
+                )}
           </AppText>
           {/* 받게 될 항목 이름만 — 예시 내용을 지어내지 않는다 */}
           <View style={styles.items}>
@@ -187,14 +211,16 @@ export default function CrushReportScreen() {
           </View>
           {memoryCount ? (
             <AppText variant="small" color="textSecondary">
-              {APP_NAME}이 기억하는 이야기 {memoryCount}개도 같이 반영해요.
+              {L(`${APP_NAME}이 기억하는 이야기 ${memoryCount}개도 같이 반영해요.`, `Also uses ${memoryCount} ${memoryCount === 1 ? 'thing' : 'things'} your coach remembers.`)}
             </AppText>
           ) : null}
-          <Button title="분석 보고서 만들기" variant="brand" onPress={generate} style={styles.cta} />
+          <Button title={L('분석 보고서 만들기', 'Create crush report')} variant="brand" onPress={generate} style={styles.cta} />
           {/* 누르기 전에 남은 횟수와 차감을 한 줄로 — 다 썼으면 「1회 차감」 대신 미리 알린다 (점검 6장 1·2) */}
           {quota.enforced && !isUnlimited(quota) ? (
             <AppText variant="caption" color="textSecondary" align="center">
-              {quota.kind === 'exhausted' ? '무료 코칭을 다 썼어요 · 이용권이 있으면 바로 만들 수 있어요' : `${quotaLabel(quota).split(' · ')[0]} · 코칭 1회가 차감돼요`}
+              {quota.kind === 'exhausted'
+                ? L('무료 코칭을 다 썼어요 · 이용권이 있으면 바로 만들 수 있어요', 'Out of free sessions · Get a pass to create it now')
+                : L(`${quotaLabel(quota).split(' · ')[0]} · 코칭 1회가 차감돼요`, `${quotaLabel(quota).split(' · ')[0]} · Uses 1 coaching`)}
             </AppText>
           ) : null}
         </Block>
@@ -212,17 +238,20 @@ export default function CrushReportScreen() {
       {report && !busy ? (
         <View style={[styles.footer, { borderTopColor: theme.separator }]}>
           <AppText variant="caption" color="textSecondary" align="center">
-            {relativeTime(report.at)}에 {report.basedOn}번의 코칭 기록으로 만들었어요
+            {L(
+              `${relativeTime(report.at)}에 ${report.basedOn}번의 코칭 기록으로 만들었어요`,
+              `Made ${relativeTime(report.at)} from ${report.basedOn} coaching ${report.basedOn === 1 ? 'session' : 'sessions'}`,
+            )}
           </AppText>
           <Button title={refreshTitle(refresh)} variant={refresh === 'sessions' || refresh === 'profile' ? 'brand' : 'soft'} onPress={generate} disabled={!refresh} />
           {!refresh ? (
             <AppText variant="caption" color="textSecondary" align="center">
-              새 대화를 코칭받거나 상대·내 정보를 바꾸면 다시 분석할 수 있어요
+              {L('새 대화를 코칭받거나 상대·내 정보를 바꾸면 다시 분석할 수 있어요', 'Get coaching on a new chat or update your info to analyze again')}
             </AppText>
           ) : null}
         </View>
       ) : null}
-      {report && !busy ? <AiReportLink mode="report" report={report.data} label="이 보고서 신고" /> : null}
+      {report && !busy ? <AiReportLink mode="report" report={report.data} label={L('이 보고서 신고', 'Report this AI report')} /> : null}
     </Screen>
   );
 }
@@ -321,7 +350,7 @@ function ReportBody({ report, partnerName, countUp }: { report: CrushReport; par
   return (
     <View style={styles.report}>
       {/* 한 줄 요약 + 궁합 — 이 화면에서 가장 값진 문장을 맨 위로 */}
-      <Block title="한 줄 요약">
+      <Block title={L('한 줄 요약', 'In one line')}>
         <AppText style={styles.headline}>{report.headline}</AppText>
         {report.keywords.length ? (
           <AppText variant="small" color="textSecondary">
@@ -330,46 +359,46 @@ function ReportBody({ report, partnerName, countUp }: { report: CrushReport; par
         ) : null}
         <View style={[styles.kv, { borderTopColor: theme.separator }]}>
           <AppText variant="bodyStrong" style={styles.flex}>
-            대화 궁합
+            {L('대화 궁합', 'Compatibility')}
           </AppText>
-          <CountUp value={report.compatibility} animate={countUp} ticks suffix="점" style={[styles.kvValue, { color: theme.text }]} suffixStyle={[styles.kvUnit, { color: theme.text }]} />
+          <CountUp value={report.compatibility} animate={countUp} ticks suffix={L('점', '%')} style={[styles.kvValue, { color: theme.text }]} suffixStyle={[styles.kvUnit, { color: theme.text }]} />
         </View>
         <AppText variant="small" color="textSecondary">
           {report.compatibilityNote}
         </AppText>
       </Block>
 
-      <Block title="잘 먹히는 공략법" delay={60}>
+      <Block title={L('잘 먹히는 공략법', 'What works on them')} delay={60}>
         <Lines lines={report.strategy} numbered />
       </Block>
 
-      <Block title="신호" delay={100}>
-        <Field label="호감 신호">
+      <Block title={L('신호', 'Signals')} delay={100}>
+        <Field label={L('호감 신호', 'Green flags')}>
           <Lines lines={report.greenFlags} />
         </Field>
         {report.redFlags.length ? (
-          <Field label="주의할 신호">
+          <Field label={L('주의할 신호', 'Red flags')}>
             <Lines lines={report.redFlags} />
           </Field>
         ) : null}
       </Block>
 
-      <Block title="성향 · 연락 스타일" delay={140}>
-        <Field label="성향">
+      <Block title={L('성향 · 연락 스타일', 'Personality · texting style')} delay={140}>
+        <Field label={L('성향', 'Personality')}>
           <AppText variant="body">{report.personality}</AppText>
         </Field>
-        <Field label="연락 스타일">
+        <Field label={L('연락 스타일', 'Texting style')}>
           <AppText variant="body">{report.textingStyle}</AppText>
         </Field>
         {report.interests.length ? (
-          <Field label="대화 소재">
+          <Field label={L('대화 소재', 'Things to talk about')}>
             <AppText variant="body">{report.interests.join(' · ')}</AppText>
           </Field>
         ) : null}
       </Block>
 
       {report.roadmap.length ? (
-        <Block title="목표까지 로드맵" delay={180}>
+        <Block title={L('목표까지 로드맵', 'Roadmap to your goal')} delay={180}>
           <View>
             {report.roadmap.map((step, i) => (
               <View key={i} style={styles.step}>
@@ -394,7 +423,9 @@ function ReportBody({ report, partnerName, countUp }: { report: CrushReport; par
       ) : null}
 
       {report.innerThought ? (
-        <Block title={`${partnerName}님의 속마음 (추측)`} delay={220}>
+        <Block
+          title={L(`${partnerName}님의 속마음 (추측)`, isUnnamedCrush(partnerName) ? 'What they’re really thinking (a guess)' : `What ${partnerName}’s really thinking (a guess)`)}
+          delay={220}>
           <View style={[styles.thought, { backgroundColor: dark ? theme.surfaceElevated : theme.surface }]}>
             <AppText variant="body">{report.innerThought}</AppText>
           </View>

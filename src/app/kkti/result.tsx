@@ -19,34 +19,29 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { haptic } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 import { countKkti } from '@/lib/kkti-stat';
 import {
-  KKTI_FIT_LABEL,
   KKTI_SITE,
   KKTI_TYPES,
   cardUrl,
-  chatShareText,
   codeLetters,
   josa,
   kktiFromCode,
   kktiMatch,
   kktiRole,
   legibleOn,
-  matchChatText,
-  matchReason,
-  matchShareText,
   mixHex,
   readableTextOn,
   retakeFriend,
-  shareText,
   shareUrl,
   toSaved,
   type KktiAxisResult,
   type KktiMatch,
-  type KktiMatchAxis,
   type KktiResult,
   type KktiRole,
 } from '@/lib/kkti';
+import { kktiCopy, type KktiMatchCopy } from '@/lib/kkti-en';
 import { toneLabel } from '@/lib/labels';
 import { useAppStore } from '@/store/app-store';
 
@@ -79,7 +74,8 @@ const T = {
 };
 
 const X_INTENT = 'https://x.com/intent/post?text=';
-const APP_STORE_URL = 'https://apps.apple.com/kr/app/id6813404855';
+// 영어판은 나라를 빼서 그 사람 나라의 App Store 로 열리게 한다
+const APP_STORE_URL = L('https://apps.apple.com/kr/app/id6813404855', 'https://apps.apple.com/app/id6813404855');
 /** 아이폰·아이패드의 웹 브라우저로 보고 있는지 (앱스토어 버튼을 보여 줄지) */
 const onIosWeb = () => Platform.OS === 'web' && typeof navigator !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent);
 const THREADS_INTENT = 'https://www.threads.net/intent/post?text=';
@@ -94,7 +90,14 @@ export default function KktiResultScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: false, title: result ? `${result.type.emoji} ${result.type.name} · KKTI` : 'KKTI 결과' }} />
+      <Stack.Screen
+        options={{
+          headerShown: false,
+          title: result
+            ? L(`${result.type.emoji} ${result.type.name} · KKTI`, `${result.type.emoji} ${kktiCopy.type(result.code)?.name ?? result.type.name} · Texting Type Test`)
+            : L('KKTI 결과', 'Texting Type Test result'),
+        }}
+      />
       {result ? <ResultView key={`${result.encoded}-${partner?.encoded ?? ''}`} result={result} partner={partner} /> : <InvalidLink />}
     </>
   );
@@ -111,14 +114,14 @@ function InvalidLink() {
       <View style={styles.invalidInner}>
         <Icon3D name="heart" size={96} style={styles.invalidIcon} />
         <AppText variant="title1" align="center">
-          결과 링크가 조금 이상해요
+          {L('결과 링크가 조금 이상해요', 'This result link looks off')}
         </AppText>
         <AppText variant="body" color="textSecondary" align="center">
-          링크가 잘렸거나 바뀐 것 같아요.{'\n'}12문항, 1분이면 다시 할 수 있어요!
+          {L('링크가 잘렸거나 바뀐 것 같아요.\n12문항, 1분이면 다시 할 수 있어요!', 'It may have been cut off or changed.\n12 questions, 1 minute, and you can take it again!')}
         </AppText>
         <View style={styles.invalidActions}>
-          <GradientButton title="KKTI 테스트 하러 가기" onPress={() => router.replace('/kkti')} />
-          <Button title="홈으로" variant="ghost" onPress={() => router.replace('/')} />
+          <GradientButton title={L('KKTI 테스트 하러 가기', 'Take the Texting Type Test')} onPress={() => router.replace('/kkti')} />
+          <Button title={L('홈으로', 'Home')} variant="ghost" onPress={() => router.replace('/')} />
         </View>
       </View>
     </View>
@@ -154,19 +157,24 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
   const inkIsLight = ink === '#FFFFFF';
   const inkSoft = inkIsLight ? 'rgba(255,255,255,0.86)' : 'rgba(25,31,40,0.74)';
   const glass = inkIsLight ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.5)';
-  // 흰 바탕 위 회색 면과 그 안 흰 면 (다크는 한 단계씩 밝게)
+  // 흰 바탕 위 회색 면 (다크는 한 단계 밝게)
   const dark = scheme === 'dark';
   const fill = dark ? theme.surfaceElevated : theme.surface;
-  const inner = dark ? theme.border : theme.card;
   // 축 막대는 유형색(캐릭터 색) — 회색 막대 바탕 위에서 보일 만큼만 진하게
   const barFill = legibleOn(color.hex, fill, 1.8);
   const tone = toneLabel(type.recommendedTone);
-  const letters = codeLetters(result.code);
+  // 화면에 보이는 유형·색·애니어그램 문구 (지금 언어). 코드 글자도 영어판은 영어 글자(FRHA) — 링크·저장에는 result.code 그대로
+  const shown = kktiCopy.type(result.code) ?? { ...type, code: result.code };
+  const colorText = kktiCopy.color(color);
+  const ennea = kktiCopy.enneagram(enneagram);
+  const letters = codeLetters(shown.code);
   const best = KKTI_TYPES[type.bestMatch];
   const worst = KKTI_TYPES[type.worstMatch];
+  const bestShown = best ? kktiCopy.type(best.code) : null;
+  const worstShown = worst ? kktiCopy.type(worst.code) : null;
   // SNS 에 올릴 긴 문구(해시태그 포함)와, 카톡·DM 으로 한 사람에게 보낼 짧은 문구
-  const text = myResult && theirResult ? matchShareText(myResult, theirResult, link) : shareText(myResult ?? result, link);
-  const chatText = myResult && theirResult ? matchChatText(myResult, theirResult, link) : chatShareText(link);
+  const text = myResult && theirResult ? kktiCopy.matchShare(myResult, theirResult, link) : kktiCopy.share(myResult ?? result, link);
+  const chatText = myResult && theirResult ? kktiCopy.matchChat(myResult, theirResult, link) : kktiCopy.chat(link);
 
   // 꽃가루가 터질 자리(유형 그림을 못 재면 이 근처)
   const originY = insets.top + 168;
@@ -284,14 +292,14 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
   const openStore = () => {
     haptic.tap();
     track('kkti_cta', { to: 'appstore', role });
-    Linking.openURL(APP_STORE_URL).catch(() => toast.show('App Store 를 열지 못했어요.', 'error'));
+    Linking.openURL(APP_STORE_URL).catch(() => toast.show(L('App Store 를 열지 못했어요.', "Couldn't open the App Store."), 'error'));
   };
 
   const save = () => {
     useAppStore.getState().setKkti(toSaved(result));
     haptic.success();
     celebrate({ kind: 'sparkles', count: 12, haptic: false });
-    toast.show('내 프로필에 저장했어요', 'success');
+    toast.show(L('내 프로필에 저장했어요', 'Saved to your profile'), 'success');
   };
 
   const copy = async (value: string, message: string, channel: string) => {
@@ -303,11 +311,11 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
       celebrate({ kind: 'sparkles', count: 10, haptic: false });
       toast.show(message, 'success');
     } catch {
-      toast.show('복사하지 못했어요. 주소창의 링크를 직접 복사해 주세요.', 'error');
+      toast.show(L('복사하지 못했어요. 주소창의 링크를 직접 복사해 주세요.', "Couldn't copy. Please copy the link from the address bar."), 'error');
     }
   };
 
-  const copyLink = () => copy(link, '링크 복사 완료! 카톡·인스타 스토리 링크에 붙여 넣어 보세요', 'copy');
+  const copyLink = () => copy(link, L('링크 복사 완료! 카톡·인스타 스토리 링크에 붙여 넣어 보세요', 'Link copied! Paste it in a text or your IG story link sticker'), 'copy');
 
   const openIntent = async (channel: 'x' | 'threads') => {
     haptic.tap();
@@ -317,7 +325,7 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
     try {
       await Linking.openURL(url);
     } catch {
-      copy(text, '앱을 열지 못해서 공유 문구를 복사해 뒀어요', `${channel}_fallback`);
+      copy(text, L('앱을 열지 못해서 공유 문구를 복사해 뒀어요', "Couldn't open the app, so we copied the post for you"), `${channel}_fallback`);
     }
   };
 
@@ -328,10 +336,10 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
       if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
         track('kkti_share', { channel: 'web_share', match: sharingMatch });
         countKkti('share');
-        await navigator.share({ title: 'KKTI · 카톡으로 보는 진짜 연애 MBTI', text: chatText }).catch(() => {});
+        await navigator.share({ title: L('KKTI · 카톡으로 보는 진짜 연애 MBTI', 'Texting Type Test'), text: chatText }).catch(() => {});
         return;
       }
-      copy(chatText, '보낼 문구를 복사했어요. 카톡에 붙여 넣어 보세요', 'web_copy');
+      copy(chatText, L('보낼 문구를 복사했어요. 카톡에 붙여 넣어 보세요', 'Message copied. Paste it into a text!'), 'web_copy');
       return;
     }
     track('kkti_share', { channel: 'system', match: sharingMatch });
@@ -347,13 +355,13 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
     track('kkti_share', { channel: 'image', match: sharingMatch });
     countKkti('share');
     if (Platform.OS !== 'web') {
-      toast.show('그림이 열리면 길게 눌러 저장해 주세요', 'success');
-      await Linking.openURL(storyUrl).catch(() => toast.show('그림을 열지 못했어요. 잠시 뒤 다시 해 주세요.', 'error'));
+      toast.show(L('그림이 열리면 길게 눌러 저장해 주세요', 'When the image opens, press and hold to save it'), 'success');
+      await Linking.openURL(storyUrl).catch(() => toast.show(L('그림을 열지 못했어요. 잠시 뒤 다시 해 주세요.', "Couldn't open the image. Try again in a bit."), 'error'));
       return;
     }
     // 공유·내려받기가 안 되는 곳의 마지막 방법 — 그림 주소로 가서 길게 눌러 저장한다 (뒤로 가면 결과 화면)
     const openImage = () => {
-      toast.show('그림을 길게 눌러 저장해 주세요', 'success');
+      toast.show(L('그림을 길게 눌러 저장해 주세요', 'Press and hold the image to save it'), 'success');
       window.location.assign(storyUrl);
     };
     // 앱 안의 브라우저는 내려받기가 조용히 무시돼 「저장했어요」가 거짓말이 된다 → 처음부터 그림을 연다
@@ -389,7 +397,7 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(href), 10_000);
-      toast.show('그림을 내려받았어요. 스토리에 올리고 링크를 붙여 보세요', 'success');
+      toast.show(L('그림을 내려받았어요. 스토리에 올리고 링크를 붙여 보세요', 'Image saved. Post it to your story and add the link!'), 'success');
     } catch {
       openImage();
     } finally {
@@ -397,7 +405,8 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
     }
   };
 
-  const nameSize = type.name.length > 8 ? styles.heroNameLong : null;
+  // 영어 이름은 글자 수가 많아 기준을 따로 둔다
+  const nameSize = shown.name.length > L(8, 14) ? styles.heroNameLong : null;
   // 내려가면 시계·배터리 뒤에 물든 바탕색 띠를 깐다 (글자가 겹쳐 보이지 않게)
   const { scrolled, onScroll } = useScrolledPast();
 
@@ -409,13 +418,13 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
         scrollEventThrottle={32}
         contentContainerStyle={[styles.content, { paddingTop: insets.top + Spacing.sm, paddingBottom: insets.bottom + Spacing.xxl }]}>
         <View style={styles.topBar}>
-          <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={leave} hitSlop={10} style={[styles.iconCircle, { backgroundColor: fill }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={L('닫기', 'Close')} onPress={leave} hitSlop={10} style={[styles.iconCircle, { backgroundColor: fill }]}>
             <Ionicons name="close" size={20} color={theme.text} />
           </Pressable>
           <Pressable accessibilityRole="button" onPress={retake} hitSlop={6} style={[styles.pill, { backgroundColor: fill }]}>
             <Ionicons name="refresh" size={15} color={theme.textSecondary} />
             <AppText variant="smallStrong" color="textSecondary">
-              다시 하기
+              {L('다시 하기', 'Retake')}
             </AppText>
           </Pressable>
         </View>
@@ -426,12 +435,16 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
 
           <PopIn delay={T.label}>
             <AppText variant="smallStrong" color={inkSoft}>
-              {role === 'mine' ? '나의 KKTI 연애 유형' : role === 'partner' ? '친구의 KKTI 연애 유형' : 'KKTI 연애 유형'}
+              {role === 'mine'
+                ? L('나의 KKTI 연애 유형', 'My texting type')
+                : role === 'partner'
+                  ? L('친구의 KKTI 연애 유형', "My friend's texting type")
+                  : L('KKTI 연애 유형', 'Texting type')}
             </AppText>
           </PopIn>
           <PopIn delay={T.emoji} from={0.2}>
             <View ref={emojiRef} collapsable={false} style={[styles.emojiCircle, { backgroundColor: glass }]}>
-              <AppText style={styles.heroEmoji}>{type.emoji}</AppText>
+              <AppText style={styles.heroEmoji}>{shown.emoji}</AppText>
             </View>
           </PopIn>
           <View style={styles.letters}>
@@ -439,23 +452,23 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
               <PopIn key={i} delay={T.letter + i * T.letterGap} from={0.1} style={[styles.letterTile, { backgroundColor: glass }]}>
                 <AppText style={[styles.letter, { color: ink }]}>{letter}</AppText>
                 <AppText style={styles.letterLabel} color={inkSoft} numberOfLines={1}>
-                  {result.axes[i].pole.label}
+                  {kktiCopy.pole(result.axes[i].key, kktiCopy.sideOf(result.axes[i])).label}
                 </AppText>
               </PopIn>
             ))}
           </View>
           <PopIn delay={T.name}>
             <AppText variant="display" align="center" color={ink} style={nameSize}>
-              {type.name}
+              {shown.name}
             </AppText>
           </PopIn>
           <FadeUp delay={T.name + 80}>
             <AppText variant="body" align="center" color={inkSoft}>
-              {type.oneLiner}
+              {shown.oneLiner}
             </AppText>
           </FadeUp>
           <FadeUp delay={T.name + 160} style={styles.heroChips}>
-            {[color.name, mbti.type, enneagram.title].map((chip) => (
+            {[colorText.name, mbti.type, ennea.title].map((chip) => (
               <View key={chip} style={[styles.heroChip, { backgroundColor: glass }]}>
                 <AppText variant="caption" weight="700" color={ink}>
                   {chip}
@@ -465,7 +478,7 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
           </FadeUp>
           <FadeUp delay={T.name + 240}>
             <AppText variant="caption" align="center" color={inkSoft}>
-              KKTI · 카톡으로 보는 진짜 연애 MBTI
+              {L('KKTI · 카톡으로 보는 진짜 연애 MBTI', 'Texting Type Test · What your texts say about you')}
             </AppText>
           </FadeUp>
         </View>
@@ -476,28 +489,37 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
         {/* 친구가 보낸 링크로 들어왔을 때 — 이 화면의 파란 버튼 */}
         {hydrated && role === 'guest' ? (
           <FadeUp delay={T.rest + 30} style={[styles.box, { backgroundColor: fill }]}>
-            <AppText variant="title3">{partner ? '두 사람의 궁합 결과예요' : savedCode ? '친구가 보낸 결과네요!' : '친구가 보낸 결과인가요?'}</AppText>
+            <AppText variant="title3">
+              {partner
+                ? L('두 사람의 궁합 결과예요', "Here's how these two match")
+                : savedCode
+                  ? L('친구가 보낸 결과네요!', 'Your friend sent you their result!')
+                  : L('친구가 보낸 결과인가요?', 'Did a friend send you this?')}
+            </AppText>
             <AppText variant="small" color="textSecondary">
               {savedCode
-                ? `내 결과와 「${type.name}」${josa(type.name, '이', '가')} 얼마나 맞는지 바로 볼 수 있어요.`
+                ? L(`내 결과와 「${type.name}」${josa(type.name, '이', '가')} 얼마나 맞는지 바로 볼 수 있어요.`, `See how your result matches with ${shown.name} right now.`)
                 : partner
-                  ? `나도 테스트하면 「${type.name}」${josa(type.name, '과', '와')}의 궁합을 볼 수 있어요. 12문항, 1분이면 돼요.`
-                  : '테스트를 끝내면 둘의 카톡 궁합이 나와요. 12문항, 1분이면 돼요.'}
+                  ? L(
+                      `나도 테스트하면 「${type.name}」${josa(type.name, '과', '와')}의 궁합을 볼 수 있어요. 12문항, 1분이면 돼요.`,
+                      `Take the test to see your match with ${shown.name}. 12 questions, 1 minute.`,
+                    )
+                  : L('테스트를 끝내면 둘의 카톡 궁합이 나와요. 12문항, 1분이면 돼요.', 'Finish the test to see how your texting styles match. 12 questions, 1 minute.')}
             </AppText>
             {savedCode ? (
-              <GradientButton title="내 결과와 궁합 보기" size="md" onPress={matchWithSaved} haptic={false} />
+              <GradientButton title={L('내 결과와 궁합 보기', 'Match with my result')} size="md" onPress={matchWithSaved} haptic={false} />
             ) : (
-              <GradientButton title="나도 테스트하고 궁합 보기" size="md" onPress={retake} haptic={false} />
+              <GradientButton title={L('나도 테스트하고 궁합 보기', 'Take it & see your match')} size="md" onPress={retake} haptic={false} />
             )}
           </FadeUp>
         ) : null}
         {hydrated && role === 'partner' ? (
           <FadeUp delay={T.rest + 30} style={[styles.box, { backgroundColor: fill }]}>
-            <AppText variant="title3">친구가 테스트를 끝냈어요!</AppText>
+            <AppText variant="title3">{L('친구가 테스트를 끝냈어요!', 'Your friend finished the test!')}</AppText>
             <AppText variant="small" color="textSecondary">
-              위는 친구의 결과예요. 내 결과 화면에서도 같은 궁합을 볼 수 있어요.
+              {L('위는 친구의 결과예요. 내 결과 화면에서도 같은 궁합을 볼 수 있어요.', "That's your friend's result above. You'll see the same match on your own result too.")}
             </AppText>
-            <GradientButton title="내 결과 보기" size="md" haptic={false} onPress={seeMine} />
+            <GradientButton title={L('내 결과 보기', 'See my result')} size="md" haptic={false} onPress={seeMine} />
           </FadeUp>
         ) : null}
 
@@ -505,22 +527,29 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
         {role !== 'guest' ? (
           <FadeUp delay={T.rest + 60} style={styles.share}>
             <GradientButton
-              title={sharingMatch ? '궁합 결과 보내기' : '친구에게 보내고 궁합 보기'}
-              accessibilityLabel={sharingMatch ? '궁합 결과 보내기, 카톡 등' : '친구에게 보내고 궁합 보기, 카톡 등'}
+              title={sharingMatch ? L('궁합 결과 보내기', 'Send our match') : L('친구에게 보내고 궁합 보기', 'Send to a friend & match')}
+              accessibilityLabel={
+                sharingMatch
+                  ? L('궁합 결과 보내기, 카톡 등', 'Send our match, via texts and more')
+                  : L('친구에게 보내고 궁합 보기, 카톡 등', 'Send to a friend and see your match, via texts and more')
+              }
               haptic={false}
               onPress={shareSystem}
               icon={<Ionicons name="share-outline" size={18} color={Brand.onBrand} />}
             />
             <View style={styles.shareRow}>
-              <ShareTile icon="image-outline" label="그림 저장" sub="스토리용" onPress={saveImage} />
-              <ShareTile icon="link-outline" label="링크 복사" sub="인스타·틱톡" onPress={copyLink} />
-              <ShareTile icon="logo-x" label="X" sub="포스트" onPress={() => openIntent('x')} />
-              <ShareTile icon="logo-threads" label="스레드" sub="포스트" onPress={() => openIntent('threads')} />
+              <ShareTile icon="image-outline" label={L('그림 저장', 'Save image')} sub={L('스토리용', 'For stories')} onPress={saveImage} />
+              <ShareTile icon="link-outline" label={L('링크 복사', 'Copy link')} sub={L('인스타·틱톡', 'IG · TikTok')} onPress={copyLink} />
+              <ShareTile icon="logo-x" label="X" sub={L('포스트', 'Post')} onPress={() => openIntent('x')} />
+              <ShareTile icon="logo-threads" label={L('스레드', 'Threads')} sub={L('포스트', 'Post')} onPress={() => openIntent('threads')} />
             </View>
             <AppText variant="caption" color="textSecondary" align="center">
               {sharingMatch
-                ? '링크를 받은 사람도 같은 궁합 화면을 봐요. 다른 친구가 테스트하면 그 친구와의 궁합도 나와요.'
-                : '링크를 받은 친구가 테스트를 끝내면 둘의 궁합이 나와요.'}
+                ? L(
+                    '링크를 받은 사람도 같은 궁합 화면을 봐요. 다른 친구가 테스트하면 그 친구와의 궁합도 나와요.',
+                    'Whoever opens the link sees the same match. If another friend takes the test, you get your match with them too.',
+                  )
+                : L('링크를 받은 친구가 테스트를 끝내면 둘의 궁합이 나와요.', 'When your friend finishes the test, you both see your match.')}
             </AppText>
           </FadeUp>
         ) : null}
@@ -528,46 +557,56 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
         {/* 코치 한마디 → 앱 코칭 (예전엔 아홉 번째 카드였다 — 유형 카드 가까이로 올렸다) */}
         <FadeUp delay={T.rest + 90} style={[styles.box, { backgroundColor: fill }]}>
           <AppText variant="caption" color="textSecondary" weight="600">
-            {APP_NAME} 코치 한마디
+            {L(`${APP_NAME} 코치 한마디`, 'A tip from My Love Coach')}
           </AppText>
-          <AppText variant="bodyStrong">{type.coachTip}</AppText>
+          <AppText variant="bodyStrong">{shown.coachTip}</AppText>
           <AppText variant="small" color="textSecondary">
-            추천 답장 톤 · {tone.label} · {tone.description}
+            {L(`추천 답장 톤 · ${tone.label} · ${tone.description}`, `Suggested reply tone · ${tone.label} · ${tone.description}`)}
           </AppText>
-          <PressableScale feedback="thud" pressedScale={0.98} onPress={goCoach} accessibilityLabel="이 유형에 맞춘 답장 코칭 받기" style={[styles.coachBtn, { backgroundColor: theme.text }]}>
+          <PressableScale
+            feedback="thud"
+            pressedScale={0.98}
+            onPress={goCoach}
+            accessibilityLabel={L('이 유형에 맞춘 답장 코칭 받기', 'Get reply coaching for your type')}
+            style={[styles.coachBtn, { backgroundColor: theme.text }]}>
             <Ionicons name="chatbubble-ellipses-outline" size={18} color={theme.background} />
             <AppText variant="bodyStrong" color={theme.background}>
-              이 유형에 맞춘 답장 코칭 받기
+              {L('이 유형에 맞춘 답장 코칭 받기', 'Get reply coaching for your type')}
             </AppText>
           </PressableScale>
           {onIosWeb() ? (
-            <Button title="아이폰 앱으로 받기 (App Store)" variant="ghost" haptic={false} onPress={openStore} icon={<Ionicons name="logo-apple" size={18} color={theme.textSecondary} />} />
+            <Button
+              title={L('아이폰 앱으로 받기 (App Store)', 'Get the iPhone app (App Store)')}
+              variant="ghost"
+              haptic={false}
+              onPress={openStore}
+              icon={<Ionicons name="logo-apple" size={18} color={theme.textSecondary} />}
+            />
           ) : null}
           <AppText variant="caption" color="textSecondary" align="center">
-            캡처 한 장이면 답장 3개와 호감 온도까지
+            {L('캡처 한 장이면 답장 3개와 호감 온도까지', 'One screenshot = 3 reply ideas + their interest level')}
           </AppText>
         </FadeUp>
 
         {/* 유형 설명 — 펼쳐 둔다. 강점·조심은 색 대신 검정 글자 + 기호 */}
         <FadeUp delay={T.rest + 120} style={styles.about}>
           <AppText variant="title3" accessibilityRole="header">
-            {type.name}
-            {josa(type.name, '은', '는')} 이런 사람
+            {L(`${type.name}${josa(type.name, '은', '는')} 이런 사람`, `${shown.name}, explained`)}
           </AppText>
-          <AppText variant="body">{type.description}</AppText>
+          <AppText variant="body">{shown.description}</AppText>
           <View style={styles.list}>
             <AppText variant="smallStrong" color="textSecondary">
-              강점
+              {L('강점', 'Strengths')}
             </AppText>
-            {type.strengths.map((s) => (
+            {shown.strengths.map((s) => (
               <Bullet key={s} icon="checkmark" text={s} />
             ))}
           </View>
           <View style={styles.list}>
             <AppText variant="smallStrong" color="textSecondary">
-              이건 조심
+              {L('이건 조심', 'Watch out for')}
             </AppText>
-            {type.watchOut.map((s) => (
+            {shown.watchOut.map((s) => (
               <Bullet key={s} icon="alert-circle-outline" text={s} />
             ))}
           </View>
@@ -575,56 +614,60 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
 
         {/* 더 보기 — 줄로 접어 두고 누르면 펼친다 */}
         <FadeUp delay={T.rest + 160} style={styles.folds}>
-          <Fold title="나의 카톡 습관" value={letters.join('')}>
+          <Fold title={L('나의 카톡 습관', 'My texting habits')} value={letters.join('')}>
             {result.axes.map((axis, i) => (
               <AxisBar key={axis.key} axis={axis} fill={barFill} track={fill} delay={80 + i * 90} />
             ))}
           </Fold>
 
-          <Fold title="카톡 속 진짜 MBTI" value={mbti.type}>
+          <Fold title={L('카톡 속 진짜 MBTI', 'My texting MBTI')} value={mbti.type}>
             <View style={styles.mbtiRow}>
-              {mbti.letters.map((l) => (
+              {mbti.letters.map((l, i) => (
                 <View key={l.letter} style={[styles.mbtiCell, { backgroundColor: fill }]}>
                   <AppText style={[styles.mbtiLetter, { color: theme.text }]}>{l.letter}</AppText>
                   <AppText variant="caption" color="textSecondary">
-                    {l.from} · {l.confidence}%
+                    {/* l.from 은 같은 자리의 유형 코드 글자 — 화면용 글자(영어판은 영어 글자)로 */}
+                    {letters[i] ?? l.from} · {l.confidence}%
                   </AppText>
                 </View>
               ))}
             </View>
             <AppText variant="small" color="textSecondary">
-              카톡 습관만으로 본 MBTI예요 (평균 확신도 {mbti.confidence}%). 평소 MBTI랑 다르다면… 카톡 속 내가 진짜일지도?
+              {L(
+                `카톡 습관만으로 본 MBTI예요 (평균 확신도 ${mbti.confidence}%). 평소 MBTI랑 다르다면… 카톡 속 내가 진짜일지도?`,
+                `Your MBTI based only on how you text (avg. confidence ${mbti.confidence}%). Different from your usual MBTI? Maybe texting-you is the real you…`,
+              )}
             </AppText>
             <AppText variant="caption" color="textSecondary">
-              공식 MBTI 검사와는 관계없는 재미용 테스트예요.
+              {L('공식 MBTI 검사와는 관계없는 재미용 테스트예요.', 'Just for fun. Not affiliated with the official MBTI assessment.')}
             </AppText>
           </Fold>
 
-          <Fold title="애니어그램 추정" value={`${enneagram.number}번`}>
+          <Fold title={L('애니어그램 추정', 'Enneagram guess')} value={ennea.short}>
             <View style={styles.enneaRow}>
               <View style={[styles.enneaBadge, { backgroundColor: fill }]}>
                 <AppText style={[styles.enneaNumber, { color: theme.text }]}>{enneagram.number}</AppText>
               </View>
               <View style={styles.flexShrink}>
-                <AppText variant="bodyStrong">{enneagram.title}</AppText>
+                <AppText variant="bodyStrong">{ennea.title}</AppText>
                 <AppText variant="small" color="textSecondary">
-                  {enneagram.reason}
+                  {ennea.reason}
                 </AppText>
               </View>
             </View>
             <AppText variant="caption" color="textSecondary">
-              {enneagram.note}
+              {ennea.note}
             </AppText>
           </Fold>
 
-          <Fold title="나만의 연애 컬러" value={color.name} swatch={color.hex}>
+          <Fold title={L('나만의 연애 컬러', 'My love color')} value={colorText.name} swatch={color.hex}>
             <PressableScale
               feedback={false}
-              onPress={() => copy(color.hex, `색상 코드 ${color.hex} 복사했어요`, 'hex')}
-              accessibilityLabel={`색상 코드 ${color.hex} 복사`}
+              onPress={() => copy(color.hex, L(`색상 코드 ${color.hex} 복사했어요`, `Copied color code ${color.hex}`), 'hex')}
+              accessibilityLabel={L(`색상 코드 ${color.hex} 복사`, `Copy color code ${color.hex}`)}
               style={[styles.swatch, { backgroundColor: color.hex }]}>
               <AppText variant="title2" color={ink}>
-                {color.name}
+                {colorText.name}
               </AppText>
               <View style={styles.swatchFoot}>
                 <AppText variant="smallStrong" color={inkSoft}>
@@ -633,17 +676,17 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
                 <View style={[styles.copyChip, { backgroundColor: glass }]}>
                   <Ionicons name="copy-outline" size={12} color={ink} />
                   <AppText variant="caption" weight="700" color={ink}>
-                    복사
+                    {L('복사', 'Copy')}
                   </AppText>
                 </View>
               </View>
             </PressableScale>
-            <AppText variant="body">{color.description}</AppText>
+            <AppText variant="body">{colorText.description}</AppText>
             <View style={styles.metaRow}>
               {[
-                { label: '색상', value: `${color.hsl.h}°` },
-                { label: '채도', value: `${color.hsl.s}%` },
-                { label: '명도', value: `${color.hsl.l}%` },
+                { label: L('색상', 'Hue'), value: `${color.hsl.h}°` },
+                { label: L('채도', 'Saturation'), value: `${color.hsl.s}%` },
+                { label: L('명도', 'Lightness'), value: `${color.hsl.l}%` },
               ].map((m) => (
                 <View key={m.label} style={[styles.meta, { backgroundColor: fill }]}>
                   <AppText variant="caption" color="textSecondary">
@@ -654,13 +697,31 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
               ))}
             </View>
             <AppText variant="caption" color="textSecondary">
-              답 조합마다 색이 미묘하게 달라요. 560만 가지가 넘는 색 중 나만의 색이에요.
+              {L('답 조합마다 색이 미묘하게 달라요. 560만 가지가 넘는 색 중 나만의 색이에요.', 'Every answer combo gets a slightly different shade. This one of 5.6M+ colors is all yours.')}
             </AppText>
           </Fold>
 
-          <Fold title="연애 궁합" value={best ? `찰떡 ${best.name}` : undefined} last>
-            {best ? <MatchRow label="찰떡궁합" emoji={best.emoji} name={best.name} code={best.code} reason={matchReason(result.code, best.code)} fill={fill} /> : null}
-            {worst ? <MatchRow label="상극 주의" emoji={worst.emoji} name={worst.name} code={worst.code} reason={matchReason(result.code, worst.code)} fill={fill} /> : null}
+          <Fold title={L('연애 궁합', 'Compatibility')} value={best ? L(`찰떡 ${best.name}`, `Best: ${bestShown?.name ?? best.name}`) : undefined} last>
+            {best ? (
+              <MatchRow
+                label={L('찰떡궁합', 'Perfect match')}
+                emoji={best.emoji}
+                name={bestShown?.name ?? best.name}
+                code={bestShown?.code ?? best.code}
+                reason={kktiCopy.reason(result.code, best.code)}
+                fill={fill}
+              />
+            ) : null}
+            {worst ? (
+              <MatchRow
+                label={L('상극 주의', 'Proceed with caution')}
+                emoji={worst.emoji}
+                name={worstShown?.name ?? worst.name}
+                code={worstShown?.code ?? worst.code}
+                reason={kktiCopy.reason(result.code, worst.code)}
+                fill={fill}
+              />
+            ) : null}
           </Fold>
         </FadeUp>
 
@@ -669,14 +730,14 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
             <View style={styles.savedRow}>
               <Ionicons name="checkmark-circle" size={18} color={theme.textSecondary} />
               <AppText variant="smallStrong" color="textSecondary">
-                내 프로필에 저장됨
+                {L('내 프로필에 저장됨', 'Saved to your profile')}
               </AppText>
             </View>
           ) : hydrated && role === 'guest' && !partner && !saved ? (
             // 웹에서 끝낸 내 결과 링크를 앱에서 열었을 때 프로필에 담는 용도. 이미 내 결과가 있으면 숨긴다 (친구 답으로 덮어쓰지 않게)
-            <Button title="내 프로필에 저장" variant="ghost" haptic={false} onPress={save} icon={<Ionicons name="bookmark-outline" size={18} color={theme.textSecondary} />} />
+            <Button title={L('내 프로필에 저장', 'Save to my profile')} variant="ghost" haptic={false} onPress={save} icon={<Ionicons name="bookmark-outline" size={18} color={theme.textSecondary} />} />
           ) : null}
-          {role === 'guest' ? null : <Button title="다시 하기" variant="ghost" haptic={false} onPress={retake} />}
+          {role === 'guest' ? null : <Button title={L('다시 하기', 'Retake')} variant="ghost" haptic={false} onPress={retake} />}
         </View>
       </ScrollView>
       <StatusBarScrim height={insets.top} color={theme.background} visible={scrolled} />
@@ -740,7 +801,7 @@ function ShareTile({ icon, label, sub, onPress }: { icon: keyof typeof Ionicons.
   const theme = useTheme();
   const fill = useColorScheme() === 'dark' ? theme.surfaceElevated : theme.surface;
   return (
-    <PressableScale feedback={false} onPress={onPress} accessibilityLabel={`${label} ${sub}로 공유`} style={styles.shareTile}>
+    <PressableScale feedback={false} onPress={onPress} accessibilityLabel={L(`${label} ${sub}로 공유`, `Share: ${label} (${sub})`)} style={styles.shareTile}>
       <View style={[styles.shareIcon, { backgroundColor: fill }]}>
         <Ionicons name={icon} size={21} color={theme.text} />
       </View>
@@ -787,6 +848,7 @@ function MatchSection({ match, left, right, role, delay }: { match: KktiMatch; l
   const inner = dark ? theme.border : theme.card;
   const celebrate = useCelebrate();
   const shown = useCountUp(match.percent, delay + 300);
+  const copy = kktiCopy.match(match);
 
   useEffect(() => {
     const begin = setTimeout(() => haptic.rise(), delay + 300);
@@ -803,13 +865,15 @@ function MatchSection({ match, left, right, role, delay }: { match: KktiMatch; l
     };
   }, [celebrate, delay, match.percent]);
 
-  const leftLabel = role === 'mine' ? '나' : role === 'partner' ? '친구' : null;
-  const rightLabel = role === 'mine' ? '친구' : role === 'partner' ? '나' : null;
+  const me = L('나', 'Me');
+  const friend = L('친구', 'Friend');
+  const leftLabel = role === 'mine' ? me : role === 'partner' ? friend : null;
+  const rightLabel = role === 'mine' ? friend : role === 'partner' ? me : null;
 
   return (
     <FadeUp delay={delay} style={[styles.box, styles.matchSection, { backgroundColor: fill }]}>
       <AppText variant="title3" align="center" accessibilityRole="header">
-        {role === 'guest' ? '둘의 카톡 궁합' : '우리 카톡 궁합'}
+        {role === 'guest' ? L('둘의 카톡 궁합', 'Their texting compatibility') : L('우리 카톡 궁합', 'Our texting compatibility')}
       </AppText>
       <View style={styles.matchPeople}>
         <MatchPerson result={left} label={leftLabel} />
@@ -818,26 +882,29 @@ function MatchSection({ match, left, right, role, delay }: { match: KktiMatch; l
         </AppText>
         <MatchPerson result={right} label={rightLabel} />
       </View>
-      <View style={styles.matchPercentRow} accessible accessibilityLabel={`궁합 ${match.percent}퍼센트, ${match.tier.label}`}>
+      <View
+        style={styles.matchPercentRow}
+        accessible
+        accessibilityLabel={L(`궁합 ${match.percent}퍼센트, ${match.tier.label}`, `${match.percent} percent match, ${copy.tier.label}`)}>
         <AppText style={[styles.matchPercent, { color: theme.primary }]}>{shown}</AppText>
         <AppText style={[styles.matchPercentSign, { color: theme.primary }]}>%</AppText>
       </View>
       <View style={[styles.matchTier, { backgroundColor: inner }]}>
-        <AppText variant="bodyStrong">{match.tier.label}</AppText>
+        <AppText variant="bodyStrong">{copy.tier.label}</AppText>
       </View>
       <AppText variant="body" color="textSecondary" align="center">
-        {match.tier.line}
+        {copy.tier.line}
       </AppText>
       <View style={styles.matchAxes}>
-        {match.axes.map((axis) => (
+        {copy.axes.map((axis) => (
           <MatchAxisRow key={axis.key} axis={axis} fill={inner} />
         ))}
       </View>
       <View style={[styles.quote, { borderLeftColor: theme.border }]}>
-        <AppText variant="body">{match.tip}</AppText>
+        <AppText variant="body">{copy.tip}</AppText>
       </View>
       <AppText variant="caption" color="textSecondary" align="center">
-        카톡 습관 12문항으로 본 재미용 궁합이에요
+        {L('카톡 습관 12문항으로 본 재미용 궁합이에요', 'A just-for-fun match based on 12 texting-habit questions')}
       </AppText>
     </FadeUp>
   );
@@ -846,6 +913,7 @@ function MatchSection({ match, left, right, role, delay }: { match: KktiMatch; l
 function MatchPerson({ result, label }: { result: KktiResult; label: string | null }) {
   const theme = useTheme();
   const inner = useColorScheme() === 'dark' ? theme.border : theme.card;
+  const shown = kktiCopy.type(result.code);
   return (
     <View style={styles.matchPerson}>
       <View style={[styles.matchCircle, { backgroundColor: mixHex(result.color.hex, '#FFFFFF', 0.45), borderColor: result.color.hex }]}>
@@ -859,23 +927,23 @@ function MatchPerson({ result, label }: { result: KktiResult; label: string | nu
         </View>
       ) : null}
       <AppText variant="smallStrong" align="center" numberOfLines={2}>
-        {result.type.name}
+        {shown?.name ?? result.type.name}
       </AppText>
       <AppText variant="caption" color="textSecondary">
-        {result.code}
+        {shown?.code ?? result.code}
       </AppText>
     </View>
   );
 }
 
-function MatchAxisRow({ axis, fill }: { axis: KktiMatchAxis; fill: string }) {
+function MatchAxisRow({ axis, fill }: { axis: KktiMatchCopy['axes'][number]; fill: string }) {
   return (
     <View style={[styles.matchAxisRow, { backgroundColor: fill }]}>
       <View style={styles.matchAxisBody}>
         <View style={styles.matchAxisHead}>
           <AppText variant="smallStrong">{axis.label}</AppText>
           <AppText variant="caption" weight="600" color="textSecondary">
-            {KKTI_FIT_LABEL[axis.fit]}
+            {axis.fitLabel}
           </AppText>
         </View>
         <AppText variant="small" color="textSecondary">
@@ -894,17 +962,19 @@ function AxisBar({ axis, fill, track, delay }: { axis: KktiAxisResult; fill: str
     v.value = withDelay(delay, withTiming(axis.percent / 100, { duration: 900, easing: Easing.out(Easing.cubic) }));
   }, [axis.percent, delay, v]);
   const barStyle = useAnimatedStyle(() => ({ width: `${v.value * 100}%` }));
+  const plus = kktiCopy.pole(axis.key, 'plus');
+  const minus = kktiCopy.pole(axis.key, 'minus');
   return (
     <View style={styles.axis}>
       <AppText variant="caption" color="textSecondary" weight="600">
-        {axis.label}
+        {kktiCopy.axisLabel(axis.key)}
       </AppText>
       <View style={styles.axisLabels}>
         <AppText variant={plusSide ? 'smallStrong' : 'small'} color={plusSide ? 'text' : 'textSecondary'} style={styles.flexShrink} numberOfLines={1}>
-          {axis.plus.letter} {axis.plus.label} {axis.plusPercent}%
+          {plus.letter} {plus.label} {axis.plusPercent}%
         </AppText>
         <AppText variant={plusSide ? 'small' : 'smallStrong'} color={plusSide ? 'textSecondary' : 'text'} style={styles.flexShrink} numberOfLines={1} align="right">
-          {axis.minus.letter} {axis.minus.label} {100 - axis.plusPercent}%
+          {minus.letter} {minus.label} {100 - axis.plusPercent}%
         </AppText>
       </View>
       <View style={[styles.axisTrack, { backgroundColor: track, alignItems: plusSide ? 'flex-start' : 'flex-end' }]}>

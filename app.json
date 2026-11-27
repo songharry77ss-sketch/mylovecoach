@@ -11,6 +11,10 @@
     "primaryColor": "#3D63F5",
     "backgroundColor": "#FFFFFF",
     "description": "센딧 - 나만의 연애 코치. 대화 캡처 한 장이면 상대에게 딱 맞는 답장 3가지와 호감 온도를 알려 주는 연애 특화 AI 코치",
+    "locales": {
+      "en": "./locales/en.json",
+      "ko": "./locales/ko.json"
+    },
     "ios": {
       "bundleIdentifier": "app.mylovecoach.ios",
       "buildNumber": "1",
@@ -70,7 +74,9 @@
             "backgroundColor": "#0D1018"
           }
         }
-      ]
+      ],
+      "expo-localization",
+      ["./plugins/with-default-app-name", "Love Coach"]
     ],
     "experiments": {
       "typedRoutes": true,

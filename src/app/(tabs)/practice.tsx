@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { RoomAvatar } from '@/components/crush/crush-list-item';
+import { isUnnamedCrush } from '@/components/crush/crush-name';
 import { useCostNote, useFill } from '@/components/tips/tip-book';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { AppText } from '@/components/ui/app-text';
@@ -15,6 +16,7 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { relativeTime } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 import { josa } from '@/lib/kkti';
 import { relationshipLabel } from '@/lib/labels';
 import { personasFor } from '@/lib/personas';
@@ -24,7 +26,7 @@ import { sortCrushes, useAppStore } from '@/store/app-store';
 
 /** 등장 — 위에서부터 짧게 (1.4 개편: 튕김 없이) */
 const enter = (step: number) => FadeInDown.delay(step * 40).duration(300);
-const LEVEL = ['', '쉬움', '보통', '어려움'] as const;
+const LEVEL: readonly string[] = L(['', '쉬움', '보통', '어려움'], ['', 'Easy', 'Medium', 'Hard']);
 /** 줄 왼쪽 얼굴 크기 — 줄 사이 선이 이름 글자 아래에서 시작하도록 */
 const AVATAR = 44;
 /** 「이어서 하기」는 처음에 이만큼만, 나머지는 「더 보기」 */
@@ -45,7 +47,7 @@ export default function PracticeTab() {
   const crushMap = useAppStore((s) => s.crushes);
   const startPractice = useAppStore((s) => s.startPractice);
   const seePracticeDot = useAppStore((s) => s.seePracticeDot);
-  const cost = useCostNote('연습 한 번에');
+  const cost = useCostNote(L('연습 한 번에', 'per practice'));
   const [moreSessions, setMoreSessions] = useState(false);
   // 연애 연습을 열었으면 「이런 기능도 있어요」 빨간 점(탐색 탭·탭 바)은 그만 띄운다 (11/12 회의 3번)
   useFocusEffect(
@@ -55,7 +57,7 @@ export default function PracticeTab() {
   );
   const personas = useMemo(() => personasFor(user?.gender ?? 'other'), [user?.gender]);
   const sessions = useMemo(() => Object.values(practice).sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 6), [practice]);
-  const crushes = useMemo(() => sortCrushes(crushMap).filter((c) => !c.secret && c.name !== '상대'), [crushMap]);
+  const crushes = useMemo(() => sortCrushes(crushMap).filter((c) => !c.secret && !isUnnamedCrush(c.name)), [crushMap]);
   const shownSessions = moreSessions ? sessions : sessions.slice(0, SESSIONS_SHOWN);
 
   const start = (persona: PracticePersona) => {
@@ -65,33 +67,38 @@ export default function PracticeTab() {
   };
 
   return (
-    <Screen safeTop tab title="연애 연습" background={theme.background} contentStyle={styles.content}>
+    <Screen safeTop tab title={L('연애 연습', 'Practice chat')} background={theme.background} contentStyle={styles.content}>
       <Animated.View entering={enter(0)} style={styles.head}>
         <Text style={[styles.title, { color: theme.text }]} accessibilityRole="header">
-          연애 연습
+          {L('연애 연습', 'Practice chat')}
         </Text>
         <AppText variant="small" color="textSecondary">
-          상대를 고르면 먼저 카톡이 와요. 답할 때마다 피드백과 호감 온도가 바뀌어요.
+          {L(
+            '상대를 고르면 먼저 카톡이 와요. 답할 때마다 피드백과 호감 온도가 바뀌어요.',
+            "Pick someone and they'll text you first. Every reply gets feedback and moves their interest level.",
+          )}
         </AppText>
         {/* 무료 횟수를 쓰는 기능 — 누르기 전에 한 번에 얼마나 쓰는지(0회면 다 썼다고 먼저 알린다) */}
         {cost.note ? (
           <AppText variant="caption" color="textSecondary" weight="600" style={styles.cost}>
-            {cost.out ? cost.note : `연습 한 번에 코칭 1회 · ${PRACTICE_MAX_TURNS}마디까지 · ${cost.left}`}
+            {cost.out
+              ? cost.note
+              : L(`연습 한 번에 코칭 1회 · ${PRACTICE_MAX_TURNS}마디까지 · ${cost.left}`, `Each practice uses 1 · Up to ${PRACTICE_MAX_TURNS} messages · ${cost.left}`)}
           </AppText>
         ) : null}
       </Animated.View>
 
       {crushes.length ? (
         <Animated.View entering={enter(1)} style={styles.section}>
-          <SectionHeader title="내 상대와 미리 연습" style={styles.sectionHeader} />
+          <SectionHeader title={L('내 상대와 미리 연습', 'Practice with your crush')} style={styles.sectionHeader} />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hscroll} style={styles.hscrollWrap}>
             {crushes.map((c) => (
-              <PressableScale key={c.id} pressedScale={0.97} accessibilityLabel={`${c.name}${josa(c.name, '과', '와')} 연습 시작`} onPress={() => start(personaFromCrush(c))} style={[styles.crushChip, { backgroundColor: fill }]}>
+              <PressableScale key={c.id} pressedScale={0.97} accessibilityLabel={L(`${c.name}${josa(c.name, '과', '와')} 연습 시작`, `Start practice with ${c.name}`)} onPress={() => start(personaFromCrush(c))} style={[styles.crushChip, { backgroundColor: fill }]}>
                 <RoomAvatar crush={c} size={36} />
                 <View>
                   <AppText variant="smallStrong">{c.name}</AppText>
                   <AppText variant="caption" color="textSecondary">
-                    {relationshipLabel(c.relationship).label} · 연습 시작
+                    {relationshipLabel(c.relationship).label} · {L('연습 시작', 'Start practice')}
                   </AppText>
                 </View>
               </PressableScale>
@@ -102,7 +109,7 @@ export default function PracticeTab() {
 
       {sessions.length ? (
         <Animated.View entering={enter(2)} style={styles.section}>
-          <SectionHeader title="이어서 하기" style={styles.sectionHeader} />
+          <SectionHeader title={L('이어서 하기', 'Continue')} style={styles.sectionHeader} />
           <View style={styles.list}>
             {shownSessions.map((s, i) => {
               const last = s.turns[s.turns.length - 1];
@@ -110,7 +117,10 @@ export default function PracticeTab() {
                 <Pressable
                   key={s.id}
                   accessibilityRole="button"
-                  accessibilityLabel={`${s.persona.name}${josa(s.persona.name, '과', '와')}의 연습 이어서 하기, 호감 온도 ${s.heat}도`}
+                  accessibilityLabel={L(
+                    `${s.persona.name}${josa(s.persona.name, '과', '와')}의 연습 이어서 하기, 호감 온도 ${s.heat}도`,
+                    `Continue practice with ${s.persona.name}, interest level ${s.heat}°`,
+                  )}
                   onPress={() => {
                     haptic.soft();
                     router.push({ pathname: '/practice/[id]', params: { id: s.id } });
@@ -121,7 +131,7 @@ export default function PracticeTab() {
                     <View style={styles.nameRow}>
                       <AppText variant="bodyStrong" numberOfLines={1} style={styles.shrink}>
                         {s.persona.name}
-                        {s.ended ? ' · 끝' : ''}
+                        {s.ended ? L(' · 끝', ' · Ended') : ''}
                       </AppText>
                       <AppText variant="caption" color="textTertiary">
                         {relativeTime(s.updatedAt)}
@@ -140,7 +150,7 @@ export default function PracticeTab() {
           {sessions.length > SESSIONS_SHOWN ? (
             <Pressable accessibilityRole="button" accessibilityState={{ expanded: moreSessions }} onPress={() => setMoreSessions((v) => !v)} hitSlop={6} style={styles.more}>
               <AppText variant="smallStrong" color="textSecondary">
-                {moreSessions ? '접기' : `지난 연습 ${sessions.length - SESSIONS_SHOWN}개 더 보기`}
+                {moreSessions ? L('접기', 'Show less') : L(`지난 연습 ${sessions.length - SESSIONS_SHOWN}개 더 보기`, `Show ${sessions.length - SESSIONS_SHOWN} more`)}
               </AppText>
               <Ionicons name={moreSessions ? 'chevron-up' : 'chevron-down'} size={15} color={theme.textTertiary} />
             </Pressable>
@@ -150,13 +160,13 @@ export default function PracticeTab() {
 
       {/* 연습 상대 — 홈 「최근 상담」과 같은 줄 목록(얼굴 원 + 이름·나이 + MBTI·직업·난이도 + 상황 한 줄) */}
       <Animated.View entering={enter(3)} style={styles.section}>
-        <SectionHeader title="연습 상대 고르기" style={styles.sectionHeader} />
+        <SectionHeader title={L('연습 상대 고르기', 'Pick a practice match')} style={styles.sectionHeader} />
         <View style={styles.list}>
           {personas.map((p) => (
             <Pressable
               key={p.id}
               accessibilityRole="button"
-              accessibilityLabel={`${p.name}, ${p.age}, 난이도 ${LEVEL[p.difficulty] ?? ''}`}
+              accessibilityLabel={L(`${p.name}, ${p.age}, 난이도 ${LEVEL[p.difficulty] ?? ''}`, `${p.name}, ${p.age}, difficulty ${LEVEL[p.difficulty] ?? ''}`)}
               onPress={() => start(p)}
               style={({ pressed }) => [styles.row, styles.personaRow, { backgroundColor: pressed ? fill : 'transparent' }]}>
               <RoomAvatar crush={{ id: p.id, name: p.name }} size={AVATAR} />
@@ -176,7 +186,7 @@ export default function PracticeTab() {
           ))}
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="연습 상대 직접 만들기"
+            accessibilityLabel={L('연습 상대 직접 만들기', 'Create your own practice match')}
             onPress={() => {
               haptic.select();
               router.push('/practice/custom');
@@ -186,9 +196,9 @@ export default function PracticeTab() {
               <Ionicons name="add" size={22} color={theme.text} />
             </View>
             <View style={styles.rowTexts}>
-              <AppText variant="bodyStrong">직접 만들기</AppText>
+              <AppText variant="bodyStrong">{L('직접 만들기', 'Create your own')}</AppText>
               <AppText variant="small" color="textSecondary" numberOfLines={1}>
-                나이·MBTI·상황을 골라 나만의 연습 상대를 만들어요
+                {L('나이·MBTI·상황을 골라 나만의 연습 상대를 만들어요', 'Pick an age, MBTI and scenario to build your own match')}
               </AppText>
             </View>
             <Ionicons name="chevron-forward" size={18} color={theme.textTertiary} />

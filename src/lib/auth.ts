@@ -13,6 +13,7 @@ import { Platform } from 'react-native';
 import { discardQueuedAnalytics, track } from '@/lib/analytics';
 import { APP_CONFIG } from '@/lib/config';
 import { nativeGoogleSignIn, nativeGoogleSignOut } from '@/lib/google-native';
+import { isEn, L } from '@/lib/i18n';
 import { authStorageKey, supabase } from '@/lib/supabase';
 import { useAppStore, type MemberState } from '@/store/app-store';
 
@@ -61,24 +62,40 @@ export async function appleSignInAvailable(): Promise<boolean> {
 export function authErrorMessage(error: string | null | undefined): string {
   switch (error) {
     case 'access_denied':
-      return '로그인 동의를 취소했어요. 다시 시도해주세요.';
+      return L('로그인 동의를 취소했어요. 다시 시도해주세요.', 'Sign-in was canceled. Please try again.');
     case 'server_error':
     case 'temporarily_unavailable':
-      return '로그인 서버에 잠시 문제가 생겼어요. 잠시 후 다시 시도해주세요.';
+      return L('로그인 서버에 잠시 문제가 생겼어요. 잠시 후 다시 시도해주세요.', 'The sign-in server is having trouble. Please try again in a moment.');
     default:
-      return '로그인을 마치지 못했어요. 다시 시도해주세요.';
+      return L('로그인을 마치지 못했어요. 다시 시도해주세요.', 'Couldn’t finish signing in. Please try again.');
   }
 }
 
 const redirectUrl = () => (Platform.OS === 'web' ? `${window.location.origin}/auth/callback` : Linking.createURL('auth/callback'));
 
 const ensureClient = () => {
-  if (!supabase) throw new Error('지금은 가입할 수 없어요. 잠시 후 다시 시도해주세요.');
+  if (!supabase) throw new Error(L('지금은 가입할 수 없어요. 잠시 후 다시 시도해주세요.', 'Sign-up isn’t available right now. Please try again in a moment.'));
   return supabase;
 };
 
-const CONNECTION_ERROR = '서버에 연결하지 못했어요. 잠시 후 다시 시도해주세요.';
-const ACCOUNT_CHANGED_ERROR = '로그인 계정이 바뀌었어요. 현재 계정을 확인한 뒤 다시 탈퇴해주세요.';
+const CONNECTION_ERROR = L('서버에 연결하지 못했어요. 잠시 후 다시 시도해주세요.', 'Couldn’t connect to the server. Please try again in a moment.');
+const ACCOUNT_CHANGED_ERROR = L('로그인 계정이 바뀌었어요. 현재 계정을 확인한 뒤 다시 탈퇴해주세요.', 'You’re signed in to a different account now. Check which account you’re using, then try deleting again.');
+
+/** 서버(api/member)의 Apple 탈퇴 오류 — 서버 문구는 한국어라 영어판은 코드로 영어 문구를 고른다 */
+const APPLE_ERROR_EN: Record<string, string> = {
+  apple_code_required: 'We didn’t get Apple’s confirmation. Please try again, or check the manual unlink guide before deleting your account.',
+  apple_identity_unavailable: 'We couldn’t verify the Apple account you signed up with. Please try again, or check the manual unlink guide.',
+  apple_revocation_unavailable: 'Apple can’t be unlinked automatically right now. Please try again later, or check the manual unlink guide.',
+  apple_account_mismatch: 'This isn’t the Apple account you signed up with. Confirm with the same account, or check the manual unlink guide.',
+  apple_revocation_failed: 'We couldn’t confirm the Apple unlink, so account deletion was stopped. Please try again, or check the manual unlink guide.',
+};
+
+/** 서버가 보낸 오류 문구 — 영어판에서 한국어 문구가 오면 영어로 바꾼다 (코드를 알면 그 뜻대로, 모르면 일반 안내) */
+function serverErrorText(error: unknown, code: unknown): string {
+  if (typeof error !== 'string') return CONNECTION_ERROR;
+  if (!isEn || !/[\uAC00-\uD7A3]/.test(error)) return error;
+  return (typeof code === 'string' && APPLE_ERROR_EN[code]) || 'Something went wrong. Please try again in a moment.';
+}
 
 /**
  * 이 기기의 로그인 세션. 만료된 세션을 갱신하다 네트워크 오류 등으로 실패하면(error) 연결 오류로 알리고
@@ -87,7 +104,7 @@ const ACCOUNT_CHANGED_ERROR = '로그인 계정이 바뀌었어요. 현재 계�
 async function currentSession() {
   const { data, error } = await ensureClient().auth.getSession();
   if (error) throw new Error(CONNECTION_ERROR);
-  if (!data.session) throw new SessionMissing('로그인이 끝났어요. 다시 로그인해주세요.');
+  if (!data.session) throw new SessionMissing(L('로그인이 끝났어요. 다시 로그인해주세요.', 'You’ve been signed out. Please sign in again.'));
   return data.session;
 }
 
@@ -103,7 +120,7 @@ async function signInWithBrowser(provider: 'kakao' | 'google'): Promise<LinkResu
     return null;
   }
   const { data, error } = await client.auth.signInWithOAuth({ provider, options: { redirectTo, skipBrowserRedirect: true, ...scopes } });
-  if (error || !data.url) throw error ?? new Error('로그인 화면을 열지 못했어요.');
+  if (error || !data.url) throw error ?? new Error(L('로그인 화면을 열지 못했어요.', 'Couldn’t open the sign-in screen.'));
   const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
   if (result.type !== 'success') throw new AuthCancelled('cancelled');
   const returned = new URL(result.url);
@@ -165,11 +182,12 @@ export async function signInWithApple(): Promise<LinkResult> {
     if ((e as { code?: string }).code === 'ERR_REQUEST_CANCELED') throw new AuthCancelled('cancelled');
     throw e;
   }
-  if (!credential.identityToken) throw new Error('Apple 로그인 정보를 받지 못했어요.');
+  if (!credential.identityToken) throw new Error(L('Apple 로그인 정보를 받지 못했어요.', 'We didn’t get your Apple sign-in info.'));
   const { error } = await client.auth.signInWithIdToken({ provider: 'apple', token: credential.identityToken, nonce: rawNonce });
   if (error) throw error;
-  // Apple 은 이름을 처음 한 번만 알려 준다
-  const name = [credential.fullName?.familyName, credential.fullName?.givenName].filter(Boolean).join('') || undefined;
+  // Apple 은 이름을 처음 한 번만 알려 준다 (한국어는 성+이름 붙여서, 영어는 이름 성 띄어서)
+  const parts = L([credential.fullName?.familyName, credential.fullName?.givenName], [credential.fullName?.givenName, credential.fullName?.familyName]);
+  const name = parts.filter(Boolean).join(L('', ' ')) || undefined;
   return linkMember(name);
 }
 
@@ -191,14 +209,15 @@ async function memberApi(method: 'POST' | 'DELETE', body?: Record<string, unknow
     });
     const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     if (!res.ok) {
-      const message = typeof json.error === 'string' ? json.error : CONNECTION_ERROR;
+      const message = serverErrorText(json.error, json.code);
       if (method === 'DELETE' && typeof json.code === 'string' && json.code.startsWith('apple_')) throw new AppleRevocationError(message, json.code);
       throw new Error(message);
     }
     return { session, json };
   } catch (error) {
     // 서버가 이미 완료했을 수도 있어 자동 재전송하지 않는다. 확인을 못 한 상태에서 로컬 회원 표시도 지우지 않는다.
-    if (controller?.signal.aborted) throw new Error('탈퇴 처리 결과를 확인하지 못했어요. 잠시 후 계정 상태를 확인하고 다시 시도해주세요.');
+    if (controller?.signal.aborted)
+      throw new Error(L('탈퇴 처리 결과를 확인하지 못했어요. 잠시 후 계정 상태를 확인하고 다시 시도해주세요.', 'We couldn’t confirm whether your account was deleted. Please check your account in a moment and try again.'));
     throw error;
   } finally {
     if (timeout) clearTimeout(timeout);
@@ -272,15 +291,20 @@ export async function signOut(): Promise<void> {
  * 취소하면 탈퇴를 멈춘다. 코드를 못 받으면 자동 삭제하지 않고 재시도·수동 연결 해제 안내를 선택하게 한다.
  */
 async function appleCodeForRevoke(): Promise<string> {
-  if (Platform.OS !== 'ios') throw new AppleRevocationError('이 기기에서는 Apple 연결을 자동 해제할 수 없어요. Apple 기기에서 다시 시도하거나 수동 연결 해제 안내를 확인해주세요.', 'apple_reauthentication_unavailable');
+  if (Platform.OS !== 'ios')
+    throw new AppleRevocationError(
+      L('이 기기에서는 Apple 연결을 자동 해제할 수 없어요. Apple 기기에서 다시 시도하거나 수동 연결 해제 안내를 확인해주세요.', 'Apple can’t be unlinked automatically on this device. Try again on an Apple device, or check the manual unlink guide.'),
+      'apple_reauthentication_unavailable',
+    );
   try {
     const credential = await AppleAuthentication.signInAsync({ requestedScopes: [] });
-    if (!credential.authorizationCode?.trim()) throw new AppleRevocationError('Apple 확인 정보를 받지 못했어요. 다시 시도하거나 수동 연결 해제 안내를 확인해주세요.', 'apple_code_required');
+    if (!credential.authorizationCode?.trim())
+      throw new AppleRevocationError(L('Apple 확인 정보를 받지 못했어요. 다시 시도하거나 수동 연결 해제 안내를 확인해주세요.', 'We didn’t get Apple’s confirmation. Please try again, or check the manual unlink guide.'), 'apple_code_required');
     return credential.authorizationCode;
   } catch (e) {
     if ((e as { code?: string }).code === 'ERR_REQUEST_CANCELED') throw new AuthCancelled('cancelled');
     if (e instanceof AppleRevocationError) throw e;
-    throw new AppleRevocationError('Apple 확인을 마치지 못했어요. 다시 시도하거나 수동 연결 해제 안내를 확인해주세요.', 'apple_reauthentication_failed');
+    throw new AppleRevocationError(L('Apple 확인을 마치지 못했어요. 다시 시도하거나 수동 연결 해제 안내를 확인해주세요.', 'Couldn’t finish confirming with Apple. Please try again, or check the manual unlink guide.'), 'apple_reauthentication_failed');
   }
 }
 
@@ -312,7 +336,7 @@ async function requestDelete(options: DeleteAccountOptions): Promise<DeleteAccou
   // 아직 보내지 않은 이용 기록은 버린다 (탈퇴로 지운 뒤에 탈퇴 전 기록이 다시 저장되지 않게)
   discardQueuedAnalytics();
   const { json } = await memberApi('DELETE', manual ? { appleManualRevocationAcknowledged: true } : appleAuthorizationCode ? { appleAuthorizationCode } : undefined, session.user.id);
-  if (json.deleted !== true) throw new Error('탈퇴 완료를 확인하지 못했어요. 계정 상태를 확인하고 다시 시도해주세요.');
+  if (json.deleted !== true) throw new Error(L('탈퇴 완료를 확인하지 못했어요. 계정 상태를 확인하고 다시 시도해주세요.', 'We couldn’t confirm your account was deleted. Please check your account and try again.'));
   // 응답을 기다리다 다른 계정으로 로그인했다면 새 계정의 세션·회원 표시를 지우지 않는다.
   const remainingSession = await currentSession().catch(() => null);
   if (remainingSession?.user.id === session.user.id && useAppStore.getState().member?.userId === session.user.id) {
@@ -323,4 +347,4 @@ async function requestDelete(options: DeleteAccountOptions): Promise<DeleteAccou
   return { appleRevocation: json.appleRevocation === 'revoked' ? 'revoked' : json.appleRevocation === 'manual' || hasApple ? 'manual' : 'not_applicable' };
 }
 
-export const providerLabel = (provider: string) => (provider === 'apple' ? 'Apple' : provider === 'kakao' ? '카카오' : provider === 'google' ? 'Google' : provider);
+export const providerLabel = (provider: string) => (provider === 'apple' ? 'Apple' : provider === 'kakao' ? L('카카오', 'Kakao') : provider === 'google' ? 'Google' : provider);

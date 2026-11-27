@@ -7,8 +7,12 @@ import { AppText } from '@/components/ui/app-text';
 import { Brand, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { haptic } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 
-export const COACH_PHRASES = ['대화 분위기를 읽는 중이에요…', '호칭이랑 말투를 확인하고 있어요…', '상대의 속마음을 추리하는 중…', '호감 온도를 재는 중…', '딱 맞는 답장을 고르는 중…', '거의 다 됐어요!'];
+export const COACH_PHRASES = L(
+  ['대화 분위기를 읽는 중이에요…', '호칭이랑 말투를 확인하고 있어요…', '상대의 속마음을 추리하는 중…', '호감 온도를 재는 중…', '딱 맞는 답장을 고르는 중…', '거의 다 됐어요!'],
+  ['Reading the vibe…', 'Checking how you two talk…', 'Figuring out what they really mean…', 'Measuring their interest…', 'Picking the perfect replies…', 'Almost there!'],
+);
 
 /** 코치가 생각하는 동안 — 통통 튀는 점, 바뀌는 문구, 차오르는 그라데이션 막대, 단계마다 톡 진동 */
 export function PendingBubble({ phrases = COACH_PHRASES }: { phrases?: string[] }) {
@@ -56,7 +60,7 @@ export function PendingBubble({ phrases = COACH_PHRASES }: { phrases?: string[] 
         </Animated.View>
       </View>
       <AppText variant="caption" color="textTertiary">
-        {i + 1}/{phrases.length} 단계 · 보통 10초 안팎 걸려요
+        {L(`${i + 1}/${phrases.length} 단계 · 보통 10초 안팎 걸려요`, `Step ${i + 1}/${phrases.length} · Usually takes about 10 sec`)}
       </AppText>
     </View>
   );

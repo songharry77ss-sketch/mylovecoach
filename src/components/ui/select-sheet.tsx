@@ -8,6 +8,7 @@ import { useInsetFill } from '@/components/ui/list-group';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { haptic } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 
 const GAP = Spacing.sm;
 
@@ -38,14 +39,14 @@ export function SelectSheet<T extends string>({ visible, title, options, value, 
   const cellWidth = columns > 1 && gridWidth > 0 ? Math.floor((gridWidth - GAP * (columns - 1)) / columns) : undefined;
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="닫기" />
+      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel={L('닫기', 'Close')} />
       <View style={[styles.sheet, { backgroundColor: theme.card, paddingBottom: insets.bottom + Spacing.lg }]}>
         <View style={[styles.handle, { backgroundColor: theme.border }]} />
         <View style={styles.head}>
           <AppText variant="title2" weight="700" style={styles.flex}>
             {title}
           </AppText>
-          <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={onClose} hitSlop={10} style={({ pressed }) => [styles.close, { backgroundColor: fill }, pressed ? styles.pressed : null]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={L('닫기', 'Close')} onPress={onClose} hitSlop={10} style={({ pressed }) => [styles.close, { backgroundColor: fill }, pressed ? styles.pressed : null]}>
             <Ionicons name="close" size={18} color={theme.textSecondary} />
           </Pressable>
         </View>
@@ -103,7 +104,7 @@ interface SelectFieldProps {
 }
 
 /** 고르기 시트를 여는 칸 — TextField 와 같은 모양(높이 52·모서리 14) */
-export function SelectField({ label, value, placeholder = '선택하기', onPress, accessibilityLabel, style }: SelectFieldProps) {
+export function SelectField({ label, value, placeholder = L('선택하기', 'Select'), onPress, accessibilityLabel, style }: SelectFieldProps) {
   const theme = useTheme();
   const fill = useInsetFill();
   return (
@@ -115,7 +116,7 @@ export function SelectField({ label, value, placeholder = '선택하기', onPres
       ) : null}
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel ?? `${label ?? ''} ${value ?? placeholder}, 바꾸기`.trim()}
+        accessibilityLabel={accessibilityLabel ?? L(`${label ?? ''} ${value ?? placeholder}, 바꾸기`, `${label ?? ''} ${value ?? placeholder}, change`).trim()}
         onPress={onPress}
         style={({ pressed }) => [styles.field, { backgroundColor: fill }, pressed ? styles.pressed : null]}>
         <AppText variant="body" weight={value ? '600' : undefined} color={value ? 'text' : 'textTertiary'}>

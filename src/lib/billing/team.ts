@@ -1,6 +1,7 @@
 import { quotaEnforced } from '@/lib/billing/gate';
 import type { TeamState } from '@/lib/billing/quota';
 import { APP_CONFIG } from '@/lib/config';
+import { L } from '@/lib/i18n';
 import { useAppStore } from '@/store/app-store';
 
 const TIMEOUT_MS = 8000;
@@ -27,7 +28,7 @@ export async function fetchTeamStatus(deviceId: string, now = Date.now()): Promi
     if (!res.ok) return undefined;
     const data = (await res.json()) as { ready?: boolean; team?: boolean; label?: string };
     if (!data.ready) return undefined;
-    return data.team ? { label: data.label || '팀원', verifiedAt: now } : null;
+    return data.team ? { label: data.label || L('팀원', 'Team'), verifiedAt: now } : null;
   } catch {
     return undefined;
   } finally {

@@ -9,6 +9,7 @@ import { Linking, Platform } from 'react-native';
 import { ANDROID_PACKAGE, FREE_UNLIMITED } from '@/lib/billing/plans';
 import { APP_CONFIG } from '@/lib/config';
 import { isDemoMode } from '@/lib/demo';
+import { isEn, L } from '@/lib/i18n';
 import { cleanNotes } from '@/lib/release-notes';
 import { compareVersions } from '@/lib/version';
 
@@ -46,8 +47,9 @@ export function updateFor(current: string, server: { latest?: unknown; min?: unk
   if (!required && !newer) return null;
   // 최소 버전만 알려 준 경우에도 받을 버전을 보여 줄 수 있게 한다
   const target = newer && latest ? latest : (min ?? current);
-  // 새 소식은 서버가 알려 준 최신 버전의 것이라, 그 버전을 받을 때만 붙인다
-  const notes = target === latest ? cleanNotes(server?.notes) : [];
+  // 새 소식은 서버가 알려 준 최신 버전의 것이라, 그 버전을 받을 때만 붙인다.
+  // 서버의 새 소식은 한국어 스토어 문구(docs/STORE_LISTING.md)라 영어판에서는 한글이 든 줄을 빼고 시트의 기본 문구를 쓴다
+  const notes = (target === latest ? cleanNotes(server?.notes) : []).filter((note) => !isEn || !/[\uAC00-\uD7A3]/.test(note));
   return notes.length ? { latest: target, required, notes } : { latest: target, required };
 }
 
@@ -99,6 +101,7 @@ export async function openStore(): Promise<void> {
   const [direct, web] =
     Platform.OS === 'android'
       ? [`market://details?id=${ANDROID_PACKAGE}`, `https://play.google.com/store/apps/details?id=${ANDROID_PACKAGE}`]
-      : [`itms-apps://apps.apple.com/app/id${IOS_APP_ID}`, `https://apps.apple.com/kr/app/id${IOS_APP_ID}`];
+      : // 영어판은 나라를 정하지 않은 주소 — 애플이 그 사람 나라의 스토어로 보낸다
+        [`itms-apps://apps.apple.com/app/id${IOS_APP_ID}`, L(`https://apps.apple.com/kr/app/id${IOS_APP_ID}`, `https://apps.apple.com/app/id${IOS_APP_ID}`)];
   await Linking.openURL(direct).catch(() => Linking.openURL(web));
 }

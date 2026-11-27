@@ -1,4 +1,5 @@
 /** 연애 연습 도우미 — 실제 상대로 연습 상대 만들기, 결과 판정 */
+import { L, isEn } from '@/lib/i18n';
 import { createId } from '@/lib/id';
 import type { Crush, Gender, PracticePersona, PracticeSession, PracticeTurn, Relationship } from '@/lib/types';
 
@@ -10,6 +11,13 @@ const PASTELS = ['#D9EEFF', '#E6EDFF', '#EDE9FF', '#E3F9F1', '#FFEFE3', '#EEF8FF
 const genderEmoji = (g: Gender) => (g === 'male' ? '🧑🏻' : g === 'female' ? '👩🏻' : '🙂');
 
 export function defaultOpener(speech: 'polite' | 'casual', relationship: Relationship): string {
+  // 영어판 — 존댓말·반말 구분이 없어 관계로만 고른다
+  if (isEn) {
+    if (relationship === 'blind_date') return 'Hey! Get home okay last night? I had a really nice time 😊';
+    if (relationship === 'dating') return 'hey babe, wyd? just got off work 🥱';
+    if (relationship === 'ex') return '…hey. how have you been?';
+    return speech === 'polite' ? "Hey! How's your day going? 😊" : 'heyy wyd? lol';
+  }
   if (speech === 'polite') {
     if (relationship === 'blind_date') return '어제 잘 들어가셨어요? ㅎㅎ 덕분에 즐거웠어요';
     return '안녕하세요 ㅎㅎ 오늘 하루 어떠셨어요?';
@@ -21,7 +29,8 @@ export function defaultOpener(speech: 'polite' | 'casual', relationship: Relatio
 
 /** 내 채팅방의 실제 상대 정보로 연습 상대를 만든다 */
 export function personaFromCrush(crush: Crush): PracticePersona {
-  const speech = crush.speech && crush.speech !== 'auto' ? crush.speech : (crush.detected?.speech ?? (crush.relationship === 'blind_date' ? 'polite' : 'casual'));
+  // 영어판은 존댓말·반말이 없으므로 늘 casual
+  const speech = isEn ? 'casual' : crush.speech && crush.speech !== 'auto' ? crush.speech : (crush.detected?.speech ?? (crush.relationship === 'blind_date' ? 'polite' : 'casual'));
   return {
     id: `crush_${crush.id}`,
     name: crush.name,
@@ -32,11 +41,14 @@ export function personaFromCrush(crush: Crush): PracticePersona {
     job: '',
     style: crush.style.slice(0, 4),
     relationship: crush.relationship,
-    scenario: `${crush.name}님 정보로 만든 연습 상대예요.${crush.notes.trim() ? ` (${crush.notes.trim().slice(0, 60)})` : ''} 실제로 보내기 전에 미리 연습해 보세요.`,
+    scenario: L(
+      `${crush.name}님 정보로 만든 연습 상대예요.${crush.notes.trim() ? ` (${crush.notes.trim().slice(0, 60)})` : ''} 실제로 보내기 전에 미리 연습해 보세요.`,
+      `A practice partner built from what you've told us about ${crush.name}.${crush.notes.trim() ? ` (${crush.notes.trim().slice(0, 60)})` : ''} Rehearse here before you send the real thing.`,
+    ),
     opener: defaultOpener(speech, crush.relationship),
     speech,
     difficulty: 2,
-    hint: crush.report?.data.strategy[0] ?? '질문 하나 + 리액션 한 줄의 리듬을 지켜 보세요.',
+    hint: crush.report?.data.strategy[0] ?? L('질문 하나 + 리액션 한 줄의 리듬을 지켜 보세요.', 'Keep the rhythm: one reaction, one question.'),
     color: PASTELS[crush.id.length % PASTELS.length],
   };
 }
@@ -60,7 +72,7 @@ export function customPersona(input: CustomPersonaInput): PracticePersona {
     emoji: genderEmoji(input.gender),
     job: '',
     opener: defaultOpener(input.speech, input.relationship),
-    hint: '상대 말투에 맞춰 짧게, 질문으로 이어가 보세요.',
+    hint: L('상대 말투에 맞춰 짧게, 질문으로 이어가 보세요.', 'Match their style, keep it short, and keep it going with questions.'),
     color: PASTELS[Math.floor(Math.random() * PASTELS.length)],
   };
 }
@@ -71,6 +83,13 @@ export function myTurnCount(session: PracticeSession): number {
 
 /** 연습 결과 한 줄 평가 */
 export function practiceVerdict(heat: number): { title: string; emoji: string; body: string } {
+  if (isEn) {
+    if (heat >= 60) return { title: 'Dating pro', emoji: '🔥', body: "They're totally hooked. Bring this energy to the real thing!" };
+    if (heat >= 30) return { title: 'Real potential', emoji: '💜', body: "The interest is building. You're one step away from asking them out." };
+    if (heat >= 10) return { title: 'Not bad', emoji: '🌤️', body: 'The convo kept going, but it could use a few more sparks.' };
+    if (heat >= 0) return { title: 'Keep practicing', emoji: '🌱', body: 'Keep it going with questions, and add one more line of reaction.' };
+    return { title: 'Try again', emoji: '🧊', body: 'That may have felt like a lot. Check the coach feedback and give it another go.' };
+  }
   if (heat >= 60) return { title: '연애 고수', emoji: '🔥', body: '상대가 완전히 빠져들었어요. 실전에서도 이 느낌 그대로!' };
   if (heat >= 30) return { title: '썸 가능성 높음', emoji: '💜', body: '호감이 쌓이고 있어요. 약속 제안까지 한 걸음이에요.' };
   if (heat >= 10) return { title: '나쁘지 않아요', emoji: '🌤️', body: '대화는 이어졌지만 설렘 포인트가 조금 아쉬워요.' };

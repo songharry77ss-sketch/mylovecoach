@@ -5,12 +5,12 @@
 import { Platform } from 'react-native';
 
 import { entitlementFrom } from '@/lib/billing/entitlement';
+import { fallbackPrice } from '@/lib/billing/fallback-price';
 import {
   ANDROID_PACKAGE,
   ANDROID_WEEKLY_BASE_PLAN,
   ANDROID_YEAR_BASE_PLAN,
   DAY_SALE_PRODUCT_ID,
-  FALLBACK_PRICES,
   PRODUCT_IDS,
   SELLING_PLANS,
   isConsumablePlan,
@@ -21,6 +21,7 @@ import {
 } from '@/lib/billing/plans';
 import type { PremiumState } from '@/lib/billing/quota';
 import { storeFixHint } from '@/lib/billing/store-hint';
+import { L } from '@/lib/i18n';
 
 type IapModule = typeof import('expo-iap');
 let IAP: IapModule | null = null;
@@ -103,8 +104,11 @@ const storeHint = (error: unknown): string => {
   const fix = storeFixHint(problem);
   if (fix) return fix;
   if (responseCode != null && TRANSIENT_STORE_CODES.has(responseCode))
-    return '스토어 앱에 잠시 연결되지 않아요. 스토어 앱을 한 번 열었다가 돌아오거나, 와이파이·데이터를 바꿔(VPN 은 끄고) 다시 시도해주세요.';
-  return '상품 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.';
+    return L(
+      '스토어 앱에 잠시 연결되지 않아요. 스토어 앱을 한 번 열었다가 돌아오거나, 와이파이·데이터를 바꿔(VPN 은 끄고) 다시 시도해주세요.',
+      "Can't reach the store right now. Open the store app and come back, or switch between Wi-Fi and data (turn off any VPN), then try again.",
+    );
+  return L('상품 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.', "Couldn't load purchase options. Try again in a moment.");
 };
 
 /**
@@ -158,7 +162,7 @@ async function ensureConnected(): Promise<boolean> {
     }),
     iap.purchaseErrorListener((error) => {
       if (iap.isUserCancelledError(error)) return settle({ status: 'cancelled' });
-      settle({ status: 'error', message: (iap.getUserFriendlyErrorMessage(error) || '결제를 완료하지 못했어요. 잠시 후 다시 시도해주세요.') + codeOf(error) });
+      settle({ status: 'error', message: (iap.getUserFriendlyErrorMessage(error) || L('결제를 완료하지 못했어요. 잠시 후 다시 시도해주세요.', "Couldn't complete the purchase. Try again in a moment.")) + codeOf(error) });
     }),
   ];
   return connected;
@@ -249,7 +253,7 @@ async function fetchForPurchase(request: FetchRequest) {
  */
 export async function loadPlanProducts(): Promise<PlanProduct[]> {
   const order = SELLING_PLANS;
-  const fallback: PlanProduct[] = order.map((plan) => ({ plan, productId: PRODUCT_IDS[plan], displayPrice: FALLBACK_PRICES[plan] }));
+  const fallback: PlanProduct[] = order.map((plan) => ({ plan, productId: PRODUCT_IDS[plan], displayPrice: fallbackPrice(plan) }));
   if (!IAP) return fallback;
   lastProblem = null;
   if (!(await ensureConnected())) {
@@ -292,7 +296,7 @@ export async function loadPlanProducts(): Promise<PlanProduct[]> {
 
 /** 결제 시트를 띄우고 결과를 기다린다 (결과는 스토어 이벤트로 도착) */
 export async function purchasePlan(product: PlanProduct): Promise<PurchaseOutcome> {
-  if (!IAP || !(await ensureConnected())) return { status: 'error', message: '스토어에 연결하지 못했어요. 네트워크를 확인하고 다시 시도해주세요.' };
+  if (!IAP || !(await ensureConnected())) return { status: 'error', message: L('스토어에 연결하지 못했어요. 네트워크를 확인하고 다시 시도해주세요.', "Couldn't connect to the store. Check your connection and try again.") };
   const iap = IAP;
   // 스토어가 이 상품을 내려주지 않으면 결제 시트가 뜨지 않는다 — 조용히 실패하지 말고 이유를 알린다
   // 조회가 실패하면 연결을 새로 맺고 한 번 더 묻고, 잠깐의 오류면 조금 기다렸다 또 묻는다 (Android 결제 서비스 끊김·네트워크)
@@ -301,7 +305,7 @@ export async function purchasePlan(product: PlanProduct): Promise<PurchaseOutcom
   try {
     const found = await fetchForPurchase({ skus: [product.productId], type: isSubscriptionPlan(product.plan) ? 'subs' : 'in-app' });
     item = found.find((i) => i.id === product.productId);
-    if (!item) return { status: 'error', message: `스토어에서 이 상품을 찾지 못했어요. 잠시 후 다시 시도해주세요. (${product.productId})` };
+    if (!item) return { status: 'error', message: L(`스토어에서 이 상품을 찾지 못했어요. 잠시 후 다시 시도해주세요. (${product.productId})`, `Couldn't find this item in the store. Try again in a moment. (${product.productId})`) };
   } catch (error) {
     return { status: 'error', message: `${storeHint(error)}${codeOf(error)}` };
   }
@@ -321,7 +325,7 @@ export async function purchasePlan(product: PlanProduct): Promise<PurchaseOutcom
         : iap.requestPurchase({ type: 'in-app', request: { apple: { sku }, google: { skus: [sku] } } });
     request.catch((error: unknown) => {
       if (iap.isUserCancelledError(error as never)) return settle({ status: 'cancelled' });
-      settle({ status: 'error', message: `결제를 시작하지 못했어요. 잠시 후 다시 시도해주세요.${codeOf(error)}` });
+      settle({ status: 'error', message: `${L('결제를 시작하지 못했어요. 잠시 후 다시 시도해주세요.', "Couldn't start the purchase. Try again in a moment.")}${codeOf(error)}` });
     });
   });
 }

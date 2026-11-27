@@ -13,8 +13,9 @@ import { couponSupported } from '@/lib/billing/coupon';
 import { useQuota } from '@/lib/billing/gate';
 import { billingSupported, openSubscriptionManagement, restorePremium } from '@/lib/billing/iap';
 import { SIGNUP_BONUS, subscriptionStoreName } from '@/lib/billing/plans';
-import { premiumUntilLabel } from '@/lib/billing/quota';
+import { formatDate, premiumUntilLabel } from '@/lib/billing/quota';
 import { haptic } from '@/lib/haptics';
+import { L, LANG } from '@/lib/i18n';
 import { authAvailable } from '@/lib/supabase';
 import { useAppStore } from '@/store/app-store';
 
@@ -44,10 +45,10 @@ export default function AccountSettings() {
       if (state.member?.userId !== previous.member?.userId) listener(state.member?.userId);
     }),
     onDeleted: (message) => { haptic.heavy(); toast.show(message); },
-    onCancelled: () => toast.show('Apple 확인을 취소해 탈퇴하지 않았어요.'),
+    onCancelled: () => toast.show(L('Apple 확인을 취소해 탈퇴하지 않았어요.', 'Apple confirmation was canceled, so your account was not deleted.')),
     onSessionMissing: () => {
       useAppStore.getState().setMember(null);
-      toast.show('로그인이 끝났어요. 다시 로그인한 뒤 탈퇴해주세요.', 'error');
+      toast.show(L('로그인이 끝났어요. 다시 로그인한 뒤 탈퇴해주세요.', 'You were signed out. Sign in again, then delete your account.'), 'error');
       router.push('/signup');
     },
     onError: (message) => toast.show(message, 'error'),
@@ -57,8 +58,12 @@ export default function AccountSettings() {
     const result = await restorePremium();
     if (result) {
       setPremium(result);
-      toast.show('구매 내역을 복원했어요.', 'success');
-    } else toast.show(result === null ? '복원할 구매 내역이 없어요.' : '스토어에 연결하지 못했어요. 잠시 후 다시 시도해주세요.', result === null ? 'default' : 'error');
+      toast.show(L('구매 내역을 복원했어요.', 'Purchases restored.'), 'success');
+    } else
+      toast.show(
+        result === null ? L('복원할 구매 내역이 없어요.', 'No purchases to restore.') : L('스토어에 연결하지 못했어요. 잠시 후 다시 시도해주세요.', "Couldn't connect to the store. Try again in a moment."),
+        result === null ? 'default' : 'error',
+      );
   };
 
   const confirm = (title: string, message: string, action: string, run: () => void) => {
@@ -67,78 +72,111 @@ export default function AccountSettings() {
       return;
     }
     Alert.alert(title, message, [
-      { text: '취소', style: 'cancel' },
+      { text: L('취소', 'Cancel'), style: 'cancel' },
       { text: action, style: 'destructive', onPress: run },
     ]);
   };
 
   const logout = () =>
-    confirm('로그아웃', '이 기기에서 로그아웃할까요? 다시 로그인하면 그대로 이어서 쓸 수 있어요.', '로그아웃', async () => {
-      await signOut();
-      toast.show('로그아웃했어요.');
-    });
+    confirm(
+      L('로그아웃', 'Sign out'),
+      L('이 기기에서 로그아웃할까요? 다시 로그인하면 그대로 이어서 쓸 수 있어요.', 'Sign out on this device? Sign back in anytime to pick up where you left off.'),
+      L('로그아웃', 'Sign out'),
+      async () => {
+        await signOut();
+        toast.show(L('로그아웃했어요.', 'Signed out.'));
+      },
+    );
 
-  const withdrawMessage =
+  const withdrawMessage = L(
     '회원 정보와 서버에 저장된 이용 기록을 모두 지워요. 이 기기의 채팅방은 남아 있어요. 되돌릴 수 없어요.' +
-    `\n\n회원 탈퇴로 스토어 구독이 취소되지는 않아요. ${subscriptionStoreName(Platform.OS)}에서 구독을 별도로 취소해 주세요.` +
-    (member?.provider === 'apple' && Platform.OS === 'ios' ? '\n\nApple 과의 연결을 끊기 위해 Apple 확인 창이 한 번 더 떠요.' : '') +
-    (member?.provider === 'google' ? '\n\nGoogle 계정의 로그인 연결은 자동 해제되지 않아요. Google 계정의 연결된 앱에서 별도로 해제할 수 있어요.' : '');
+      `\n\n회원 탈퇴로 스토어 구독이 취소되지는 않아요. ${subscriptionStoreName(Platform.OS)}에서 구독을 별도로 취소해 주세요.` +
+      (member?.provider === 'apple' && Platform.OS === 'ios' ? '\n\nApple 과의 연결을 끊기 위해 Apple 확인 창이 한 번 더 떠요.' : '') +
+      (member?.provider === 'google' ? '\n\nGoogle 계정의 로그인 연결은 자동 해제되지 않아요. Google 계정의 연결된 앱에서 별도로 해제할 수 있어요.' : ''),
+    "This deletes your account and all usage history stored on our server. Chats on this device will stay. This can't be undone." +
+      `\n\nDeleting your account doesn't cancel store subscriptions. Cancel them separately in ${subscriptionStoreName(Platform.OS, LANG)}.` +
+      (member?.provider === 'apple' && Platform.OS === 'ios' ? '\n\nYou’ll see one more Apple prompt to disconnect your Apple ID.' : '') +
+      (member?.provider === 'google' ? "\n\nYour Google sign-in connection isn't removed automatically. You can remove it under connected apps in your Google Account." : ''),
+  );
 
-  const withdraw = () => confirm('회원 탈퇴', withdrawMessage, '탈퇴', deletion.remove);
+  const withdraw = () => confirm(L('회원 탈퇴', 'Delete account'), withdrawMessage, L('탈퇴', 'Delete'), deletion.remove);
 
   return (
     // 이 빌드에 있는 것만 제목에 (가입이 없는 빌드는 「이용권」, 스토어 결제가 없는 곳은 「계정」) — 마이의 주제 줄과 같은 이름
-    <SubScreen title={hasBilling && authAvailable ? '이용권·계정' : hasBilling ? '이용권' : '계정'}>
+    <SubScreen title={hasBilling && authAvailable ? L('이용권·계정', 'Passes & account') : hasBilling ? L('이용권', 'Passes') : L('계정', 'Account')}>
       {hasBilling ? (
-        <ListGroup title="이용권">
+        <ListGroup title={L('이용권', 'Passes')}>
           {/* 1년권은 자동 결제가 없어 해지할 것이 없다 — 「해지」 버튼 대신 자동 결제가 없다는 안내만 */}
           {yearPass ? (
-            <ListRow title="1년권 · 자동 결제 없음" subtitle={`${yearUntil ? `${yearUntil} · ` : ''}따로 해지하지 않아도 돼요`} />
+            <ListRow
+              title={L('1년권 · 자동 결제 없음', '1-year pass · No auto-renewal')}
+              subtitle={`${yearUntil ? `${yearUntil} · ` : ''}${L('따로 해지하지 않아도 돼요', 'Nothing to cancel')}`}
+            />
           ) : (
-            <ListRow title="구독 관리 · 해지" onPress={() => openSubscriptionManagement().catch(() => toast.show('스토어 구독 관리 화면을 열지 못했어요.', 'error'))} />
+            <ListRow
+              title={L('구독 관리 · 해지', 'Manage or cancel subscription')}
+              onPress={() => openSubscriptionManagement().catch(() => toast.show(L('스토어 구독 관리 화면을 열지 못했어요.', "Couldn't open subscription settings."), 'error'))}
+            />
           )}
-          {!isPremium ? <ListRow title="구매 복원" subtitle="주간 구독·1년권 (예전에 산 평생권 포함)" onPress={restore} /> : null}
+          {!isPremium ? (
+            <ListRow title={L('구매 복원', 'Restore purchases')} subtitle={L('주간 구독·1년권 (예전에 산 평생권 포함)', 'Weekly plan · 1-year pass (incl. lifetime passes bought earlier)')} onPress={restore} />
+          ) : null}
         </ListGroup>
       ) : null}
 
       {/* 쿠폰 — 웹·Android 만 (iOS 는 App Store 지침 3.1.1, lib/billing/coupon) */}
       {couponSupported && !isPremium ? (
-        <ListGroup title="쿠폰">
-          <ListRow icon="ticket-outline" title="쿠폰 코드 입력" subtitle="코드를 넣으면 무제한 이용권을 받아요" onPress={() => router.push('/coupon')} />
+        <ListGroup title={L('쿠폰', 'Coupon')}>
+          <ListRow
+            icon="ticket-outline"
+            title={L('쿠폰 코드 입력', 'Enter coupon code')}
+            subtitle={L('코드를 넣으면 무제한 이용권을 받아요', 'Redeem a code for unlimited access')}
+            onPress={() => router.push('/coupon')}
+          />
         </ListGroup>
       ) : null}
 
       {authAvailable ? (
-        <ListGroup title="계정">
+        <ListGroup title={L('계정', 'Account')}>
           {member ? (
             <ListRow
              
-              title={`${providerLabel(member.provider)}로 가입됨`}
-              subtitle={[member.nickname, `${new Date(member.joinedAt).toLocaleDateString('ko-KR')} 가입`].filter(Boolean).join(' · ')}
+              title={L(`${providerLabel(member.provider)}로 가입됨`, `Signed up with ${providerLabel(member.provider)}`)}
+              subtitle={[member.nickname, L(`${new Date(member.joinedAt).toLocaleDateString('ko-KR')} 가입`, `Joined ${formatDate(member.joinedAt)}`)].filter(Boolean).join(' · ')}
             />
           ) : (
-            <ListRow title={`가입하고 무료 코칭 ${SIGNUP_BONUS}회 받기`} subtitle="카카오 · Google · Apple로 바로 가입" onPress={() => router.push('/signup')} />
+            <ListRow
+              title={L(`가입하고 무료 코칭 ${SIGNUP_BONUS}회 받기`, `Sign up for ${SIGNUP_BONUS} free sessions`)}
+              subtitle={L('카카오 · Google · Apple로 바로 가입', 'Sign up with Google or Apple')}
+              onPress={() => router.push('/signup')}
+            />
           )}
-          {member ? <ListRow title="로그아웃" onPress={logout} /> : null}
+          {member ? <ListRow title={L('로그아웃', 'Sign out')} onPress={logout} /> : null}
           {member && Platform.OS === 'web' ? (
-            <ListRow title="App Store 구독 관리" onPress={() => Linking.openURL('https://apps.apple.com/account/subscriptions').catch(() => toast.show('구독 관리 페이지를 열지 못했어요.', 'error'))} />
+            <ListRow
+              title={L('App Store 구독 관리', 'Manage App Store subscription')}
+              onPress={() => Linking.openURL('https://apps.apple.com/account/subscriptions').catch(() => toast.show(L('구독 관리 페이지를 열지 못했어요.', "Couldn't open the subscriptions page."), 'error'))}
+            />
           ) : null}
           {member && Platform.OS === 'web' ? (
-            <ListRow title="Google Play 구독 관리" onPress={() => Linking.openURL('https://play.google.com/store/account/subscriptions').catch(() => toast.show('구독 관리 페이지를 열지 못했어요.', 'error'))} />
+            <ListRow
+              title={L('Google Play 구독 관리', 'Manage Google Play subscription')}
+              onPress={() => Linking.openURL('https://play.google.com/store/account/subscriptions').catch(() => toast.show(L('구독 관리 페이지를 열지 못했어요.', "Couldn't open the subscriptions page."), 'error'))}
+            />
           ) : null}
         </ListGroup>
       ) : null}
 
       {!hasBilling && !authAvailable ? (
         <AppText variant="small" color="textSecondary" style={styles.empty}>
-          이 버전에서는 따로 관리할 이용권이나 계정이 없어요.
+          {L('이 버전에서는 따로 관리할 이용권이나 계정이 없어요.', 'There are no passes or accounts to manage in this version.')}
         </AppText>
       ) : null}
 
       {/* 회원 탈퇴는 맨 아래 작은 글자 버튼 — 마이 → 이용권·계정에서 바로 찾을 수 있게 (스토어 계정 삭제 정책) */}
       {authAvailable && member ? (
         <View style={styles.footer}>
-          <QuietLink title={deletion.busy ? '탈퇴 처리 중…' : '회원 탈퇴'} onPress={deletion.busy ? undefined : withdraw} />
+          <QuietLink title={deletion.busy ? L('탈퇴 처리 중…', 'Deleting account…') : L('회원 탈퇴', 'Delete account')} onPress={deletion.busy ? undefined : withdraw} />
         </View>
       ) : null}
       {deletion.sheet}

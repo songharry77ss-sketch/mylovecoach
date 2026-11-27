@@ -7,6 +7,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Radius, Spacing, palette } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { haptic } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 import { HEAT_MAX, HEAT_MIN } from '@/store/app-store';
 
 /**
@@ -14,13 +15,13 @@ import { HEAT_MAX, HEAT_MIN } from '@/store/app-store';
  * 홈 목록·연습·채팅방이 같이 쓴다
  */
 export function heatMeta(value: number): { label: string; emoji: string; color: string } {
-  if (value >= 90) return { label: '불타는 중', emoji: '🔥', color: palette.sendBlue500 };
-  if (value >= 70) return { label: '뜨거움', emoji: '❤️‍🔥', color: palette.sendBlue500 };
-  if (value >= 50) return { label: '설렘', emoji: '💜', color: palette.sendBlue500 };
-  if (value >= 30) return { label: '따뜻함', emoji: '🌤️', color: palette.sendBlue500 };
-  if (value >= 10) return { label: '미지근', emoji: '☁️', color: palette.sendBlue500 };
-  if (value >= 0) return { label: '아직 덤덤', emoji: '🌱', color: palette.sendBlue500 };
-  return { label: '영하', emoji: '🧊', color: palette.gray500 };
+  if (value >= 90) return { label: L('불타는 중', 'On fire'), emoji: '🔥', color: palette.sendBlue500 };
+  if (value >= 70) return { label: L('뜨거움', 'Hot'), emoji: '❤️‍🔥', color: palette.sendBlue500 };
+  if (value >= 50) return { label: L('설렘', 'Butterflies'), emoji: '💜', color: palette.sendBlue500 };
+  if (value >= 30) return { label: L('따뜻함', 'Warm'), emoji: '🌤️', color: palette.sendBlue500 };
+  if (value >= 10) return { label: L('미지근', 'Lukewarm'), emoji: '☁️', color: palette.sendBlue500 };
+  if (value >= 0) return { label: L('아직 덤덤', 'Just starting'), emoji: '🌱', color: palette.sendBlue500 };
+  return { label: L('영하', 'Ice cold'), emoji: '🧊', color: palette.gray500 };
 }
 
 const RANGE = HEAT_MAX - HEAT_MIN;
@@ -55,7 +56,7 @@ interface HeatGaugeProps {
  * 누적 호감 온도 — 큰 숫자가 세어 올라가고, 그라데이션 막대가 차오르고, 변화 폭 칩(+10°)이 튀어나온다.
  * 큰 구간을 넘거나 크게 오르면 축하가 터지고, 내려가면 살짝 흔들린다
  */
-export function HeatGauge({ value, from, delta, revealKey, compact, caption, title = '호감 온도' }: HeatGaugeProps) {
+export function HeatGauge({ value, from, delta, revealKey, compact, caption, title = L('호감 온도', 'Interest level') }: HeatGaugeProps) {
   const theme = useTheme();
   const celebrate = useCelebrate();
   const shouldAnimate = Boolean(revealKey && !revealed.has(revealKey) && from != null && from !== value);
@@ -124,7 +125,10 @@ export function HeatGauge({ value, from, delta, revealKey, compact, caption, tit
   const up = d != null && d > 0;
 
   return (
-    <Animated.View style={[styles.wrap, shakeStyle]} accessible accessibilityLabel={`${title} ${value}도, ${heatMeta(value).label}${d ? `, ${d > 0 ? '올라감' : '내려감'} ${Math.abs(d)}도` : ''}`}>
+    <Animated.View style={[styles.wrap, shakeStyle]} accessible accessibilityLabel={L(
+        `${title} ${value}도, ${heatMeta(value).label}${d ? `, ${d > 0 ? '올라감' : '내려감'} ${Math.abs(d)}도` : ''}`,
+        `${title} ${value} degrees, ${heatMeta(value).label}${d ? `, ${d > 0 ? 'up' : 'down'} ${Math.abs(d)} degrees` : ''}`,
+      )}>
       <View style={styles.row}>
         <View style={styles.labelBox}>
           <AppText variant={compact ? 'bodyStrong' : 'title3'} numberOfLines={1}>
@@ -158,7 +162,7 @@ export function HeatGauge({ value, from, delta, revealKey, compact, caption, tit
             -20°
           </AppText>
           <AppText variant="caption" color="textTertiary">
-            0°에서 시작
+            {L('0°에서 시작', 'Starts at 0°')}
           </AppText>
           <AppText variant="caption" color="textTertiary">
             100°

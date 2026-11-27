@@ -27,6 +27,22 @@
   ],
   "rewrites": [
     {
+      "source": "/en/privacy",
+      "destination": "/en/privacy.html"
+    },
+    {
+      "source": "/en/terms",
+      "destination": "/en/terms.html"
+    },
+    {
+      "source": "/en/support",
+      "destination": "/en/support.html"
+    },
+    {
+      "source": "/en/delete-data",
+      "destination": "/en/delete-data.html"
+    },
+    {
       "source": "/k",
       "destination": "/api/kkti-card?route=share"
     },

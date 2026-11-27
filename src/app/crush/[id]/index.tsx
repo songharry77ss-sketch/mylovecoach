@@ -16,6 +16,7 @@ import { MemoryCard, MemorySheet } from '@/components/coach/memory-sheet';
 import { useCelebrate } from '@/components/fx/celebration';
 import { COACH_PHRASES, PendingBubble } from '@/components/coach/pending-bubble';
 import { UserBubble } from '@/components/coach/user-bubble';
+import { crushDisplayName, isUnnamedCrush } from '@/components/crush/crush-name';
 import { AppText } from '@/components/ui/app-text';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -39,8 +40,9 @@ import { currentQuota, isUnlimited, useQuota } from '@/lib/billing/gate';
 import { paywallTarget, RENEW_NOTICE_MS } from '@/lib/billing/paywall-route';
 import { SIGNUP_BONUS } from '@/lib/billing/plans';
 import { quotaLabel } from '@/lib/billing/quota';
-import { dateLabel, isSameDay } from '@/lib/format';
+import { dateLabel, errorText, isSameDay } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
+import { isEn, L } from '@/lib/i18n';
 import { clearImageCaches, deleteImageQuietly, pickImage, type PickedImage } from '@/lib/images';
 import { relationshipLabel } from '@/lib/labels';
 import { drawChatQuestions } from '@/lib/mind-cards';
@@ -97,7 +99,7 @@ export default function CrushChat() {
   useEffect(() => {
     const before = memoryBefore.current;
     memoryBefore.current = memoryCount;
-    if (before === 0 && memoryCount > 0) toast.show(`${APP_NAME}이 이 대화를 기억해 뒀어요. 다음 답장부터 이어서 써요`, 'success');
+    if (before === 0 && memoryCount > 0) toast.show(L(`${APP_NAME}이 이 대화를 기억해 뒀어요. 다음 답장부터 이어서 써요`, 'Saved to memory. I’ll build on it in your next replies.'), 'success');
   }, [memoryCount, toast]);
   // AI 답변 신고 시트는 이 화면에 하나만 둔다 — 결과 카드마다 두면 목록이 위쪽 카드를 내렸다 다시 그릴 때 열린 시트가 사라질 수 있다
   const report = useAiReport();
@@ -143,14 +145,19 @@ export default function CrushChat() {
   const questions = useMemo(() => {
     if (!crush) return [];
     // 이름을 모르면 「○○님」 자리를 「그 사람」으로 바꾼다 (「그 사람님」이 되지 않게)
-    const unnamed = crush.secret || crush.name === '상대';
-    const list = drawChatQuestions(3, unnamed ? '§' : crush.name, mulberry(questionSeed + crush.id.length));
-    return unnamed ? list.map((q) => q.replace(/§님/g, '그 사람').replace(/§/g, '그 사람')) : list;
+    const unnamed = crush.secret || isUnnamedCrush(crush.name);
+    // 영어판은 이름이 없으면 빈칸 — 질문 쪽(mind-cards)이 이용자 목소리로 「my crush」를 넣는다
+    const list = drawChatQuestions(3, unnamed ? L('§', '') : crush.name, mulberry(questionSeed + crush.id.length));
+    return isEn
+      ? list.map((q) => q.charAt(0).toUpperCase() + q.slice(1))
+      : unnamed
+        ? list.map((q) => q.replace(/§님/g, '그 사람').replace(/§/g, '그 사람'))
+        : list;
   }, [crush, questionSeed]);
 
   // 기본값으로 만들어진 상대라면, 첫 결과 뒤에 정보를 채우도록 부드럽게 안내한다
   const analyzed = messages.filter((m) => m.analysis).length;
-  const needsCrushInfo = !secret && crush?.name === '상대' && !crush?.mbti && analyzed > 0;
+  const needsCrushInfo = !secret && isUnnamedCrush(crush?.name) && !crush?.mbti && analyzed > 0;
 
   // 코칭 결과를 받아 본 무료 이용자에게 보여 주는 안내 카드 (닫으면 다시 안 뜸).
   // 예전에는 2회 이상 써야 떠서, 맛보기가 1회인 비회원은 한 번도 보지 못했다
@@ -277,7 +284,7 @@ export default function CrushChat() {
     return (
       <View style={[styles.root, { backgroundColor: theme.background }]}>
         <Stack.Screen options={{ title: '' }} />
-        <EmptyState emoji="🫥" title="채팅방을 찾을 수 없어요" actionTitle="홈으로" onAction={() => router.dismissTo?.('/(tabs)')} />
+        <EmptyState emoji="🫥" title={L('채팅방을 찾을 수 없어요', 'Chat not found')} actionTitle={L('홈으로', 'Go home')} onAction={() => router.dismissTo?.('/(tabs)')} />
       </View>
     );
   }
@@ -290,7 +297,7 @@ export default function CrushChat() {
         setImage(picked);
       }
     } catch (e) {
-      toast.show(e instanceof Error ? e.message : '사진을 불러오지 못했어요.', 'error');
+      toast.show(errorText(e, '사진을 불러오지 못했어요.', 'Couldn’t load the photo.'), 'error');
     }
   };
 
@@ -383,12 +390,12 @@ export default function CrushChat() {
       router.back();
     };
     if (Platform.OS === 'web') {
-      if (globalThis.confirm?.('비밀 상담 기록을 지금 지우고 나갈까요?')) run();
+      if (globalThis.confirm?.(L('비밀 상담 기록을 지금 지우고 나갈까요?', 'Erase this private chat and leave now?'))) run();
       return;
     }
-    Alert.alert('흔적 지우기', '이 비밀 상담의 대화와 캡처를 지금 지우고 나갈까요?', [
-      { text: '취소', style: 'cancel' },
-      { text: '지우고 나가기', style: 'destructive', onPress: run },
+    Alert.alert(L('흔적 지우기', 'Erase chat'), L('이 비밀 상담의 대화와 캡처를 지금 지우고 나갈까요?', 'Erase this private chat’s messages and screenshots and leave now?'), [
+      { text: L('취소', 'Cancel'), style: 'cancel' },
+      { text: L('지우고 나가기', 'Erase & leave'), style: 'destructive', onPress: run },
     ]);
   };
 
@@ -397,15 +404,19 @@ export default function CrushChat() {
   const passEndsSoon = quota.kind === 'pass' && quota.until != null && quota.until - Date.now() <= RENEW_NOTICE_MS;
   const notice =
     quota.enforced && quota.kind === 'intro' && quota.until
-      ? { text: '⏱ 처음 5분은 무제한이에요', countdownUntil: quota.until }
+      ? { text: L('⏱ 처음 5분은 무제한이에요', '⏱ Unlimited for your first 5 min'), countdownUntil: quota.until }
       : quota.enforced && passEndsSoon && quota.until
-        ? { text: `⏳ 무제한이 ${passEndClock(quota.until)}에 끝나요`, actionLabel: '1년권 보기', onAction: () => openPaywall('renew') }
+        ? {
+            text: L(`⏳ 무제한이 ${passEndClock(quota.until)}에 끝나요`, `⏳ Unlimited ends at ${passEndClock(quota.until)}`),
+            actionLabel: L('1년권 보기', 'See 1-year pass'),
+            onAction: () => openPaywall('renew'),
+          }
         : quota.enforced && !isUnlimited(quota)
       ? {
           text: `${quota.kind === 'exhausted' ? '⏳' : '🎁'} ${quotaLabel(quota)}`,
           // 아직 결과를 한 번도 받지 않은 채팅방에서는 결제 링크를 걸지 않는다 (써 보기 전에 결제 화면부터 열고 닫는 일이 많았다)
           ...(quota.kind === 'exhausted' || analyzed > 0
-            ? { actionLabel: quota.kind === 'exhausted' ? '지금 이어서 하기' : '무제한 이용', onAction: () => openPaywall(quota.kind === 'exhausted' ? 'quota' : 'banner') }
+            ? { actionLabel: quota.kind === 'exhausted' ? L('지금 이어서 하기', 'Keep going') : L('무제한 이용', 'Go unlimited'), onAction: () => openPaywall(quota.kind === 'exhausted' ? 'quota' : 'banner') }
             : {}),
           emphasized: quota.kind === 'exhausted',
         }
@@ -414,9 +425,11 @@ export default function CrushChat() {
   const rel = relationshipLabel(crush.relationship);
   const heat = crush.heat ?? 0;
   const lastAnalysisId = [...messages].reverse().find((m) => m.analysis)?.id;
-  const who = crush.name === '상대' ? '그 사람' : `${crush.name}님`;
+  const unnamedCrush = isUnnamedCrush(crush.name);
+  /** 영어판 화면에 쓸 상대 이름 (이름 없으면 null) */
+  const nameEn = unnamedCrush ? null : crush.name;
   // 기억이 있으면 「분석 중」 문구에 「기억하는 이야기를 떠올리는 중」을 넣는다
-  const phrases = memoryCount ? [COACH_PHRASES[0], `${APP_NAME}이 기억하는 이야기를 떠올리는 중…`, ...COACH_PHRASES.slice(2)] : COACH_PHRASES;
+  const phrases = memoryCount ? [COACH_PHRASES[0], L(`${APP_NAME}이 기억하는 이야기를 떠올리는 중…`, 'Recalling what I remember…'), ...COACH_PHRASES.slice(2)] : COACH_PHRASES;
 
   /** 빈 채팅방의 큰 버튼 — 캡처를 고르면 바로 분석을 보낸다 (입력창의 사진 버튼은 첨부만) */
   const captureAndSend = async () => {
@@ -427,7 +440,7 @@ export default function CrushChat() {
       resume.forget();
       guardedSend({ crushId: crush.id, image: picked, text: '', tone, emoji, toneChosen, emojiChosen }, 'quota', true);
     } catch (e) {
-      toast.show(e instanceof Error ? e.message : '사진을 불러오지 못했어요.', 'error');
+      toast.show(errorText(e, '사진을 불러오지 못했어요.', 'Couldn’t load the photo.'), 'error');
     }
   };
 
@@ -461,15 +474,15 @@ export default function CrushChat() {
                 {/* 캡처를 읽지 못했으면 같은 파일로 다시 해도 안 되니 캡처를 다시 고르게 한다 */}
                 {item.text === 'image' ? (
                   <View style={styles.errorActions}>
-                    <Button title="캡처 다시 올리기" size="sm" variant="soft" fullWidth={false} onPress={chooseImage} icon={<Ionicons name="image" size={16} color={theme.primary} />} />
+                    <Button title={L('캡처 다시 올리기', 'Re-upload screenshot')} size="sm" variant="soft" fullWidth={false} onPress={chooseImage} icon={<Ionicons name="image" size={16} color={theme.primary} />} />
                   </View>
                 ) : null}
                 {/* 캡처가 너무 크면 같은 캡처로 다시 해도 또 막히니 안내만 남긴다 */}
                 {item.text !== 'too_large' && item.text !== 'image' ? (
                   <View style={styles.errorActions}>
-                    <Button title="다시 시도" size="sm" variant="soft" fullWidth={false} onPress={() => retry(item)} icon={<Ionicons name="refresh" size={15} color={theme.primary} />} />
+                    <Button title={L('다시 시도', 'Try again')} size="sm" variant="soft" fullWidth={false} onPress={() => retry(item)} icon={<Ionicons name="refresh" size={15} color={theme.primary} />} />
                     {item.text === 'not_configured' || item.text === 'auth' ? (
-                      <Button title="AI 연결 설정" size="sm" variant="secondary" fullWidth={false} onPress={() => router.push('/settings/api-key')} />
+                      <Button title={L('AI 연결 설정', 'AI settings')} size="sm" variant="secondary" fullWidth={false} onPress={() => router.push('/settings/api-key')} />
                     ) : null}
                   </View>
                 ) : null}
@@ -481,7 +494,7 @@ export default function CrushChat() {
                 // 가장 최근 결과만 처음 볼 때 숫자가 세어 올라가는 연출을 보여 준다
                 revealKey={item.id === lastAnalysisId && Date.now() - item.createdAt < 5 * 60 * 1000 ? item.id : undefined}
                 latest={item.id === lastAnalysisId}
-                partnerName={secret ? '상대' : crush.name}
+                partnerName={secret ? undefined : crush.name}
                 selectedReplyIndex={item.selectedReplyIndex}
                 onSelectReply={(i) => selectReply(crush.id, item.id, i)}
                 onRegenerate={item.analysis.replies.length ? () => regenerate(item) : undefined}
@@ -509,23 +522,23 @@ export default function CrushChat() {
                   <Ionicons name="eye-off" size={16} color={theme.background} />
                 </View>
                 <View>
-                  <AppText variant="bodyStrong">비밀 상담</AppText>
+                  <AppText variant="bodyStrong">{L('비밀 상담', 'Private chat')}</AppText>
                   <AppText variant="caption" color="textTertiary">
-                    나가면 기록이 사라져요
+                    {L('나가면 기록이 사라져요', 'Erased when you leave')}
                   </AppText>
                 </View>
               </View>
             ) : (
-              <Pressable accessibilityRole="button" accessibilityLabel={`${crush.name} 정보 수정`} onPress={() => router.push({ pathname: '/crush/[id]/edit', params: { id: crush.id } })} style={styles.headerTitle}>
-                <Avatar name={crush.name} uri={crush.photoUri} size={34} seed={crush.id} />
+              <Pressable accessibilityRole="button" accessibilityLabel={L(`${crush.name} 정보 수정`, `Edit ${crushDisplayName(crush.name)}’s info`)} onPress={() => router.push({ pathname: '/crush/[id]/edit', params: { id: crush.id } })} style={styles.headerTitle}>
+                <Avatar name={crushDisplayName(crush.name)} uri={crush.photoUri} size={34} seed={crush.id} />
                 <View style={styles.flexShrink}>
                   <AppText variant="bodyStrong" numberOfLines={1}>
-                    {crush.name}
+                    {crushDisplayName(crush.name)}
                   </AppText>
                   <AppText variant="caption" color="textSecondary" numberOfLines={1}>
                     {rel.label}
                     {crush.mbti ? ` · ${crush.mbti}` : ''}
-                    {' · 호감 '}
+                    {L(' · 호감 ', ' · Interest ')}
                     <AppText variant="caption" color="primary" weight="700">
                       {heat}°
                     </AppText>
@@ -537,12 +550,12 @@ export default function CrushChat() {
           headerRight: () =>
             secret ? (
               <HeaderCapsule>
-                <IconButton name="trash-outline" size={20} accessibilityLabel="흔적 지우고 나가기" onPress={wipeNow} />
+                <IconButton name="trash-outline" size={20} accessibilityLabel={L('흔적 지우고 나가기', 'Erase & leave')} onPress={wipeNow} />
               </HeaderCapsule>
             ) : (
               <HeaderCapsule>
-                <IconButton name="analytics-outline" size={20} accessibilityLabel="상대 분석 보고서" onPress={() => router.push({ pathname: '/crush/[id]/report', params: { id: crush.id } })} />
-                <IconButton name="ellipsis-horizontal" size={20} accessibilityLabel="상대 정보" onPress={() => router.push({ pathname: '/crush/[id]/edit', params: { id: crush.id } })} />
+                <IconButton name="analytics-outline" size={20} accessibilityLabel={L('상대 분석 보고서', 'Crush report')} onPress={() => router.push({ pathname: '/crush/[id]/report', params: { id: crush.id } })} />
+                <IconButton name="ellipsis-horizontal" size={20} accessibilityLabel={L('상대 정보', 'Their info')} onPress={() => router.push({ pathname: '/crush/[id]/edit', params: { id: crush.id } })} />
               </HeaderCapsule>
             ),
         }}
@@ -552,7 +565,10 @@ export default function CrushChat() {
         <View style={[styles.secretBanner, { backgroundColor: theme.surface }]}>
           <Ionicons name="eye-off-outline" size={14} color={theme.textSecondary} />
           <AppText variant="caption" color="textSecondary" style={styles.flexShrink}>
-            비밀 상담은 기기에 저장되지 않고 {APP_NAME}도 기억하지 않아요. 이 화면을 나가면 대화와 캡처가 모두 지워져요.
+            {L(
+              `비밀 상담은 기기에 저장되지 않고 ${APP_NAME}도 기억하지 않아요. 이 화면을 나가면 대화와 캡처가 모두 지워져요.`,
+              'Private chats aren’t saved on your device, and your coach won’t remember them. Everything is erased when you leave.',
+            )}
           </AppText>
         </View>
       ) : memoryCount ? (
@@ -584,26 +600,28 @@ export default function CrushChat() {
                   </View>
                 ) : null}
                 <AppText variant="title1" align="center">
-                  {secret ? '아무도 모르게 물어보세요' : `${who}과의 대화를\n캡처해서 올려보세요`}
+                  {secret
+                    ? L('아무도 모르게 물어보세요', 'Ask without a trace')
+                    : L(`${unnamedCrush ? '그 사람' : `${crush.name}님`}과의 대화를\n캡처해서 올려보세요`, `Upload a screenshot of\nyour chat with ${nameEn ?? 'them'}`)}
                 </AppText>
                 <AppText variant="small" color="textSecondary" align="center">
                   {secret
-                    ? '캡처를 올리거나 상황을 적어 주세요. 이 방의 대화는 저장되지 않고 나가는 순간 사라져요.'
-                    : '대화 분위기와 호칭·말투를 읽고, 딱 맞는 답장 3가지와 호감 온도를 알려드려요.'}
+                    ? L('캡처를 올리거나 상황을 적어 주세요. 이 방의 대화는 저장되지 않고 나가는 순간 사라져요.', 'Upload a screenshot or describe what’s going on. Nothing here is saved—it’s gone the moment you leave.')
+                    : L('대화 분위기와 호칭·말투를 읽고, 딱 맞는 답장 3가지와 호감 온도를 알려드려요.', 'I’ll read the vibe and how you two talk, then give you 3 perfect replies and their interest level.')}
                 </AppText>
               </Animated.View>
               <Animated.View entering={FadeInDown.delay(70).duration(380)} style={styles.emptyCta}>
-                <GradientButton title="대화 캡처 올리기" icon={<Ionicons name="images-outline" size={19} color={Brand.onBrand} />} onPress={captureAndSend} disabled={sending} />
+                <GradientButton title={L('대화 캡처 올리기', 'Upload a screenshot')} icon={<Ionicons name="images-outline" size={19} color={Brand.onBrand} />} onPress={captureAndSend} disabled={sending} />
               </Animated.View>
               {!secret ? (
                 <Animated.View entering={FadeInDown.delay(140).duration(380)} style={styles.perks}>
-                  <Perk icon="thermometer-outline" text="호감 온도는 0°에서 시작해 대화마다 오르내려요" />
-                  <Perk icon="sparkles-outline" text={`대화가 쌓이면 ${APP_NAME}이 이야기를 기억해서 이어서 답해요`} />
+                  <Perk icon="thermometer-outline" text={L('호감 온도는 0°에서 시작해 대화마다 오르내려요', 'Interest level starts at 0° and moves with every chat')} />
+                  <Perk icon="sparkles-outline" text={L(`대화가 쌓이면 ${APP_NAME}이 이야기를 기억해서 이어서 답해요`, 'The more you chat, the more your coach remembers')} />
                 </Animated.View>
               ) : null}
               <Animated.View entering={FadeInDown.delay(210).duration(380)} style={styles.starters}>
                 <AppText variant="caption" color="textTertiary" align="center">
-                  캡처 없이 바로 물어보기
+                  {L('캡처 없이 바로 물어보기', 'Or just ask')}
                 </AppText>
                 <View style={styles.starterRow}>
                   {STARTERS.map((s) => (
@@ -626,17 +644,17 @@ export default function CrushChat() {
             showSignupNudge ? (
               <Animated.View entering={FadeInDown.delay(400)} style={styles.nudge}>
                 <SignupCard
-                  title={`답장 어땠어요? 가입하면 ${SIGNUP_BONUS}회 더 무료`}
-                  subtitle="쓰던 계정으로 한 번만 누르면 끝나요. 매일 무료 코칭 1회도 충전돼요."
+                  title={L(`답장 어땠어요? 가입하면 ${SIGNUP_BONUS}회 더 무료`, `Like the replies? Sign up for ${SIGNUP_BONUS} more free`)}
+                  subtitle={L('쓰던 계정으로 한 번만 누르면 끝나요. 매일 무료 코칭 1회도 충전돼요.', 'One tap with an account you already have. Plus 1 free coaching every day.')}
                   onDone={(result) => {
                     track('signup_nudge', { action: 'done', bonus: result.bonus });
                     haptic.celebrate();
                     celebrate({ kind: 'sparkles', count: 22, haptic: false });
-                    toast.show(result.bonus ? `가입 완료! 무료 코칭 ${SIGNUP_BONUS}회를 받았어요 🎁` : '로그인했어요.', 'success');
+                    toast.show(result.bonus ? L(`가입 완료! 무료 코칭 ${SIGNUP_BONUS}회를 받았어요 🎁`, `You’re in! ${SIGNUP_BONUS} free sessions added 🎁`) : L('로그인했어요.', 'Signed in.'), 'success');
                   }}
                 />
                 <Button
-                  title="나중에 할게요"
+                  title={L('나중에 할게요', 'Maybe later')}
                   size="sm"
                   variant="ghost"
                   onPress={() => {
@@ -649,39 +667,44 @@ export default function CrushChat() {
               <Animated.View entering={FadeInDown.delay(400)} style={[styles.promo, { backgroundColor: theme.surface }]}>
                 <View style={styles.promoRow}>
                   <View style={styles.promoTexts}>
-                    <AppText variant="bodyStrong">상대 정보를 알려주면 더 정확해져요</AppText>
+                    <AppText variant="bodyStrong">{L('상대 정보를 알려주면 더 정확해져요', 'Tell me about them for better replies')}</AppText>
                     <AppText variant="caption" color="textSecondary">
-                      이름, MBTI, 어떤 사이인지, 부르는 호칭만 알려주면 그 사람에게 맞춘 말투로 답장을 만들어드려요.
+                      {L(
+                        '이름, MBTI, 어떤 사이인지, 부르는 호칭만 알려주면 그 사람에게 맞춘 말투로 답장을 만들어드려요.',
+                        'Just add their name, MBTI, what you two are, and what you call them—I’ll tailor replies to them.',
+                      )}
                     </AppText>
                   </View>
                 </View>
-                <Button title="상대 정보 입력" size="md" variant="brand" onPress={() => router.push({ pathname: '/crush/[id]/edit', params: { id: crush.id } })} />
+                <Button title={L('상대 정보 입력', 'Add their info')} size="md" variant="brand" onPress={() => router.push({ pathname: '/crush/[id]/edit', params: { id: crush.id } })} />
               </Animated.View>
             ) : showUpsell ? (
               <Animated.View entering={FadeInDown.delay(400)} style={[styles.promo, { backgroundColor: theme.surface }]}>
                 <View style={styles.promoRow}>
                   <View style={styles.promoTexts}>
-                    <AppText variant="bodyStrong">답장이 도움이 됐나요?</AppText>
+                    <AppText variant="bodyStrong">{L('답장이 도움이 됐나요?', 'Were the replies helpful?')}</AppText>
                     <AppText variant="caption" color="textSecondary">
-                      {hasDayPass ? '하루 이용권이면 오늘 하루 무제한, 마음에 드는 답장이 나올 때까지 받아볼 수 있어요.' : '이용권이면 횟수 제한 없이, 마음에 드는 답장이 나올 때까지 받아볼 수 있어요.'}
+                      {hasDayPass
+                        ? L('하루 이용권이면 오늘 하루 무제한, 마음에 드는 답장이 나올 때까지 받아볼 수 있어요.', 'With a 24-hour pass, get unlimited replies all day until you find the one.')
+                        : L('이용권이면 횟수 제한 없이, 마음에 드는 답장이 나올 때까지 받아볼 수 있어요.', 'With a pass, get unlimited replies until you find the one.')}
                     </AppText>
                   </View>
                 </View>
                 <View style={styles.promoActions}>
-                  <Button title="괜찮아요" size="md" variant="ghost" onPress={dismissUpsell} style={styles.flex} />
-                  <Button title="이용권 보기" size="md" variant="brand" onPress={() => openPaywall('upsell')} style={styles.flex2} />
+                  <Button title={L('괜찮아요', 'No thanks')} size="md" variant="ghost" onPress={dismissUpsell} style={styles.flex} />
+                  <Button title={L('이용권 보기', 'See passes')} size="md" variant="brand" onPress={() => openPaywall('upsell')} style={styles.flex2} />
                 </View>
               </Animated.View>
             ) : showReport ? (
               <Animated.View entering={FadeInDown.delay(500)}>
                 <PressableScale
-                  accessibilityLabel={`${crush.name}님 분석 보고서 보기`}
+                  accessibilityLabel={L(`${crush.name}님 분석 보고서 보기`, nameEn ? `See ${nameEn}’s crush report` : 'See crush report')}
                   onPress={() => router.push({ pathname: '/crush/[id]/report', params: { id: crush.id } })}
                   style={[styles.promo, styles.promoRow, { backgroundColor: theme.surface }]}>
                   <View style={styles.promoTexts}>
-                    <AppText variant="bodyStrong">{crush.name}님 분석 보고서</AppText>
+                    <AppText variant="bodyStrong">{L(`${crush.name}님 분석 보고서`, nameEn ? `${nameEn}’s crush report` : 'Crush report')}</AppText>
                     <AppText variant="caption" color="textSecondary">
-                      성향 · 호감 신호 · 공략법 · 궁합까지 한눈에
+                      {L('성향 · 호감 신호 · 공략법 · 궁합까지 한눈에', 'Personality · interest signals · game plan · compatibility')}
                     </AppText>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={theme.textTertiary} />
@@ -720,7 +743,7 @@ export default function CrushChat() {
       </KeyboardAvoidingView>
 
       <Modal visible={Boolean(viewer)} transparent animationType="fade" onRequestClose={() => setViewer(null)}>
-        <Pressable style={styles.viewer} onPress={() => setViewer(null)} accessibilityLabel="닫기">
+        <Pressable style={styles.viewer} onPress={() => setViewer(null)} accessibilityLabel={L('닫기', 'Close')}>
           {viewer ? <Image source={{ uri: viewer }} style={styles.viewerImage} contentFit="contain" /> : null}
           <View style={styles.viewerClose}>
             <Ionicons name="close" size={28} color="#fff" />
@@ -793,7 +816,10 @@ const EMPTY: ChatMessage[] = [];
 const AUTO_PAYWALL_DELAY_MS = 450;
 /** 비밀 상담 지우기 예약 (채팅방 id → 타이머) */
 const secretWipes = new Map<string, ReturnType<typeof setTimeout>>();
-const STARTERS = ['첫 메시지 뭐라고 보낼까?', '주말에 만나자고 하고 싶어', '답장이 늦어졌는데 어떻게 하지?'];
+const STARTERS = L(
+  ['첫 메시지 뭐라고 보낼까?', '주말에 만나자고 하고 싶어', '답장이 늦어졌는데 어떻게 하지?'],
+  ['What should my first text be?', 'I want to ask them out this weekend', 'I replied late. What now?'],
+);
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
@@ -837,7 +863,7 @@ const styles = StyleSheet.create({
   viewerClose: { position: 'absolute', top: 56, right: 20 },
 });
 
-/** 하루 이용권이 끝나는 시각 — 「오후 3:42」 */
+/** 하루 이용권이 끝나는 시각 — 「오후 3:42」 / 「3:42 PM」 */
 function passEndClock(at: number): string {
-  return new Date(at).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
+  return new Date(at).toLocaleTimeString(L('ko-KR', 'en-US'), { hour: 'numeric', minute: '2-digit' });
 }

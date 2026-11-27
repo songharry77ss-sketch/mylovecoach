@@ -33,12 +33,13 @@ import { PRACTICE_PROMPT_TURNS } from '@/lib/ai-tasks';
 import { aiRouteOf, requestAi } from '@/lib/coach-client';
 import { userToRequest } from '@/lib/coach-schema';
 import { haptic } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 import { relationshipLabel } from '@/lib/labels';
 import { PRACTICE_MAX_TURNS, bestLine, latestPartnerText, myTurnCount, practiceVerdict } from '@/lib/practice';
 import type { PracticeTurn } from '@/lib/types';
 import { useAppStore } from '@/store/app-store';
 
-const LEVEL = ['', '쉬움', '보통', '어려움'] as const;
+const LEVEL = L(['', '쉬움', '보통', '어려움'], ['', 'Easy', 'Medium', 'Hard']);
 
 /** 동의 철회·화면 종료 때 말풍선 대기도 바로 끝낸다. */
 function waitForReply(ms: number, signal: AbortSignal): Promise<boolean> {
@@ -67,7 +68,7 @@ export default function PracticeSessionScreen() {
   const kkti = useAppStore((s) => s.kkti);
   const dark = useColorScheme() === 'dark';
   // 첫 답장을 받을 때 쓰는 무료 1회 — 남았으면 「1회를 써요」, 0회면 「다 썼어요」(예전엔 0회에도 「1회가 차감돼요」였다)
-  const cost = useCostNote('첫 답장을 받을 때');
+  const cost = useCostNote(L('첫 답장을 받을 때', 'on the first reply'));
   const { run, busy, error, setError, cancel } = useAiAction();
   // 횟수가 없어 막힌 첫 답장을 결제·가입 뒤 한 번 이어서 보낸다 (입력한 글은 입력창에 그대로 남아 있음)
   const resume = useResumeAfterPaywall('practice');
@@ -108,7 +109,12 @@ export default function PracticeSessionScreen() {
     return (
       <View style={[styles.root, { backgroundColor: theme.background }]}>
         <Stack.Screen options={{ title: '' }} />
-        <EmptyState emoji="🫥" title="연습을 찾을 수 없어요" actionTitle="연습 탭으로" onAction={() => router.replace('/(tabs)/practice')} />
+        <EmptyState
+          emoji="🫥"
+          title={L('연습을 찾을 수 없어요', "Couldn't find this practice chat")}
+          actionTitle={L('연습 탭으로', 'Back to Practice')}
+          onAction={() => router.replace('/(tabs)/practice')}
+        />
       </View>
     );
   }
@@ -158,7 +164,7 @@ export default function PracticeSessionScreen() {
           return requestAi(
             'practice',
             {
-              persona: { name: p.name, gender: p.gender, age: p.age, mbti: p.mbti, job: p.job || '직장인', style: p.style, relationship: p.relationship, scenario: p.scenario, speech: p.speech, difficulty: p.difficulty },
+              persona: { name: p.name, gender: p.gender, age: p.age, mbti: p.mbti, job: p.job || L('직장인', 'Professional'), style: p.style, relationship: p.relationship, scenario: p.scenario, speech: p.speech, difficulty: p.difficulty },
               user: userToRequest(user, kktiLabel(kkti)),
               heat: session.heat,
               turns,
@@ -251,7 +257,7 @@ export default function PracticeSessionScreen() {
         {/* AI 상대역의 말 — 길게 누르면 이 말을 신고 (화면 위 깃발은 가장 최근 말) */}
         <Pressable
           onLongPress={report.available ? () => report.open({ mode: 'practice', content: practiceReportContent(p.name, item.text) }) : undefined}
-          accessibilityHint={report.available ? '길게 누르면 이 말을 신고할 수 있어요' : undefined}
+          accessibilityHint={report.available ? L('길게 누르면 이 말을 신고할 수 있어요', 'Long-press to report this message') : undefined}
           style={[styles.themBubble, { backgroundColor: fill }]}>
           <AppText variant="body">{item.text}</AppText>
         </Pressable>
@@ -266,7 +272,7 @@ export default function PracticeSessionScreen() {
             {/* 코치 피드백도 AI 가 만든 글 — 깃발이나 길게 누르기로 바로 신고 */}
             <Pressable
               onLongPress={report.available ? () => report.open({ mode: 'practice', content: practiceFeedbackReportContent(item) }) : undefined}
-              accessibilityHint={report.available ? '길게 누르면 이 피드백을 신고할 수 있어요' : undefined}
+              accessibilityHint={report.available ? L('길게 누르면 이 피드백을 신고할 수 있어요', 'Long-press to report this feedback') : undefined}
               style={[styles.feedback, { backgroundColor: fill }]}>
               {/* 코치 피드백 — 회색 한 가지 + 온도 변화 숫자(예전엔 오르면 보라·내리면 파랑이라 앱 색이 「아쉬움」을 뜻했다) */}
               <AppText variant="caption" weight="700" style={styles.delta}>
@@ -274,12 +280,12 @@ export default function PracticeSessionScreen() {
               </AppText>
               <AppText variant="caption" color="textSecondary" style={styles.flex}>
                 {item.feedback}
-                {item.better ? `\n이렇게 보내면 더 좋아요 · ${item.better}` : ''}
+                {item.better ? L(`\n이렇게 보내면 더 좋아요 · ${item.better}`, `\nEven better · ${item.better}`) : ''}
               </AppText>
               {report.available ? (
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="이 피드백 신고하기"
+                  accessibilityLabel={L('이 피드백 신고하기', 'Report this feedback')}
                   hitSlop={10}
                   onPress={() => report.open({ mode: 'practice', content: practiceFeedbackReportContent(item) })}>
                   <Ionicons name="flag-outline" size={13} color={theme.textTertiary} />
@@ -302,7 +308,7 @@ export default function PracticeSessionScreen() {
                 <AppText variant="bodyStrong">{p.name}</AppText>
                 {/* 상대 기분은 AI 가 답할 때 정한 것만 내용으로 보여 준다(처음 값은 예전 얼굴 이모지라 숨긴다) */}
                 <AppText variant="caption" color="textSecondary">
-                  {finished ? '연습 끝' : '연습 중'} · {rel.label} · {LEVEL[p.difficulty] ?? ''}
+                  {finished ? L('연습 끝', 'Finished') : L('연습 중', 'Practicing')} · {rel.label} · {LEVEL[p.difficulty] ?? ''}
                   {session.mood && session.mood !== p.emoji ? ` · ${session.mood}` : ''}
                 </AppText>
               </View>
@@ -311,11 +317,11 @@ export default function PracticeSessionScreen() {
           // 깃발은 다른 화면과 같이 「신고」. 연습 끝내기는 헷갈리지 않게 글자 버튼으로
           headerRight: () => (
             <View style={styles.headerActions}>
-              {report.available ? <IconButton name="flag-outline" accessibilityLabel="AI 답변 신고" onPress={reportLatest} /> : null}
+              {report.available ? <IconButton name="flag-outline" accessibilityLabel={L('AI 답변 신고', 'Report AI answer')} onPress={reportLatest} /> : null}
               {finished ? null : (
-                <Pressable accessibilityRole="button" accessibilityLabel="연습 끝내기" onPress={end} hitSlop={8} style={({ pressed }) => [styles.endBtn, { opacity: pressed ? 0.6 : 1 }]}>
+                <Pressable accessibilityRole="button" accessibilityLabel={L('연습 끝내기', 'End practice')} onPress={end} hitSlop={8} style={({ pressed }) => [styles.endBtn, { opacity: pressed ? 0.6 : 1 }]}>
                   <AppText variant="smallStrong" color="textSecondary">
-                    끝내기
+                    {L('끝내기', 'End')}
                   </AppText>
                 </Pressable>
               )}
@@ -325,7 +331,7 @@ export default function PracticeSessionScreen() {
       />
 
       <View style={[styles.gauge, { borderBottomColor: theme.border }]}>
-        <HeatGauge value={session.heat} from={heatFrom?.from} revealKey={heatFrom?.key} compact caption={finished ? '연습 끝' : `남은 메시지 ${left}개`} />
+        <HeatGauge value={session.heat} from={heatFrom?.from} revealKey={heatFrom?.key} compact caption={finished ? L('연습 끝', 'Practice over') : L(`남은 메시지 ${left}개`, `${left} ${left === 1 ? 'message' : 'messages'} left`)} />
       </View>
 
       <KeyboardAvoidingView style={styles.flex} behavior="padding" keyboardVerticalOffset={headerOffset}>
@@ -340,19 +346,22 @@ export default function PracticeSessionScreen() {
           ListHeaderComponent={
             <View style={[styles.scenario, { backgroundColor: fill }]}>
               <AppText variant="caption" color="textSecondary" weight="600">
-                오늘의 상황
+                {L('오늘의 상황', 'The setup')}
               </AppText>
               <AppText variant="body">{p.scenario}</AppText>
               {/* 힌트 — 연파랑 상자 대신 흰 면 한 줄 */}
               <View style={[styles.hint, { backgroundColor: inner }]}>
                 <AppText variant="small" color="textSecondary" style={styles.flex}>
-                  <AppText variant="smallStrong">힌트 </AppText>
+                  <AppText variant="smallStrong">{L('힌트 ', 'Hint ')}</AppText>
                   {p.hint}
                 </AppText>
               </View>
               {report.available ? (
                 <AppText variant="caption" color="textSecondary">
-                  AI가 연기하는 상대예요. 불쾌한 말은 위 깃발(가장 최근 말)이나 말풍선 길게 누르기로, 코치 피드백은 옆 깃발로 신고할 수 있어요
+                  {L(
+                    'AI가 연기하는 상대예요. 불쾌한 말은 위 깃발(가장 최근 말)이나 말풍선 길게 누르기로, 코치 피드백은 옆 깃발로 신고할 수 있어요',
+                    'This person is played by AI. Report anything inappropriate with the flag up top (latest message) or by long-pressing a bubble. Report coach feedback with the flag next to it.',
+                  )}
                 </AppText>
               ) : null}
             </View>
@@ -363,7 +372,7 @@ export default function PracticeSessionScreen() {
                 <RoomAvatar crush={{ id: p.id, name: p.name }} size={32} />
                 <View style={[styles.themBubble, { backgroundColor: fill }]}>
                   <AppText variant="body" color="textTertiary">
-                    입력 중…
+                    {L('입력 중…', 'typing…')}
                   </AppText>
                 </View>
               </Animated.View>
@@ -373,11 +382,11 @@ export default function PracticeSessionScreen() {
                 <View style={styles.resultHead}>
                   <View style={styles.flex}>
                     <AppText variant="caption" color="textSecondary" weight="600">
-                      {p.name}님과의 연습 결과
+                      {L(`${p.name}님과의 연습 결과`, `Your practice with ${p.name}`)}
                     </AppText>
                     <AppText variant="title2">{verdict.title}</AppText>
                   </View>
-                  <AnimatedNumber value={session.heat} suffix="°" ticks={false} color="primary" style={styles.resultHeat} accessibilityLabel={`최종 호감 온도 ${session.heat}도`} />
+                  <AnimatedNumber value={session.heat} suffix="°" ticks={false} color="primary" style={styles.resultHeat} accessibilityLabel={L(`최종 호감 온도 ${session.heat}도`, `Final interest level ${session.heat} degrees`)} />
                 </View>
                 <AppText variant="small" color="textSecondary">
                   {verdict.body}
@@ -385,15 +394,19 @@ export default function PracticeSessionScreen() {
                 {best ? (
                   <View style={[styles.best, { backgroundColor: inner }]}>
                     <AppText variant="caption" color="textSecondary" weight="600">
-                      오늘의 한 마디 · +{best.delta}°
+                      {L('오늘의 한 마디', 'Best line')} · +{best.delta}°
                     </AppText>
                     <AppText variant="bodyStrong">{best.text}</AppText>
                   </View>
                 ) : null}
                 <View style={styles.resultActions}>
                   {/* 같은 상대와 다시 = 새 연습이라 첫 답장 때 다시 1회를 쓴다 — 누르기 전에 알린다 */}
-                  <GradientButton title={`같은 상대와 다시${cost.suffix}`} accessibilityLabel="같은 상대와 다시" onPress={restart} />
-                  <Button title="다른 상대 고르기" variant="ghost" onPress={() => router.replace('/(tabs)/practice')} />
+                  <GradientButton
+                    title={`${L('같은 상대와 다시', `Again with ${p.name}`)}${cost.suffix}`}
+                    accessibilityLabel={L('같은 상대와 다시', `Practice again with ${p.name}`)}
+                    onPress={restart}
+                  />
+                  <Button title={L('다른 상대 고르기', 'Pick someone else')} variant="ghost" onPress={() => router.replace('/(tabs)/practice')} />
                 </View>
               </Animated.View>
             ) : null
@@ -414,12 +427,14 @@ export default function PracticeSessionScreen() {
             <ComposerBackdrop />
             {!session.charged && cost.note ? (
               <AppText variant="caption" color="textSecondary" align="center">
-                {cost.out ? '무료 횟수를 다 썼어요 · 이용권이 있으면 바로 시작돼요' : `첫 답장을 받으면 코칭 1회를 써요 · ${PRACTICE_MAX_TURNS}마디까지 · ${cost.left}`}
+                {cost.out
+                  ? L('무료 횟수를 다 썼어요 · 이용권이 있으면 바로 시작돼요', "You're out of free sessions · with a pass, you can start right away")
+                  : L(`첫 답장을 받으면 코칭 1회를 써요 · ${PRACTICE_MAX_TURNS}마디까지 · ${cost.left}`, `Uses 1 once they reply · up to ${PRACTICE_MAX_TURNS} messages · ${cost.left}`)}
               </AppText>
             ) : null}
             <GlassSurface radius={PILL_HEIGHT / 2} style={styles.pill}>
-              <PillInput value={text} onChangeText={setText} placeholder={`${p.name}에게 답장하기`} maxLength={300} editable={!busy} style={styles.input} />
-              <SendOrb active={canSend} onPress={send} accessibilityLabel="보내기" />
+              <PillInput value={text} onChangeText={setText} placeholder={L(`${p.name}에게 답장하기`, `Reply to ${p.name}`)} maxLength={300} editable={!busy} style={styles.input} />
+              <SendOrb active={canSend} onPress={send} accessibilityLabel={L('보내기', 'Send')} />
             </GlassSurface>
           </View>
         ) : null}

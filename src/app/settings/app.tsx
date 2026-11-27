@@ -7,12 +7,13 @@ import { ListRow } from '@/components/ui/list-row';
 import { SubScreen } from '@/components/ui/sub-screen';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/toast';
-import { APP_NAME } from '@/constants/brand';
+import { APP_NAME, APP_NAME_EN } from '@/constants/brand';
 import { track } from '@/lib/analytics';
 import { APP_CONFIG } from '@/lib/config';
 import { isDemoMode } from '@/lib/demo';
 import * as Floating from '@/lib/floating';
 import { haptic, setHapticsEnabled } from '@/lib/haptics';
+import { L } from '@/lib/i18n';
 import { useAppStore } from '@/store/app-store';
 
 /**
@@ -39,7 +40,7 @@ export default function AppSettings() {
       wantBubble.current = false;
       if (Floating.start()) {
         haptic.success();
-        toast.show('버블을 켰어요. 카톡을 보다가 버블을 톡 누르면 바로 코칭돼요', 'success');
+        toast.show(L('버블을 켰어요. 카톡을 보다가 버블을 톡 누르면 바로 코칭돼요', 'Bubble is on. Tap it while you’re texting to get coaching instantly'), 'success');
       }
     }
     setBubbleOn(Floating.isRunning());
@@ -61,16 +62,23 @@ export default function AppSettings() {
       refreshBubble();
       return;
     }
-    Alert.alert('다른 앱 위에 표시 권한', `카톡을 쓰면서 버블을 누르려면 「다른 앱 위에 표시」를 허용해 주세요. 목록이 나오면 「${APP_NAME}」을 찾아 켜고 돌아오면 버블이 켜져요.`, [
-      { text: '취소', style: 'cancel' },
-      {
-        text: '설정 열기',
-        onPress: () => {
-          wantBubble.current = true;
-          Floating.openOverlaySettings();
+    Alert.alert(
+      L('다른 앱 위에 표시 권한', 'Allow display over other apps'),
+      L(
+        `카톡을 쓰면서 버블을 누르려면 「다른 앱 위에 표시」를 허용해 주세요. 목록이 나오면 「${APP_NAME}」을 찾아 켜고 돌아오면 버블이 켜져요.`,
+        `To tap the bubble while texting, allow “Display over other apps.” Find “${APP_NAME_EN}” in the list, turn it on, and come back — the bubble will turn on.`,
+      ),
+      [
+        { text: L('취소', 'Cancel'), style: 'cancel' },
+        {
+          text: L('설정 열기', 'Open settings'),
+          onPress: () => {
+            wantBubble.current = true;
+            Floating.openOverlaySettings();
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const togglePractice = (on: boolean) => {
@@ -78,40 +86,40 @@ export default function AppSettings() {
     track('practice_toggle', { on });
     if (on) {
       haptic.celebrate();
-      toast.show('연애 연습을 켰어요. 아래 탭에서 바로 시작해 보세요', 'success');
+      toast.show(L('연애 연습을 켰어요. 아래 탭에서 바로 시작해 보세요', 'Practice chat is on. Start it from the tab bar'), 'success');
     }
   };
 
   const serverConnected = Boolean(APP_CONFIG.apiUrl || APP_CONFIG.apiSameOrigin);
   const showConnection = isDemoMode || !serverConnected;
-  const connection = isDemoMode ? '데모 모드 · 샘플 결과' : hasApiKey ? '연결됨 · 내 API 키' : '연결 필요';
+  const connection = isDemoMode ? L('데모 모드 · 샘플 결과', 'Demo mode · Sample results') : hasApiKey ? L('연결됨 · 내 API 키', 'Connected · My API key') : L('연결 필요', 'Not connected');
 
   return (
-    <SubScreen title="앱 설정">
-      <ListGroup title="코칭">
-        <ListRow title="내 프로필 · 추구미 · 목표" onPress={() => router.push('/settings/profile')} />
-        {showConnection ? <ListRow title="AI 코치 연결" value={connection} onPress={() => router.push('/settings/api-key')} /> : null}
+    <SubScreen title={L('앱 설정', 'App settings')}>
+      <ListGroup title={L('코칭', 'Coaching')}>
+        <ListRow title={L('내 프로필 · 추구미 · 목표', 'My profile · Vibe · Goal')} onPress={() => router.push('/settings/profile')} />
+        {showConnection ? <ListRow title={L('AI 코치 연결', 'AI coach connection')} value={connection} onPress={() => router.push('/settings/api-key')} /> : null}
       </ListGroup>
 
-      <ListGroup title="기능">
+      <ListGroup title={L('기능', 'Features')}>
         <ListRow
-          title="연애 연습 (베타)"
-          subtitle="AI 상대와 카톡 리허설 · 켜면 탭에 생겨요"
-          right={<Switch accessibilityLabel="연애 연습 켜기" value={practiceEnabled} onValueChange={togglePractice} />}
+          title={L('연애 연습 (베타)', 'Practice chat (beta)')}
+          subtitle={L('AI 상대와 카톡 리허설 · 켜면 탭에 생겨요', 'Rehearse texting with an AI match · Adds a tab when on')}
+          right={<Switch accessibilityLabel={L('연애 연습 켜기', 'Turn on practice chat')} value={practiceEnabled} onValueChange={togglePractice} />}
         />
         {Floating.floatingSupported ? (
           <ListRow
-            title="플로팅 버블"
-            subtitle="카톡을 보다가 화면 위 버블을 누르면 바로 코칭"
-            right={<Switch accessibilityLabel="플로팅 버블" value={bubbleOn} onValueChange={toggleBubble} />}
+            title={L('플로팅 버블', 'Floating bubble')}
+            subtitle={L('카톡을 보다가 화면 위 버블을 누르면 바로 코칭', 'Tap the on-screen bubble while texting for instant coaching')}
+            right={<Switch accessibilityLabel={L('플로팅 버블', 'Floating bubble')} value={bubbleOn} onValueChange={toggleBubble} />}
           />
         ) : null}
         <ListRow
-          title="진동 효과"
-          subtitle="온도가 오를 때 두근두근, 넘길 때 톡톡"
+          title={L('진동 효과', 'Haptics')}
+          subtitle={L('온도가 오를 때 두근두근, 넘길 때 톡톡', 'A heartbeat when interest rises, a tap when you swipe')}
           right={
             <Switch
-              accessibilityLabel="진동 효과"
+              accessibilityLabel={L('진동 효과', 'Haptics')}
               value={hapticsOn}
               onValueChange={(v) => {
                 setHapticsOn(v);

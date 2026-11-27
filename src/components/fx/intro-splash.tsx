@@ -4,9 +4,10 @@ import { Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native
 import Animated, { Easing, Extrapolation, interpolate, ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { APP_NAME, APP_SUBTITLE, RESEARCH_LINE, SPLASH_COPY } from '@/constants/brand';
+import { APP_NAME, APP_NAME_EN, APP_SUBTITLE, APP_SUBTITLE_EN, RESEARCH_LINE, RESEARCH_LINE_EN, SPLASH_COPY, SPLASH_COPY_EN } from '@/constants/brand';
 import { palette } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { L } from '@/lib/i18n';
 
 /**
  * 앱을 켤 때 나오는 로고 인트로.
@@ -56,9 +57,13 @@ const IMAGE_WAIT_MS = 450;
 /** 로고가 올라가는 거리 (아래에 앱 이름이 들어올 자리) */
 const LIFT = 44;
 
-/** 큰 줄 「지금 센딧.」 — 「센딧.」은 로고처럼 파랑 → 보라로 */
-const TITLE = SPLASH_COPY.main;
-const TITLE_ACCENT_FROM = TITLE.indexOf('센');
+/** 시작 화면 문구 — 영어판은 「Not sure what to text? / Ask your coach.」 */
+const COPY = L(SPLASH_COPY, SPLASH_COPY_EN);
+/** 큰 줄 「지금 센딧.」 — 「센딧.」은 로고처럼 파랑 → 보라로 (영어판은 「coach.」) */
+const TITLE = COPY.main;
+const TITLE_ACCENT_FROM = L(TITLE.indexOf('센'), TITLE.indexOf('coach'));
+/** 글자 사이 간격 — 영어처럼 글자가 많으면 줄여서 한국어(6글자)와 같은 시간 안에 다 올라오게 */
+const LETTER_GAP = Math.min(T.letterGap, Math.round((T.letterGap * 6) / Math.max(1, Array.from(TITLE).length)));
 const TITLE_ACCENT = ['#3D63F5', '#5A5DF6', '#7559F6'];
 
 const logoImage = require('../../../assets/images/splash-icon.png');
@@ -254,7 +259,10 @@ export function IntroSplash({ ready, onShown, onBeat, onDone }: IntroSplashProps
     // 화면 낭독기: 인트로가 떠 있는 동안은 이 덮개만 읽게 하고(iOS accessibilityViewIsModal, 안드로이드는 _layout 이 아래 화면을 숨김),
     // 그림·글자 층은 숨겨 앱 이름을 한 글자씩 따로 읽지 않게 한다 — 건너뛰기 버튼 이름이 앱 이름을 대신 읽는다
     <Animated.View accessibilityViewIsModal pointerEvents="auto" style={[StyleSheet.absoluteFill, styles.root, { backgroundColor: bg }, overlayStyle]}>
-      <Pressable style={StyleSheet.absoluteFill} onPress={skip} accessibilityRole="button" accessibilityLabel={`${APP_NAME}, ${APP_SUBTITLE}. ${SPLASH_COPY.lead} ${SPLASH_COPY.main} 누르면 바로 시작해요`} />
+      <Pressable style={StyleSheet.absoluteFill} onPress={skip} accessibilityRole="button" accessibilityLabel={L(
+          `${APP_NAME}, ${APP_SUBTITLE}. ${SPLASH_COPY.lead} ${SPLASH_COPY.main} 누르면 바로 시작해요`,
+          `${APP_NAME_EN}, ${APP_SUBTITLE_EN}. ${SPLASH_COPY_EN.lead} ${SPLASH_COPY_EN.main} Tap to start`,
+        )} />
       <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.center}>
         <Animated.View style={[styles.stage, stageStyle]}>
           {reduced ? null : (
@@ -394,7 +402,7 @@ function Letter({ ch, index, clock, reduced, color }: { ch: string; index: numbe
       const p = seg(clock.value, 150, 450);
       return { opacity: p };
     }
-    const from = T.title + index * T.letterGap;
+    const from = T.title + index * LETTER_GAP;
     const p = seg(clock.value, from, from + T.letterDur);
     return {
       opacity: Math.min(1, p * 1.8),
@@ -418,7 +426,7 @@ function Lead({ clock, reduced, color }: { clock: SharedValue<number>; reduced: 
   });
   return (
     <Animated.Text allowFontScaling={false} style={[styles.lead, { color }, style]}>
-      {SPLASH_COPY.lead}
+      {COPY.lead}
     </Animated.Text>
   );
 }
@@ -432,7 +440,7 @@ function Footer({ clock, reduced, color }: { clock: SharedValue<number>; reduced
   return (
     <Animated.View style={style}>
       <Text maxFontSizeMultiplier={1.2} style={[styles.footerText, { color }]}>
-        {RESEARCH_LINE}
+        {L(RESEARCH_LINE, RESEARCH_LINE_EN)}
       </Text>
     </Animated.View>
   );

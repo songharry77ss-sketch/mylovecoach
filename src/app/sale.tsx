@@ -30,6 +30,7 @@ import { formatPassEnd } from '@/lib/billing/quota';
 import { isSaleActive, SALE_COOLDOWN_MS, SALE_WINDOW_MS, saleAnchorAllowed, saleOffer, saleWindow } from '@/lib/billing/sale';
 import { isDemoMode } from '@/lib/demo';
 import { haptic } from '@/lib/haptics';
+import { L, isKo } from '@/lib/i18n';
 import { useAppStore } from '@/store/app-store';
 
 /** 데모 웹 미리보기용 가짜 상품 — 실제 앱에서는 쓰지 않는다 */
@@ -39,6 +40,7 @@ const PREVIEW_PRODUCTS: PlanProduct[] = [
 ];
 
 const won = (display: string) => {
+  if (!isKo) return display;
   const m = /^\s*₩\s?([\d,]+)\s*$/.exec(display);
   return m ? `${m[1]}원` : display;
 };
@@ -117,7 +119,7 @@ export default function SalePopup() {
     // 마감이 지난 뒤 누르면 특가로 결제하지 않는다
     if (!isSaleActive(useAppStore.getState().saleOfferStartedAt, Date.now())) {
       track('sale_offer_missed', { reason, from: 'popup' });
-      setNotice('특가가 방금 끝났어요. 다른 이용권을 볼까요?');
+      setNotice(L('특가가 방금 끝났어요. 다른 이용권을 볼까요?', 'The deal just ended. Want to see other passes?'));
       return;
     }
     const props = { plan: 'day', sale: true, from: 'popup' };
@@ -141,7 +143,7 @@ export default function SalePopup() {
       celebrate({ kind: 'confetti', count: 32, haptic: false });
       setDone(true);
     } else if (outcome.status === 'pending') {
-      setNotice('결제 승인을 기다리고 있어요. 승인되면 자동으로 적용돼요.');
+      setNotice(L('결제 승인을 기다리고 있어요. 승인되면 자동으로 적용돼요.', 'Waiting for payment approval. It’ll kick in automatically once approved.'));
     } else if (outcome.status === 'error') {
       setNotice(outcome.message);
     }
@@ -153,7 +155,7 @@ export default function SalePopup() {
   return (
     <View style={styles.root}>
       <Animated.View entering={FadeIn.duration(180)} style={StyleSheet.absoluteFill}>
-        <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={close} style={[StyleSheet.absoluteFill, styles.dim]} />
+        <Pressable accessibilityRole="button" accessibilityLabel={L('닫기', 'Close')} onPress={close} style={[StyleSheet.absoluteFill, styles.dim]} />
       </Animated.View>
       {/* 상품을 확인하는 동안(또는 특가가 없어 일반 결제 화면으로 바꾸는 동안)은 어둡게만 */}
       {!loaded || (!hasOffer && !done) ? (
@@ -163,7 +165,7 @@ export default function SalePopup() {
       ) : (
         <Animated.View entering={SlideInDown.springify().damping(20)} style={[styles.sheet, sheetPad, { backgroundColor: theme.background }]} accessibilityViewIsModal>
           <View style={[styles.grabber, { backgroundColor: theme.border }]} />
-          <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={close} hitSlop={10} style={[styles.close, { backgroundColor: theme.surface }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={L('닫기', 'Close')} onPress={close} hitSlop={10} style={[styles.close, { backgroundColor: theme.surface }]}>
             <Ionicons name="close" size={18} color={theme.textSecondary} />
           </Pressable>
 
@@ -173,33 +175,35 @@ export default function SalePopup() {
                 <Ionicons name="checkmark" size={34} color="#FFFFFF" />
               </View>
               <Text accessibilityRole="header" style={[styles.title, styles.centerText, { color: theme.text }]}>
-                하루 무제한 시작!
+                {L('하루 무제한 시작!', 'Your 24 hours start now!')}
               </Text>
               <AppText variant="body" color="textSecondary" align="center">
-                {passUntil > Date.now() ? `${formatPassEnd(passUntil, Date.now())}까지 마음껏 물어봐요.` : '지금부터 24시간 동안 마음껏 물어봐요.'}
+                {passUntil > Date.now()
+                  ? L(`${formatPassEnd(passUntil, Date.now())}까지 마음껏 물어봐요.`, `Ask away until ${formatPassEnd(passUntil, Date.now())}.`)
+                  : L('지금부터 24시간 동안 마음껏 물어봐요.', 'Ask away for the next 24 hours.')}
               </AppText>
-              <GradientButton title="바로 이어서 하기" onPress={close} style={styles.cta} />
+              <GradientButton title={L('바로 이어서 하기', 'Keep going')} onPress={close} style={styles.cta} />
             </Animated.View>
           ) : (
             <>
               {/* 1.4 개편: 가장 큰 것은 값(예전엔 44pt 카운트다운) — 남은 시간은 머리 한 줄과 카드 아래에 작게, 빨간 할인 배지는 걷었다 */}
               <AppText variant="caption" color="primary" weight="700" style={styles.eyebrow}>
-                {SALE_WINDOW_MS / 60_000}분 한정 특가
+                {L(`${SALE_WINDOW_MS / 60_000}분 한정 특가`, `${SALE_WINDOW_MS / 60_000}-minute deal`)}
               </AppText>
               <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>
-                {name ? `${name}님, 무료 코칭을 다 썼어요` : '무료 코칭을 다 썼어요'}
+                {name ? L(`${name}님, 무료 코칭을 다 썼어요`, `${name}, you're out of free coaching`) : L('무료 코칭을 다 썼어요', "You're out of free coaching")}
               </Text>
               <AppText variant="body" color="textSecondary">
-                지금 특가로 바로 이어서 코칭받을 수 있어요.
+                {L('지금 특가로 바로 이어서 코칭받을 수 있어요.', 'Keep going right now at a special price.')}
               </AppText>
 
               {offer ? (
                 <View style={[styles.offerCard, { backgroundColor: theme.surface }]}>
                   <View style={styles.priceRow}>
                     <View style={styles.flex}>
-                      <AppText variant="bodyStrong">하루 이용권</AppText>
+                      <AppText variant="bodyStrong">{L('하루 이용권', '24-hour pass')}</AppText>
                       <AppText variant="caption" color="textSecondary">
-                        24시간 무제한 · 자동 결제 없음
+                        {L('24시간 무제한 · 자동 결제 없음', 'Unlimited for 24 hours · No auto-renewal')}
                       </AppText>
                     </View>
                     <View style={styles.priceCol}>
@@ -207,22 +211,25 @@ export default function SalePopup() {
                       <Text style={[styles.price, { color: theme.primary }]}>{won(offer.sale.displayPrice)}</Text>
                       {anchor ? (
                         <AppText variant="caption" color="primary" weight="700">
-                          {offer.percent}% 할인
+                          {offer.percent}% {L('할인', 'off')}
                         </AppText>
                       ) : null}
                     </View>
                   </View>
                   <View style={[styles.offerFoot, { borderTopColor: theme.separator }]}>
                     <AppText variant="caption" color="textSecondary">
-                      막힌 코칭이 결제 뒤 바로 이어져요
+                      {L('막힌 코칭이 결제 뒤 바로 이어져요', 'Pick up right where you left off')}
                     </AppText>
                     <AppText
                       variant="caption"
                       color={live ? 'primary' : 'textTertiary'}
                       weight="700"
                       style={styles.tabular}
-                      accessibilityLabel={`특가 마감까지 ${Math.floor(left / 60000)}분 ${Math.floor((left % 60000) / 1000)}초`}>
-                      마감까지 {formatClock(left)}
+                      accessibilityLabel={L(
+                        `특가 마감까지 ${Math.floor(left / 60000)}분 ${Math.floor((left % 60000) / 1000)}초`,
+                        `Deal ends in ${Math.floor(left / 60000)} min ${Math.floor((left % 60000) / 1000)} sec`,
+                      )}>
+                      {L('마감까지', 'Ends in')} {formatClock(left)}
                     </AppText>
                   </View>
                 </View>
@@ -237,7 +244,11 @@ export default function SalePopup() {
               ) : null}
 
               <GradientButton
-                title={live && offer ? `${won(offer.sale.displayPrice)}으로 바로 이어서 하기` : '다른 이용권 보기'}
+                title={
+                  live && offer
+                    ? L(`${won(offer.sale.displayPrice)}으로 바로 이어서 하기`, `Keep going for ${offer.sale.displayPrice}`)
+                    : L('다른 이용권 보기', 'See other passes')
+                }
                 onPress={live ? buy : more}
                 loading={busy}
                 disabled={busy}
@@ -245,11 +256,14 @@ export default function SalePopup() {
               />
               <Pressable accessibilityRole="button" onPress={more} hitSlop={6} style={styles.more}>
                 <AppText variant="smallStrong" color="textSecondary">
-                  다른 이용권 보기
+                  {L('다른 이용권 보기', 'See other passes')}
                 </AppText>
               </Pressable>
               <AppText variant="caption" color="textTertiary" align="center">
-                특가는 {Math.round(SALE_COOLDOWN_MS / 86_400_000)}일에 한 번, {SALE_WINDOW_MS / 60_000}분만 열려요 · {store} 결제
+                {L(
+                  `특가는 ${Math.round(SALE_COOLDOWN_MS / 86_400_000)}일에 한 번, ${SALE_WINDOW_MS / 60_000}분만 열려요 · ${store} 결제`,
+                  `The deal opens once every ${Math.round(SALE_COOLDOWN_MS / 86_400_000)} days for ${SALE_WINDOW_MS / 60_000} minutes · Paid via ${store}`,
+                )}
               </AppText>
             </>
           )}
