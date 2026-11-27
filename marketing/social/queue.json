@@ -220,7 +220,7 @@
     },
     {
       "id": "kkti-esfj-isfj",
-      "at": "2026-11-27 21:00",
+      "at": "2026-11-30 21:00",
       "channel": "instagram",
       "kind": "carousel",
       "media": [
@@ -232,11 +232,11 @@
       ],
       "caption": "직진 불도저 × 꼬리 흔드는 골댕이 카톡 궁합 99% 💍\n\n카톡만 봐도 결이 같아요. 이런 조합 흔치 않아요!\n\n너희 둘은 무슨 조합이야? 카톡 습관 12문항이면 내 유형이 나오고, 둘 다 하면 궁합까지 나와. 테스트는 프로필 링크에.\n\n#KKTI #카톡궁합 #MBTI궁합 #연애유형 #썸",
       "approved": true,
-      "note": "자동 생산 · kkti-pair · 11-17 사장님 「올리기 시작해봐」로 허락·날짜 다시 잡음 · 막장 연애 3부작에 21:00 칸을 내주고 옮김 (11-18)"
+      "note": "자동 생산 · kkti-pair · 11-17 사장님 「올리기 시작해봐」로 허락·날짜 다시 잡음 · 막장 연애 3부작에 21:00 칸을 내주고 옮김 (11-18) · 읽씹 전쟁 3부작에 21:00 칸을 내주고 옮김 (11-27)"
     },
     {
       "id": "kkti-esfj-isfj-story",
-      "at": "2026-11-27 21:01",
+      "at": "2026-11-30 21:01",
       "channel": "instagram",
       "kind": "story",
       "media": [
@@ -245,11 +245,11 @@
       "caption": "",
       "approved": true,
       "after": "kkti-esfj-isfj",
-      "note": "캐러셀 첫 장 + 「답장으로 알려 줘」 스토리 그림 (스티커 대신 답장 유도)"
+      "note": "캐러셀 첫 장 + 「답장으로 알려 줘」 스토리 그림 (스티커 대신 답장 유도) · 읽씹 전쟁 3부작에 21:00 칸을 내주고 옮김 (11-27)"
     },
     {
       "id": "q-haircut",
-      "at": "2026-11-28 21:00",
+      "at": "2026-12-01 21:00",
       "channel": "instagram",
       "kind": "reel",
       "media": [
@@ -263,11 +263,11 @@
         "minSeconds": 9
       },
       "approved": true,
-      "note": "자동 생산 · pick-reel · 11-17 사장님 「올리기 시작해봐」로 허락·날짜 다시 잡음"
+      "note": "자동 생산 · pick-reel · 11-17 사장님 「올리기 시작해봐」로 허락·날짜 다시 잡음 · 읽씹 전쟁 3부작에 21:00 칸을 내주고 옮김 (11-27)"
     },
     {
       "id": "q-haircut-story",
-      "at": "2026-11-28 21:01",
+      "at": "2026-12-01 21:01",
       "channel": "instagram",
       "kind": "story",
       "media": [
@@ -276,7 +276,7 @@
       "caption": "",
       "approved": true,
       "after": "q-haircut",
-      "note": "릴스 영상 그대로 스토리 (스티커는 API 불가)"
+      "note": "릴스 영상 그대로 스토리 (스티커는 API 불가) · 읽씹 전쟁 3부작에 21:00 칸을 내주고 옮김 (11-27)"
     },
     {
       "id": "l-interested-signs",
@@ -920,7 +920,7 @@
     },
     {
       "id": "q-first-snow",
-      "at": "2026-11-29 21:00",
+      "at": "2026-12-02 21:00",
       "channel": "instagram",
       "kind": "reel",
       "media": [
@@ -934,12 +934,12 @@
         "minSeconds": 9
       },
       "approved": true,
-      "note": "자동 생산 · pick-reel",
+      "note": "자동 생산 · pick-reel · 읽씹 전쟁 3부작에 21:00 칸을 내주고 옮김 (11-27)",
       "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-21T08:21:27.273Z"
     },
     {
       "id": "q-first-snow-story",
-      "at": "2026-11-29 21:01",
+      "at": "2026-12-02 21:01",
       "channel": "instagram",
       "kind": "story",
       "media": [
@@ -948,7 +948,112 @@
       "approved": true,
       "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-21T08:21:27.273Z",
       "after": "q-first-snow",
-      "note": "자동 생산 · pick-reel 스토리"
+      "note": "자동 생산 · pick-reel 스토리 · 읽씹 전쟁 3부작에 21:00 칸을 내주고 옮김 (11-27)"
+    },
+    {
+      "id": "ai-late-reply-1",
+      "at": "2026-11-27 21:00",
+      "channel": "instagram",
+      "kind": "reel",
+      "format": "ai-reel",
+      "media": [
+        "marketing/social/ai-late-reply-1/reel.mp4"
+      ],
+      "cover": "marketing/social/ai-late-reply-1/cover.jpg",
+      "caption": "[읽씹 전쟁 1화] 점심 뭐 먹었냐고 물어봤는데 3시간째 읽씹. 근데 그 3시간 동안 썸남은 사실… 썼다 지웠다 하고 있었다면?\n\n센딧에 대화를 그대로 넣었더니 답장 3개를 성공 확률이랑 같이 골라 줬어. 앱 화면과 답장은 실제 센딧 AI 결과 그대로야.\n\n센딧 연애팁에서 이용자들이 제일 많이 고른 고민 1위가 「답장이 늦어요」라서 시리즈로 만들었어.\n※ 인물과 이야기는 지어낸 재연이야. 사람 나오는 장면은 AI로 만든 연출이고, 마지막 카톡은 센딧이 예상한 답장이야.\n\n너는 답장 늦게 오면 몇 시간까지 기다려 봤어? 👇\n\n#썸 #읽씹 #답장 #카톡답장 #센딧",
+      "audio": {
+        "trending": true,
+        "videoVolume": 60,
+        "minSeconds": 33
+      },
+      "early": 3,
+      "approved": true,
+      "approvedBy": "사장님 요청 — 채팅 2026-11-27 「바로바로 고고고고」 (움직이는 판 영상 확인 뒤)",
+      "note": "읽씹 전쟁 1화 · 가상 인물(Codex 그림) · 사람 움직임 무료 Wan 2.2(「AI로 만든 장면」 표시) · 앱 화면·답장은 11-23 실제 센딧 결과 · 33.0초"
+    },
+    {
+      "id": "ai-late-reply-1-story",
+      "at": "2026-11-27 21:01",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/ai-late-reply-1/reel.mp4"
+      ],
+      "approved": true,
+      "approvedBy": "사장님 요청 — 채팅 2026-11-27 「바로바로 고고고고」 (움직이는 판 영상 확인 뒤)",
+      "after": "ai-late-reply-1",
+      "note": "ai-reel 스토리",
+      "caption": ""
+    },
+    {
+      "id": "ai-late-reply-2",
+      "at": "2026-11-28 21:00",
+      "channel": "instagram",
+      "kind": "reel",
+      "format": "ai-reel",
+      "media": [
+        "marketing/social/ai-late-reply-2/reel.mp4"
+      ],
+      "cover": "marketing/social/ai-late-reply-2/cover.jpg",
+      "caption": "[읽씹 전쟁 2화] 이번엔 남자 쪽. 영화 보자고 했는데 썸녀가 하루째 읽씹… 근데 그 하루 동안 그녀는 친구들이랑 단톡방에서 작전 회의 중이었다면?\n\n센딧에 대화를 그대로 넣었더니 답장 3개를 성공 확률이랑 같이 골라 줬어. 앱 화면과 답장은 실제 센딧 AI 결과 그대로야.\n\n센딧 연애팁에서 이용자들이 제일 많이 고른 고민 1위 「답장이 늦어요」 시리즈야.\n※ 인물과 이야기는 지어낸 재연이야. 사람 나오는 장면은 AI로 만든 연출이고, 마지막 카톡은 센딧이 예상한 답장이야.\n\n너는 답장 늦게 하는 이유가 뭐야? 👇\n\n#썸 #읽씹 #썸녀 #카톡답장 #센딧",
+      "audio": {
+        "trending": true,
+        "videoVolume": 60,
+        "minSeconds": 34
+      },
+      "early": 3,
+      "approved": true,
+      "approvedBy": "사장님 요청 — 채팅 2026-11-27 「바로바로 고고고고」 (움직이는 판 영상 확인 뒤)",
+      "note": "읽씹 전쟁 2화 · 가상 인물(Codex 그림) · 사람 움직임 무료 Wan 2.2(「AI로 만든 장면」 표시) · 앱 화면·답장은 11-23 실제 센딧 결과 · 34.0초"
+    },
+    {
+      "id": "ai-late-reply-2-story",
+      "at": "2026-11-28 21:01",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/ai-late-reply-2/reel.mp4"
+      ],
+      "approved": true,
+      "approvedBy": "사장님 요청 — 채팅 2026-11-27 「바로바로 고고고고」 (움직이는 판 영상 확인 뒤)",
+      "after": "ai-late-reply-2",
+      "note": "ai-reel 스토리",
+      "caption": ""
+    },
+    {
+      "id": "ai-late-reply-3",
+      "at": "2026-11-29 21:00",
+      "channel": "instagram",
+      "kind": "reel",
+      "format": "ai-reel",
+      "media": [
+        "marketing/social/ai-late-reply-3/reel.mp4"
+      ],
+      "cover": "marketing/social/ai-late-reply-3/cover.jpg",
+      "caption": "[읽씹 전쟁 3화] 읽씹으로 시작한 썸, 드디어 첫 데이트 전날. 근데 썸남 카톡이 너무 완벽한데… 알고 보니 그도 센딧으로 답장 고르고 있었다면? ㅋㅋ\n\n센딧에 대화를 그대로 넣었더니 답장 3개를 성공 확률이랑 같이 골라 줬어. 앱 화면과 답장은 실제 센딧 AI 결과 그대로야.\n\n센딧 연애팁에서 이용자들이 제일 많이 고른 고민 1위 「답장이 늦어요」에서 시작한 시리즈의 마지막 화야.\n※ 인물과 이야기는 지어낸 재연이야. 사람 나오는 장면은 AI로 만든 연출이고, 마지막 카톡은 센딧이 예상한 답장이야.\n\n상대도 답장 고민한다는 거 알면 덜 떨려, 더 떨려? 👇\n\n#썸 #첫데이트 #읽씹 #카톡답장 #센딧",
+      "audio": {
+        "trending": true,
+        "videoVolume": 60,
+        "minSeconds": 34
+      },
+      "early": 3,
+      "approved": true,
+      "approvedBy": "사장님 요청 — 채팅 2026-11-27 「바로바로 고고고고」 (움직이는 판 영상 확인 뒤)",
+      "note": "읽씹 전쟁 3화 · 가상 인물(Codex 그림) · 사람 움직임 무료 Wan 2.2(「AI로 만든 장면」 표시) · 앱 화면·답장은 11-23 실제 센딧 결과 · 34.0초"
+    },
+    {
+      "id": "ai-late-reply-3-story",
+      "at": "2026-11-29 21:01",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/ai-late-reply-3/reel.mp4"
+      ],
+      "approved": true,
+      "approvedBy": "사장님 요청 — 채팅 2026-11-27 「바로바로 고고고고」 (움직이는 판 영상 확인 뒤)",
+      "after": "ai-late-reply-3",
+      "note": "ai-reel 스토리",
+      "caption": ""
     }
   ]
 }
