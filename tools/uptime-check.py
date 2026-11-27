@@ -4,7 +4,7 @@
 이틀 가까이 아무도 몰랐다. Vercel 이 멈추면 Vercel 안의 알림(텔레그램 일일 보고 cron)도 같이 멈추므로
 바깥(GitHub Actions)에서 확인한다.
 
-- 매번(10분마다): 웹(200), 앱 버전 API(앱 토큰, 200), 실제 코칭 1번 — 지금 앱과 같은 3사 동의(google,anthropic,openai)로 보내
+- 매번(10분마다): 웹(200), 앱 버전 API(앱 토큰, 200), 실제 코칭 1번 — 지금 앱과 같은 새 동의(anthropic,openai,google)로 보내
   Claude → GPT → Gemini 중 누가 답했는지 남긴다 (기기 번호 없이 보내 코칭 기록·통계에 남지 않음, 1회 약 1원)
 - 매시 첫 회차: Google 에만 동의한 예전 앱 경로(Gemini)도 코칭 1번
 - 문제가 있으면 텔레그램으로 알리고(비밀값이 있을 때) 작업을 실패로 끝낸다 → GitHub 실패 메일도 간다
@@ -101,7 +101,7 @@ def main():
             'text': '어제 영화 재밌었다고 톡이 왔어. 뭐라고 답하지?',
             'remember': False,
         }
-        paths = [('AI 코칭', 'google,anthropic,openai')]
+        paths = [('AI 코칭', 'anthropic,openai,google')]
         if hourly or os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch':
             paths.append(('예전 앱 AI 코칭(Gemini)', 'google'))
         for label, consent in paths:
