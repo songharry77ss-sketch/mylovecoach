@@ -23,7 +23,7 @@ import { join, resolve } from 'node:path';
 
 import { createAscClient, secretsRoot } from './lib/asc-api.mjs';
 import { assertEditableVersion, findEditableVersion } from './lib/asc-release-guard.mjs';
-import { appJson, checkLimits, checkUrls, EXCLUDED_ASC, len, LIFETIME_ID, loadListingEn, pngSize, siteOf, stripEmoji, withSite } from './lib/store-listing-en.mjs';
+import { appJson, checkLimits, checkUrls, EUROPE_ASC, EXCLUDED_ASC, len, LIFETIME_ID, loadListingEn, pngSize, siteOf, stripEmoji, withSite } from './lib/store-listing-en.mjs';
 import { ASC_LOCALES, KO_LOCALES, langsOf, loadListings, reportListings } from './lib/store-listings.mjs';
 
 const args = process.argv.slice(2);
@@ -36,6 +36,8 @@ const doShots = args.includes('--screenshots');
 const shotsArg = argOf('--screenshots');
 const doIap = args.includes('--iap');
 const doAvail = args.includes('--availability');
+/** 유럽(EU·EEA·영국·스위스)은 앱 판매를 미룬다 — 상품 판매 지역은 그대로 */
+const holdEurope = args.includes('--hold-europe');
 
 const HELP = `사용법: node tools/asc-global.mjs <할 일> [--apply]
   --listing              언어 파일(docs/store-listing/<언어>.json)마다 이름·부제·개인정보 URL(앱 정보) + 설명·키워드·홍보 문구·지원 URL·새 소식(앱 버전) — ko 는 그대로
@@ -532,14 +534,17 @@ async function availability(app, versions, territories) {
     }));
   const rows = await read();
   const open = rows.filter((r) => r.available).map((r) => r.territory);
-  const toOpen = rows.filter((r) => !r.available && WANT.has(r.territory)).map((r) => r.territory);
-  const toClose = rows.filter((r) => r.available && !WANT.has(r.territory)).map((r) => r.territory);
+  // 앱 판매 지역 — --hold-europe 면 유럽을 뺀다 (상품 지역 WANT 는 그대로)
+  const APP_WANT = holdEurope ? new Set([...WANT].filter((t) => !EUROPE_ASC.includes(t))) : WANT;
+  if (holdEurope) console.log(`· 유럽 ${EUROPE_ASC.length}곳은 미룸 (--hold-europe) — GDPR 대리인·DSA 판매자 공개가 정해지면 이 옵션 없이 다시`);
+  const toOpen = rows.filter((r) => !r.available && APP_WANT.has(r.territory)).map((r) => r.territory);
+  const toClose = rows.filter((r) => r.available && !APP_WANT.has(r.territory)).map((r) => r.territory);
   console.log(`· 지금 판매 ${open.length}곳 (${preview(open)}) · 새 지역 자동 ${avail.data.attributes?.availableInNewTerritories ? '켬' : '꺼짐'}`);
   console.log(`${mark} 바꿀 내용: +${toOpen.length}곳${toClose.length ? ` / −${toClose.join(',')}` : ''} · 새 지역 자동 켬${apply ? '' : ' (예정)'}`);
 
   // 지역별 판매 가능 상태 — EU DSA 처럼 화면에서 먼저 풀어야 하는 것
   const tally = new Map();
-  for (const r of rows.filter((x) => WANT.has(x.territory)))
+  for (const r of rows.filter((x) => APP_WANT.has(x.territory)))
     for (const s of r.statuses) {
       if (/^(AVAILABLE|PROCESSING_TO_)/.test(s)) continue;
       // 고르지 않아 안 파는 지역은 그냥 「CANNOT_SELL」 — 판매를 켜면 바뀐다 (2026-11-27 확인: 미선택 174곳 모두 이 값)
@@ -571,7 +576,7 @@ async function availability(app, versions, territories) {
   if (!apply) return;
   if (!enLive) throw new Error('공개 버전에 en-US 등록 정보가 없어 판매 국가를 넓히지 않았다 — 영어판이 출시된 뒤 다시 실행');
   const localId = (i) => '${' + 'terr' + i + '}';
-  const included = territories.map((t, i) => ({ type: 'territoryAvailabilities', id: localId(i), attributes: { available: WANT.has(t.id) }, relationships: { territory: rel('territories', t.id) } }));
+  const included = territories.map((t, i) => ({ type: 'territoryAvailabilities', id: localId(i), attributes: { available: APP_WANT.has(t.id) }, relationships: { territory: rel('territories', t.id) } }));
   try {
     await api('POST', '/v2/appAvailabilities', {
       data: { type: 'appAvailabilities', attributes: { availableInNewTerritories: true }, relationships: { app: rel('apps', app.id), territoryAvailabilities: { data: included.map((x) => ({ type: x.type, id: x.id })) } } },
@@ -583,8 +588,8 @@ async function availability(app, versions, territories) {
     // 이미 있는 설정은 다시 만들 수 없을 때: 지역마다 고친다. 「새 지역 자동」은 이 경로로는 못 바꾼다
     console.log(`· 한 번에 바꾸기 거절(409) → 지역마다 고친다 — ${e.message}`);
     let done = 0;
-    for (const r of rows.filter((x) => x.available !== WANT.has(x.territory))) {
-      await api('PATCH', `/v1/territoryAvailabilities/${r.id}`, { data: { type: 'territoryAvailabilities', id: r.id, attributes: { available: WANT.has(r.territory) } } });
+    for (const r of rows.filter((x) => x.available !== APP_WANT.has(x.territory))) {
+      await api('PATCH', `/v1/territoryAvailabilities/${r.id}`, { data: { type: 'territoryAvailabilities', id: r.id, attributes: { available: APP_WANT.has(r.territory) } } });
       done++;
     }
     console.log(`✓ ${done}곳 고침 · ⚠ 「새 국가 또는 지역에서 자동으로 사용 가능」은 App Store Connect 웹 → 가격 및 사용 가능 여부에서 직접 켠다`);

@@ -10,6 +10,10 @@ export const DOC_SITE = 'https://mylovecoach.vercel.app';
 /** 세계 출시에서 빼는 지역 — 중국 본토(생성형 AI 앱은 당국 허가 필요). App Store 지역 코드 / Play 지역 코드 */
 export const EXCLUDED_ASC = ['CHN'];
 export const EXCLUDED_PLAY = ['CN'];
+
+/** 유럽(EU 27 + EEA + 영국 + 스위스) — GDPR 대리인·DSA 판매자 공개가 정해질 때까지 앱 판매를 미룬다 (--hold-europe, 2026-11-27 기본안) */
+export const EUROPE_ASC = ['AUT', 'BEL', 'BGR', 'HRV', 'CYP', 'CZE', 'DNK', 'EST', 'FIN', 'FRA', 'DEU', 'GRC', 'HUN', 'IRL', 'ITA', 'LVA', 'LTU', 'LUX', 'MLT', 'NLD', 'POL', 'PRT', 'ROU', 'SVK', 'SVN', 'ESP', 'SWE', 'ISL', 'LIE', 'NOR', 'GBR', 'CHE'];
+export const EUROPE_PLAY = ['AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'IS', 'LI', 'NO', 'GB', 'CH'];
 /** 판매 중단 상품 — 영어 이름만 넣고 판매 지역·가격은 건드리지 않는다 (tools/lifetime-stop.mjs) */
 export const LIFETIME_ID = 'mylovecoach.premium.lifetime';
 
