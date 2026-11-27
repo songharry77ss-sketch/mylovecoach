@@ -2,7 +2,7 @@
   "expo": {
     "name": "센딧",
     "slug": "mylovecoach",
-    "version": "1.4.2",
+    "version": "1.5.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mylovecoach",
@@ -75,7 +75,7 @@
           }
         }
       ],
-      "expo-localization",
+      ["expo-localization", { "supportsRTL": false }],
       ["./plugins/with-default-app-name", "Love Coach"]
     ],
     "experiments": {

@@ -10,6 +10,7 @@ import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { playRelease, playReleaseNotes } from './lib/play-release.mjs';
+import { playReleaseNotes as globalReleaseNotes } from './lib/store-listings.mjs';
 
 const PACKAGE = 'app.mylovecoach.android';
 const args = process.argv.slice(2);
@@ -25,7 +26,11 @@ const withNotes = args.includes('--no-notes') ? false : args.includes('--notes')
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..');
 // 출시 이름·새로운 기능은 app.json 버전 기준 — 올리는 AAB 를 같은 커밋에서 빌드했는지 확인하고 쓴다
 const appVersion = JSON.parse(readFileSync(join(repo, 'app.json'), 'utf8')).expo.version;
-const notes = withNotes ? playReleaseNotes(readFileSync(join(repo, 'docs', 'STORE_LISTING.md'), 'utf8'), appVersion) : undefined;
+// 한국어(ko-KR)는 STORE_LISTING.md, 세계판 언어는 docs/store-listing/<언어>.json 의 whatsNew (2026-11-27 세계 출시)
+const global = withNotes ? globalReleaseNotes() : { notes: [], skipped: [] };
+if (global.skipped.length) console.log(`  ⚠ 출시 노트를 뺀 언어: ${global.skipped.join(' / ')}`);
+const notes = withNotes ? [...playReleaseNotes(readFileSync(join(repo, 'docs', 'STORE_LISTING.md'), 'utf8'), appVersion), ...global.notes] : undefined;
+if (notes) console.log(`  출시 노트 언어 ${notes.length}개`);
 const root = argOf('--secrets') ?? process.env.MYLOVECOACH_SECRETS ?? join(homedir(), 'wolha-secrets');
 const BASE = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE}`;
 const UPLOAD = `https://androidpublisher.googleapis.com/upload/androidpublisher/v3/applications/${PACKAGE}`;

@@ -89,7 +89,7 @@ My Love Coach is now available worldwide in English! Upload a chat screenshot an
 | `mylovecoach.pass.year` | 1-Year Pass | Unlimited AI coaching for 1 year |
 | `mylovecoach.pass.day` | 24-Hour Pass | Unlimited AI coaching for 24 hours |
 | `mylovecoach.pass.day.sale` | 24-Hour Pass (Sale) | Unlimited AI coaching for 24 hours |
-| `mylovecoach.premium.lifetime` | Lifetime Premium | (판매 중단 — 이미 산 사람 복원용) |
+| `mylovecoach.premium.lifetime` | Lifetime Premium | Unlimited AI coaching, one-time purchase |
 | 구독 그룹 `프리미엄` | Premium | |
 
 ## 스크린샷 캡션 (영어, 6장)

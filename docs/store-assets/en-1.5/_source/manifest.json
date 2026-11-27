@@ -1,0 +1,104 @@
+{
+  "jobs": [
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\_source\\ios-1-hero.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\ios-6.7-framed\\1-hero.png",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\_source\\ios-2-replies.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\ios-6.7-framed\\2-replies.png",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\_source\\ios-3-mind.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\ios-6.7-framed\\3-mind.png",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\_source\\ios-4-memory.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\ios-6.7-framed\\4-memory.png",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\_source\\ios-5-report.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\ios-6.7-framed\\5-report.png",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\_source\\ios-6-explore.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\ios-6.7-framed\\6-explore.png",
+      "width": 1290,
+      "height": 2796
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\_source\\play-1-hero.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\play-framed\\1-hero.png",
+      "width": 1242,
+      "height": 2208
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\_source\\play-2-replies.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\play-framed\\2-replies.png",
+      "width": 1242,
+      "height": 2208
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\_source\\play-3-mind.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\play-framed\\3-mind.png",
+      "width": 1242,
+      "height": 2208
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\_source\\play-4-memory.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\play-framed\\4-memory.png",
+      "width": 1242,
+      "height": 2208
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\_source\\play-5-report.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\play-framed\\5-report.png",
+      "width": 1242,
+      "height": 2208
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\_source\\play-6-explore.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\play-framed\\6-explore.png",
+      "width": 1242,
+      "height": 2208
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\_source\\feature.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\feature-graphic-1024x500.png",
+      "width": 1024,
+      "height": 500
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\_source\\ios-board.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\board.png",
+      "width": 1968,
+      "height": 699,
+      "board": true
+    },
+    {
+      "html": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\_source\\play-board.html",
+      "png": "C:\\Users\\shsop\\mylovecoach-global-20261127\\docs\\store-assets\\en-1.5\\board-play.png",
+      "width": 1968,
+      "height": 582,
+      "board": true
+    }
+  ],
+  "sourceHashes": {
+    "home.png": "3ec8584404cb36bd892bc9b49217fb946b02436fccb9204b8c03753cad23f563",
+    "replies.png": "4ba2ae2b678a61e095af43ba995e94472c89b821745f8d58d9d969594bdc9ffb",
+    "mind.png": "6310bfd641d1fbb10ac73e609db91004dc6335510bb07153654fa0bd1c361b48",
+    "memory.png": "4eae36d5824a44751f4efba97a4e27bd6ee0fa62d218bcb3fe25e1988e3563ad",
+    "report.png": "09be912811b5a5bd1e17c465052237ee1750ef6fad49950e711ef9e82719d232",
+    "explore.png": "e3764237b712a303a9af095111d693fe1c68c48eef3c3fff52bbeb5321efedc5"
+  }
+}

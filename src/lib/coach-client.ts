@@ -25,7 +25,7 @@ import {
 import { APP_CONFIG } from '@/lib/config';
 import { demoAnalysis, demoMind, demoPractice, demoReport, isDemoMode } from '@/lib/demo';
 import { callGeminiTask } from '@/lib/gemini';
-import { AI_LANG, isEn, L } from '@/lib/i18n';
+import { AI_LANG, isEn, L, T } from '@/lib/i18n';
 import type { CoachAnalysis } from '@/lib/types';
 
 export class CoachError extends Error {
@@ -136,12 +136,12 @@ const EN_ERROR: Record<CoachError['code'], string> = {
 
 /** 화면에 보일 오류 문구 — 영어판인데 문구가 비었거나 한글이면 영어 기본 문구로 */
 function errorText(message: string | undefined, code: CoachError['code']): string {
-  if (isEn && (!message || /[\uAC00-\uD7A3]/.test(message))) return EN_ERROR[code];
-  return message ?? EN_ERROR[code];
+  if (isEn && (!message || /[\uAC00-\uD7A3]/.test(message))) return T(EN_ERROR[code]);
+  return message ?? T(EN_ERROR[code]);
 }
 
-/** 영어판이면 요청에 lang: 'en' 을 붙인다 (서버가 설명은 영어, 답장은 대화 언어로 만든다). 한국어판은 예전과 똑같은 요청 */
-const withLang = <T extends object>(input: T): T => (AI_LANG === 'en' ? { ...input, lang: 'en' as const } : input);
+/** 세계판이면 요청에 앱 언어(lang)를 붙인다 (서버가 설명은 그 언어, 답장은 대화 언어로 만든다). 한국어판은 예전과 똑같은 요청 */
+const withLang = <V extends object>(input: V): V => (AI_LANG !== 'ko' ? { ...input, lang: AI_LANG } : input);
 
 /** 실제로 보내기 바로 앞의 관문. 동의를 받지 못하면 아무것도 보내지 않고 끝낸다 (횟수도 차감되지 않음) */
 async function requireConsent(feature: AiFeature, route: AiRoute): Promise<void> {
@@ -165,7 +165,7 @@ export async function requestCoaching(input: CoachRequestInput, options: CoachCl
   // 서버와 같은 길이 상한으로 먼저 검사한다 — 캡처가 너무 크면 보내지 않고 서버(413)와 같은 안내를 보여 준다
   const parsed = CoachRequestSchema.safeParse(withLang(input));
   if (!parsed.success) {
-    if (isImageTooLarge(parsed.error.issues)) throw new CoachError(L(IMAGE_TOO_LARGE_MESSAGE, EN_ERROR.too_large), 'too_large');
+    if (isImageTooLarge(parsed.error.issues)) throw new CoachError(L(IMAGE_TOO_LARGE_MESSAGE, T(EN_ERROR.too_large)), 'too_large');
     throw new CoachError(L('요청 형식이 올바르지 않아요.', 'Something was wrong with the request.'), 'parse');
   }
   const req = parsed.data;
@@ -181,7 +181,7 @@ export async function requestCoaching(input: CoachRequestInput, options: CoachCl
     json = JSON.parse(text);
   } catch {
     json = salvageTruncatedCoach(text);
-    if (json === undefined) throw new CoachError(L('응답을 이해하지 못했어요. 다시 시도해주세요.', EN_ERROR.parse), 'parse');
+    if (json === undefined) throw new CoachError(L('응답을 이해하지 못했어요. 다시 시도해주세요.', T(EN_ERROR.parse)), 'parse');
   }
   return parseCoach(json);
 }
@@ -204,7 +204,7 @@ export async function requestAi<M extends keyof ModeIO>(mode: M, input: ModeIO[M
   const task = buildTask(parsed);
   const raw = viaServer() ? ((await postToServer(mode, parsed.req, {}, options.signal)) as { result?: unknown })?.result : parseJson(await runDirect(mode, task, options));
   const checked = task.schema.safeParse(raw);
-  if (!checked.success) throw new CoachError(L('응답 형식이 올바르지 않아요. 다시 시도해주세요.', EN_ERROR.parse), 'parse');
+  if (!checked.success) throw new CoachError(L('응답 형식이 올바르지 않아요. 다시 시도해주세요.', T(EN_ERROR.parse)), 'parse');
   return task.normalize(checked.data) as ModeIO[M]['output'];
 }
 
@@ -220,21 +220,21 @@ async function postToServer(feature: AiFeature, body: unknown, extraHeaders: Rec
         // 사용자가 보내도 된다고 동의한 AI 회사들 — 서버는 여기 없는 회사로는 보내지 않는다
         'x-ai-consent': relayConsentHeader,
         // 앱 언어 — 서버가 본문을 읽기 전에 끝나는 오류(인증·호출 제한)도 이 언어로 안내하게
-        ...(AI_LANG === 'en' ? { 'x-app-lang': 'en' } : {}),
+        ...(AI_LANG !== 'ko' ? { 'x-app-lang': AI_LANG } : {}),
         ...extraHeaders,
       },
       body: JSON.stringify(body),
       signal: withTimeout(signal),
     });
   } catch {
-    throw new CoachError(L('네트워크 연결을 확인해주세요.', EN_ERROR.network), 'network');
+    throw new CoachError(L('네트워크 연결을 확인해주세요.', T(EN_ERROR.network)), 'network');
   }
   const json = await safeJson(res);
   if (!res.ok) {
     // 서버가 「앱을 업데이트해 주세요」로 거절함 — 새 버전 안내를 바로 띄운다 (오류 문구는 서버가 준 것을 그대로 보여 준다)
     if (res.status === 426) requestUpdatePrompt();
     const code = res.status === 401 || res.status === 403 ? 'auth' : res.status === 429 ? 'rate_limit' : res.status === 422 ? 'refused' : res.status === 413 ? 'too_large' : 'server';
-    if (res.status === 426 && isEn) throw new CoachError('Please update My Love Coach to the latest version to keep going.', code);
+    if (res.status === 426 && isEn) throw new CoachError(T('Please update My Love Coach to the latest version to keep going.'), code);
     throw new CoachError(errorText((json as { error?: string })?.error ?? (isEn ? undefined : `서버 오류 (${res.status})`), code), code);
   }
   return json;
@@ -243,14 +243,14 @@ async function postToServer(feature: AiFeature, body: unknown, extraHeaders: Rec
 /** 개인 키 직접 호출 — 결과 JSON 문자열을 돌려준다 */
 async function runDirect(feature: AiFeature, task: AiTask, options: CoachClientOptions): Promise<string> {
   const key = options.directApiKey?.trim();
-  if (!key) throw new CoachError(L('AI 코치 서버가 아직 연결되지 않았어요. 설정에서 API 키를 등록해주세요.', EN_ERROR.not_configured), 'not_configured');
+  if (!key) throw new CoachError(L('AI 코치 서버가 아직 연결되지 않았어요. 설정에서 API 키를 등록해주세요.', T(EN_ERROR.not_configured)), 'not_configured');
   await requireConsent(feature, directRoute(key));
   if (detectProvider(key) === 'gemini') {
     let result: Awaited<ReturnType<typeof callGeminiTask>>;
     try {
       result = await callGeminiTask(task, key, { signal: withTimeout(options.signal) });
     } catch {
-      throw new CoachError(L('네트워크 연결을 확인해주세요.', EN_ERROR.network), 'network');
+      throw new CoachError(L('네트워크 연결을 확인해주세요.', T(EN_ERROR.network)), 'network');
     }
     if (!result.ok) throw new CoachError(errorText(result.message, result.code), result.code);
     return result.text;
@@ -289,7 +289,7 @@ async function viaAnthropic(task: AiTask, apiKey: string, options: CoachClientOp
       signal: withTimeout(options.signal),
     });
   } catch {
-    throw new CoachError(L('네트워크 연결을 확인해주세요.', EN_ERROR.network), 'network');
+    throw new CoachError(L('네트워크 연결을 확인해주세요.', T(EN_ERROR.network)), 'network');
   }
   const body = (await safeJson(res)) as {
     error?: { message?: string };
@@ -298,14 +298,14 @@ async function viaAnthropic(task: AiTask, apiKey: string, options: CoachClientOp
   };
   if (!res.ok) {
     if (res.status === 401) throw new CoachError(L('API 키가 올바르지 않아요. 설정에서 다시 확인해주세요.', 'Your API key is invalid. Please check it in Settings.'), 'auth');
-    if (res.status === 429) throw new CoachError(L('요청이 너무 많아요. 잠시 후 다시 시도해주세요.', EN_ERROR.rate_limit), 'rate_limit');
+    if (res.status === 429) throw new CoachError(L('요청이 너무 많아요. 잠시 후 다시 시도해주세요.', T(EN_ERROR.rate_limit)), 'rate_limit');
     throw new CoachError(errorText(body?.error?.message ?? (isEn ? undefined : `API 오류 (${res.status})`), 'server'), 'server');
   }
   if (body.stop_reason === 'refusal') {
-    throw new CoachError(L('이 대화는 코칭해드리기 어려워요. 다른 내용으로 시도해주세요.', EN_ERROR.refused), 'refused');
+    throw new CoachError(L('이 대화는 코칭해드리기 어려워요. 다른 내용으로 시도해주세요.', T(EN_ERROR.refused)), 'refused');
   }
   const text = body.content?.filter((b) => b.type === 'text').pop()?.text;
-  if (!text) throw new CoachError(L('응답을 이해하지 못했어요. 다시 시도해주세요.', EN_ERROR.parse), 'parse');
+  if (!text) throw new CoachError(L('응답을 이해하지 못했어요. 다시 시도해주세요.', T(EN_ERROR.parse)), 'parse');
   return text;
 }
 
@@ -313,13 +313,13 @@ function parseJson(text: string): unknown {
   try {
     return JSON.parse(text);
   } catch {
-    throw new CoachError(L('응답을 이해하지 못했어요. 다시 시도해주세요.', EN_ERROR.parse), 'parse');
+    throw new CoachError(L('응답을 이해하지 못했어요. 다시 시도해주세요.', T(EN_ERROR.parse)), 'parse');
   }
 }
 
 function parseCoach(json: unknown): CoachAnalysis {
   const parsed = CoachAnalysisReadSchema.safeParse(json);
-  if (!parsed.success) throw new CoachError(L('응답 형식이 올바르지 않아요. 다시 시도해주세요.', EN_ERROR.parse), 'parse');
+  if (!parsed.success) throw new CoachError(L('응답 형식이 올바르지 않아요. 다시 시도해주세요.', T(EN_ERROR.parse)), 'parse');
   return normalizeAnalysis(parsed.data);
 }
 

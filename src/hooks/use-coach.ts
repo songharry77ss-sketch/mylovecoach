@@ -6,7 +6,7 @@ import { currentQuota } from '@/lib/billing/gate';
 import { aiRouteOf, CoachError, requestCoaching, requireAiConsent } from '@/lib/coach-client';
 import { crushToRequest, todayLabel, userToRequest } from '@/lib/coach-schema';
 import { errorText } from '@/lib/format';
-import { L } from '@/lib/i18n';
+import { AI_LANG, L } from '@/lib/i18n';
 import { encodeForModel, ImageReadError, type PickedImage } from '@/lib/images';
 import type { EmojiPref, KktiSaved, Tone } from '@/lib/types';
 import { analysisCacheKey, analyzedCaptureBefore, buildEarlierNotes, buildHistory, lastRequestAt, memoryAfterResult, quickHash, useAppStore } from '@/store/app-store';
@@ -132,7 +132,7 @@ export function useCoach() {
             history,
             ...(earlierNotes.length ? { earlierNotes } : {}),
             ...(remember ? {} : { remember: false }),
-            today: todayLabel(),
+            today: todayLabel(new Date(), AI_LANG),
           },
           { directApiKey, deviceId: secret ? undefined : useAppStore.getState().deviceId, signal: controller.signal },
         ));

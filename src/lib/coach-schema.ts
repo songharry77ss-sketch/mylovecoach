@@ -15,9 +15,14 @@ export const TemperatureSchema = z.enum(['hot', 'warm', 'neutral', 'cold', 'unkn
 export const GenderSchema = z.enum(['female', 'male', 'other']);
 export const RelationshipSchema = z.enum(['crush', 'talking', 'blind_date', 'friend', 'dating', 'ex']);
 export const EmojiPrefSchema = z.enum(['auto', 'on', 'off']);
-/** 앱 언어 (한국어판·영어판) — 서버가 AI 출력 언어를 정할 때 쓴다 */
-export const LangSchema = z.enum(['ko', 'en']);
+/** 앱 언어 (한국어판 ko · 세계판 en·ja·zh-Hans …) — 서버가 AI 출력 언어를 정할 때 쓴다 */
+export const LangSchema = z.string().regex(/^[a-z]{2,3}(-[A-Za-z]{2,4})?$/);
 export type Lang = z.infer<typeof LangSchema>;
+
+/** 출력 언어 이름 (프롬프트에 넣는다) — 모르는 코드는 코드 그대로 */
+export const LANGUAGE_NAMES: Record<string, string> = {
+  en: 'American English', ja: 'Japanese', 'zh-Hans': 'Simplified Chinese', 'zh-Hant': 'Traditional Chinese', es: 'Spanish', pt: 'Brazilian Portuguese', fr: 'French', de: 'German', it: 'Italian', ru: 'Russian', tr: 'Turkish', id: 'Indonesian', vi: 'Vietnamese', th: 'Thai', ar: 'Arabic', hi: 'Hindi', pl: 'Polish', nl: 'Dutch', sv: 'Swedish', da: 'Danish', nb: 'Norwegian (Bokmål)', fi: 'Finnish', cs: 'Czech', sk: 'Slovak', hu: 'Hungarian', ro: 'Romanian', uk: 'Ukrainian', el: 'Greek', he: 'Hebrew', hr: 'Croatian', ms: 'Malay', ca: 'Catalan',
+};
 
 /** 센딧이 기억하는 이야기 — 채팅방마다 최대 몇 줄까지 기억하는지 (앱이 보내는 줄 수이자 모델에게 부탁하는 줄 수) */
 export const MEMORY_MAX = 8;
@@ -334,9 +339,19 @@ export const ENGLISH_OUTPUT_RULES = `LANGUAGE OVERRIDE (English edition of the a
 - Dates in memory lines: write them like "Sat 11/8". Refer to the user as "I" and the other person by name (or "them").
 - Keep all JSON keys and enum values exactly as specified (e.g. tone, temperature, speechLevel stay as given). Output only the requested JSON.`;
 
+/** 영어 외 세계판 언어 — 영어 규칙에서 설명 언어만 바꾼다 */
+function outputRulesFor(lang: string): string {
+  const name = LANGUAGE_NAMES[lang] ?? `the language with code "${lang}"`;
+  return ENGLISH_OUTPUT_RULES.replace('LANGUAGE OVERRIDE (English edition of the app, called "My Love Coach")', `LANGUAGE OVERRIDE (${name} edition of the app, called "My Love Coach")`)
+    .replace('in natural, friendly, casual American English.', `in natural, friendly, casual ${name}.`)
+    .replace('aim for the same brevity in English', `aim for the same brevity in ${name}`)
+    .replace('If no conversation is visible, use English.', `If no conversation is visible, use ${name}.`);
+}
+
 /** 요청 언어에 맞는 시스템 프롬프트 — 한국어(또는 예전 앱)면 그대로 두어 프롬프트 캐시를 지킨다 */
 export function systemFor(system: string, lang: Lang | undefined): string {
-  return lang === 'en' ? `${system}\n\n${ENGLISH_OUTPUT_RULES}` : system;
+  if (!lang || lang === 'ko') return system;
+  return `${system}\n\n${lang === 'en' ? ENGLISH_OUTPUT_RULES : outputRulesFor(lang)}`;
 }
 
 /**
@@ -563,7 +578,9 @@ export function salvageTruncatedCoach(text: string): unknown {
 }
 
 /** 요청에 싣는 오늘 날짜 (기기 시각) — 예: 11/6(목) */
-export function todayLabel(now: Date = new Date()): string {
+export function todayLabel(now: Date = new Date(), lang: string = 'ko'): string {
+  // 세계판은 영어 요일 (「Fri 11/27」) — AI 가 기억 줄에 날짜를 그 언어로 옮겨 적는다
+  if (lang !== 'ko') return `${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][now.getDay()]} ${now.getMonth() + 1}/${now.getDate()}`;
   return `${now.getMonth() + 1}/${now.getDate()}(${'일월화수목금토'[now.getDay()]})`;
 }
 
