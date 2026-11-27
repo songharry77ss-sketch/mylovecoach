@@ -116,10 +116,10 @@ export function yearPassEnd(purchasedAt: number): number {
 
 /**
  * 구독을 따로 취소할 스토어 이름. 아이폰 앱에는 Google Play 를 적지 않는다 — App Store 심사 2.3.10(다른 플랫폼 언급)으로 1.0.3 이 거절됐다.
- * 웹은 어느 스토어에서 샀는지 모르므로 둘 다 적는다. 영어판은 lang 'en' (서버도 쓰는 파일이라 i18n 을 불러오지 않고 화면이 넘긴다)
+ * 웹은 어느 스토어에서 샀는지 모르므로 둘 다 적는다. 세계판은 lang 이 ko 가 아닌 값 (서버도 쓰는 파일이라 i18n 을 불러오지 않고 화면이 넘긴다)
  */
-export const subscriptionStoreName = (os: string, lang: 'ko' | 'en' = 'ko'): string =>
-  os === 'ios' ? 'App Store' : os === 'android' ? 'Google Play' : lang === 'en' ? 'App Store or Google Play' : 'App Store 또는 Google Play';
+export const subscriptionStoreName = (os: string, lang: string = 'ko'): string =>
+  os === 'ios' ? 'App Store' : os === 'android' ? 'Google Play' : lang !== 'ko' ? 'App Store or Google Play' : 'App Store 또는 Google Play';
 
 /**
  * 하루 이용권 타임 세일용 특가 상품 (소모성). 효과는 하루 이용권과 똑같다 — 결제한 때부터 24시간 무제한.

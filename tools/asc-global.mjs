@@ -1,8 +1,13 @@
-// PC 에서 실행: node tools/asc-global.mjs [--listing] [--screenshots <폴더>] [--iap] [--availability [--confirm-live]] [--apply] [--locales en-US,en-GB] [--secrets <폴더>] [--site <주소>]
-// 세계 출시(영어판 「My Love Coach」)용 App Store Connect 설정. 문구 원본은 docs/STORE_LISTING_EN.md, 순서는 docs/GLOBAL_LAUNCH.md.
-//   --listing      : 편집 중인(PREPARE_FOR_SUBMISSION) 앱 정보에 en-US 이름·부제·개인정보 URL,
-//                    편집 중인 앱 버전(app.json 버전, 없으면 --apply 때 만든다)에 en-US 설명(이모지 제거)·키워드·홍보 문구·지원 URL·새 소식
-//   --screenshots <폴더> : 그 폴더의 PNG(이름순)를 en-US 6.7" iPhone 스크린샷(APP_IPHONE_67)으로 — 기존 en-US 묶음을 통째로 바꾼다
+// PC 에서 실행: node tools/asc-global.mjs [--listing] [--primary-en] [--screenshots <폴더>] [--iap] [--availability [--confirm-live]] [--apply] [--langs ja,fr] [--secrets <폴더>] [--site <주소>]
+// 세계 출시(「My Love Coach」)용 App Store Connect 설정. 등록 문구는 docs/store-listing/<언어>.json(언어마다 하나),
+// 상품 영어 이름 표는 docs/STORE_LISTING_EN.md, 순서는 docs/GLOBAL_LAUNCH.md. 한국어(ko) 현지화는 절대 건드리지 않는다.
+//   --listing      : 있는 언어 파일마다(lib/store-listings.mjs 의 로캘 표: en→en-US·en-GB·en-AU·en-CA, es→es-ES·es-MX …)
+//                    편집 중인(PREPARE_FOR_SUBMISSION) 앱 정보에 이름·부제·개인정보 URL(/en/privacy.html),
+//                    편집 중인 앱 버전(app.json 버전, 없으면 --apply 때 만든다)에 설명(이모지 제거)·키워드·홍보 문구·지원 URL(/en/support.html)·새 소식.
+//                    파일이 없거나 검사(tools/i18n/check-listings.mjs 와 같은 규칙)에 걸린 언어는 건너뛰고 알려 준다
+//   --primary-en   : 앱 기본 언어(primaryLocale)를 en-US 로 — 현지화가 없는 스토어 언어와 스크린샷이 없는 로캘이 영어를 쓰게 된다
+//   --screenshots <폴더> : 그 폴더의 PNG(이름순)를 en-US 6.7" iPhone 스크린샷(APP_IPHONE_67)으로 — en-US 에만 올린다
+//                    (ko 를 뺀 다른 로캘은 기본 언어의 스크린샷을 쓰므로 --primary-en 과 함께)
 //   --iap          : 모든 인앱결제·구독에 en-US 이름·설명(문서 표), 판매 지역은 중국 본토만 뺀 전체 + 새 지역 자동.
 //                    평생권(mylovecoach.premium.lifetime, 판매 중단)은 영어 이름만 넣고 판매 지역은 그대로 둔다.
 //                    가격: 인앱결제는 KOR 기준 가격 일정 → Apple 자동 환산(가격 없는 지역만 알려 줌),
@@ -10,43 +15,56 @@
 //   --availability : 앱 판매 국가를 중국 본토만 뺀 전체 + 새 지역 자동으로 (asc-listing.mjs 의 「대한민국만」과 반대).
 //                    공개 중인 앱에 바로 반영되므로 --apply 에는 --confirm-live 가 꼭 있어야 하고, 영어판이 출시된 뒤에만 쓴다
 //   --apply        : 실제로 바꾼다. 없으면 GET 으로 지금 상태를 읽고 바꿀 내용만 보여 준다(dry-run)
-//   --locales      : 영어 로캘 목록 (기본 en-US). 영국 스토어는 English (U.K.)만, 독일·프랑스·브라질·인도·호주는 English (U.K.)를
-//                    추가 언어로 쓰므로 en-US 만 넣으면 그 나라들에는 기본 언어(한국어)가 보인다 → 예: --locales en-US,en-GB,en-AU,en-CA
+//   --langs ja,fr  : 그 앱 언어만 (없으면 있는 파일 전부)
 // 키 값은 출력하지 않는다. 이미 같은 값이면 건너뛰므로 여러 번 실행해도 안전하다.
-import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 import { createAscClient, secretsRoot } from './lib/asc-api.mjs';
 import { assertEditableVersion, findEditableVersion } from './lib/asc-release-guard.mjs';
-import { appJson, checkLimits, checkUrls, EXCLUDED_ASC, len, LIFETIME_ID, limitsOk, loadListingEn, localesOf, pngSize, siteOf, stripEmoji, withSite } from './lib/store-listing-en.mjs';
+import { appJson, checkLimits, checkUrls, EXCLUDED_ASC, len, LIFETIME_ID, loadListingEn, pngSize, siteOf, stripEmoji, withSite } from './lib/store-listing-en.mjs';
+import { ASC_LOCALES, KO_LOCALES, langsOf, loadListings, reportListings } from './lib/store-listings.mjs';
 
 const args = process.argv.slice(2);
 const argOf = (n) => (args.includes(n) ? args[args.indexOf(n) + 1] : undefined);
 const apply = args.includes('--apply');
 const confirmLive = args.includes('--confirm-live');
 const doListing = args.includes('--listing');
+const doPrimary = args.includes('--primary-en');
 const doShots = args.includes('--screenshots');
 const shotsArg = argOf('--screenshots');
 const doIap = args.includes('--iap');
 const doAvail = args.includes('--availability');
 
 const HELP = `사용법: node tools/asc-global.mjs <할 일> [--apply]
-  --listing              en-US 이름·부제·개인정보 URL(앱 정보) + 설명·키워드·홍보 문구·지원 URL·새 소식(앱 버전)
-  --screenshots <폴더>    en-US 6.7" iPhone 스크린샷을 그 폴더의 PNG(이름순)로 바꾼다
+  --listing              언어 파일(docs/store-listing/<언어>.json)마다 이름·부제·개인정보 URL(앱 정보) + 설명·키워드·홍보 문구·지원 URL·새 소식(앱 버전) — ko 는 그대로
+  --primary-en           앱 기본 언어를 en-US 로 (현지화·스크린샷이 없는 곳이 영어를 쓰게)
+  --screenshots <폴더>    en-US 6.7" iPhone 스크린샷을 그 폴더의 PNG(이름순)로 바꾼다 (en-US 에만)
   --iap                  인앱결제·구독 en-US 이름·설명 + 판매 지역(중국 본토 제외 전체) + 구독 지역별 가격
   --availability         앱 판매 국가를 중국 본토 제외 전체로 — 공개 앱에 바로 반영, --apply 에는 --confirm-live 필요 (영어판 출시 뒤에만)
   --apply                실제로 바꾼다 (없으면 GET 만 하는 dry-run)
-  --locales en-US,en-GB  영어 로캘 (기본 en-US · 고를 수 있는 값 en-US, en-GB, en-AU, en-CA)
+  --langs ja,fr          그 앱 언어만 (없으면 있는 파일 전부)
   --secrets <폴더>        열쇠 폴더 (기본 ~/wolha-secrets) · --site <주소> 사이트 주소
 순서·주의: docs/GLOBAL_LAUNCH.md`;
 
 const VERSION = appJson().version;
 const root = secretsRoot(args);
 const SITE = siteOf(args, root);
-const LOCALES = localesOf(args, ['en-US', 'en-GB', 'en-AU', 'en-CA']);
+const LANGS = (() => {
+  try {
+    return langsOf(args);
+  } catch (e) {
+    console.error(e.message);
+    process.exit(1); // 아직 네트워크를 쓰기 전이라 바로 끝내도 된다
+  }
+})();
+// 상품 이름은 영어 한 벌 (기본 언어가 en-US 가 되면 다른 언어 기기도 이 이름을 본다)
+const IAP_LOCALES = ['en-US'];
 const EN = loadListingEn(VERSION);
+// 영어판 법률 문서 — 한국어가 아닌 모든 로캘이 같은 주소를 쓴다
+const PRIVACY_URL = `${SITE}/en/privacy.html`;
+const SUPPORT_URL = `${SITE}/en/support.html`;
 const SAMPLE = ['USA', 'GBR', 'JPN', 'DEU', 'BRA'];
 const TODAY = new Date().toISOString().slice(0, 10);
 // 6.7"/6.9" 칸(APP_IPHONE_67)이 받는 크기
@@ -55,17 +73,6 @@ const INFO_EDITABLE = new Set(['PREPARE_FOR_SUBMISSION', 'READY_FOR_REVIEW', 'DE
 const FINISHED = new Set(['READY_FOR_SALE', 'READY_FOR_DISTRIBUTION', 'REPLACED_WITH_NEW_VERSION', 'REMOVED_FROM_SALE', 'DEVELOPER_REMOVED_FROM_SALE']);
 const LIVE = new Set(['READY_FOR_SALE', 'READY_FOR_DISTRIBUTION']);
 const stateOf = (v) => v.attributes.appStoreState ?? v.attributes.appVersionState ?? v.attributes.state;
-
-const LISTING = {
-  name: EN.name,
-  subtitle: EN.subtitle,
-  privacyPolicyUrl: withSite(EN.privacyPolicyUrl, SITE),
-  description: stripEmoji(withSite(EN.fullDescription, SITE)),
-  keywords: EN.keywords,
-  promotionalText: EN.promotionalText,
-  supportUrl: withSite(EN.supportUrl, SITE),
-  whatsNew: EN.whatsNew,
-};
 
 // API 클라이언트·지역 목록은 실행할 때 채운다 (도움말만 볼 때는 열쇠를 읽지 않는다)
 let api, getAll, uploadAsset, findApp;
@@ -113,14 +120,15 @@ const money = (t, p) => (p?.customerPrice != null ? `${currency.get(t) ?? ''} ${
 
 /**
  * 현지화 하나를 문서 값과 비교하고(--apply 면) 넣는다. 같은 값이면 아무것도 보내지 않는다.
- * show 에 적은 칸은 값을 그대로, 나머지는 글자 수만 보여 준다.
+ * show 에 적은 칸은 값을 그대로, 나머지는 글자 수만 보여 준다. all 을 주면 목록을 다시 읽지 않는다(로캘이 많을 때).
  */
-async function upsertLocalization({ label, list, type, parent, locale, want, show = [] }) {
-  const all = await getAll(list);
-  const cur = all.find((l) => l.attributes.locale === locale);
+async function upsertLocalization({ label, list, all, type, parent, locale, want, show = [], tally }) {
+  if (KO_LOCALES.has(locale)) throw new Error(`${locale} 는 한국어 원본이라 건드리지 않는다`);
+  const cur = (all ?? (await getAll(list))).find((l) => l.attributes.locale === locale);
   const describe = (k, v) => (show.includes(k) ? `"${v ?? ''}"` : `${len(norm(v))}자`);
   const changed = Object.keys(want).filter((k) => norm(cur?.attributes?.[k]) !== norm(want[k]));
   const state = cur?.attributes?.state ? ` (상태 ${cur.attributes.state})` : '';
+  if (tally) tally[cur ? (changed.length ? 'change' : 'same') : 'add']++;
   if (cur && !changed.length) {
     console.log(`  = ${label}: 이미 같음${state}`);
     return cur;
@@ -136,26 +144,12 @@ async function upsertLocalization({ label, list, type, parent, locale, want, sho
 }
 
 // ───────────── 1) 등록 정보 ─────────────
-async function listing(app, versions) {
-  console.log(`\n[등록 정보 — ${LOCALES.join(', ')}]`);
-  const ok = limitsOk(apply, 'App Store 등록 정보', [
-    ['App name', LISTING.name, 30],
-    ['Subtitle', LISTING.subtitle, 30],
-    ['Keywords', LISTING.keywords, 100, { bytes: true }],
-    ['Promotional text', LISTING.promotionalText, 170],
-    ['Full description (이모지 뺀 값)', LISTING.description, 4000],
-    ["What's new", LISTING.whatsNew, 4000, { optional: true }],
-    ['Privacy policy URL', LISTING.privacyPolicyUrl, 255],
-    ['Support URL', LISTING.supportUrl, 255],
-  ]);
-  console.log(
-    `${ok ? '✓' : '✗'} 길이 — 이름 ${len(LISTING.name)}/30 · 부제 ${len(LISTING.subtitle)}/30 · 키워드 ${Buffer.byteLength(LISTING.keywords)}/100바이트 · 홍보 ${len(LISTING.promotionalText)}/170 · 설명 ${len(LISTING.description)}/4000${LISTING.whatsNew ? ` · 새 소식 ${len(LISTING.whatsNew)}/4000` : ''}`,
-  );
-  if (!LISTING.whatsNew) console.log(`  · STORE_LISTING_EN.md 에 「## What's new (${VERSION})」가 없어 새 소식은 넣지 않는다 (app.json 버전 ${VERSION})`);
-  const terms = (LISTING.description.match(/https:\/\/\S+\/terms\.html/) ?? [])[0];
-  await checkUrls([LISTING.privacyPolicyUrl, LISTING.supportUrl, terms]);
-
-  // 편집 중인 앱 버전 — 다른 버전이 심사 중이면 멈춘다 (asc-listing.mjs 와 같은 보호). dry-run 은 알리고 앱 정보 확인은 이어 간다
+/**
+ * 편집 중인 앱 버전·앱 정보와 그 현지화 목록. create 면(--listing --apply) 버전이 없을 때 app.json 버전으로 만든다.
+ * 다른 버전이 심사 중이면 멈춘다 (asc-listing.mjs 와 같은 보호) — dry-run 은 알리고 나머지 확인은 이어 간다.
+ */
+async function editableTarget(app, versions, create) {
+  console.log('\n[편집 대상]');
   let version = null;
   try {
     version = findEditableVersion(versions, VERSION);
@@ -165,8 +159,8 @@ async function listing(app, versions) {
     process.exitCode = 1;
     version = false;
   }
-  if (version === null && !apply) console.log(`  · 앱 버전 ${VERSION} 이 아직 없음 → --apply 때 새로 만든다 (편집용 앱 정보도 그때 생긴다)`);
-  if (version === null && apply) {
+  if (version === null && !(apply && create)) console.log(`  · 앱 버전 ${VERSION} 이 아직 없음 → --listing --apply 때 새로 만든다 (편집용 앱 정보도 그때 생긴다)`);
+  if (version === null && apply && create) {
     version = (await api('POST', '/v1/appStoreVersions', { data: { type: 'appStoreVersions', attributes: { platform: 'IOS', versionString: VERSION }, relationships: { app: rel('apps', app.id) } } })).data;
     assertEditableVersion(version, VERSION);
     console.log(`  ✓ 앱 버전 ${VERSION} 만듦`);
@@ -174,51 +168,104 @@ async function listing(app, versions) {
 
   // 편집 중인 앱 정보 — 이름·부제는 새 버전과 함께 심사를 받아야 바뀐다
   const infos = (await api('GET', `/v1/apps/${app.id}/appInfos`)).data;
-  const info = infos.find((i) => INFO_EDITABLE.has(stateOf(i)));
+  const info = infos.find((i) => INFO_EDITABLE.has(stateOf(i))) ?? null;
   if (!info) {
     const locs = infos[0] ? (await getAll(`/v1/appInfos/${infos[0].id}/appInfoLocalizations?limit=50`)).map((l) => l.attributes.locale) : [];
     const msg = `편집 가능한 앱 정보가 없음 (지금 ${infos.map(stateOf).join(', ')} · 로캘 ${locs.join(', ') || '없음'})`;
-    if (apply) throw new Error(`${msg} — 새 앱 버전이 있어야 이름·부제를 바꿀 수 있다`);
+    if (apply && create) throw new Error(`${msg} — 새 앱 버전이 있어야 이름·부제를 바꿀 수 있다`);
     console.log(`  · ${msg} — 새 버전이 생기면 함께 생긴다`);
   }
-
-  const vlocs = {};
-  for (const locale of LOCALES) {
-    if (info)
-      await upsertLocalization({
-        label: `앱 정보 ${locale}`,
-        list: `/v1/appInfos/${info.id}/appInfoLocalizations?limit=50`,
-        type: 'appInfoLocalizations',
-        parent: { appInfo: rel('appInfos', info.id) },
-        locale,
-        want: { name: LISTING.name, subtitle: LISTING.subtitle, privacyPolicyUrl: LISTING.privacyPolicyUrl },
-        show: ['name', 'subtitle', 'privacyPolicyUrl'],
-      });
-    if (version)
-      vlocs[locale] = await upsertLocalization({
-        label: `버전 ${VERSION} ${locale}`,
-        list: `/v1/appStoreVersions/${version.id}/appStoreVersionLocalizations?limit=50`,
-        type: 'appStoreVersionLocalizations',
-        parent: { appStoreVersion: rel('appStoreVersions', version.id) },
-        locale,
-        want: { description: LISTING.description, keywords: LISTING.keywords, promotionalText: LISTING.promotionalText, supportUrl: LISTING.supportUrl, ...(LISTING.whatsNew ? { whatsNew: LISTING.whatsNew } : {}) },
-        show: ['keywords', 'supportUrl'],
-      });
-  }
-  return vlocs;
+  const target = { version: version || null, info, infoLocs: [], verLocs: [] };
+  await refreshTarget(target);
+  console.log(`  · 지금 로캘 — 앱 정보: ${target.infoLocs.map((l) => l.attributes.locale).join(', ') || '(편집 중인 것 없음)'} · 버전: ${target.verLocs.map((l) => l.attributes.locale).join(', ') || '(편집 중인 것 없음)'}`);
+  return target;
 }
 
-/** --screenshots 만 줄 때: 편집 중인 버전의 로캘별 현지화를 찾는다 */
-async function versionLocalizations(versions) {
-  const version = findEditableVersion(versions, VERSION);
-  if (!version) return {};
-  const locs = await getAll(`/v1/appStoreVersions/${version.id}/appStoreVersionLocalizations?limit=50`);
-  return Object.fromEntries(locs.map((l) => [l.attributes.locale, l]));
+async function refreshTarget(target) {
+  target.infoLocs = target.info ? await getAll(`/v1/appInfos/${target.info.id}/appInfoLocalizations?limit=200`) : [];
+  target.verLocs = target.version ? await getAll(`/v1/appStoreVersions/${target.version.id}/appStoreVersionLocalizations?limit=200`) : [];
+}
+const hasLocale = (list, locale) => list.some((l) => l.attributes.locale === locale);
+
+// ───────────── 1) 등록 정보 (모든 언어) ─────────────
+async function listing(target) {
+  console.log('\n[등록 정보 — docs/store-listing/<언어>.json · ko 는 건드리지 않음]');
+  const ok = reportListings(loadListings(LANGS), ASC_LOCALES);
+  if (!ok.length) throw new Error('쓸 수 있는 언어 파일이 없다 (docs/store-listing/*.json)');
+  // App Store 는 설명에 이모지를 못 쓴다 — 뺀 값으로 한도를 다시 본다 (언어 파일 검사는 이모지 포함 길이)
+  const items = [];
+  for (const r of ok) {
+    const description = stripEmoji(withSite(r.data.description, SITE));
+    if (len(description) > 4000) {
+      console.log(`  ✗ ${r.lang}: 이모지 뺀 설명 ${len(description)}자 > 4000 — 건너뜀`);
+      process.exitCode = 1;
+      continue;
+    }
+    for (const locale of ASC_LOCALES[r.lang].filter((l) => !KO_LOCALES.has(l))) items.push({ lang: r.lang, locale, d: r.data, description });
+  }
+  const terms = [...new Set(items.flatMap((x) => x.description.match(/https:\/\/\S+\/terms\.html/g) ?? []))];
+  await checkUrls([PRIVACY_URL, SUPPORT_URL, ...terms]);
+  if (!target.info && !target.version) {
+    console.log(`  · 편집 중인 앱 정보·버전이 없어 비교만 건너뜀 — 넣을 로캘 ${items.length}개: ${items.map((x) => x.locale).join(', ')}`);
+    return;
+  }
+
+  const tally = { same: 0, add: 0, change: 0 };
+  for (const { locale, d, description } of items) {
+    if (target.info)
+      await upsertLocalization({
+        label: `앱 정보 ${locale}`,
+        all: target.infoLocs,
+        type: 'appInfoLocalizations',
+        parent: { appInfo: rel('appInfos', target.info.id) },
+        locale,
+        want: { name: d.appName, subtitle: d.subtitle, privacyPolicyUrl: PRIVACY_URL },
+        show: ['name', 'subtitle'],
+        tally,
+      });
+    if (target.version)
+      await upsertLocalization({
+        label: `버전 ${VERSION} ${locale}`,
+        all: target.verLocs,
+        type: 'appStoreVersionLocalizations',
+        parent: { appStoreVersion: rel('appStoreVersions', target.version.id) },
+        locale,
+        want: { description, keywords: d.keywords, promotionalText: d.promotionalText, supportUrl: SUPPORT_URL, ...(VERSION !== '1.0.0' ? { whatsNew: d.whatsNew } : {}) },
+        tally,
+      });
+  }
+  console.log(`  ${mark} 로캘 ${items.length}개 — 새로 ${tally.add} · 바꿈 ${tally.change} · 같음 ${tally.same}${apply ? '' : ' (예정)'}`);
+  if (apply) await refreshTarget(target);
+}
+
+// ───────────── 1-2) 기본 언어 ─────────────
+async function primaryEn(app, target, plannedEn) {
+  console.log('\n[기본 언어 (primaryLocale)]');
+  const cur = app.attributes.primaryLocale;
+  if (cur === 'en-US') {
+    console.log('  = 이미 en-US');
+    return;
+  }
+  console.log(`  ${mark} ${cur} → en-US${apply ? '' : ' 예정'} — 현지화가 없는 스토어 언어와 스크린샷이 없는 로캘이 영어(en-US)를 쓰게 된다. ko 등록 정보·스크린샷은 그대로`);
+  const hasEn = !!(target?.info && target?.version && hasLocale(target.infoLocs, 'en-US') && hasLocale(target.verLocs, 'en-US'));
+  if (hasEn) console.log('  ✓ 편집 중인 앱 정보·버전에 en-US 있음');
+  else if (plannedEn) console.log('  · 편집 중인 앱 정보·버전에 en-US 가 아직 없음 — 같은 명령의 --listing --apply 가 먼저 만든다');
+  else console.log('  ⚠ 편집 중인 앱 정보·버전에 en-US 가 없음 — --listing --apply 를 먼저 (기본 언어의 등록 정보가 있어야 바꿀 수 있다)');
+  if (!apply) return;
+  if (!hasEn) throw new Error('편집 중인 앱 정보·버전에 en-US 가 없어 기본 언어를 바꾸지 않았다');
+  await api('PATCH', `/v1/apps/${app.id}`, { data: { type: 'apps', id: app.id, attributes: { primaryLocale: 'en-US' } } });
+  const after = (await api('GET', `/v1/apps/${app.id}`)).data.attributes.primaryLocale;
+  if (after !== 'en-US') throw new Error(`바꾼 뒤 다시 읽은 기본 언어가 ${after}`);
+  app.attributes.primaryLocale = after;
+  console.log(`  ✓ 기본 언어 확인: ${after}`);
 }
 
 // ───────────── 2) 스크린샷 ─────────────
-async function screenshots(vlocs) {
-  console.log(`\n[스크린샷 6.7" — ${LOCALES.join(', ')}]`);
+async function screenshots(app, target) {
+  console.log('\n[스크린샷 6.7" — en-US 에만]');
+  console.log(
+    `  · ko 는 그대로, 다른 로캘은 스크린샷이 없으면 기본 언어(지금 ${app.attributes.primaryLocale})의 것을 쓴다${app.attributes.primaryLocale === 'en-US' ? '' : ' — 영어 스크린샷이 보이려면 --primary-en 도 해야 한다'}`,
+  );
   const dir = resolve(shotsArg);
   if (!existsSync(dir)) {
     console.log(`· 폴더가 없어 건너뜀: ${dir}`);
@@ -237,8 +284,8 @@ async function screenshots(vlocs) {
   const bad = local.filter((x) => !x.size || !SIZES_67.has(`${x.size.width}x${x.size.height}`));
   if (bad.length) throw new Error(`6.7" 크기가 아닌 파일 — ${bad.map((x) => `${x.f}(${x.size ? `${x.size.width}×${x.size.height}` : 'PNG 아님'})`).join(', ')} · 1290×2796 또는 1320×2868 PNG 여야 한다`);
   console.log(`· 올릴 파일 ${files.length}장 — ${dir}`);
-  for (const locale of LOCALES) {
-    const vloc = vlocs[locale];
+  for (const locale of ['en-US']) {
+    const vloc = (target?.verLocs ?? []).find((l) => l.attributes.locale === locale);
     if (!vloc) {
       const msg = `${locale}: 편집 중인 버전에 이 로캘 현지화가 아직 없음 — --listing 과 같이 --apply 하면 만든 뒤 올린다`;
       if (apply) throw new Error(msg);
@@ -306,7 +353,7 @@ async function productText(kind, id, text) {
   }
   if (!text.description) console.log(`  · 표의 설명 칸이 영어가 아니라 메모라 이름만 넣음: ${text.note || '(빈칸)'}`);
   const want = { name: text.name, ...(text.description ? { description: text.description } : {}) };
-  for (const locale of LOCALES)
+  for (const locale of IAP_LOCALES)
     await upsertLocalization(
       kind === 'sub'
         ? { label: `이름·설명 ${locale}`, list: `/v1/subscriptions/${id}/subscriptionLocalizations?limit=50`, type: 'subscriptionLocalizations', parent: { subscription: rel('subscriptions', id) }, locale, want, show: ['name', 'description'] }
@@ -411,7 +458,7 @@ async function subscription(sub, text) {
 }
 
 async function iap(app) {
-  console.log(`\n[인앱결제·구독 — ${LOCALES.join(', ')} · 목표 판매 지역 ${WANT.size}곳 (중국 본토 제외)]`);
+  console.log(`\n[인앱결제·구독 — ${IAP_LOCALES.join(', ')} · 목표 판매 지역 ${WANT.size}곳 (중국 본토 제외)]`);
   for (const p of EN.products) checkLimits(`상품 ${p.productId}`, [['이름', p.name, 30], ['설명', p.description, 45, { optional: true }]]);
   if (EN.group) checkLimits('구독 그룹', [['이름', EN.group.name, 75]]);
   const table = new Map(EN.products.map((p) => [p.productId, p]));
@@ -431,7 +478,7 @@ async function iap(app) {
   for (const g of await getAll(`/v1/apps/${app.id}/subscriptionGroups?limit=50`)) {
     console.log(`\n· 구독 그룹 「${g.attributes.referenceName}」`);
     if (EN.group?.reference === g.attributes.referenceName) {
-      for (const locale of LOCALES)
+      for (const locale of IAP_LOCALES)
         await upsertLocalization({
           label: `그룹 이름 ${locale}`,
           list: `/v1/subscriptionGroups/${g.id}/subscriptionGroupLocalizations?limit=50`,
@@ -547,10 +594,11 @@ async function availability(app, versions, territories) {
 }
 
 async function main() {
-  if (!doListing && !doShots && !doIap && !doAvail) {
+  if (!doListing && !doPrimary && !doShots && !doIap && !doAvail) {
     console.log(HELP);
     return;
   }
+  if (args.includes('--locales')) throw new Error('--locales 는 없어졌다 — 로캘은 언어 파일마다 정해진다 (고르려면 --langs ja,fr)');
   if (doShots && (!shotsArg || shotsArg.startsWith('--'))) throw new Error('--screenshots 뒤에 PNG 폴더를 적는다 (예: --screenshots docs/store-assets/ios-6.7-en)');
   // 공개 앱 판매 국가는 실수로 바꾸지 않도록 다른 일보다 먼저 막는다
   if (doAvail && apply && !confirmLive) {
@@ -560,7 +608,7 @@ async function main() {
     return;
   }
   ({ api, getAll, uploadAsset, findApp } = createAscClient(root));
-  console.log(`${apply ? '실제로 바꾼다 (--apply)' : '확인만 한다 (dry-run — GET 만, 아무것도 바꾸지 않음)'} · app.json 버전 ${VERSION} · 로캘 ${LOCALES.join(', ')} · 사이트 ${SITE}`);
+  console.log(`${apply ? '실제로 바꾼다 (--apply)' : '확인만 한다 (dry-run — GET 만, 아무것도 바꾸지 않음)'} · app.json 버전 ${VERSION} · 언어 ${LANGS.length === 32 ? '전부' : LANGS.join(', ')} · 사이트 ${SITE}`);
   const app = await findApp();
   if (!app) {
     console.log('앱 레코드를 찾지 못했다 (번들 ID app.mylovecoach.ios).');
@@ -569,7 +617,8 @@ async function main() {
   }
   console.log(`앱: ${app.attributes.name} (id ${app.id}) · 기본 언어 ${app.attributes.primaryLocale}`);
   const versions = await getAll(`/v1/apps/${app.id}/appStoreVersions?filter[platform]=IOS&limit=100`);
-  for (const v of versions.filter((x) => !FINISHED.has(stateOf(x)) || LIVE.has(stateOf(x)))) {
+  const newestLive = versions.filter((x) => LIVE.has(stateOf(x))).sort((x, y) => String(y.attributes.createdDate).localeCompare(String(x.attributes.createdDate)))[0];
+  for (const v of versions.filter((x) => !FINISHED.has(stateOf(x)) || x === newestLive)) {
     const locs = await getAll(`/v1/appStoreVersions/${v.id}/appStoreVersionLocalizations?limit=50`);
     console.log(`· 버전 ${v.attributes.versionString} ${stateOf(v)} — 로캘 ${locs.map((l) => l.attributes.locale).join(', ') || '없음'}`);
   }
@@ -586,10 +635,12 @@ async function main() {
       return undefined;
     }
   };
-  let vlocs = {};
-  if (doListing) vlocs = (await run('등록 정보', () => listing(app, versions))) ?? {};
-  else if (doShots) vlocs = (await run('버전 현지화 찾기', () => versionLocalizations(versions))) ?? {};
-  if (doShots) await run('스크린샷', () => screenshots(vlocs));
+  // 순서: 모든 언어 등록 정보 → 기본 언어 en-US (en-US 가 먼저 있어야 함) → en-US 스크린샷
+  let target = null;
+  if (doListing || doPrimary || doShots) target = (await run('편집 대상', () => editableTarget(app, versions, doListing))) ?? null;
+  if (doListing && target) await run('등록 정보', () => listing(target));
+  if (doPrimary) await run('기본 언어', () => primaryEn(app, target, doListing && loadListings(['en'])[0].ok && LANGS.includes('en')));
+  if (doShots && target) await run('스크린샷', () => screenshots(app, target));
   if (doIap) await run('인앱결제·구독', () => iap(app));
   if (doAvail) await run('앱 판매 국가', () => availability(app, versions, territories));
   if (!apply) console.log('\n확인만 했다. 실제로 바꾸려면 같은 명령에 --apply (앱 판매 국가는 --apply --confirm-live, 영어판 출시 뒤에만).');

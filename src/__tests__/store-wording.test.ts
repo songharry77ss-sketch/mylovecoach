@@ -21,7 +21,8 @@ const ALLOWED: [string, string][] = [
 function sourceFiles(dir: string): string[] {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
     const full = path.join(dir, e.name);
-    if (e.isDirectory()) return e.name === '__tests__' ? [] : sourceFiles(full);
+    // src/i18n 은 번역 데이터(영어 문장 → 각 언어) — 화면 코드가 아니고, 그 문장이 보이는 곳은 화면 코드가 기기별로 가른다
+    if (e.isDirectory()) return e.name === '__tests__' || e.name === 'i18n' ? [] : sourceFiles(full);
     return /\.(tsx?|json)$/.test(e.name) ? [full] : [];
   });
 }
