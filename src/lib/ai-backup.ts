@@ -15,7 +15,7 @@ import Anthropic from '@anthropic-ai/sdk';
 
 import { jsonSchemaOf, type AiTask } from './ai-tasks';
 
-export type BackupProvider = 'anthropic' | 'openai';
+export type BackupProvider = 'anthropic' | 'openai' | 'bizrouter';
 
 export interface BackupUsage {
   input?: number;
@@ -31,6 +31,14 @@ export type BackupResult =
 /** 기본 모델 (2026-11-26 사용자 결정 — 코칭 1회 약 1원대) — 환경변수 ANTHROPIC_MODEL · OPENAI_MODEL 로 바꿀 수 있다 */
 export const ANTHROPIC_DEFAULT_MODEL = 'claude-haiku-5-5';
 export const OPENAI_DEFAULT_MODEL = 'gpt-6-luna';
+/**
+ * 비즈라우터(BizRouter, 국내 AI 중계) — 2026-11-27 사용자 결정: Gemini 선불 크레딧이 또 바닥나 코칭이 멈춰 연결.
+ * OpenAI 방식 주소로 Google·Anthropic·OpenAI 모델을 부른다. 기본은 지금 Gemini 와 같은 모델이라
+ * 이미 받은 Google 동의 범위 안에서 쓴다 (모델 앞 회사 이름으로 동의를 확인 — bizrouterCompany).
+ * 환경변수 BIZROUTER_MODEL 로 바꾼다 (예: anthropic/claude-haiku-4.5 — 그러면 Anthropic 에 동의한 앱만).
+ */
+export const BIZROUTER_DEFAULT_MODEL = 'google/gemini-3.5-flash';
+export const BIZROUTER_API_BASE = 'https://api.bizrouter.ai/v1';
 
 /**
  * 안전 분류기가 거절하면 Anthropic 서버가 다른 모델로 다시 돌리는 기능(fallbacks)을 받는 모델.
@@ -150,6 +158,59 @@ export async function callOpenAITask(task: AiTask, apiKey: string, options: { mo
   };
 }
 
+/** 비즈라우터 Chat Completions (OpenAI 방식) — JSON 스키마 출력. 다시 시도는 하지 않는다 */
+export async function callBizRouterTask(task: AiTask, apiKey: string, options: { model?: string; signal?: AbortSignal } = {}): Promise<BackupResult> {
+  const model = options.model || BIZROUTER_DEFAULT_MODEL;
+  const content: ({ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } })[] = [{ type: 'text', text: task.context }];
+  if (task.image) content.push({ type: 'image_url', image_url: { url: `data:${task.image.mediaType};base64,${task.image.base64}` } });
+  content.push({ type: 'text', text: task.task });
+  const payload = {
+    model,
+    messages: [
+      { role: 'system', content: task.system },
+      { role: 'user', content },
+    ],
+    max_tokens: 16000,
+    response_format: { type: 'json_schema', json_schema: { name: `sendit_${task.mode}`, strict: false, schema: jsonSchemaOf(task.schema) } },
+  };
+  let res: Response;
+  try {
+    res = await fetch(`${BIZROUTER_API_BASE}/chat/completions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify(payload),
+      signal: options.signal,
+    });
+  } catch (e) {
+    if (options.signal?.aborted) throw e;
+    return fail('bizrouter', model, undefined, 'server');
+  }
+  const body = (await readJson(res)) as {
+    choices?: { finish_reason?: string; message?: { content?: string | null; refusal?: string | null } }[];
+    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; prompt_tokens_details?: { cached_tokens?: number } };
+  } | null;
+  if (!res.ok) return fail('bizrouter', model, res.status, codeOfStatus(res.status));
+  const choice = body?.choices?.[0];
+  if (choice?.message?.refusal || choice?.finish_reason === 'content_filter') return fail('bizrouter', model, res.status, 'refused');
+  const text = choice?.message?.content ?? '';
+  if (!text) return fail('bizrouter', model, res.status, 'parse');
+  const u = body?.usage;
+  return {
+    ok: true,
+    provider: 'bizrouter',
+    model,
+    text,
+    finishReason: choice?.finish_reason === 'length' ? 'MAX_TOKENS' : choice?.finish_reason,
+    usage: u ? { input: u.prompt_tokens, output: u.completion_tokens, cached: u.prompt_tokens_details?.cached_tokens, total: u.total_tokens } : undefined,
+  };
+}
+
+/** 비즈라우터 모델 이름 앞 회사 → 동의 헤더의 회사 이름 (모르는 회사면 null — 동의를 받지 않았으니 쓰지 않는다) */
+export function bizrouterCompany(model: string | undefined): string | null {
+  const vendor = (model || BIZROUTER_DEFAULT_MODEL).split('/')[0]?.trim().toLowerCase();
+  return vendor === 'google' || vendor === 'anthropic' || vendor === 'openai' ? vendor : null;
+}
+
 /** x-ai-consent 헤더 → 동의한 회사 목록, 동의한 순서 그대로 ('google' · 'google,anthropic,openai' · 'anthropic,openai,google') */
 export function consentList(header: string | string[] | undefined): string[] {
   const raw = Array.isArray(header) ? header.join(',') : (header ?? '');
@@ -167,25 +228,34 @@ export const shouldFallBack = (code: string): boolean => code === 'rate_limit' |
 /** 답을 맡기는 AI (Gemini 포함) */
 export type AiProviderName = BackupProvider | 'gemini';
 /** 새 동의(Claude 먼저)의 기본 순서 (2026-11-26 사용자 결정) — 환경변수 AI_PROVIDER_ORDER(쉼표, 예: openai,anthropic,gemini)로 바꾼다 */
-export const DEFAULT_AI_ORDER: readonly AiProviderName[] = ['anthropic', 'openai', 'gemini'];
+export const DEFAULT_AI_ORDER: readonly AiProviderName[] = ['anthropic', 'openai', 'gemini', 'bizrouter'];
 /** 예전 동의(google 먼저, 11-20 처리방침)의 순서 — 동의받은 그대로라 환경변수로 바꾸지 않는다 */
-export const LEGACY_AI_ORDER: readonly AiProviderName[] = ['gemini', 'anthropic', 'openai'];
-/** 동의 헤더에 쓰는 회사 이름 */
-const COMPANY_OF: Record<AiProviderName, string> = { anthropic: 'anthropic', openai: 'openai', gemini: 'google' };
+export const LEGACY_AI_ORDER: readonly AiProviderName[] = ['gemini', 'anthropic', 'openai', 'bizrouter'];
+/** 동의 헤더에 쓰는 회사 이름 (비즈라우터는 부르는 모델의 회사 — bizrouterCompany) */
+const COMPANY_OF: Record<Exclude<AiProviderName, 'bizrouter'>, string> = { anthropic: 'anthropic', openai: 'openai', gemini: 'google' };
+const AI_NAMES: readonly AiProviderName[] = ['anthropic', 'openai', 'gemini', 'bizrouter'];
 
 /**
  * 이번 요청을 맡길 AI 순서 — 사용자가 동의한 회사이고 키가 있는 것만.
  * 동의 목록 맨 앞이 google 이면(예전 동의) Gemini 먼저, 아니면(새 동의) Claude 먼저.
- * Google 에만 동의한 예전 앱이면 Gemini 하나만 남는다.
+ * Google 에만 동의한 예전 앱이면 Gemini(와 Google 모델을 부르는 비즈라우터)만 남는다.
+ * 비즈라우터는 맨 뒤 예비다. BIZROUTER_FIRST=1 이면 맨 앞으로 (직접 연결이 막혔을 때 헛걸음을 줄인다).
  */
 export function aiOrder(consent: readonly string[], env: Record<string, string | undefined> = process.env): { provider: AiProviderName; key: string }[] {
   const consented = new Set(consent);
   const wanted = (env.AI_PROVIDER_ORDER ?? '')
     .split(',')
     .map((p) => p.trim().toLowerCase())
-    .filter((p): p is AiProviderName => p === 'anthropic' || p === 'openai' || p === 'gemini');
+    .filter((p): p is AiProviderName => (AI_NAMES as readonly string[]).includes(p));
   const claudeFirst = consent.length > 0 && consent[0] !== 'google';
-  const order = !claudeFirst ? LEGACY_AI_ORDER : wanted.length ? [...new Set(wanted)] : DEFAULT_AI_ORDER;
-  const keyOf: Record<AiProviderName, string | undefined> = { anthropic: env.ANTHROPIC_API_KEY, openai: env.OPENAI_API_KEY, gemini: env.GEMINI_API_KEY };
-  return order.filter((p) => consented.has(COMPANY_OF[p]) && keyOf[p]).map((p) => ({ provider: p, key: keyOf[p] as string }));
+  let order: AiProviderName[] = [...(!claudeFirst ? LEGACY_AI_ORDER : wanted.length ? [...new Set(wanted)] : DEFAULT_AI_ORDER)];
+  if (env.BIZROUTER_FIRST === '1') order = ['bizrouter', ...order.filter((p) => p !== 'bizrouter')];
+  const keyOf: Record<AiProviderName, string | undefined> = { anthropic: env.ANTHROPIC_API_KEY, openai: env.OPENAI_API_KEY, gemini: env.GEMINI_API_KEY, bizrouter: env.BIZROUTER_API_KEY };
+  const companyOf = (p: AiProviderName): string | null => (p === 'bizrouter' ? bizrouterCompany(env.BIZROUTER_MODEL) : COMPANY_OF[p]);
+  return order
+    .filter((p) => {
+      const company = companyOf(p);
+      return company !== null && consented.has(company) && Boolean(keyOf[p]);
+    })
+    .map((p) => ({ provider: p, key: keyOf[p] as string }));
 }

@@ -10,7 +10,8 @@
  * AI 회사가 실패하면(크레딧 소진·키 오류·한도·서버 오류) 운영자 텔레그램으로 바로 알립니다 — 같은 문제는 30분에 한 번.
  * 받는 곳은 앱의 AI 분석 동의 시트(src/components/coach/ai-consent-sheet.tsx)와 개인정보 처리방침 2번이 안내합니다 — 바꾸려면 셋을 같이 고칠 것.
  * 환경변수:
- *   ANTHROPIC_API_KEY · OPENAI_API_KEY · GEMINI_API_KEY (키가 없는 회사는 건너뜀 — 하나도 없으면 500), AI_PROVIDER_ORDER (선택)
+ *   ANTHROPIC_API_KEY · OPENAI_API_KEY · GEMINI_API_KEY · BIZROUTER_API_KEY (키가 없는 회사는 건너뜀 — 하나도 없으면 500), AI_PROVIDER_ORDER (선택)
+ *   BIZROUTER_MODEL (기본 google/gemini-3.5-flash) · BIZROUTER_FIRST=1 (비즈라우터 먼저)
  *   ANTHROPIC_MODEL (기본 claude-haiku-5-5) · OPENAI_MODEL (기본 gpt-6-luna) · ANTHROPIC_EFFORT · GEMINI_MODEL (선택)
  *   TELEGRAM_BOT_TOKEN · TELEGRAM_CHAT_ID (선택 — AI 실패 알림)
  *   COACH_APP_TOKEN (선택, 앱 토큰 검사)
@@ -23,7 +24,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { APP_NAME, APP_SUBTITLE } from '../src/constants/brand';
 import { buildTask, parseAiRequest, type AiMode, type AiTask } from '../src/lib/ai-tasks';
 import { IMAGE_TOO_LARGE_MESSAGE, MAX_IMAGE_BASE64_LENGTH, isImageTooLarge, salvageTruncatedCoach } from '../src/lib/coach-schema';
-import { aiOrder, callAnthropicTask, callOpenAITask, consentList, shouldFallBack, type AiProviderName, type BackupUsage } from '../src/lib/ai-backup';
+import { aiOrder, callAnthropicTask, callBizRouterTask, callOpenAITask, consentList, shouldFallBack, type AiProviderName, type BackupUsage } from '../src/lib/ai-backup';
 import { callGeminiTask, type GeminiUsage } from '../src/lib/gemini';
 import { escapeHtml, notifyTelegram, telegramReady } from './_telegram';
 import { aiFlagsFor } from './_ai-flags';
@@ -187,7 +188,7 @@ type Attempt =
   | { ok: true; provider: AiProviderName; model?: string; text: string; finishReason?: string; usage?: GeminiUsage | BackupUsage }
   | { ok: false; provider: AiProviderName; model?: string; code: 'auth' | 'rate_limit' | 'refused' | 'server' | 'parse'; status?: number; message: string; upstreamError?: string; usage?: GeminiUsage | BackupUsage; finishReason?: string };
 
-const AI_NAME: Record<AiProviderName, string> = { anthropic: 'Claude', openai: 'GPT', gemini: 'Gemini' };
+const AI_NAME: Record<AiProviderName, string> = { anthropic: 'Claude', openai: 'GPT', gemini: 'Gemini', bizrouter: '비즈라우터' };
 /** 실패 원인 한국어 — 402 는 선불 크레딧 소진 (11-26 Gemini 장애) */
 function failureReason(f: { code: string; status?: number }): string {
   if (f.status === 402) return '크레딧 소진(402) — 충전 필요';
@@ -394,7 +395,9 @@ async function handle(req: VercelRequest, res: VercelResponse, send: (status: nu
       const r =
         next.provider === 'anthropic'
           ? await callAnthropicTask(task, next.key, { model: process.env.ANTHROPIC_MODEL, effort: process.env.ANTHROPIC_EFFORT, signal: watch.signal })
-          : await callOpenAITask(task, next.key, { model: process.env.OPENAI_MODEL, signal: watch.signal });
+          : next.provider === 'openai'
+            ? await callOpenAITask(task, next.key, { model: process.env.OPENAI_MODEL, signal: watch.signal })
+            : await callBizRouterTask(task, next.key, { model: process.env.BIZROUTER_MODEL, signal: watch.signal });
       return r.ok ? { ok: true, provider: r.provider, model: r.model, text: r.text, finishReason: r.finishReason, usage: r.usage } : { ok: false, provider: r.provider, model: r.model, code: r.code, status: r.status, message: r.message };
     };
     /** 받은 JSON 글 → 검사한 결과 (형식이 틀리면 null) */

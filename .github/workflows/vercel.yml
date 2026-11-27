@@ -23,6 +23,10 @@ jobs:
       # 예비 AI (선택 — 없으면 그 회사는 건너뜀). Gemini 가 막혔을 때 세 회사에 동의한 앱의 요청만 Claude → GPT 로 (src/lib/ai-backup.ts)
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      # 비즈라우터(국내 AI 중계, 2026-11-27) — 키 하나로 Gemini·Claude·GPT. 모델·순서는 저장소 변수(선택): BIZROUTER_MODEL(기본 google/gemini-3.5-flash), BIZROUTER_FIRST=1 이면 맨 앞
+      BIZROUTER_API_KEY: ${{ secrets.BIZROUTER_API_KEY }}
+      BIZROUTER_MODEL: ${{ vars.BIZROUTER_MODEL }}
+      BIZROUTER_FIRST: ${{ vars.BIZROUTER_FIRST }}
       COACH_APP_TOKEN: ${{ secrets.EXPO_PUBLIC_API_TOKEN }}
       # 웹 회원가입용 공개 값 (저장소 변수)
       EXPO_PUBLIC_SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
@@ -66,6 +70,9 @@ jobs:
           add_env GEMINI_API_KEY "$GEMINI_API_KEY"
           add_env ANTHROPIC_API_KEY "$ANTHROPIC_API_KEY"
           add_env OPENAI_API_KEY "$OPENAI_API_KEY"
+          add_env BIZROUTER_API_KEY "$BIZROUTER_API_KEY"
+          add_env BIZROUTER_MODEL "$BIZROUTER_MODEL"
+          add_env BIZROUTER_FIRST "$BIZROUTER_FIRST"
           [ -n "$ANTHROPIC_API_KEY$OPENAI_API_KEY" ] || echo "::notice::예비 AI 키(ANTHROPIC_API_KEY·OPENAI_API_KEY)가 없어 Gemini 로만 보냅니다"
           # 지금 서버는 이 값을 읽지 않고 Gemini 로만 보낸다. 예전 서버 코드를 다시 배포해도 Gemini 를 고르도록 고정해 둔다
           add_env AI_PROVIDER gemini
@@ -154,5 +161,9 @@ jobs:
           if [ -n "$OPENAI_API_KEY" ]; then
             code=$(curl -sS -o /dev/null -w "%{http_code}" https://api.openai.com/v1/models -H "Authorization: Bearer $OPENAI_API_KEY")
             echo "예비 AI GPT 키: $code"; [ "$code" = "200" ] || echo "::warning::예비 AI GPT 키 확인 실패 ($code) — 키를 다시 등록하세요"
+          fi
+          if [ -n "$BIZROUTER_API_KEY" ]; then
+            code=$(curl -sS -o /dev/null -w "%{http_code}" https://api.bizrouter.ai/v1/models -H "Authorization: Bearer $BIZROUTER_API_KEY")
+            echo "비즈라우터 키: $code"; [ "$code" = "200" ] || echo "::warning::비즈라우터 키 확인 실패 ($code) — 키를 다시 등록하세요"
           fi
           echo "다음 단계: node tools/set-ci-secrets.mjs --api-url $url (앱 빌드가 이 서버를 쓰도록)"
