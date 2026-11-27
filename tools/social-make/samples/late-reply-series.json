@@ -77,6 +77,7 @@
         "other": {
           "caption": "근데 그 하루\n그녀는 사실…\n단톡방 작전 회의",
           "still": "tools/social-make/samples/late-reply/jiwoo-ep2-other.jpg",
+          "motion": "tools/social-make/samples/late-reply/motion/jiwoo-ep2-other.mp4",
           "seconds": 5
         }
       },
@@ -116,6 +117,7 @@
         "other": {
           "caption": "근데 이 남자\n답장을 어디서\n고르냐면…",
           "still": "tools/social-make/samples/late-reply/doyun-ep3-other.jpg",
+          "motion": "tools/social-make/samples/late-reply/motion/doyun-ep3-other.mp4",
           "seconds": 5
         }
       },
