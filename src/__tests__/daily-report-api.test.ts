@@ -135,6 +135,29 @@ describe('/api/daily-report', () => {
     for (const section of ['📱 <b>아이폰 · 갤럭시</b>', '🧭 <b>들어온 경로</b>', '👤 <b>나이 · 성별</b>', '⏱️ <b>체류 시간</b>']) expect(text).toContain(section);
   });
 
+  it('알림 시험(?test=1)은 서버 봇 토큰으로도 부를 수 있고, 예시(실제 아님)와 어제 리포트를 보낸다', async () => {
+    const res = fakeRes();
+    await handler({ method: 'GET', query: { test: '1' }, headers: { authorization: 'Bearer bot-token' } } as never, res as never);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ sent: true, report: true });
+    const [sample, report] = telegramTexts();
+    expect(sample).toContain('센딧 서버 알림 시험');
+    expect(sample).toContain('실제 가입·결제 아님');
+    expect(sample).toContain('🎉 새 회원가입');
+    expect(sample).toContain('💳 결제 · 하루 이용권 ₩3,900 · iOS');
+    expect(report.startsWith('🧪 (시험 발송) 어제 리포트')).toBe(true);
+  });
+
+  it('봇 토큰은 시험(?test=1)에서만 통한다 — 진짜 리포트 인증은 CRON_SECRET 만', async () => {
+    const res = fakeRes();
+    await handler(cronReq('Bearer bot-token'), res as never);
+    expect(res.statusCode).toBe(401);
+    const wrong = fakeRes();
+    await handler({ method: 'GET', query: { test: '1' }, headers: { authorization: 'Bearer other-token' } } as never, wrong as never);
+    expect(wrong.statusCode).toBe(401);
+    expect(calls).toHaveLength(0);
+  });
+
   it('텔레그램을 설정하지 않았으면 데이터베이스를 읽지 않고 sent: false', async () => {
     delete process.env.TELEGRAM_CHAT_ID;
     const res = fakeRes();
