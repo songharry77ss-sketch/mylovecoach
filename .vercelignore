@@ -6,5 +6,5 @@ ios/
 docs/*
 !docs/STORE_LISTING.md
 # 세계판 검색 페이지(tools/seo-global.mjs)가 빌드 때 읽는 언어별 스토어 문구 (2026-11-28 — 빠져서 배포가 실패했다)
-!docs/store-listing/
+!docs/store-listing
 node_modules/
