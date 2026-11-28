@@ -22,7 +22,7 @@ import { z } from 'zod';
 
 import { alertFunnel } from './_funnel-alert';
 import { bodyTooLarge, clientIp, rateLimited, storedKb } from './_limits';
-import { analyticsEnabled, BASIC_LOG_VERSION, consentVersionOk, DEVICE_ID, insert, optedOutDevice, patch, remove, rpc, supabaseReady } from './_supabase';
+import { analyticsEnabled, BASIC_LOG_VERSION, consentVersionOk, DEVICE_ID, insert, optedOutDevice, patch, remove, rpc, select, supabaseReady } from './_supabase';
 
 export const config = { maxDuration: 15 };
 
@@ -192,9 +192,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(204).end();
     return;
   }
-  // 판 3(기본 이용 기록)부터는 이름(별명)을 받지 않는다. 예전 앱의 선택 동의(판 2)는 동의받은 대로 저장한다
+  // 판 3(기본 이용 기록)부터는 이름(별명)을 이용 기록으로 받지 않는다. 예전 앱의 선택 동의(판 2)는 동의받은 대로 저장한다.
+  // 단, 회원과 이어진 기기가 보낸 앱 별명은 회원 정보로 보관한다(처리방침 회원 항목, 2026-11-28) — 운영자가 별명으로 찾을 수 있게. 탈퇴하면 member_delete 가 지운다
   const basicOnly = Number(b.consentVersion) >= BASIC_LOG_VERSION;
-  const name = basicOnly ? null : (b.user?.name ?? null);
+  const sentName = b.user?.name?.trim() || null;
+  const memberDevice = basicOnly && sentName ? ((await select<{ user_id: string }>('member_device', `select=user_id&device_id=eq.${encodeURIComponent(b.deviceId)}&limit=1`)) ?? []).length > 0 : false;
+  const name = basicOnly ? (memberDevice ? sentName : null) : sentName;
 
   const nowMs = Date.now();
   const now = new Date(nowMs).toISOString();
@@ -263,8 +266,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (lateAttribution(acq)) await patch('app_user', `${userFilter}&source=in.(${NATIVE_CHANNELS.join(',')})&first_seen_at=gte.${yearAgo}`, { source, source_detail: acq });
       return patch('app_user', userFilter, {
         last_seen_at: now,
-        // 판 3 이 되면 예전 동의로 저장돼 있던 이름도 지운다 (지금 안내하는 수집 항목에 이름이 없으므로)
-        ...(basicOnly ? { name: null } : name ? { name } : {}),
+        // 판 3 이 되면 예전 동의로 저장돼 있던 이름도 지운다 — 회원 기기의 앱 별명(회원 정보)만 남긴다
+        ...(basicOnly ? { name: memberDevice ? name : null } : name ? { name } : {}),
         ...(b.user ? { gender: b.user.gender ?? null, age: b.user.age ?? null, mbti: b.user.mbti ?? null, default_tone: b.user.defaultTone ?? null } : {}),
         ...(b.platform ? { platform: b.platform } : {}),
         ...(b.appVersion ? { app_version: b.appVersion } : {}),
