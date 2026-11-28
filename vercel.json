@@ -109,6 +109,22 @@
       "destination": "/guide/:slug/index.html"
     },
     {
+      "source": "/:lang(en|ja|es|pt)",
+      "destination": "/:lang/index.html"
+    },
+    {
+      "source": "/:lang(en|ja|es|pt)/",
+      "destination": "/:lang/index.html"
+    },
+    {
+      "source": "/en/guide",
+      "destination": "/en/guide/index.html"
+    },
+    {
+      "source": "/en/guide/:slug",
+      "destination": "/en/guide/:slug/index.html"
+    },
+    {
       "source": "/api/kkti-share",
       "destination": "/api/kkti-card?route=share"
     },
