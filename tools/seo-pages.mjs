@@ -6,11 +6,13 @@
  *      kkti-result.html /kkti/result — 사람마다 다른 결과라 noindex
  *    <div id="root"> 안의 본문은 JS 가 뜨면 React(createRoot)가 지우고 앱을 그린다. 사람·로봇 모두 같은 HTML 을 받는다.
  *  - staticPages(): /kkti/types, /kkti/type/<mbti> 16개, /guide · /guide/<slug> 상황별 가이드(tools/seo-guides.mjs), sitemap.xml
+ *    + 세계판 /en/ · /ja/ · /es/ · /pt/ 랜딩과 /en/guide/<slug> 영어 가이드(tools/seo-global.mjs — 한국어 홈과 hreflang 으로 묶음)
  * 주의: dist/kkti/index.html · dist/kkti/result/… 는 만들지 않는다 — 정적 파일이 rewrites 보다 먼저라
  *       카톡 미리보기(수집기 → api/kkti-card) 규칙이 죽는다. 유형 페이지는 dist/kkti/type/ 아래에만 둔다.
  * src/lib/kkti.ts 를 그대로 불러온다 (Node 22.18+ 는 타입만 지우고 .ts 를 바로 읽는다).
  */
 import { KKTI_AXES, KKTI_QUESTIONS, KKTI_TYPES, cardUrl, computeKkti, matchReason } from '../src/lib/kkti.ts';
+import { GLOBAL_PATHS, globalPages, hreflangLinks } from './seo-global.mjs';
 import { GUIDES } from './seo-guides.mjs';
 
 export const SITE = (process.env.SITE_URL || 'https://mylovecoach.vercel.app').replace(/\/+$/, '');
@@ -113,6 +115,8 @@ const HOME = {
       extra: [
         ...verifyTags(),
         BANNER,
+        // 세계판 랜딩(/en/ /ja/ /es/ /pt/)과 서로 잇는다 — 같은 묶음이 각 랜딩에도 들어간다
+        ...hreflangLinks(),
         ld({
           '@context': 'https://schema.org',
           '@graph': [
@@ -363,6 +367,7 @@ export function staticPages() {
   const files = { 'kkti/types/index.html': typesHub(), 'guide/index.html': guidesHub() };
   for (const g of GUIDES) files[`guide/${g.slug}/index.html`] = guidePage(g);
   for (const t of TYPES) files[`kkti/type/${slugOf(t.code)}/index.html`] = typePage(t);
-  files['sitemap.xml'] = sitemap(['/', '/kkti', '/kkti/types', ...TYPES.map((t) => typePath(t.code)), '/guide', ...GUIDES.map(guidePath), '/support.html', '/privacy.html', '/terms.html']);
+  Object.assign(files, globalPages());
+  files['sitemap.xml'] = sitemap(['/', '/kkti', '/kkti/types', ...TYPES.map((t) => typePath(t.code)), '/guide', ...GUIDES.map(guidePath), '/support.html', '/privacy.html', '/terms.html', ...GLOBAL_PATHS]);
   return files;
 }
