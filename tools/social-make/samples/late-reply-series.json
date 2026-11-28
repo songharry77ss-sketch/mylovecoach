@@ -72,7 +72,11 @@
           "b": "tools/social-make/samples/late-reply/doyun-ep2-b.jpg",
           "c": "tools/social-make/samples/late-reply/doyun-ep2-c.jpg"
         },
-        "motion": { "a": "tools/social-make/samples/late-reply/motion/doyun-ep2-a.mp4" },
+        "motion": {
+          "a": "tools/social-make/samples/late-reply/motion/doyun-ep2-a.mp4",
+          "b": "tools/social-make/samples/late-reply/motion/doyun-ep2-b.mp4",
+          "c": "tools/social-make/samples/late-reply/motion/doyun-ep2-c.mp4"
+        },
         "captionTop": 1150,
         "other": {
           "caption": "근데 그 하루\n그녀는 사실…\n단톡방 작전 회의",
