@@ -16,7 +16,7 @@ import { Brand, Radius, Spacing } from '@/constants/theme';
 import { RESEARCH_SHORT, RESEARCH_SHORT_EN } from '@/constants/brand';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { onSalePrice, usePlanProducts } from '@/hooks/use-plan-products';
-import { paywallClosed } from '@/hooks/use-resume-after-paywall';
+import { hasPendingResume, paywallClosed } from '@/hooks/use-resume-after-paywall';
 import { useTheme } from '@/hooks/use-theme';
 import { track } from '@/lib/analytics';
 import { STORE_LABEL, STORE_URL, downloadDevice, type DownloadStore } from '@/lib/app-download';
@@ -34,6 +34,29 @@ import { authAvailable } from '@/lib/supabase';
 import { introUntil, useAppStore } from '@/store/app-store';
 
 type Reason = 'quota' | 'regenerate' | 'my' | 'banner' | 'upsell' | 'report' | 'practice' | 'mind' | 'renew';
+/** 무료를 다 써서 막혀 들어온 이유들 (lib/billing/paywall-route 의 BLOCKED_REASONS 와 같다) */
+const BLOCKED: ReadonlySet<Reason> = new Set<Reason>(['quota', 'regenerate', 'report', 'practice', 'mind']);
+
+/**
+ * 결제 없이 닫을 때 한 번 묻는 이유 (기기당 한 번 · 건너뛸 수 있음) — 하루 8명꼴이라 A/B 로는 판단이 안 돼서 이유를 직접 모은다.
+ * 2026-11-28 결제 전환 검토(김대표): 「비싸요 / 아직 필요 없어요 / 무료로 충분 / 결제 번거로움 / 답이 별로」
+ */
+const WHY_OPTIONS: { key: string; label: string }[] = L(
+  [
+    { key: 'price', label: '가격이 부담돼요' },
+    { key: 'later', label: '지금은 필요 없어요' },
+    { key: 'free_ok', label: '무료로도 충분해요' },
+    { key: 'hassle', label: '결제가 번거로워요' },
+    { key: 'quality', label: '답장이 기대보다 별로예요' },
+  ],
+  [
+    { key: 'price', label: 'Too expensive' },
+    { key: 'later', label: "Don't need it right now" },
+    { key: 'free_ok', label: 'Free is enough for me' },
+    { key: 'hassle', label: 'Paying is a hassle' },
+    { key: 'quality', label: "Replies weren't good enough" },
+  ],
+);
 /** 스토어에 닿지 못했을 때 저절로 다시 묻는 횟수 (그다음은 「다시 불러오기」 버튼) */
 const AUTO_RELOADS = 2;
 
@@ -170,6 +193,17 @@ export default function Paywall() {
   const saleStartedAt = useAppStore((s) => s.saleOfferStartedAt);
   const startSaleOffer = useAppStore((s) => s.startSaleOffer);
   const setPremium = useAppStore((s) => s.setPremium);
+  const whyAsked = useAppStore((s) => s.paywallWhyAsked);
+  const setWhyAsked = useAppStore((s) => s.setPaywallWhyAsked);
+  const blocked = BLOCKED.has(reason);
+  // 막혀서 들어왔고 그 요청이 기다리고 있으면 — 결제·가입하면 저절로 이어진다고 말한다 (use-resume-after-paywall)
+  const [resumes] = useState(() => BLOCKED.has(reason) && hasPendingResume());
+  // 비회원이 막혔을 때 「가입 없이 바로 이용권」을 펼쳤는지
+  const [buyOpen, setBuyOpen] = useState(false);
+  // 닫을 때 이유를 묻는 중인지
+  const [asking, setAsking] = useState(false);
+  // 안드로이드에서 결제창을 닫았을 때 결제 수단 안내를 이미 했는지
+  const cancelHinted = useRef(false);
 
   // 앱에서는 스토어 응답을 받은 뒤에 상품을 보여 준다 (스토어에 없는 상품이 잠깐이라도 보이지 않도록)
   // 스토어에 닿지 못했을 때 「다시 불러오기」로 한 번 더 묻는다
@@ -236,14 +270,17 @@ export default function Paywall() {
   // 스토어가 특가 상품과 정가 하루 이용권을 둘 다 확인했고, 이미 무제한인 사람이 아닐 때만
   const offer = saleSupported && !active && saleAudience(status.kind) && visible.some((p) => p.plan === 'day') ? saleOffer(products) : null;
   const offerReady = offer != null;
-  // 처음 조건에 맞는 결제 화면을 볼 때 한 번 시작한다 — 시작 시각은 저장돼서 다시 열어도 처음부터 돌지 않는다
+  // 무료를 다 써서 막혀 들어온 결제 화면에서만 한 번 시작한다 — 시작 시각은 저장돼서 다시 열어도 처음부터 돌지 않는다.
+  // 마이 탭·안내 줄·「도움이 됐나요」 카드에서 구경만 해도 10분이 흘러가 7일 잠기던 것을 막는다(2026-11-28 결제 전환 검토 약점 1).
+  // 이미 진행 중인 특가는 어느 결제 화면에서든 그대로 보인다
+  const saleMoment = blocked;
   useEffect(() => {
-    if (!offerReady) return;
+    if (!offerReady || !saleMoment) return;
     const at = Date.now();
     if (!shouldStartSale(useAppStore.getState().saleOfferStartedAt, at)) return;
     startSaleOffer(at);
     track('sale_offer_start', { reason });
-  }, [offerReady, reason, startSaleOffer]);
+  }, [offerReady, saleMoment, reason, startSaleOffer]);
   const sale = saleWindow(saleStartedAt, Date.now());
   // 1초마다 다시 그려 남은 시간을 줄인다 (끝나면 정가로 돌아간다)
   useRemaining(offer && sale.phase === 'active' ? sale.endsAt : null);
@@ -335,6 +372,10 @@ export default function Paywall() {
       setNotice({ kind: 'info', text: L('결제 승인을 기다리고 있어요. 승인되면 자동으로 적용돼요.', 'Waiting for payment approval. It’ll kick in automatically once approved.') });
     } else if (outcome.status === 'error') {
       setNotice({ kind: 'error', text: outcome.message });
+    } else if (outcome.status === 'cancelled' && Platform.OS === 'android' && isKo && !cancelHinted.current) {
+      // 카드를 등록하지 않은 사람이 첫 결제창에서 떠나는 경우가 많아 한 번만 알린다 (Google Play 는 통신사 결제를 지원)
+      cancelHinted.current = true;
+      setNotice({ kind: 'info', text: `카드가 없어도 ${storeName} 결제창의 결제 수단에서 휴대폰(통신사) 결제를 고를 수 있어요.` });
     }
   };
 
@@ -373,24 +414,34 @@ export default function Paywall() {
     : offerSignup && status.kind === 'exhausted'
       ? {
           title: L('무료 맛보기를 다 썼어요', "You've used your free trial"),
-          subtitle: L(`가입하면 무료 코칭 ${SIGNUP_BONUS}회를 더 드려요. 이용권으로 바로 이어서 할 수도 있어요.`, `Sign up and get ${SIGNUP_BONUS} more free sessions. Or keep going now with a pass.`),
+          subtitle: L(
+            `가입하면 무료 코칭 ${SIGNUP_BONUS}회를 바로 더 드리고, 그 뒤로도 매일 1회씩 무료로 채워져요.`,
+            `Sign up to get ${SIGNUP_BONUS} more free sessions right away — plus 1 free session every day after that.`,
+          ),
         }
       : reason === 'renew' && wallet.passUntil > minuteNow
         ? { title: L(`하루 무제한이 ${formatPassEnd(wallet.passUntil, minuteNow)}에 끝나요`, `Your pass ends at ${formatPassEnd(wallet.passUntil, minuteNow)}`), subtitle }
         : { title: HEADLINES[reason].title, subtitle };
 
-  const ready = showPlans && products != null && !active;
-  // 처음 보이는 줄은 두 개 — 하루 이용권·1년권(곧 끝나요 화면은 1년권이 위). 주간 구독·횟수권은 「다른 이용권 보기」로 그 자리에서 펼친다(조사 R2: 상위 결제 화면 62%가 요금제 2개)
-  const MAIN: PlanKey[] = reason === 'renew' ? ['year', 'day'] : ['day', 'year'];
+  // 비회원이 무료를 다 써서 막혔으면 가입(무료 보너스) 한 갈래만 먼저 — 결제는 「가입 없이 바로 이용권 보기」 한 줄로 접는다.
+  // 가입 카드·이용권 목록·아래 결제 버튼이 한꺼번에 보여 아무것도 고르지 않고 떠나던 것을 줄인다(결제 전환 검토 약점 2).
+  // 가입 없이 사는 길은 늘 남긴다 (스토어 정책: 계정 없이도 살 수 있어야 한다)
+  const guestGate = offerSignup && blocked && status.kind === 'exhausted' && !buyOpen;
+  const ready = showPlans && products != null && !active && !guestGate;
+  // 처음 보이는 줄은 두 개 — 하루 이용권·횟수권(곧 끝나요 화면은 1년권·하루 이용권). 주간 구독·1년권은 「다른 이용권 보기」로 그 자리에서 펼친다
+  // (조사 R2: 상위 결제 화면 62%가 요금제 2개). 2026-11-28: 30일 결제 3건이 모두 하루 이용권이고 1년권은 0건이라,
+  // 첫 결제 문턱이 낮은 횟수권(1회 490원꼴)을 두 번째로 올렸다 — 1년권은 하루 이용권이 끝나 갈 때(renew) 먼저 권한다
+  const MAIN: PlanKey[] = reason === 'renew' ? ['year', 'day'] : ['day', 'credits'];
   const mainRows = ready ? MAIN.map((k) => visible.find((p) => p.plan === k)).filter((p): p is PlanProduct => Boolean(p)) : [];
   const extraRows = ready ? visible.filter((p) => !MAIN.includes(p.plan)) : [];
   // 두 줄이 모두 없으면(스토어가 소모성 상품을 확인하지 못함) 남은 것을 바로 보여 준다
   const showExtras = moreOpen || mainRows.length === 0 || extraRows.some((p) => p.plan === chosen);
   const chosenPrice = chosen === 'day' && salePrice ? salePrice : priceOf(chosen);
   const footer = active || (ready && visible.length > 0);
+  // 스토어에서 이용권을 하나도 확인하지 못했으면 결제 버튼 대신 다시 불러오기를 주 버튼으로 (확인 안 된 1년권 결제창을 열지 않게)
+  const reloadMain = ready && storeUnreachable;
   // 특가 취소선·할인율은 2026-11-27 20:45 부터 (lib/billing/sale SALE_ANCHOR_FROM)
   const anchorOk = saleAnchorAllowed(minuteNow);
-  const blocked = reason === 'quota' || reason === 'regenerate' || reason === 'report' || reason === 'practice' || reason === 'mind';
   const rowFor = (p: PlanProduct) => {
     if (p.plan === 'day') {
       const dayTitle = name ? L(`${shortName(name)}님을 위한 하루 이용권`, `24-hour pass for ${shortName(name)}`) : PLAN_TEXT.day.title;
@@ -429,17 +480,36 @@ export default function Paywall() {
         onPress={() => pick(p.plan)}
         title={PLAN_TEXT[p.plan].title}
         caption={PLAN_TEXT[p.plan].caption}
+        note={p.plan === 'credits' ? (perUseWon(priceOf('credits'), p.price) ?? undefined) : undefined}
         price={priceOf(p.plan)}
         per={p.plan === 'weekly' ? PER_WEEK : undefined}
       />
     );
   };
 
+  // 결제 없이 닫을 때 — 막혀서 들어왔으면 기기당 한 번 이유를 묻는다 (건너뛸 수 있음)
+  const requestClose = () => {
+    const v = visit.current;
+    if (blocked && !active && !v.done && v.result !== 'signup' && !whyAsked && !asking) {
+      setWhyAsked();
+      setAsking(true);
+      track('paywall_why_view', { reason });
+      return;
+    }
+    close();
+  };
+  const answerWhy = (why: string) => {
+    haptic.select();
+    track('paywall_why', { reason, why, plan: visit.current.plan, picked: visit.current.picked, result: visit.current.result });
+    setAsking(false);
+    close();
+  };
+
   return (
     <View style={[styles.flex, { backgroundColor: theme.background }]}>
       <Screen sheet safeTop safeBottom={!footer} contentStyle={styles.content}>
         <View style={styles.topBar}>
-          <Pressable accessibilityRole="button" accessibilityLabel={L('닫기', 'Close')} onPress={close} hitSlop={8} style={[styles.close, { backgroundColor: theme.surface }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={L('닫기', 'Close')} onPress={requestClose} hitSlop={8} style={[styles.close, { backgroundColor: theme.surface }]}>
             <Ionicons name="close" size={20} color={theme.textSecondary} />
           </Pressable>
         </View>
@@ -455,6 +525,21 @@ export default function Paywall() {
           {!active && (status.kind === 'team' || status.kind === 'pass' || (status.credits ?? 0) > 0) ? (
             <AppText variant="caption" color="textSecondary" weight="600">
               {L('지금', 'Now')}: {quotaLabel(status)}
+            </AppText>
+          ) : null}
+          {!active && resumes ? (
+            <View style={styles.resume}>
+              <Ionicons name="checkmark-circle" size={16} color={theme.primary} />
+              <AppText variant="small" color="primary" weight="600" style={styles.flex}>
+                {offerSignup && status.kind === 'exhausted'
+                  ? L('가입하거나 이용권을 사면 방금 보낸 요청이 바로 이어져요', 'Sign up or get a pass and your last request picks right back up')
+                  : L('결제하면 방금 보낸 요청이 바로 이어져요', 'Get a pass and your last request picks right back up')}
+              </AppText>
+            </View>
+          ) : null}
+          {!active ? (
+            <AppText variant="caption" color="textTertiary">
+              {L(RESEARCH_SHORT, RESEARCH_SHORT_EN)}
             </AppText>
           ) : null}
         </Animated.View>
@@ -473,6 +558,29 @@ export default function Paywall() {
               );
             }}
           />
+        ) : null}
+
+        {guestGate && showPlans ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={L('가입 없이 바로 이용권 보기', 'Get a pass without signing up')}
+            onPress={() => {
+              haptic.select();
+              track('paywall_guest_buy', { reason });
+              setBuyOpen(true);
+            }}
+            hitSlop={6}
+            style={[styles.guestBuy, { borderColor: theme.separator }]}>
+            <View style={styles.flex}>
+              <AppText variant="body" weight="600">
+                {L('가입 없이 바로 이용권 보기', 'Get a pass without signing up')}
+              </AppText>
+              <AppText variant="caption" color="textSecondary">
+                {L(`하루 무제한 ${priceText(dayPrice ?? priceOf('day'))} · 자동 결제 없음`, `24 hours unlimited for ${dayPrice ?? priceOf('day')} · No auto-renewal`)}
+              </AppText>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.textTertiary} />
+          </Pressable>
         ) : null}
 
         {/* 얻는 것 — 체크 세 줄 (막혀서 온 사람은 이미 알고 있어 이용권 줄 아래로) */}
@@ -530,7 +638,7 @@ export default function Paywall() {
 
         {ready && chosen === 'year' ? <YearPassNote price={priceOf('year')} until={formatDate(yearPassEnd(minuteNow))} storeName={storeName} /> : null}
 
-        {!active && blocked ? <Benefits /> : null}
+        {!active && blocked && !guestGate ? <Benefits /> : null}
 
         {ready && visible.length ? (
           <AppText variant="caption" color="textSecondary" style={styles.fine}>
@@ -566,9 +674,11 @@ export default function Paywall() {
             </AppText>
           </Pressable>
         </View>
-        <AppText variant="caption" color="textTertiary" align="center" style={styles.research}>
-          {L(RESEARCH_SHORT, RESEARCH_SHORT_EN)}
-        </AppText>
+        {active ? (
+          <AppText variant="caption" color="textTertiary" align="center" style={styles.research}>
+            {L(RESEARCH_SHORT, RESEARCH_SHORT_EN)}
+          </AppText>
+        ) : null}
       </Screen>
 
       {footer ? (
@@ -582,6 +692,20 @@ export default function Paywall() {
           ) : null}
           {active ? (
             <Button variant="brand" title={L('확인', 'Done')} onPress={close} />
+          ) : reloadMain ? (
+            <>
+              <Button
+                variant="brand"
+                title={L('이용권 다시 불러오기', 'Load passes again')}
+                onPress={() => {
+                  track('store_retry', { reason, attempt: loadAttempt + 1, manual: true });
+                  setLoadAttempt((n) => n + 1);
+                }}
+              />
+              <AppText variant="caption" color="textSecondary" align="center">
+                {fixHint ?? L(`${storeName}에서 이용권 정보를 아직 받지 못했어요`, `Couldn't load passes from ${storeName} yet`)}
+              </AppText>
+            </>
           ) : (
             <>
               {/* 화면에서 색이 찬 버튼은 이것 하나 — 무엇을 얼마에 사는지 버튼이 말한다(조사 R3) */}
@@ -603,8 +727,41 @@ export default function Paywall() {
           )}
         </View>
       ) : null}
+
+      {asking ? (
+        <View style={styles.whyBackdrop}>
+          <Animated.View entering={FadeInDown.duration(220)} style={[styles.whyCard, { backgroundColor: theme.background, paddingBottom: insets.bottom + Spacing.lg }]}>
+            <AppText variant="body" weight="700">
+              {L('잠깐, 하나만 물어볼게요', 'Quick question before you go')}
+            </AppText>
+            <AppText variant="small" color="textSecondary">
+              {L('어떤 점이 망설여졌나요? 알려 주시면 더 좋게 고칠게요.', 'What held you back? It helps us make Sendit better.')}
+            </AppText>
+            <View style={styles.whyList}>
+              {WHY_OPTIONS.map((o) => (
+                <Pressable key={o.key} accessibilityRole="button" onPress={() => answerWhy(o.key)} style={[styles.whyChip, { backgroundColor: theme.surface }]}>
+                  <AppText variant="body">{o.label}</AppText>
+                </Pressable>
+              ))}
+            </View>
+            <Pressable accessibilityRole="button" onPress={() => answerWhy('skip')} hitSlop={8} style={styles.whySkip}>
+              <AppText variant="small" color="textSecondary" align="center">
+                {L('건너뛰기', 'Skip')}
+              </AppText>
+            </Pressable>
+          </Animated.View>
+        </View>
+      ) : null}
     </View>
   );
+}
+
+/** 횟수권 1회 값 — 원화 스토어 가격 ÷ 횟수, 「1회 약 490원」. 원화가 아니거나 모르면 null */
+export function perUseWon(display: string, price?: number | null): string | null {
+  const n = typeof price === 'number' && price > 0 ? price : Number((/^\s*₩\s?([\d,]+)\s*$/.exec(display)?.[1] ?? '').replace(/,/g, ''));
+  if (!n || !Number.isFinite(n) || !/₩/.test(display)) return null;
+  const per = Math.round(n / CREDITS_PER_PACK).toLocaleString('ko-KR');
+  return L(`1회 약 ${per}원`, `About ₩${per} per session`);
 }
 
 /** 결제 버튼 — 금액을 넣어 무엇을 얼마에 사는지 말한다 */
@@ -967,6 +1124,13 @@ const styles = StyleSheet.create({
   fine: { marginTop: -Spacing.sm, lineHeight: 18 },
   links: { flexDirection: 'row', justifyContent: 'center', gap: Spacing.lg, flexWrap: 'wrap' },
   research: { marginTop: -Spacing.md },
+  resume: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  guestBuy: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderWidth: 1, borderRadius: 20, paddingHorizontal: Spacing.md + 2, paddingVertical: Spacing.md },
+  whyBackdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' },
+  whyCard: { borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, gap: Spacing.sm },
+  whyList: { gap: Spacing.sm, marginTop: Spacing.xs },
+  whyChip: { borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.md - 2 },
+  whySkip: { alignSelf: 'center', paddingVertical: Spacing.sm },
 
   footer: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, gap: Spacing.sm, borderTopWidth: StyleSheet.hairlineWidth },
   notice: { borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },

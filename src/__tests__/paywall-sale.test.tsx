@@ -28,9 +28,10 @@ jest.mock('@react-native-async-storage/async-storage', () => {
 jest.mock('@/lib/config', () => ({
   APP_CONFIG: { apiUrl: 'https://coach.test', apiSameOrigin: false, apiToken: '', supportEmail: '', privacyUrl: '', termsUrl: '' },
 }));
+let mockReason = 'quota';
 jest.mock('expo-router', () => ({
   useRouter: () => ({ canGoBack: () => true, back: jest.fn(), replace: jest.fn() }),
-  useLocalSearchParams: () => ({ reason: 'quota' }),
+  useLocalSearchParams: () => ({ reason: mockReason }),
   useIsFocused: () => true,
 }));
 // Reanimated(네이티브 worklets)는 테스트 환경에서 띄울 수 없어서 바로 끝나는 흉내로 바꾼다 (paywall-tracking.test.tsx 와 같은 방식)
@@ -116,6 +117,7 @@ const buyButton = () => renderer!.root.findAll((n) => typeof n.props.onPress ===
 const tracked = track as jest.Mock;
 
 beforeEach(() => {
+  mockReason = 'quota';
   now = T;
   jest.spyOn(Date, 'now').mockImplementation(() => now);
   tracked.mockClear();
@@ -149,16 +151,34 @@ it('이름이 없으면 「하루 이용권」', () => {
   expect(screen()).not.toContain('님을 위한');
 });
 
-it('처음엔 하루 이용권·1년권 두 줄만 — 주간 구독은 「다른 이용권 보기」로 그 자리에서 펼친다', () => {
+it('처음엔 하루 이용권(·횟수권) 두 줄만 — 주간 구독·1년권은 「다른 이용권 보기」로 그 자리에서 펼친다 (2026-11-28)', () => {
   mockProducts = [DAY_REGULAR, ...OTHERS];
   mount();
   const radios = () => renderer!.root.findAll((n) => n.props.accessibilityRole === 'radio' && typeof n.props.onPress === 'function').map((n) => textOf(n));
   expect(radios().some((t) => t.includes('주간 구독'))).toBe(false);
-  expect(radios().some((t) => t.includes('1년권'))).toBe(true);
-  expect(screen()).toContain('하루 약 82원');
+  expect(radios().some((t) => t.includes('1년권'))).toBe(false);
   const more = renderer!.root.findAll((n) => n.props.accessibilityLabel === '다른 이용권 보기' && typeof n.props.onPress === 'function')[0];
   act(() => more.props.onPress());
   expect(radios().some((t) => t.includes('주간 구독'))).toBe(true);
+  expect(radios().some((t) => t.includes('1년권'))).toBe(true);
+  expect(screen()).toContain('하루 약 82원');
+});
+
+it('막힌 게 아닌 곳(마이 탭 등)에서 결제 화면을 보면 특가를 시작하지 않는다 — 구경만 해도 10분이 흘러 7일 잠기던 것 (2026-11-28)', () => {
+  mockReason = 'my';
+  mockProducts = [DAY_REGULAR, DAY_SALE, ...OTHERS];
+  mount();
+  expect(useAppStore.getState().saleOfferStartedAt).toBeNull();
+  expect(tracked.mock.calls.filter((c) => c[0] === 'sale_offer_start')).toHaveLength(0);
+  expect(screen()).not.toContain('특가 마감까지');
+});
+
+it('이미 진행 중인 특가는 마이 탭에서 열어도 그대로 보인다', () => {
+  mockReason = 'my';
+  mockProducts = [DAY_REGULAR, DAY_SALE, ...OTHERS];
+  useAppStore.setState({ saleOfferStartedAt: Date.now() - 4 * 60 * 1000 });
+  mount();
+  expect(screen()).toContain('특가 마감까지');
 });
 
 it('특가·정가 하루 이용권이 둘 다 있으면 처음 볼 때 10분 세일을 시작한다 — 11-27 20:45 전에는 취소선·할인율 없이 특가만', () => {
@@ -290,6 +310,8 @@ it('하루 이용권을 이미 쓰는 중이면 세일을 시작하지 않고, �
 it('1년권을 고르면 특가와 상관없이 1년권을 산다', async () => {
   (purchasePlan as jest.Mock).mockResolvedValue({ status: 'cancelled' });
   mount();
+  const more = renderer!.root.findAll((n) => n.props.accessibilityLabel === '다른 이용권 보기' && typeof n.props.onPress === 'function')[0];
+  act(() => more.props.onPress());
   const year = renderer!.root.findAll((n) => n.props.accessibilityRole === 'radio' && textOf(n).includes('1년권'))[0];
   act(() => year.props.onPress());
   expect(textOf(buyButton())).toBe('29,800원으로 1년 무제한 시작하기');
