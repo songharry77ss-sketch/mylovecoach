@@ -72,8 +72,11 @@ export const SIGNUP_BONUS = 3;
  * 대조군(off)은 지금 규칙 그대로. 이미 코칭을 써 본 기기는 실험에 넣지 않는다(na). 모든 이용 기록에 xp: 'free5:on|off' 가 붙는다.
  */
 export const INTRO_FREE_MS = 5 * 60 * 1000;
-/** 새 기기 중 실험군 비율 */
-export const INTRO_FREE_SHARE = 0.5;
+/**
+ * 새 기기 중 실험군 비율 — 2026-11-28 실험을 끝냈다(0): 하루 8명꼴이라 칸당 300대에 75일, 결제율 차이를 보려면 10개월이 걸려
+ * 결론이 나지 않고 다른 결제 개선의 숫자까지 흐린다(결제 전환 검토). 이미 실험군인 기기는 그대로 둔다
+ */
+export const INTRO_FREE_SHARE = 0;
 export type IntroArm = 'on' | 'off' | 'na';
 
 /** 무료 횟수 규칙 — 체험 횟수와 매일 충전 횟수 */

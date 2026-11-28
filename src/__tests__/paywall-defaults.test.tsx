@@ -135,13 +135,13 @@ it('채팅 속 안내 카드(upsell)는 전용 문구를 보여 준다', () => {
   expect(allText()).toContain('마음에 드는 답장이');
 });
 
-it('스토어 확인 실패면 주간 구독이 아닌 1년권이 골라지고, 다시 불러오기를 누르면 다시 묻는다', () => {
+it('스토어 확인 실패면 확인 안 된 1년권 결제 버튼 대신 「이용권 다시 불러오기」가 주 버튼이고, 누르면 다시 묻는다', () => {
   mockReason = 'quota';
   mockProducts = UNCONFIRMED;
   mount();
-  expect(buyLabel()).toContain('1년 무제한');
-  expect(allText()).toContain('다시 불러오기');
-  const reload = renderer.root.findAll((n) => typeof n.props.onPress === 'function' && textOf(n).includes('다시 불러오기'))[0];
+  expect(allText()).not.toContain('1년 무제한 시작하기');
+  expect(allText()).toContain('이용권 다시 불러오기');
+  const reload = renderer.root.findAll((n) => typeof n.props.onPress === 'function' && textOf(n).includes('이용권 다시 불러오기'))[0];
   act(() => reload.props.onPress());
   expect(Math.max(...mockAttempts)).toBe(1);
 });
@@ -189,25 +189,35 @@ describe('평생권 → 1년권 (2026-11-07)', () => {
   ];
   const radio = (label: string) => renderer.root.findAll((n) => n.props.accessibilityRole === 'radio' && textOf(n).includes(label))[0];
 
-  it('목록에 평생권은 없고, 하루 이용권·1년권이 먼저, 주간 구독·횟수권은 「다른 이용권 보기」 (1.4 개편)', () => {
+  it('목록에 평생권은 없고, 하루 이용권·횟수권(1회 값)이 먼저, 주간 구독·1년권은 「다른 이용권 보기」 (2026-11-28)', () => {
     mockReason = 'my';
     mockProducts = SELLING;
     mount();
     const text = allText();
     expect(text).not.toContain('평생');
-    expect(text).toContain('1년권');
-    expect(text.indexOf('하루 이용권')).toBeLessThan(text.indexOf('1년권'));
-    expect(text.indexOf('1년권')).toBeLessThan(text.indexOf('다른 이용권 보기'));
+    expect(text.indexOf('하루 이용권')).toBeLessThan(text.indexOf('횟수권'));
+    expect(text).toMatch(/1회 약 [\d,]+원/);
+    expect(text.indexOf('횟수권')).toBeLessThan(text.indexOf('다른 이용권 보기'));
     expect(text.indexOf('다른 이용권 보기')).toBeLessThan(text.indexOf('주간 구독'));
-    expect(text.indexOf('주간 구독')).toBeLessThan(text.indexOf('횟수권'));
+    expect(text.indexOf('다른 이용권 보기')).toBeLessThan(text.indexOf('1년권'));
+    expect(radio('1년권')).toBeUndefined();
     // 기본 선택은 그대로 하루 이용권
     expect(buyLabel()).toContain('하루 무제한');
+  });
+
+  it('하루 이용권이 곧 끝나서(renew) 오면 1년권이 먼저 골라져 있다', () => {
+    mockReason = 'renew';
+    mockProducts = SELLING;
+    mount();
+    expect(buyLabel()).toContain('1년 무제한');
   });
 
   it('1년권을 고르면 1회 결제·결제한 날부터 1년·자동 갱신 없음·구매 복원을 안내하고, 아이폰에는 Google Play 를 적지 않는다', () => {
     mockReason = 'my';
     mockProducts = SELLING;
     mount();
+    const more = renderer.root.findAll((n) => n.props.accessibilityLabel === '다른 이용권 보기' && typeof n.props.onPress === 'function')[0];
+    act(() => more.props.onPress());
     act(() => radio('1년권').props.onPress());
     expect(buyLabel()).toBe('29,800원으로 1년 무제한 시작하기');
     const text = allText();

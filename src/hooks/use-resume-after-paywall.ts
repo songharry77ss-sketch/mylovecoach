@@ -30,6 +30,11 @@ export function paywallClosed(now = Date.now()): void {
   if (slot && slot.closedAt == null) slot.closedAt = now;
 }
 
+/** 막혀서 기다리는 요청이 있는지 (결제·가입하면 저절로 이어진다) — 결제 화면 안내 문구용 */
+export function hasPendingResume(now = Date.now()): boolean {
+  return slot != null && slot.closedAt == null && now - slot.at < RESUME_WINDOW_MS;
+}
+
 /** 테스트용 */
 export function resetResumeSlot(): void {
   slot = null;

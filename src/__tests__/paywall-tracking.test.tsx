@@ -128,6 +128,8 @@ it('결제 화면을 열면 이유를 남기고, 다른 상품을 고르면 그 
 
 it('결제 없이 닫으면 머문 시간·고른 상품·직접 골랐는지를 남긴다', () => {
   mount();
+  // 2026-11-28: 1년권은 「다른 이용권 보기」 안으로
+  act(() => pressable('다른 이용권 보기').props.onPress());
   act(() => pressable('1년권').props.onPress());
   act(() => renderer.unmount());
   const close = propsOf('paywall_close');
@@ -155,6 +157,39 @@ it('결제가 끝나 닫힌 경우는 「결제 없이 닫음」으로 세지 �
   act(() => renderer.unmount());
   expect(names()).toContain('purchase_granted');
   expect(names()).not.toContain('paywall_close');
+});
+
+describe('닫을 때 이유 (기기당 한 번)', () => {
+  const { useAppStore } = jest.requireActual('@/store/app-store') as typeof import('@/store/app-store');
+  const closeButton = () => renderer.root.findAll((n) => n.props.accessibilityLabel === '닫기' && typeof n.props.onPress === 'function')[0];
+  beforeEach(() => useAppStore.setState({ paywallWhyAsked: false }));
+
+  it('막혀서 온 결제 화면을 닫으면 한 번 묻고, 고른 이유를 남긴 뒤 닫는다', () => {
+    mount();
+    act(() => closeButton().props.onPress());
+    expect(names()).toContain('paywall_why_view');
+    expect(textOf(renderer.root)).toContain('가격이 부담돼요');
+    act(() => pressable('가격이 부담돼요').props.onPress());
+    expect(propsOf('paywall_why')).toMatchObject({ reason: 'quota', why: 'price', plan: 'day', picked: false, result: 'none' });
+    expect(useAppStore.getState().paywallWhyAsked).toBe(true);
+    expect(textOf(renderer.root)).not.toContain('가격이 부담돼요');
+  });
+
+  it('이미 물어본 기기는 다시 묻지 않고 바로 닫는다', () => {
+    useAppStore.setState({ paywallWhyAsked: true });
+    mount();
+    act(() => closeButton().props.onPress());
+    expect(names()).not.toContain('paywall_why_view');
+    expect(textOf(renderer.root)).not.toContain('잠깐, 하나만 물어볼게요');
+  });
+
+  it('건너뛰기도 한 번으로 친다', () => {
+    mount();
+    act(() => closeButton().props.onPress());
+    act(() => pressable('건너뛰기').props.onPress());
+    expect(propsOf('paywall_why')).toMatchObject({ why: 'skip' });
+    expect(useAppStore.getState().paywallWhyAsked).toBe(true);
+  });
 });
 
 it('구매 복원은 누른 것과 결과를 남긴다', async () => {
