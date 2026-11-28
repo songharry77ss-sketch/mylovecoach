@@ -7,6 +7,9 @@
  *   · 이번 달·누적 매출, 어제 새 기기와 누적 회원의 아이폰/갤럭시·들어온 경로·나이·성별, 어제 세션 체류 시간 (_report-detail.ts)
  *     (1.0.4 부터는 만 14세 이상 전체, 1.0.3 까지의 앱은 이용 기록에 선택 동의한 기기만 보낸다)
  * 응답에는 리포트 내용(이메일 등)을 싣지 않는다.
+ * 알림 시험: GET /api/daily-report?test=1 — 시험 안내 + 예시 가입·결제 알림(실제 아님) + 어제 리포트를 보낸다 (.github/workflows/telegram-test.yml).
+ *   인증은 CRON_SECRET 또는 서버의 TELEGRAM_BOT_TOKEN (그 토큰을 가진 사람은 원래 이 대화방에 보낼 수 있으니 새로 열리는 권한이 없다).
+ *   서버와 GitHub 의 텔레그램 값이 어긋나면 401 이라, 11-21~27 처럼 알림이 조용히 끊긴 것을 바로 알 수 있다.
  * 환경변수: CRON_SECRET (없으면 503), SUPABASE_URL·SUPABASE_SERVICE_ROLE_KEY, TELEGRAM_BOT_TOKEN·TELEGRAM_CHAT_ID
  */
 import { createHash, timingSafeEqual } from 'node:crypto';
@@ -16,9 +19,10 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { isSaleProduct, type PlanKey } from '../src/lib/billing/plans';
 
 import { collectDetail, detailSections, revenueTotalLines, type DetailData } from './_report-detail';
-import { formatRevenue, planLabel, STORE_LABELS, sumRevenue, type StoreName } from './_store';
+import { formatRevenue, planLabel, STORE_LABELS, storeAlertText, sumRevenue, type StoreName } from './_store';
 import { countRows, query, supabaseReady } from './_supabase';
 import { escapeHtml, kstDate, kstMidnight, notifyTelegram, telegramReady } from './_telegram';
+import { signupMessage } from './member';
 
 export const config = { maxDuration: 30 };
 
@@ -178,6 +182,25 @@ export async function collectReport(now = Date.now()): Promise<ReportData> {
   return { day: kstDate(start), newMembers, members, totalMembers, sales, launches, coaching, paywall, checkout, ab, detail };
 }
 
+/** 알림 시험 문구 — 예시는 실제 가입·결제가 아니라고 분명히 적는다 */
+export function testMessage(): string {
+  const signup = signupMessage({ nickname: '예시회원', email: 'example@example.com', provider: 'kakao', platform: 'android', source: 'instagram · reel', bonus: true, today: 1, total: 120 });
+  const pay = storeAlertText(
+    { store: 'apple', environment: 'Production', kind: 'purchase', notification: null, product_id: 'mylovecoach.pass.day', plan: 'day', amount: 3900, currency: 'KRW', transaction_id: null, original_transaction_id: null, raw: null },
+    sumRevenue([{ amount: 3900, currency: 'KRW' }]),
+  );
+  return [
+    '🔔 <b>센딧 서버 알림 시험</b>',
+    '이 메시지가 보이면 운영 서버의 가입·결제·장애 알림이 이 대화방으로 정상 도착해요.',
+    '',
+    '— 아래는 <b>예시</b>예요 (실제 가입·결제 아님) —',
+    '',
+    signup,
+    '',
+    pay ?? '',
+  ].join('\n');
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('cache-control', 'no-store');
   if (req.method !== 'GET' && req.method !== 'POST') {
@@ -190,8 +213,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
   const header = req.headers.authorization ?? '';
-  if (!header.startsWith('Bearer ') || !sameSecret(header.slice(7), secret)) {
+  const test = req.query?.test === '1';
+  const bot = (process.env.TELEGRAM_BOT_TOKEN ?? '').trim();
+  const given = header.startsWith('Bearer ') ? header.slice(7) : null;
+  const allowed = given !== null && (sameSecret(given, secret) || (test && bot !== '' && sameSecret(given, bot)));
+  if (!allowed) {
     res.status(401).json({ error: '인증에 실패했어요.' });
+    return;
+  }
+  if (test) {
+    if (!telegramReady()) {
+      res.status(200).json({ sent: false, reason: 'telegram' });
+      return;
+    }
+    const sample = await notifyTelegram(testMessage());
+    const report = sample && supabaseReady() ? await notifyTelegram(`🧪 (시험 발송) 어제 리포트\n\n${reportMessage(await collectReport())}`) : false;
+    res.status(sample ? 200 : 502).json({ sent: sample, report });
     return;
   }
   if (!supabaseReady()) {
