@@ -161,3 +161,10 @@ test('가볍게: 페이지마다 스크립트는 기기 판별 한 줄 + JSON-LD
     assert.ok(Buffer.byteLength(html) < 60_000, `${file}: ${Buffer.byteLength(html)}바이트`);
   }
 });
+
+test('Vercel 배포에 빌드가 읽는 스토어 문구 폴더가 실린다 (.vercelignore — 11-28 빠져서 배포 실패)', () => {
+  const ignore = readFileSync(new URL('../.vercelignore', import.meta.url), 'utf8').split(/\r?\n/).map((l) => l.trim());
+  // docs/* 를 빼는 규칙이 있으면 store-listing 을 다시 넣는 규칙도 있어야 한다
+  if (ignore.includes('docs/*') || ignore.includes('docs/')) assert.ok(ignore.includes('!docs/store-listing/'), '.vercelignore 에 !docs/store-listing/ 가 필요');
+  for (const lang of LANDING_LANGS) assert.ok(existsSync(new URL(`../docs/store-listing/${lang}.json`, import.meta.url)), `${lang}.json`);
+});
