@@ -93,6 +93,8 @@ export interface AppState {
   upsellDismissed: boolean;
   /** 결제 화면을 결제 없이 닫을 때 이유를 물어봤는지 — 기기당 한 번만 (반복해서 묻지 않는다) */
   paywallWhyAsked: boolean;
+  /** 잠금 미리보기를 마지막으로 쓴 날 (YYYY-MM-DD, 기기 현지) — 하루 한 번 (lib/billing/preview) */
+  previewDay: string | null;
   /** 대화방 「가입하고 무료 코칭 더 받기」 카드를 닫은 시각 — 3일 뒤 다시 보여 준다 (signup-nudge.ts) */
   signupNudgeDismissedAt: number | null;
   /** 스토어에 나와 있는 새 버전 (저장하지 않음 — 켤 때마다 서버에 다시 묻는다). 없으면 null */
@@ -212,6 +214,7 @@ export interface AppState {
   consumeFreeCredit: () => void;
   dismissUpsell: () => void;
   setPaywallWhyAsked: () => void;
+  markPreviewUsed: (day: string) => void;
   dismissSignupNudge: (at: number) => void;
   setAppUpdate: (update: AppUpdate | null) => void;
   /** 새 버전 안내를 until 까지 미룬다. null 이면 미룬 기록을 지워 바로 다시 권한다 */
@@ -371,6 +374,7 @@ export const useAppStore = create<AppState>()(
       resetEpoch: 0,
       upsellDismissed: false,
       paywallWhyAsked: false,
+      previewDay: null,
       signupNudgeDismissedAt: null,
       appUpdate: null,
       updateSnooze: null,
@@ -590,6 +594,7 @@ export const useAppStore = create<AppState>()(
       consumeFreeCredit: () => get().consumeQuota(),
       dismissUpsell: () => set({ upsellDismissed: true }),
       setPaywallWhyAsked: () => set({ paywallWhyAsked: true }),
+      markPreviewUsed: (previewDay) => set({ previewDay }),
       dismissSignupNudge: (at) => set({ signupNudgeDismissedAt: at }),
       setAppUpdate: (appUpdate) => set({ appUpdate }),
       snoozeUpdate: (updateSnooze) => set({ updateSnooze }),
@@ -760,6 +765,7 @@ export const useAppStore = create<AppState>()(
           legacyServerRecords: s.legacyServerRecords,
           upsellDismissed: s.upsellDismissed,
           paywallWhyAsked: s.paywallWhyAsked,
+          previewDay: s.previewDay,
           signupNudgeDismissedAt: s.signupNudgeDismissedAt,
           updateSnooze: s.updateSnooze,
           deviceId: s.deviceId,

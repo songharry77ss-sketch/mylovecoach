@@ -38,6 +38,7 @@ import { track } from '@/lib/analytics';
 import { rememberAuthReturn } from '@/lib/auth-return';
 import { currentQuota, isUnlimited, useQuota } from '@/lib/billing/gate';
 import { paywallTarget, RENEW_NOTICE_MS } from '@/lib/billing/paywall-route';
+import { previewAvailable, previewLocked, PREVIEW_VISIBLE_REPLIES } from '@/lib/billing/preview';
 import { SIGNUP_BONUS } from '@/lib/billing/plans';
 import { quotaLabel } from '@/lib/billing/quota';
 import { dateLabel, errorText, isSameDay } from '@/lib/format';
@@ -180,7 +181,7 @@ export default function CrushChat() {
   }, [showSignupNudge]);
 
   // 무료를 다 써서 막혔으면 타임어택 특가 팝업, 아니면 결제 화면 (lib/billing/paywall-route — 결제 루프)
-  const openPaywall = useCallback((reason: 'quota' | 'regenerate' | 'banner' | 'upsell' | 'renew') => router.push(paywallTarget(reason)), [router]);
+  const openPaywall = useCallback((reason: 'quota' | 'regenerate' | 'banner' | 'upsell' | 'renew' | 'unlock') => router.push(paywallTarget(reason)), [router]);
   // 안내 줄이 바뀌는 순간(체험이 끝날 때·하루 이용권이 끝나기 1시간 전·끝날 때)에 한 번 다시 그린다 — 매초 다시 그리지 않게
   const [, redraw] = useState(0);
   const markIntro = quota.kind === 'intro' ? (quota.until ?? 0) : 0;
@@ -252,7 +253,7 @@ export default function CrushChat() {
     autoSent.current = true;
     const input: SendInput = { crushId: crush.id, image: pendingImage ? { uri: pendingImage, width: Number(pendingWidth) || 0, height: 0 } : null, text: pendingText ?? '', tone, emoji };
     router.setParams({ pendingImage: undefined, pendingWidth: undefined, pendingText: undefined });
-    if (currentQuota().remaining <= 0) {
+    if (currentQuota().remaining <= 0 && !previewAvailable()) {
       blockedSend(input, 'quota', true, true, AUTO_PAYWALL_DELAY_MS);
       return;
     }
@@ -306,7 +307,8 @@ export default function CrushChat() {
    * 결제·가입으로 횟수가 생기면 그 요청을 한 번 이어서 보낸다. 횟수는 이 순간 값으로 본다 (이어 보낼 때 예전 화면 값으로 다시 막히지 않게)
    */
   const guardedSend = (input: SendInput, reason: 'quota' | 'regenerate' = 'quota', fromComposer = false): boolean => {
-    if (currentQuota().remaining <= 0) {
+    // 무료를 다 썼어도 새 캡처·질문은 하루 한 번 미리보기로 보낸다 (lib/billing/preview) — 「다른 답장 더 보기」는 그대로 막는다
+    if (currentQuota().remaining <= 0 && !(reason === 'quota' && previewAvailable())) {
       blockedSend(input, reason, fromComposer, false);
       return false;
     }
@@ -382,6 +384,13 @@ export default function CrushChat() {
     // 웹 가입은 페이지를 떠났다 돌아오므로, 돌아올 채팅방을 적어 둔다
     rememberAuthReturn(`/crush/${crush.id}`);
     router.push({ pathname: '/signup', params: { from: 'replies' } });
+  };
+
+  // 잠금 미리보기의 가린 답장 — 결제 화면으로 (비회원은 가입 카드가 먼저, 가입 보너스로도 바로 열린다)
+  const unlockPreview = (index: number) => {
+    haptic.select();
+    track('preview_unlock_tap', { index });
+    openPaywall('unlock');
   };
 
   const wipeNow = () => {
@@ -501,8 +510,9 @@ export default function CrushChat() {
                 regenerating={sending}
                 // 비밀 상담이면 신고하면 이 답변은 저장된다고 시트가 먼저 알린다
                 onReport={report.available ? (content) => report.open({ mode: 'coach', content, secret }) : undefined}
-                lockedFrom={lockExtraReplies ? 1 : undefined}
-                onUnlock={lockExtraReplies ? (i) => unlockReplies(i) : undefined}
+                lockedFrom={lockExtraReplies ? 1 : previewLocked(item.preview, quota.remaining) ? PREVIEW_VISIBLE_REPLIES : undefined}
+                onUnlock={lockExtraReplies ? (i) => unlockReplies(i) : previewLocked(item.preview, quota.remaining) ? (i) => unlockPreview(i) : undefined}
+                lockMode={lockExtraReplies || (authAvailable && !isMember) ? 'signup' : 'pass'}
               />
             ) : null}
           </Animated.View>

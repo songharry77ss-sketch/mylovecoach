@@ -69,6 +69,8 @@ it('무료 횟수가 없으면 붙여 넣은 글을 입력창에 살려 두고 �
     aiConsentProvider: 'relay2',
     aiConsentAt: 1,
     usage: { total: 99, day: dayKey(now), dayCount: 99 },
+    // 오늘 잠금 미리보기는 이미 썼다 (lib/billing/preview — 하루 한 번)
+    previewDay: dayKey(now),
     wallet: EMPTY_WALLET,
     premium: null,
     team: null,
@@ -125,6 +127,7 @@ it('캡처로 막히면 캡처를 입력창에 살려 둔다', async () => {
   const now = Date.now();
   useAppStore.setState({
     usage: { total: 99, day: dayKey(now), dayCount: 99 },
+    previewDay: dayKey(now),
     wallet: EMPTY_WALLET,
     crushes: { c_img: { id: 'c_img', name: '민지', gender: 'female', relationship: 'talking', style: [], notes: '', createdAt: 0, updatedAt: 0 } },
     messages: { c_img: [] },
@@ -149,5 +152,46 @@ it('캡처로 막히면 캡처를 입력창에 살려 둔다', async () => {
   expect(useAppStore.getState().messages.c_img).toHaveLength(0);
   const composer = screen.root.findAll((n) => n.props.onPickImage && n.props.onClearImage)[0];
   expect(composer.props.image).toMatchObject({ uri: 'file:///shot.png', width: 1080 });
+  act(() => screen.unmount());
+});
+
+it('오늘 잠금 미리보기가 남았으면 막지 않고 보낸다 — 결제 화면 없이, 횟수는 깎지 않는다 (실패하면 미리보기도 남는다)', async () => {
+  mockPush.mockClear();
+  fetchMock.mockClear();
+  const now = Date.now();
+  useAppStore.setState({
+    usage: { total: 99, day: dayKey(now), dayCount: 99 },
+    previewDay: null,
+    wallet: EMPTY_WALLET,
+    crushes: { c_prev: { id: 'c_prev', name: '민지', gender: 'female', relationship: 'talking', style: [], notes: '', createdAt: 0, updatedAt: 0 } },
+    messages: { c_prev: [] },
+  });
+  mockParams = { id: 'c_prev', pendingText: '읽씹 3시간째야' };
+  let tree: ReactTestRenderer | null = null;
+  await act(async () => {
+    tree = create(
+      <SafeAreaProvider initialMetrics={METRICS}>
+        <CrushChat />
+      </SafeAreaProvider>,
+    );
+    await flush();
+  });
+  const screen = tree as unknown as ReactTestRenderer;
+  for (let i = 0; i < 30 && !fetchMock.mock.calls.length; i += 1) await act(flush);
+  await act(async () => {
+    jest.advanceTimersByTime(500);
+    await flush();
+  });
+  expect(mockPush).not.toHaveBeenCalledWith(expect.objectContaining({ pathname: '/sale' }));
+  expect(mockPush).not.toHaveBeenCalledWith(expect.objectContaining({ pathname: '/paywall' }));
+  for (let i = 0; i < 50 && useAppStore.getState().messages.c_prev.length < 2; i += 1) await act(flush);
+  for (let i = 0; i < 20; i += 1) await act(flush);
+  // 막히지 않고 보냈다 — 사용자 말풍선과 코치 답 자리(테스트 서버는 500 이라 오류 안내)
+  const sent = useAppStore.getState().messages.c_prev;
+  expect(sent[0]).toMatchObject({ role: 'user', text: '읽씹 3시간째야' });
+  expect(sent[1]).toMatchObject({ role: 'coach' });
+  // 서버 오류라 결과가 없으니 횟수·오늘 미리보기 모두 그대로
+  expect(useAppStore.getState().usage.total).toBe(99);
+  expect(useAppStore.getState().previewDay).toBeNull();
   act(() => screen.unmount());
 });

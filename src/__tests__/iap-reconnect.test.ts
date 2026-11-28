@@ -60,9 +60,10 @@ describe('스토어 상품 조회 실패', () => {
     const list = await iap.loadPlanProducts();
 
     expect(mockIap.fetchProducts).toHaveBeenCalledWith(expect.objectContaining({ type: 'in-app' }));
-    expect(mockIap.fetchProducts).toHaveBeenCalledWith({ skus: ['mylovecoach.premium.weekly', 'mylovecoach.pass.year'], type: 'subs' });
+    // 2026-11-28 주간 구독 판매 중단 — 구독 조회는 1년권만
+    expect(mockIap.fetchProducts).toHaveBeenCalledWith({ skus: ['mylovecoach.pass.year'], type: 'subs' });
     expect(list.find((p) => p.plan === 'day')?.available).toBe(true);
-    expect(list.find((p) => p.plan === 'weekly')?.available).toBe(false);
+    expect(list.find((p) => p.plan === 'weekly')).toBeUndefined();
     expect(list.find((p) => p.plan === 'year')?.available).toBe(false);
   });
 
@@ -218,7 +219,7 @@ describe('1년권 (iOS 자동 갱신 없는 구독 · Android 선불 요금제)'
     const asked = mockIap.fetchProducts.mock.calls.map(([req]) => req as { skus: string[]; type: string });
     expect(asked.find((r) => r.type === 'in-app')?.skus).not.toEqual(expect.arrayContaining(['mylovecoach.pass.year']));
     expect(asked.flatMap((r) => r.skus)).not.toContain('mylovecoach.premium.lifetime');
-    expect(list.map((p) => p.plan)).toEqual(['day', 'weekly', 'year', 'credits']);
+    expect(list.map((p) => p.plan)).toEqual(['day', 'year', 'credits']);
     // 아이폰은 스토어가 준 가격을 그대로 쓴다 (App Store 가격대가 29,800원이 아닐 수 있다)
     expect(list.find((p) => p.plan === 'year')).toMatchObject({ productId: 'mylovecoach.pass.year', displayPrice: '₩29,900', available: true });
   });
@@ -236,7 +237,7 @@ describe('1년권 (iOS 자동 갱신 없는 구독 · Android 선불 요금제)'
 
     const list = await iap.loadPlanProducts();
 
-    expect(list.find((p) => p.plan === 'weekly')).toMatchObject({ offerToken: 'tok-weekly', available: true });
+    expect(list.find((p) => p.plan === 'weekly')).toBeUndefined();
     expect(list.find((p) => p.plan === 'year')).toMatchObject({ offerToken: 'tok-year', displayPrice: '₩29,800', available: true });
   });
 

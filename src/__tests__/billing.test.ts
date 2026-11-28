@@ -251,13 +251,15 @@ describe('1년권 (2026-11-07 평생권 판매 중지 → 1년권 29,800원)', (
   const ios = (transactionDate: number) => ({ productId: PRODUCT_IDS.year, purchaseState: 'purchased' as const, store: 'apple', transactionDate });
   const android = (transactionDate: number) => ({ productId: PRODUCT_IDS.year, purchaseState: 'purchased' as const, store: 'google', transactionDate });
 
-  it('상품·요금제 — 지금 파는 순서는 하루 → 주간 → 1년 → 횟수, 평생권은 팔지 않는다', () => {
+  it('상품·요금제 — 지금 파는 순서는 하루 → 1년 → 횟수, 평생권·주간 구독(11-28~)은 팔지 않는다', () => {
     expect(PRODUCT_IDS.year).toBe('mylovecoach.pass.year');
     expect(FALLBACK_PRICES.year).toBe('₩29,800');
     expect(planOfProduct('mylovecoach.pass.year')).toBe('year');
     expect(premiumPlanOfProduct('mylovecoach.pass.year')).toBe('year');
     expect(premiumPlanOfProduct(PRODUCT_IDS.lifetime)).toBe('lifetime');
-    expect(SELLING_PLANS).toEqual(['day', 'weekly', 'year', 'credits']);
+    expect(SELLING_PLANS).toEqual(['day', 'year', 'credits']);
+    // 이미 구독 중인 주간 구독은 그대로 인정한다
+    expect(premiumPlanOfProduct(PRODUCT_IDS.weekly)).toBe('weekly');
     expect(isSubscriptionPlan('year')).toBe(true);
     expect(isSubscriptionPlan('weekly')).toBe(true);
     expect(isSubscriptionPlan('lifetime')).toBe(false);

@@ -40,8 +40,10 @@ interface AnalysisCardProps {
    * 시트는 화면이 하나만 둔다 — 카드마다 두면 목록이 카드를 내렸다 다시 그릴 때 열린 시트·적던 메모가 사라질 수 있다
    */
   onReport?: (content: string) => void;
-  /** 이 번호부터 답장을 가려 둔다 (웹 비회원 — 가입하면 바로 보임) */
+  /** 이 번호부터 답장을 가려 둔다 (웹 비회원·잠금 미리보기 — 가입·이용권이면 바로 보임) */
   lockedFrom?: number;
+  /** 가린 답장을 여는 길 — signup: 가입하면(기본) · pass: 이용권이면 */
+  lockMode?: 'signup' | 'pass';
   /** 가린 답장을 보려고 할 때 (가입 화면으로) */
   onUnlock?: (index: number) => void;
   /** 가장 최근 결과 — 3D 아이콘을 여기에만 둔다 (화면에 하나) */
@@ -60,7 +62,7 @@ const REPORT_MAX = 4000;
  * 코치 한마디 → **답장 3가지(주인공, 흰 카드)** → 숫자(관심 있을 가능성·호감 온도)를 흰 카드 하나에 키-값 줄로 → 다음 단계 → 접은 설명.
  * 예전에는 큰 숫자 5개가 답장보다 위에 있어 카드가 약 1,200pt 였고 답장이 화면 밖에 있었다. 큰 숫자는 관심도 하나만.
  */
-export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedReplyIndex, onSelectReply, onRegenerate, regenerating, onReport, lockedFrom, onUnlock, latest }: AnalysisCardProps) {
+export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedReplyIndex, onSelectReply, onRegenerate, regenerating, onReport, lockedFrom, onUnlock, lockMode = 'signup', latest }: AnalysisCardProps) {
   const theme = useTheme();
   const dark = useColorScheme() === 'dark';
   const toast = useToast();
@@ -165,7 +167,12 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
           <AppText variant="bodyStrong">{L('이렇게 답장해 봐요', 'Try replying like this')}</AppText>
           {lockedFrom != null && onUnlock && replies.length > lockedFrom ? (
             <AppText variant="caption" color="primary" weight="600">
-              {L(`답장 ${replies.length - lockedFrom}개가 더 있어요 · 가입하면 바로 보여요`, `${replies.length - lockedFrom} more ${replies.length - lockedFrom === 1 ? 'reply' : 'replies'} · Sign up to see them`)}
+              {lockMode === 'pass'
+                ? L(
+                    `오늘 무료를 다 써서 미리보기예요 · 답장 ${replies.length - lockedFrom}개는 이용권이면 바로 보여요`,
+                    `Free preview · ${replies.length - lockedFrom} more ${replies.length - lockedFrom === 1 ? 'reply' : 'replies'} with a pass`,
+                  )
+                : L(`답장 ${replies.length - lockedFrom}개가 더 있어요 · 가입하면 바로 보여요`, `${replies.length - lockedFrom} more ${replies.length - lockedFrom === 1 ? 'reply' : 'replies'} · Sign up to see them`)}
             </AppText>
           ) : null}
           <ReplyCards
@@ -177,6 +184,7 @@ export function AnalysisCard({ analysis, heat, revealKey, partnerName, selectedR
             onShare={shareReply}
             lockedFrom={onUnlock ? lockedFrom : undefined}
             onUnlock={onUnlock}
+            lockMode={lockMode}
             reveal={reveal}
           />
         </Animated.View>

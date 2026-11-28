@@ -182,6 +182,8 @@ export interface ChatMessage {
   error?: string;
   /** 응답 대기 중 */
   pending?: boolean;
+  /** 무료를 다 쓴 뒤 하루 한 번 받은 미리보기 결과 — 횟수가 생길 때까지 답장 1개만 보인다 (lib/billing/preview) */
+  preview?: boolean;
 }
 
 export interface HistoryTurn {

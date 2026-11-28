@@ -27,6 +27,8 @@ interface ReplyCardsProps {
   /** 이 번호부터는 가려서 보여 준다 (웹 비회원 — 가입하면 바로 보임). 없으면 모두 보임 */
   lockedFrom?: number;
   onUnlock?: (index: number) => void;
+  /** 가린 답장을 여는 길 — signup: 가입하면(기본) · pass: 이용권이면 (잠금 미리보기의 회원) */
+  lockMode?: 'signup' | 'pass';
   /** 처음 도착한 결과면 카드가 차례로 올라오고 성공 확률이 세어 올라간다 */
   reveal?: boolean;
 }
@@ -36,7 +38,7 @@ interface ReplyCardsProps {
  * 카드마다 번호·말투·성공 확률(작게) → 답장 문장(주인공) → 예상 반응 한 줄 + 검정 「복사」 알약.
  * 추천은 색 배지 대신 맨 위 자리와 「추천」 글자 한 마디로. 큰 숫자·그라데이션 배지는 걷었다.
  */
-export function ReplyCards({ replies, partnerName, copiedIndex, selectedIndex, onCopy, onShare, lockedFrom, onUnlock, reveal }: ReplyCardsProps) {
+export function ReplyCards({ replies, partnerName, copiedIndex, selectedIndex, onCopy, onShare, lockedFrom, onUnlock, reveal, lockMode = 'signup' }: ReplyCardsProps) {
   return (
     <View style={styles.list}>
       {replies.map((reply, i) => (
@@ -49,6 +51,7 @@ export function ReplyCards({ replies, partnerName, copiedIndex, selectedIndex, o
             chosen={copiedIndex == null && selectedIndex === i}
             partnerName={partnerName}
             locked={lockedFrom != null && i >= lockedFrom && Boolean(onUnlock)}
+            lockMode={lockMode}
             reveal={reveal}
             onCopy={(e) => onCopy(i, e ? { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY } : undefined)}
             onShare={() => onShare(i)}
@@ -76,13 +79,14 @@ interface ReplyCardProps {
   chosen: boolean;
   partnerName?: string;
   locked: boolean;
+  lockMode: 'signup' | 'pass';
   reveal?: boolean;
   onCopy: (e?: GestureResponderEvent) => void;
   onShare: () => void;
   onUnlock: () => void;
 }
 
-function ReplyCard({ reply, index, best, copied, chosen, partnerName, locked, reveal, onCopy, onShare, onUnlock }: ReplyCardProps) {
+function ReplyCard({ reply, index, best, copied, chosen, partnerName, locked, lockMode, reveal, onCopy, onShare, onUnlock }: ReplyCardProps) {
   const theme = useTheme();
   const dark = useColorScheme() === 'dark';
   const tone = toneLabel(reply.tone);
@@ -135,7 +139,11 @@ function ReplyCard({ reply, index, best, copied, chosen, partnerName, locked, re
       </View>
 
       {locked ? (
-        <AppText accessibilityLabel={L(`답장 ${index + 1}: 가입하면 볼 수 있어요`, `Reply ${index + 1}: sign up to see it`)} style={[styles.replyText, styles.veiled, veilShadow(theme.text)]}>
+        <AppText
+          accessibilityLabel={
+            lockMode === 'pass' ? L(`답장 ${index + 1}: 이용권이면 볼 수 있어요`, `Reply ${index + 1}: get a pass to see it`) : L(`답장 ${index + 1}: 가입하면 볼 수 있어요`, `Reply ${index + 1}: sign up to see it`)
+          }
+          style={[styles.replyText, styles.veiled, veilShadow(theme.text)]}>
           {veil(reply.text)}
         </AppText>
       ) : (
@@ -165,10 +173,14 @@ function ReplyCard({ reply, index, best, copied, chosen, partnerName, locked, re
         )}
 
         {locked ? (
-          <PressableScale accessibilityLabel={L(`버전 ${index + 1} 가입하고 보기`, `Sign up to see reply ${index + 1}`)} feedback="tap" onPress={onUnlock} style={[styles.copyPill, { backgroundColor: theme.primary }]}>
+          <PressableScale
+            accessibilityLabel={lockMode === 'pass' ? L(`버전 ${index + 1} 열어 보기`, `Unlock reply ${index + 1}`) : L(`버전 ${index + 1} 가입하고 보기`, `Sign up to see reply ${index + 1}`)}
+            feedback="tap"
+            onPress={onUnlock}
+            style={[styles.copyPill, { backgroundColor: theme.primary }]}>
             <Ionicons name="lock-open" size={14} color={Brand.onBrand} />
             <AppText variant="smallStrong" color={Brand.onBrand}>
-              {L('가입하고 보기', 'Sign up to see')}
+              {lockMode === 'pass' ? L('열어 보기', 'Unlock') : L('가입하고 보기', 'Sign up to see')}
             </AppText>
           </PressableScale>
         ) : (
