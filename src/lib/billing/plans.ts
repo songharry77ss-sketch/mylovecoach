@@ -101,8 +101,12 @@ export const isConsumablePlan = (plan: PlanKey): plan is ConsumablePlanKey => pl
  */
 export const isSubscriptionPlan = (plan: PlanKey): boolean => plan === 'weekly' || plan === 'year';
 
-/** 지금 파는 요금제 — 결제 화면·상품 조회 순서. 평생권은 2026-11-07 부터 팔지 않는다 */
-export const SELLING_PLANS: readonly PlanKey[] = ['day', 'weekly', 'year', 'credits'];
+/**
+ * 지금 파는 요금제 — 결제 화면·상품 조회 순서. 평생권은 2026-11-07 부터 팔지 않는다.
+ * 주간 구독(₩9,900)은 2026-11-28 부터 결제 화면에서 뺐다 — 1년권(₩29,800)이 주간 3주 값이라 고를 이유가 없고 30일 판매 0건
+ * (결제 전환 검토 P2, 사장님 「바로 다 반영」). 이미 구독 중인 사람은 그대로 인정하고 해지·갱신도 스토어에서 그대로 된다
+ */
+export const SELLING_PLANS: readonly PlanKey[] = ['day', 'year', 'credits'];
 
 /**
  * 1년권이 끝나는 시각 — 결제한 시각에서 달력으로 1년 뒤 같은 날짜·시각 (UTC 기준).

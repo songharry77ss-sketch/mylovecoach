@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { track } from '@/lib/analytics';
 import { beginAiRequest } from '@/lib/ai-request-lifetime';
 import { currentQuota } from '@/lib/billing/gate';
+import { previewAvailable } from '@/lib/billing/preview';
+import { dayKey } from '@/lib/billing/quota';
 import { aiRouteOf, CoachError, requestCoaching, requireAiConsent } from '@/lib/coach-client';
 import { crushToRequest, todayLabel, userToRequest } from '@/lib/coach-schema';
 import { errorText } from '@/lib/format';
@@ -26,7 +28,8 @@ export interface SendInput {
   variationOf?: string;
 }
 
-export type SendResult = 'sent' | 'blocked' | 'skipped';
+/** preview: 무료를 다 써서 하루 한 번 미리보기로 보냈다 (답장 1개만 보이고 나머지는 가려짐) */
+export type SendResult = 'sent' | 'blocked' | 'skipped' | 'preview';
 
 /** 프롬프트에 넣을 KKTI 한 줄 (예: 선빠폭직 직진 불도저) */
 export const kktiLabel = (k: KktiSaved | null | undefined) => (k ? `${k.code} ${k.name}`.slice(0, 40) : undefined);
@@ -34,6 +37,7 @@ export const kktiLabel = (k: KktiSaved | null | undefined) => (k ? `${k.code} ${
 /**
  * 코칭 요청 전체 플로우 (메시지 추가 → AI 분석 동의 → 이미지 인코딩 → API → 결과 반영).
  * 무료 횟수를 다 쓴 상태면 아무것도 보내지 않고 'blocked' 를 돌려줍니다 (화면에서 프리미엄 안내를 띄움).
+ * 단 오늘 미리보기를 아직 안 썼으면(새 캡처·질문만, 「다른 답장 더 보기」 제외) 횟수를 깎지 않고 보내 결과 일부를 보여 준다 — 'preview'.
  */
 export function useCoach() {
   const [sending, setSending] = useState(false);
@@ -46,7 +50,8 @@ export function useCoach() {
     const user = state.user;
     if (!crush || !user) return 'skipped';
     const quota = currentQuota();
-    if (quota.remaining <= 0) {
+    const preview = quota.remaining <= 0 && !input.variationOf && previewAvailable();
+    if (quota.remaining <= 0 && !preview) {
       track('coach_blocked', { reason: 'quota' });
       return 'blocked';
     }
@@ -139,8 +144,13 @@ export function useCoach() {
       if (!request.active()) return 'skipped';
       // 새 결과는 저장하고, 저장된 결과를 다시 쓴 경우도 시각을 새로 고친다 — 같은 요청을 연달아 보내도 계속 재사용되게
       if (!input.variationOf && !secret) useAppStore.getState().putCachedAnalysis(cacheKey, analysis);
-      // 실제로 AI 를 호출해 결과를 받은 경우에만 횟수를 차감한다 (오류·저장된 결과 재사용·무제한은 차감 없음)
-      if (!cached && quota.kind !== 'premium') useAppStore.getState().consumeQuota();
+      // 실제로 AI 를 호출해 결과를 받은 경우에만 횟수를 차감한다 (오류·저장된 결과 재사용·무제한·미리보기는 차감 없음)
+      if (!cached && !preview && quota.kind !== 'premium') useAppStore.getState().consumeQuota();
+      // 미리보기는 결과를 그리기 전에 표시해 둔다 — 가려야 할 답장이 한순간이라도 보이지 않게. 오늘 미리보기를 썼다고 적는다
+      if (preview) {
+        useAppStore.getState().updateMessage(crush.id, coachMessage.id, { preview: true });
+        useAppStore.getState().markPreviewUsed(dayKey(Date.now()));
+      }
       // 누적 온도는 처음 분석한 대화에서만 움직인다 (같은 캡처 재사용·다시 분석·다른 답장 더 보기는 그대로)
       useAppStore.getState().completeAnalysis(crush.id, coachMessage.id, analysis, { applyHeat: !cached && !seenBefore && !input.variationOf, fromCapture: Boolean(image) });
       // 새로 받은 결과의 기억만 저장한다 — 저장해 둔 예전 결과를 다시 쓴 경우(cached)는 그때의 기억이라 지금 기억을 되돌릴 수 있다
@@ -162,8 +172,10 @@ export function useCoach() {
               variation: Boolean(input.variationOf),
               secret,
               emoji,
+              ...(preview ? { preview: true } : {}),
             },
       );
+      if (preview) track('preview_shown', { cached: Boolean(cached) });
     } catch (e) {
       if (!request.active()) return 'skipped';
       // 영어판인데 아직 한국어인 오류 글이면 영어 안내로 (errorText)
@@ -183,7 +195,7 @@ export function useCoach() {
         setSending(false);
       }
     }
-    return 'sent';
+    return preview ? 'preview' : 'sent';
   }, []);
 
   const cancel = useCallback(() => abortRef.current?.abort(), []);

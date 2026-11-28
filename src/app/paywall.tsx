@@ -33,9 +33,9 @@ import { L, isKo } from '@/lib/i18n';
 import { authAvailable } from '@/lib/supabase';
 import { introUntil, useAppStore } from '@/store/app-store';
 
-type Reason = 'quota' | 'regenerate' | 'my' | 'banner' | 'upsell' | 'report' | 'practice' | 'mind' | 'renew';
+type Reason = 'quota' | 'regenerate' | 'my' | 'banner' | 'upsell' | 'report' | 'practice' | 'mind' | 'renew' | 'unlock';
 /** 무료를 다 써서 막혀 들어온 이유들 (lib/billing/paywall-route 의 BLOCKED_REASONS 와 같다) */
-const BLOCKED: ReadonlySet<Reason> = new Set<Reason>(['quota', 'regenerate', 'report', 'practice', 'mind']);
+const BLOCKED: ReadonlySet<Reason> = new Set<Reason>(['quota', 'regenerate', 'report', 'practice', 'mind', 'unlock']);
 
 /**
  * 결제 없이 닫을 때 한 번 묻는 이유 (기기당 한 번 · 건너뛸 수 있음) — 하루 8명꼴이라 A/B 로는 판단이 안 돼서 이유를 직접 모은다.
@@ -76,6 +76,8 @@ const HEADLINES_KO: Record<Reason, { title: string; subtitle: string }> = {
   mind: { title: '그 사람 속마음, 더 들여다볼까요?', subtitle: '이용권이면 궁금한 상황을 횟수 걱정 없이 물어볼 수 있어요.' },
   // 하루 이용권이 곧 끝날 때 채팅방 안내 줄에서 — 1년권을 먼저 고른다 (결제 루프, lib/billing/paywall-route)
   renew: { title: '하루 무제한이 곧 끝나요', subtitle: '자주 쓴다면 1년권이 훨씬 싸요. 자동 결제도 없어요.' },
+  // 잠금 미리보기에서 가린 답장을 누르고 — 결제하면 그 답장이 바로 열린다 (lib/billing/preview)
+  unlock: { title: '가려진 답장, 바로 열어 볼까요?', subtitle: '이용권이면 가려진 답장이 바로 열리고, 횟수 걱정 없이 이어서 코칭받아요.' },
 };
 const HEADLINES_EN: Record<Reason, { title: string; subtitle: string }> = {
   quota: { title: "You're out of free coaching today", subtitle: 'Get a pass to keep going right now — no limits.' },
@@ -87,6 +89,7 @@ const HEADLINES_EN: Record<Reason, { title: string; subtitle: string }> = {
   practice: { title: 'Keep practicing like it’s real', subtitle: 'With a pass, rehearse with your AI match as much as you want.' },
   mind: { title: 'Want to dig deeper into their head?', subtitle: 'With a pass, ask about anything on your mind — no limits.' },
   renew: { title: 'Your 24 hours are almost up', subtitle: 'Use it a lot? The 1-year pass is way cheaper. No auto-renewal.' },
+  unlock: { title: 'Unlock the rest of your replies?', subtitle: 'With a pass, the hidden replies open right away — and you can keep going with no limits.' },
 };
 const HEADLINES = L(HEADLINES_KO, HEADLINES_EN);
 

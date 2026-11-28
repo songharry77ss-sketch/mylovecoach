@@ -77,6 +77,25 @@ describe('답장 가리기', () => {
     act(() => t.unmount());
   });
 
+  it('잠금 미리보기(lockMode pass)는 「이용권이면 바로 보여요」·「열어 보기」로 — 관심도와 첫 답장은 그대로', async () => {
+    const onUnlock = jest.fn();
+    let tree: ReactTestRenderer | null = null;
+    await act(async () => {
+      tree = create(<AnalysisCard analysis={analysis} onSelectReply={jest.fn()} lockedFrom={1} onUnlock={onUnlock} lockMode="pass" />);
+    });
+    const t = tree as unknown as ReactTestRenderer;
+    const shown = allText(t);
+    expect(shown).toContain('첫 번째 답장이에요');
+    expect(shown).not.toContain('숨겨진 두 번째 답장');
+    expect(shown).toContain('오늘 무료를 다 써서 미리보기예요 · 답장 2개는 이용권이면 바로 보여요');
+    expect(shown).not.toContain('가입하면');
+    const unlock = t.root.findAll((n) => n.props.accessibilityLabel === '버전 2 열어 보기' && typeof n.props.onPress === 'function')[0];
+    expect(textOf(unlock)).toContain('열어 보기');
+    await act(async () => unlock.props.onPress());
+    expect(onUnlock).toHaveBeenCalledWith(1);
+    act(() => t.unmount());
+  });
+
   it('가리지 않으면 모든 버전이 그대로 보인다', async () => {
     let tree: ReactTestRenderer | null = null;
     await act(async () => {

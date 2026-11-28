@@ -14,14 +14,14 @@ import { saleWindow } from '@/lib/billing/sale';
 import { authAvailable } from '@/lib/supabase';
 import { useAppStore } from '@/store/app-store';
 
-/** renew: 하루 이용권이 곧 끝나서 — 1년권을 먼저 고른 결제 화면 */
-export type PaywallReason = 'quota' | 'regenerate' | 'my' | 'banner' | 'upsell' | 'report' | 'practice' | 'mind' | 'renew';
+/** renew: 하루 이용권이 곧 끝나서 — 1년권을 먼저 고른 결제 화면 · unlock: 잠금 미리보기의 가린 답장을 열려고 (lib/billing/preview) */
+export type PaywallReason = 'quota' | 'regenerate' | 'my' | 'banner' | 'upsell' | 'report' | 'practice' | 'mind' | 'renew' | 'unlock';
 
 /** 하루 이용권이 이만큼 남으면 채팅방 안내 줄에서 1년권을 권한다 */
 export const RENEW_NOTICE_MS = 60 * 60 * 1000;
 
 /** 무료를 다 써서 막힌 순간에 쓰는 이유들 */
-const BLOCKED_REASONS: ReadonlySet<PaywallReason> = new Set(['quota', 'regenerate', 'report', 'practice', 'mind']);
+const BLOCKED_REASONS: ReadonlySet<PaywallReason> = new Set(['quota', 'regenerate', 'report', 'practice', 'mind', 'unlock']);
 
 /** 지금 막힌 이 순간에 특가 팝업을 띄울 수 있는지 (스토어 상품 확인은 팝업이 연 뒤에 한다) */
 export function salePopupEligible(now = Date.now()): boolean {
