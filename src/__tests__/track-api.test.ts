@@ -102,6 +102,29 @@ describe('POST /api/track', () => {
     expect(JSON.parse(update!.body!)).toMatchObject({ name: null, gender: 'female', age: 25 });
   });
 
+  it('판 3 이어도 회원과 이어진 기기가 보낸 앱 별명은 회원 정보로 저장한다 (운영자가 별명으로 찾게, 2026-11-28)', async () => {
+    global.fetch = jest.fn(async (url: string, init: { method?: string; body?: string } = {}) => {
+      calls.push({ url: String(url), method: init.method ?? 'GET', body: init.body });
+      const member = String(url).includes('/rest/v1/member_device?') && (init.method ?? 'GET') === 'GET';
+      return { ok: true, status: member ? 200 : 201, text: async () => '', json: async () => (member ? [{ user_id: 'u_1' }] : {}) };
+    }) as unknown as typeof fetch;
+    const res = fakeRes();
+    await handler(fakeReq('POST', goodBody({ consentVersion: 3, user: { name: '다람지콩', gender: 'female', age: 25 } })), res as never);
+    expect(res.statusCode).toBe(204);
+    expect(calls.some((c) => c.url.includes('/rest/v1/member_device?') && c.url.includes('device_id=eq.d_testdevice01'))).toBe(true);
+    const [created] = JSON.parse(calls.find((c) => c.method === 'POST' && c.url.endsWith('/rest/v1/app_user'))!.body!);
+    expect(created).toMatchObject({ name: '다람지콩' });
+    const update = calls.find((c) => c.method === 'PATCH' && c.url.includes('/rest/v1/app_user?device_id=eq.') && !c.url.includes('source=is.null'));
+    expect(JSON.parse(update!.body!)).toMatchObject({ name: '다람지콩' });
+  });
+
+  it('판 3 에서 이름을 안 보냈으면 회원인지 묻지도 않는다 (비회원 기기는 늘 이름 없음)', async () => {
+    const res = fakeRes();
+    await handler(fakeReq('POST', goodBody({ consentVersion: 3, user: { gender: 'male', age: 30 } })), res as never);
+    expect(res.statusCode).toBe(204);
+    expect(calls.some((c) => c.url.includes('/rest/v1/member_device?'))).toBe(false);
+  });
+
   it('예전 앱의 직접 체크 동의(판 2)는 동의받은 대로 이름까지 저장한다 (1.0.3 까지의 앱)', async () => {
     const res = fakeRes();
     await handler(fakeReq('POST', goodBody({ user: { name: '민지', age: 25 } })), res as never);
