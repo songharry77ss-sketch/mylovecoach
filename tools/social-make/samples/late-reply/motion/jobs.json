@@ -1,5 +1,5 @@
 {
-  "note": "「읽씹 전쟁」 움직이는 토막 — python tools/social-make/wan-motion.py 로 남은 것만 만든다 (무료 할당, 하루 3~4개). 훅(a)·반전(other)부터.",
+  "note": "「읽씹 전쟁」 움직이는 토막 — python tools/social-make/wan-motion.py 로 남은 것만 만든다 (무료 할당, 하루 3~4개). 훅(a)·반전(other)부터. · 11-28: 1화는 11-27 게시돼 ep1 b·c 는 뺌, 남은 건 2화 b·c → 3화 b·c 순.",
   "space": "linoyts/wan2-2-i2v-rCM",
   "seconds": 3.5,
   "style": "realistic natural human motion, subtle breathing, slight handheld vertical phone video, keep the same face and outfit, photorealistic, no text",
@@ -34,16 +34,6 @@
       "name": "doyun-ep3-other",
       "image": "tools/social-make/samples/late-reply/doyun-ep3-other.jpg",
       "prompt": "The young man at a cafe table at night looks at his phone, taps the screen a few times, then smiles confidently, city lights in the window behind"
-    },
-    {
-      "name": "jiwoo-ep1-b",
-      "image": "tools/social-make/samples/late-reply/jiwoo-ep1-b.jpg",
-      "prompt": "The young woman looks down at her phone, types a message with both thumbs with a small hopeful smile, warm bedroom lamp light"
-    },
-    {
-      "name": "jiwoo-ep1-c",
-      "image": "tools/social-make/samples/late-reply/jiwoo-ep1-c.jpg",
-      "prompt": "The young woman reads her phone, her eyes widen, she covers her mouth with her hand and giggles happily, shoulders lifting, warm lamp light"
     },
     {
       "name": "doyun-ep2-b",
