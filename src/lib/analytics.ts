@@ -5,7 +5,7 @@
  *   대략적인 프로필(성별·나이·MBTI·선호 톤)을 보낸다. 서비스 제공·개선, 결제 흐름 분석, 부정 이용 방지를 위해
  *   처리방침에 알리고 수집하는 정보라 따로 동의를 받지 않고, 마이에 켜고 끄는 스위치도 없다.
  *   처리 정지·삭제는 메일로 요청받는다 (처리방침 10번 — 서버는 ANALYTICS_OPTOUT_DEVICES 에 적은 기기의 기록을 받지 않는다).
- * - 이름(별명)은 보내지 않는다 (분석에 필요 없음). 대화 캡처 이미지도 절대 보내지 않는다.
+ * - 이름(별명)은 보내지 않는다 — 단, 회원은 앱에서 정한 별명을 회원 정보로 보낸다(운영자 조회용, 2026-11-28). 대화 캡처 이미지는 절대 보내지 않는다.
  * - 코칭 내용(질문·답변)은 여기서 보내지 않는다. 「코칭 내용 저장」(선택)에 동의한 경우에만 coach-client 가 헤더를 붙이고
  *   서버(api/coach)가 기록한다 — contentLoggingEnabled.
  * - 만 14세 미만으로 입력한 이용자, 데모 모드, 서버 주소가 없는 빌드는 보내지 않는다 (법정대리인 동의를 받지 않음).
@@ -78,6 +78,8 @@ interface Identity {
   /** 저장소를 다 읽었는지 — 그 전에는 기기 ID 가 임시 값이라 보내지 않는다 */
   ready: boolean;
   user?: UserProfile | null;
+  /** 회원이면 앱에서 정한 별명 — 서버는 회원과 이어진 기기일 때만 저장한다 (비회원은 null) */
+  memberName?: string | null;
   premiumPlan?: string | null;
   crushCount?: number;
   acquisition?: Acquisition | null;
@@ -312,9 +314,10 @@ function send(endSession: boolean): void {
     platform: Platform.OS,
     // 빌드에 들어간 실제 앱 버전 (예전에는 빌드 때 넣지 않는 변수를 읽어 늘 1.0.0 으로 남았다)
     appVersion: Constants.expoConfig?.version?.slice(0, 32) || 'unknown',
-    // 이름(별명)은 보내지 않는다 — 대략적인 프로필만 (나이는 만 14세 미만 제외에도 쓴다)
+    // 대략적인 프로필만 (나이는 만 14세 미만 제외에도 쓴다). 이름(별명)은 회원일 때만 — 회원 정보로 보관
     user: identity.user
       ? {
+          ...(identity.memberName ? { name: identity.memberName } : {}),
           gender: identity.user.gender,
           age: identity.user.age ?? null,
           mbti: identity.user.mbti ?? null,

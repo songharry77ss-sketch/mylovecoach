@@ -52,6 +52,8 @@ const analyticsIdentity = (s: StoreState, ready: boolean) => ({
   deviceId: s.deviceId,
   ready,
   user: s.user,
+  // 회원(가입한 사람)만 앱에서 정한 별명을 회원 정보로 보낸다 — 운영자가 별명으로 찾을 수 있게 (처리방침 회원 항목, 2026-11-28). 비회원은 보내지 않는다
+  memberName: s.member ? s.user?.name?.trim().slice(0, 60) || null : null,
   premiumPlan: s.premium?.plan ?? null,
   crushCount: Object.keys(s.crushes).length,
   acquisition: s.acquisition,

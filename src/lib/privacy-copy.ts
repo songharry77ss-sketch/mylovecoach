@@ -10,9 +10,9 @@ import { L } from '@/lib/i18n';
 /** 서비스 이용 기록 (기본 수집 — 처리방침 4번 #analytics). 동의 항목이 아니라 알림이다 */
 export const BASIC_LOG_NOTICE = L(
   '앱을 쓰는 동안 생기는 이용 기록(화면 이동·머문 시간, 버튼 이용, 결제 진행 단계, 처음 들어온 경로, 기기 ID, 성별·나이·MBTI)은 ' +
-    '서비스 제공·개선, 결제 오류 확인, 부정 이용 방지를 위해 자동으로 수집돼요. 1년 보관하고, 프로필 나이를 만 14세 미만으로 입력하면 수집하지 않아요. 이름·대화 내용·캡처는 담기지 않아요.',
+    '서비스 제공·개선, 결제 오류 확인, 부정 이용 방지를 위해 자동으로 수집돼요. 1년 보관하고, 프로필 나이를 만 14세 미만으로 입력하면 수집하지 않아요. 대화 내용·캡처는 담기지 않고, 이름(별명)은 회원가입한 경우에만 회원 정보로 보관해요.',
   'While you use the app, usage records (screens you visit and time spent, button taps, payment steps, how you first found the app, device ID, and your gender, age, and MBTI) ' +
-    'are collected automatically to provide and improve the service, check payment errors, and prevent abuse. They’re kept for 1 year and aren’t collected if your profile age is under 14. Your name, conversations, and screenshots are never included.',
+    'are collected automatically to provide and improve the service, check payment errors, and prevent abuse. They’re kept for 1 year and aren’t collected if your profile age is under 14. Your conversations and screenshots are never included, and your name (nickname) is kept only as account info if you sign up.',
 );
 
 /** 같은 내용의 긴 안내 (개인정보 설정 화면) — 보관 기간·처리하는 회사·처리 정지 방법까지 */
