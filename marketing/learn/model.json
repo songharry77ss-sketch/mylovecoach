@@ -1,91 +1,91 @@
 {
-  "at": "2026-11-27T09:20:16.811Z",
-  "scored": 29,
-  "measuring": 5,
+  "at": "2026-11-28T08:36:39.723Z",
+  "scored": 30,
+  "measuring": 6,
   "base": {
-    "views": 126,
+    "views": 129,
     "spread": 0
   },
   "kinds": {
-    "reel": 0.93,
-    "carousel": -1.3,
-    "image": -1.45
+    "reel": 0.87,
+    "carousel": -1.32,
+    "image": -1.47
   },
   "formats": {
     "chat-reel": {
-      "n": 3,
-      "mean": 1.56,
-      "score": 1.24,
-      "views": 177,
-      "spread": 4.7
+      "n": 4,
+      "mean": 1.22,
+      "score": 1.07,
+      "views": 173,
+      "spread": 3.6
     },
     "pick-carousel": {
       "n": 1,
-      "mean": -2.15,
-      "score": -1.51,
+      "mean": -2.17,
+      "score": -1.53,
       "views": 13,
       "spread": 0
     },
     "pick-reel": {
       "n": 2,
-      "mean": 0.43,
-      "score": 0.73,
+      "mean": 0.4,
+      "score": 0.68,
       "views": 182,
       "spread": 0
     },
     "list-carousel": {
       "n": 2,
-      "mean": -2.25,
-      "score": -1.68,
+      "mean": -2.28,
+      "score": -1.7,
       "views": 11,
       "spread": 0
     },
     "kkti-pair": {
       "n": 1,
-      "mean": -2.24,
-      "score": -1.53,
+      "mean": -2.26,
+      "score": -1.55,
       "views": 11,
       "spread": 0
     },
     "app-reel": {
       "n": 0,
       "mean": null,
-      "score": 0.93,
+      "score": 0.87,
       "views": null,
       "spread": null
     },
     "old-reel": {
       "n": 4,
-      "mean": 0.83,
-      "score": 0.87,
+      "mean": 0.8,
+      "score": 0.83,
       "views": 181,
       "spread": 1
     },
     "old-carousel": {
       "n": 4,
-      "mean": -1.34,
-      "score": -1.32,
+      "mean": -1.37,
+      "score": -1.35,
       "views": 10,
       "spread": 7.5
     },
     "old-image": {
       "n": 6,
-      "mean": -2.17,
-      "score": -1.45,
+      "mean": -2.2,
+      "score": -1.47,
       "views": 13,
       "spread": 0
     },
     "real-reel": {
       "n": 1,
-      "mean": 3.71,
-      "score": 1.62,
+      "mean": 3.68,
+      "score": 1.57,
       "views": 607,
       "spread": 4.1
     },
     "ai-reel": {
       "n": 5,
-      "mean": 0.83,
-      "score": 0.87,
+      "mean": 0.8,
+      "score": 0.83,
       "views": 206,
       "spread": 0.4
     }
@@ -93,45 +93,57 @@
   "topics": {
     "썸": {
       "n": 19,
-      "score": -0.42,
+      "score": -0.45,
       "views": 116,
       "spread": 1.2
     },
     "연락 텀·읽씹": {
       "n": 3,
-      "score": 0.39,
+      "score": 0.37,
       "views": 204,
       "spread": 0.3
     },
     "꼴: 받은 카톡": {
       "n": 3,
-      "score": 0.27,
+      "score": 0.26,
       "views": 125,
       "spread": 4.4
     },
     "성향·궁합": {
       "n": 8,
-      "score": -0.82,
+      "score": -0.84,
       "views": 68,
       "spread": 0.5
     },
     "시즌": {
       "n": 2,
-      "score": 0.84,
+      "score": 0.83,
       "views": 166,
       "spread": 7.2
     },
     "재회·전 애인": {
       "n": 2,
-      "score": 0.21,
+      "score": 0.2,
       "views": 199,
       "spread": 0
     },
     "약속·데이트": {
       "n": 2,
-      "score": 0.62,
+      "score": 0.61,
       "views": 135,
       "spread": 6.6
+    },
+    "애착유형": {
+      "n": 1,
+      "score": 0.07,
+      "views": 161,
+      "spread": 0
+    },
+    "꼴: 대비": {
+      "n": 1,
+      "score": 0.07,
+      "views": 161,
+      "spread": 0
     }
   },
   "best": [
@@ -144,7 +156,7 @@
       "shares": 7,
       "saved": 0,
       "spread": 4.1,
-      "score": 3.71
+      "score": 3.68
     },
     {
       "id": "r-christmas-ask",
@@ -155,7 +167,7 @@
       "shares": 5,
       "saved": 0,
       "spread": 13.3,
-      "score": 2.99
+      "score": 2.96
     },
     {
       "id": "ig-18126614482676279",
@@ -166,7 +178,7 @@
       "shares": 0,
       "saved": 3,
       "spread": 4.1,
-      "score": 1.89
+      "score": 1.86
     }
   ],
   "worst": [
@@ -179,7 +191,7 @@
       "shares": 0,
       "saved": 0,
       "spread": 0,
-      "score": -2.87
+      "score": -2.9
     },
     {
       "id": "l-interested-signs",
@@ -190,7 +202,7 @@
       "shares": 0,
       "saved": 0,
       "spread": 0,
-      "score": -2.49
+      "score": -2.52
     }
   ],
   "week": [
