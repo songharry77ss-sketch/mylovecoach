@@ -1,0 +1,66 @@
+{
+  "at": "2026-11-28T08:58:11.951Z",
+  "note": "운영 코치 서버(/api/coach)가 돌려준 실제 결과 — app-reel 녹화에 넣음",
+  "request": {
+    "crush": {
+      "name": "서연",
+      "gender": "female",
+      "relationship": "blind_date",
+      "style": [],
+      "notes": "",
+      "heat": 0
+    },
+    "user": {
+      "name": "",
+      "gender": "male",
+      "style": []
+    },
+    "tone": "natural",
+    "emoji": "on",
+    "toneChosen": false,
+    "emojiChosen": false,
+    "text": "서연: 오늘 즐거웠어요 ㅎㅎ\n서연: 조심히 들어가세요!",
+    "history": [],
+    "today": "11/28(토)"
+  },
+  "analysis": {
+    "callName": null,
+    "speechLevel": "polite",
+    "summary": "서연 씨가 먼저 긍정적인 감사 인사를 건넸네요! 나도 즐거웠다는 솔직한 마음을 표현하며 자연스럽게 답장해 보세요.",
+    "temperature": "warm",
+    "interestScore": 75,
+    "heatDelta": 10,
+    "insights": [
+      "상대방이 먼저 즐거웠다고 안부를 건네 분위기가 긍정적입니다.",
+      "가볍게 마음을 전하고 잘 들어갔는지 물어보기 딱 좋은 타이밍이에요."
+    ],
+    "replies": [
+      {
+        "tone": "natural",
+        "text": "저도 오늘 서연 씨 덕분에 정말 즐거운 시간이었어요! 😊 서연 씨도 조심히 잘 들어가셨나요?",
+        "why": "기분 좋은 안부에 자연스럽게 답하며 안부를 다시 묻는 정석 표현",
+        "expectedReaction": "네 저도 방금 잘 들어왔어요! 😊",
+        "successRate": 85
+      },
+      {
+        "tone": "flirty",
+        "text": "오늘 이야기 나누다 보니 시간 가는 줄 몰랐네요 🤭 조심히 들어가시고 도착하면 말씀해 주세요!",
+        "why": "즐거웠던 감정을 조금 더 은근하게 전달하는 답장",
+        "expectedReaction": "앗 넵 카톡 할게요 ㅎㅎ 차 안이신가요?",
+        "successRate": 80
+      },
+      {
+        "tone": "witty",
+        "text": "오늘 진짜 맛있는 것도 먹고 재미있었어요 ㅎㅎ 집에 잘 도착해서 푹 쉬세요! ✨",
+        "why": "부담을 줄이고 편안하게 마무리하며 긍정적인 인상을 주는 표현",
+        "expectedReaction": "맞아요 맛집 잘 찾으셨더라고요 ㅎㅎ 푹 쉬세요!",
+        "successRate": 78
+      }
+    ],
+    "nextStep": "잘 들어갔는지 안부를 묻고 자연스럽게 대화 이어가기",
+    "warnings": [],
+    "memory": [
+      "11/28(토) 서연 씨와 소개팅 첫 만남 후 서연 씨가 먼저 즐겁게 잘 들어가라는 카톡을 보냄."
+    ]
+  }
+}

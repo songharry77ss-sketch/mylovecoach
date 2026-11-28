@@ -1054,6 +1054,354 @@
       "after": "ai-late-reply-3",
       "note": "ai-reel 스토리",
       "caption": ""
+    },
+    {
+      "id": "r-cancel-plan",
+      "at": "2026-11-30 12:30",
+      "channel": "instagram",
+      "kind": "reel",
+      "media": [
+        "marketing/social/r-cancel-plan/reel.mp4"
+      ],
+      "cover": "marketing/social/r-cancel-plan/cover.jpg",
+      "caption": "약속 당일에 \"오늘 좀 피곤해서..\" 연락이 왔다면 😮‍💨\n\n취소 자체보다 그다음이 중요해. 먼저 다른 날을 잡아 주면 마음은 그대로라는 뜻이야.\n\n너는 약속 취소당하면 어떻게 답해?\n\n#약속취소 #썸 #카톡답장 #연애고민 #썸남",
+      "audio": {
+        "trending": true,
+        "videoVolume": 25,
+        "minSeconds": 14
+      },
+      "approved": true,
+      "note": "자동 생산 · chat-reel",
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-28T08:57:57.275Z"
+    },
+    {
+      "id": "r-cancel-plan-story",
+      "at": "2026-11-30 12:31",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/r-cancel-plan/reel.mp4"
+      ],
+      "approved": true,
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-28T08:57:57.275Z",
+      "after": "r-cancel-plan",
+      "note": "자동 생산 · chat-reel 스토리"
+    },
+    {
+      "id": "p-after-finals",
+      "at": "2026-12-01 12:30",
+      "channel": "instagram",
+      "kind": "carousel",
+      "media": [
+        "marketing/social/p-after-finals/01.jpg",
+        "marketing/social/p-after-finals/02.jpg",
+        "marketing/social/p-after-finals/03.jpg",
+        "marketing/social/p-after-finals/04.jpg",
+        "marketing/social/p-after-finals/05.jpg",
+        "marketing/social/p-after-finals/06.jpg"
+      ],
+      "caption": "\"기말 끝나고 연락할게\" = 끝내자는 말일까? 📚\n\n대부분은 진짜 바쁜 거야. 응원하면서 끝난 뒤 약속을 하나 남겨 두면 다시 연락할 이유가 생겨.\n\n너는 시험 기간에 연락 줄어드는 편이야?\n\n#기말고사 #썸 #카톡답장 #연애고민 #대학생연애",
+      "approved": true,
+      "note": "자동 생산 · pick-carousel",
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-28T08:57:59.857Z"
+    },
+    {
+      "id": "p-after-finals-story",
+      "at": "2026-12-01 12:31",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/p-after-finals/story.jpg"
+      ],
+      "approved": true,
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-28T08:57:59.857Z",
+      "after": "p-after-finals",
+      "note": "자동 생산 · pick-carousel 스토리"
+    },
+    {
+      "id": "a-blind-date-first",
+      "at": "2026-12-02 12:30",
+      "channel": "instagram",
+      "kind": "reel",
+      "media": [
+        "marketing/social/a-blind-date-first/reel.mp4"
+      ],
+      "cover": "marketing/social/a-blind-date-first/cover.jpg",
+      "caption": "소개팅 끝나고 \"오늘 즐거웠어요 ㅎㅎ\" 이렇게 오면 뭐라고 답해?\n\n센딧에 그대로 넣어서 답장 3개 받아 봤어. 앱 화면과 답장은 실제 AI 결과 그대로고, 상대 반응은 AI가 예상한 거야.\n\n애프터는 보통 언제 신청하는 편이야?\n\n#소개팅 #애프터 #카톡답장 #연애코치 #센딧",
+      "audio": {
+        "trending": true,
+        "videoVolume": 25,
+        "minSeconds": 19
+      },
+      "approved": true,
+      "note": "자동 생산 · app-reel",
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-28T09:01:28.804Z"
+    },
+    {
+      "id": "a-blind-date-first-story",
+      "at": "2026-12-02 12:31",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/a-blind-date-first/reel.mp4"
+      ],
+      "approved": true,
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-28T09:01:28.804Z",
+      "after": "a-blind-date-first",
+      "note": "자동 생산 · app-reel 스토리"
+    },
+    {
+      "id": "kkti-esfp-isfp",
+      "at": "2026-12-03 12:30",
+      "channel": "instagram",
+      "kind": "carousel",
+      "media": [
+        "marketing/social/kkti-esfp-isfp/01.jpg",
+        "marketing/social/kkti-esfp-isfp/02.jpg",
+        "marketing/social/kkti-esfp-isfp/03.jpg",
+        "marketing/social/kkti-esfp-isfp/04.jpg",
+        "marketing/social/kkti-esfp-isfp/05.jpg"
+      ],
+      "caption": "썸 장인 × 선톡 기다리는 햄찌 카톡 궁합 99% 💍\n\n카톡만 봐도 결이 같아요. 이런 조합 흔치 않아요!\n\n너희 둘은 무슨 조합이야? 카톡 습관 12문항이면 내 유형이 나오고, 둘 다 하면 궁합까지 나와. 테스트는 프로필 링크에.\n\n#KKTI #카톡궁합 #MBTI궁합 #연애유형 #썸",
+      "approved": true,
+      "note": "자동 생산 · kkti-pair",
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-28T09:01:32.562Z"
+    },
+    {
+      "id": "kkti-esfp-isfp-story",
+      "at": "2026-12-03 12:31",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/kkti-esfp-isfp/story.jpg"
+      ],
+      "approved": true,
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-28T09:01:32.562Z",
+      "after": "kkti-esfp-isfp",
+      "note": "자동 생산 · kkti-pair 스토리"
+    },
+    {
+      "id": "r-dawn-message",
+      "at": "2026-12-03 21:00",
+      "channel": "instagram",
+      "kind": "reel",
+      "media": [
+        "marketing/social/r-dawn-message/reel.mp4"
+      ],
+      "cover": "marketing/social/r-dawn-message/cover.jpg",
+      "caption": "새벽 2시에 \"자니..?\"가 왔다면 🌙\n\n새벽 카톡 자체보다 중요한 건 그다음이야. 낮에도 연락하고 약속으로 이어지는지 봐.\n\n너는 새벽 카톡 오면 답하는 편이야?\n\n#자니 #썸 #카톡답장 #연애고민 #썸남",
+      "audio": {
+        "trending": true,
+        "videoVolume": 25,
+        "minSeconds": 15
+      },
+      "approved": true,
+      "note": "자동 생산 · chat-reel",
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-28T09:01:52.438Z"
+    },
+    {
+      "id": "r-dawn-message-story",
+      "at": "2026-12-03 21:01",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/r-dawn-message/reel.mp4"
+      ],
+      "approved": true,
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-28T09:01:52.438Z",
+      "after": "r-dawn-message",
+      "note": "자동 생산 · chat-reel 스토리"
+    },
+    {
+      "id": "l-story-but-no-reply",
+      "at": "2026-12-04 12:30",
+      "channel": "instagram",
+      "kind": "carousel",
+      "media": [
+        "marketing/social/l-story-but-no-reply/01.jpg",
+        "marketing/social/l-story-but-no-reply/02.jpg",
+        "marketing/social/l-story-but-no-reply/03.jpg",
+        "marketing/social/l-story-but-no-reply/04.jpg",
+        "marketing/social/l-story-but-no-reply/05.jpg",
+        "marketing/social/l-story-but-no-reply/06.jpg"
+      ],
+      "caption": "스토리는 보는데 내 톡은 안 읽는 사람, 무슨 심리일까? 🙈\n\n이유는 생각보다 다양해. 3일이 넘으면 추궁 말고 새 얘깃거리로 한 번만 보내 보는 게 좋아.\n\n너는 스토리만 보고 답장 미룬 적 있어?\n\n#안읽씹 #읽씹 #썸 #연애심리 #카톡",
+      "approved": true,
+      "note": "자동 생산 · list-carousel",
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-28T09:01:53.756Z"
+    },
+    {
+      "id": "l-story-but-no-reply-story",
+      "at": "2026-12-04 12:31",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/l-story-but-no-reply/story.jpg"
+      ],
+      "approved": true,
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-28T09:01:53.756Z",
+      "after": "l-story-but-no-reply",
+      "note": "자동 생산 · list-carousel 스토리"
+    },
+    {
+      "id": "a-ex-hows-it-going",
+      "at": "2026-12-04 21:00",
+      "channel": "instagram",
+      "kind": "reel",
+      "media": [
+        "marketing/social/a-ex-hows-it-going/reel.mp4"
+      ],
+      "cover": "marketing/social/a-ex-hows-it-going/cover.jpg",
+      "caption": "헤어진 지 두 달, 새벽 1시에 \"잘 지내?\"가 왔다면… 다시 잘해 보고 싶은 마음이 있을 때 뭐라고 답할지 센딧한테 물어봤어\n\n앱 화면과 답장 3개는 실제 AI 결과 그대로고, 상대 반응은 AI가 예상한 거야.\n\n너라면 이 카톡에 답장할 것 같아?\n\n#재회 #전남친 #잘지내 #연애고민 #센딧",
+      "audio": {
+        "trending": true,
+        "videoVolume": 25,
+        "minSeconds": 19
+      },
+      "approved": true,
+      "note": "자동 생산 · app-reel",
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-28T09:04:28.822Z"
+    },
+    {
+      "id": "a-ex-hows-it-going-story",
+      "at": "2026-12-04 21:01",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/a-ex-hows-it-going/reel.mp4"
+      ],
+      "approved": true,
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-28T09:04:28.822Z",
+      "after": "a-ex-hows-it-going",
+      "note": "자동 생산 · app-reel 스토리"
+    },
+    {
+      "id": "q-worst-day",
+      "at": "2026-12-05 12:30",
+      "channel": "instagram",
+      "kind": "reel",
+      "media": [
+        "marketing/social/q-worst-day/reel.mp4"
+      ],
+      "cover": "marketing/social/q-worst-day/cover.jpg",
+      "caption": "애인이 \"나 오늘 진짜 최악이었어\" 보냈다면 몇 번으로 답할래?\n\n애인이랑 번호 다르면 그날 서운함 각 ㅋㅋ\n\n너라면 몇 번이야?\n\n#커플 #커플카톡 #연애 #카톡답장 #밸런스게임",
+      "audio": {
+        "trending": true,
+        "videoVolume": 25,
+        "minSeconds": 9
+      },
+      "approved": true,
+      "note": "자동 생산 · pick-reel",
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-28T09:04:32.310Z"
+    },
+    {
+      "id": "q-worst-day-story",
+      "at": "2026-12-05 12:31",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/q-worst-day/reel.mp4"
+      ],
+      "approved": true,
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-28T09:04:32.310Z",
+      "after": "q-worst-day",
+      "note": "자동 생산 · pick-reel 스토리"
+    },
+    {
+      "id": "r-finals-cheer",
+      "at": "2026-12-05 21:00",
+      "channel": "instagram",
+      "kind": "reel",
+      "media": [
+        "marketing/social/r-finals-cheer/reel.mp4"
+      ],
+      "cover": "marketing/social/r-finals-cheer/cover.jpg",
+      "caption": "시험 전날 밤에 썸녀한테 \"내일 시험 파이팅\"이 왔다면?\n\n내가 지나가듯 말한 일정을 기억해 주는 건 작은 것 같아도 꽤 큰 신호야. 시험 끝나고 볼 약속까지 꺼냈다면 더더욱.\n\n너는 시험 기간에 받은 연락 중에 뭐가 제일 설렜어?\n\n#시험기간 #썸 #썸녀 #카톡해석 #연애고민",
+      "audio": {
+        "trending": true,
+        "videoVolume": 25,
+        "minSeconds": 16
+      },
+      "approved": true,
+      "note": "자동 생산 · chat-reel",
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-28T09:04:52.050Z"
+    },
+    {
+      "id": "r-finals-cheer-story",
+      "at": "2026-12-05 21:01",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/r-finals-cheer/reel.mp4"
+      ],
+      "approved": true,
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-28T09:04:52.050Z",
+      "after": "r-finals-cheer",
+      "note": "자동 생산 · chat-reel 스토리"
+    },
+    {
+      "id": "a-christmas-plan",
+      "at": "2026-12-06 12:30",
+      "channel": "instagram",
+      "kind": "reel",
+      "media": [
+        "marketing/social/a-christmas-plan/reel.mp4"
+      ],
+      "cover": "marketing/social/a-christmas-plan/cover.jpg",
+      "caption": "썸남이 먼저 \"크리스마스에 뭐 해?\" 물어보면 뭐라고 답해야 자연스럽게 약속까지 갈까\n\n센딧에 그대로 넣어서 답장 3개 받아 봤어. 앱 화면과 답장은 실제 AI 결과 그대로고, 마지막 카톡 장면은 연출이야.\n\n크리스마스 약속은 보통 누가 먼저 잡는 것 같아?\n\n#크리스마스 #썸 #썸남 #카톡답장 #센딧",
+      "audio": {
+        "trending": true,
+        "videoVolume": 25,
+        "minSeconds": 19
+      },
+      "approved": true,
+      "note": "자동 생산 · app-reel",
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-28T09:07:26.621Z"
+    },
+    {
+      "id": "a-christmas-plan-story",
+      "at": "2026-12-06 12:31",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/a-christmas-plan/reel.mp4"
+      ],
+      "approved": true,
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-28T09:07:26.621Z",
+      "after": "a-christmas-plan",
+      "note": "자동 생산 · app-reel 스토리"
+    },
+    {
+      "id": "q-ex-dawn",
+      "at": "2026-12-06 21:00",
+      "channel": "instagram",
+      "kind": "reel",
+      "media": [
+        "marketing/social/q-ex-dawn/reel.mp4"
+      ],
+      "cover": "marketing/social/q-ex-dawn/cover.jpg",
+      "caption": "새벽 2시에 전 애인한테 \"자니..?\"가 왔다면 몇 번? 🌙\n\n이건 진짜 성격 나옴 ㅋㅋ\n\n너라면 몇 번이야?\n\n#자니 #전애인 #재회 #카톡 #연애",
+      "audio": {
+        "trending": true,
+        "videoVolume": 25,
+        "minSeconds": 9
+      },
+      "approved": true,
+      "note": "자동 생산 · pick-reel",
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-28T09:07:29.943Z"
+    },
+    {
+      "id": "q-ex-dawn-story",
+      "at": "2026-12-06 21:01",
+      "channel": "instagram",
+      "kind": "story",
+      "media": [
+        "marketing/social/q-ex-dawn/reel.mp4"
+      ],
+      "approved": true,
+      "approvedBy": "자동 허락 (SOCIAL_AUTO_APPROVE) 2026-11-28T09:07:29.943Z",
+      "after": "q-ex-dawn",
+      "note": "자동 생산 · pick-reel 스토리"
     }
   ]
 }

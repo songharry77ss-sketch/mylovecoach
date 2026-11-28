@@ -1,0 +1,68 @@
+{
+  "at": "2026-11-28T09:02:06.268Z",
+  "note": "운영 코치 서버(/api/coach)가 돌려준 실제 결과 — app-reel 녹화에 넣음",
+  "request": {
+    "crush": {
+      "name": "준호",
+      "gender": "male",
+      "relationship": "ex",
+      "style": [],
+      "notes": "",
+      "heat": 0
+    },
+    "user": {
+      "name": "",
+      "gender": "female",
+      "style": []
+    },
+    "tone": "natural",
+    "emoji": "on",
+    "toneChosen": false,
+    "emojiChosen": false,
+    "text": "헤어지고 두 달 만에 연락 왔어\n준호: 잘 지내?",
+    "history": [],
+    "today": "11/28(토)"
+  },
+  "analysis": {
+    "callName": null,
+    "speechLevel": "casual",
+    "summary": "2달 만에 온 선톡은 긍정적인 신호예요! 감정적으로 치우치지 말고 담백하고 여유 있게 답장을 이어가 보세요.",
+    "temperature": "warm",
+    "interestScore": 65,
+    "heatDelta": 8,
+    "insights": [
+      "헤어진 지 2달 만에 상대가 먼저 안부를 물으며 대화를 시작했어요.",
+      "너무 반가워하거나 감정적으로 다가가기보다는 여유 있고 담백한 태도가 좋아요."
+    ],
+    "replies": [
+      {
+        "tone": "natural",
+        "text": "응 나 잘 지내지! 너도 별일 없이 잘 지내? 😊",
+        "why": "자연스럽게 안부를 받아주고 상대 근황을 되묻는 정석 문장",
+        "expectedReaction": "응 나도 잘 지내지 ㅋㅋ 갑자기 생각나서",
+        "successRate": 85
+      },
+      {
+        "tone": "witty",
+        "text": "응 잘 지내고 있지 🤭 갑자기 연락 와서 반가운데, 너는 어떻게 지내?",
+        "why": "여유롭게 반가움을 전하며 호기심을 유발하는 문장",
+        "expectedReaction": "오랜만이라 그냥 근황 궁금해서 연락했지 혜혜",
+        "successRate": 80
+      },
+      {
+        "tone": "cool",
+        "text": "응 나 잘 지내! 너는 요즘 어떻게 지내? 진짜 오랜만이네 ㅎㅎ",
+        "why": "부담을 완전히 낮추고 쿨하게 대화를 이어나가는 답변",
+        "expectedReaction": "응 나도 잘 지내! 꽤 오랜만이다",
+        "successRate": 82
+      }
+    ],
+    "nextStep": "부담 없는 안부 대화로 상대의 의도와 반응 살피기",
+    "warnings": [
+      "서운했던 점이나 재회에 대한 이야기를 바로 꺼내지 마세요."
+    ],
+    "memory": [
+      "11/28(토) 헤어진 지 2달 만에 준호가 '잘 지내?'라고 먼저 연락함."
+    ]
+  }
+}

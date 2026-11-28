@@ -1,0 +1,68 @@
+{
+  "at": "2026-11-28T09:05:01.638Z",
+  "note": "운영 코치 서버(/api/coach)가 돌려준 실제 결과 — app-reel 녹화에 넣음",
+  "request": {
+    "crush": {
+      "name": "도윤",
+      "gender": "male",
+      "relationship": "talking",
+      "style": [],
+      "notes": "",
+      "heat": 0
+    },
+    "user": {
+      "name": "",
+      "gender": "female",
+      "style": []
+    },
+    "tone": "natural",
+    "emoji": "on",
+    "toneChosen": false,
+    "emojiChosen": false,
+    "text": "나: 요즘 너무 춥다 ㅠ\n도윤: 그니까 ㅋㅋ 벌써 12월이네\n도윤: 크리스마스에 뭐 해?",
+    "history": [],
+    "today": "11/28(토)"
+  },
+  "analysis": {
+    "callName": null,
+    "speechLevel": "casual",
+    "summary": "도윤이가 크리스마스 계획을 묻는 건 데이트 신청을 하기 위한 신호예요! 자연스럽게 약속이 없다는 여지를 남겨보세요.",
+    "temperature": "hot",
+    "interestScore": 85,
+    "heatDelta": 12,
+    "insights": [
+      "크리스마스 계획을 물어본 건 자연스럽게 약속을 잡고 싶다는 호감 신호예요.",
+      "아직 특별한 일정이 없다고 여지를 주면 상대가 데이트 신청을 하기 편해져요."
+    ],
+    "replies": [
+      {
+        "tone": "natural",
+        "text": "아직 아무 약속도 안 잡았어! 도윤이는 뭐 해? 😊",
+        "why": "자연스럽게 여지를 남기면서 상대의 계획을 물어보는 정석 답장",
+        "expectedReaction": "오 그래? 그럼 나랑 맛있는 거 먹으러 갈래? ㅎㅎ",
+        "successRate": 90
+      },
+      {
+        "tone": "flirty",
+        "text": "아직 날 찜한 사람이 없네 🤭 너는 크리스마스에 뭐 해?",
+        "why": "위트 있게 솔로임을 밝히며 상대가 약속을 잡도록 유도하는 문구",
+        "expectedReaction": "ㅋㅋ 그럼 그날 나랑 맛있는 거 먹자!",
+        "successRate": 85
+      },
+      {
+        "tone": "witty",
+        "text": "친구들이랑 놀까 생각 중이었는데 확실하진 않아 ㅋㅋ 왜 물어봐? ✨",
+        "why": "너무 한가해 보이지 않으면서도 상대의 의도를 되물어보는 부담 없는 대답",
+        "expectedReaction": "나도 아직 특별한 거 없어 ㅋㅋ 우리 만나서 놀까?",
+        "successRate": 88
+      }
+    ],
+    "nextStep": "일정이 없다고 답하며 상대의 반응을 살피고 데이트로 연결해 보세요.",
+    "warnings": [
+      "너무 바쁜 척을 하면 상대가 데이트 신청을 포기할 수 있으니 주의하세요."
+    ],
+    "memory": [
+      "11/28(토) 도윤이가 크리스마스 일정을 물어보며 은근히 약속을 제안함."
+    ]
+  }
+}
