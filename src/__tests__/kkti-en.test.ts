@@ -3,7 +3,7 @@
  * 기본(한국어)으로 돌리면 화면 문구가 kkti.ts 그대로인지, APP_LANG=en 으로 돌리면 화면 문구에 한글이 없는지까지 본다.
  *   APP_LANG=en npx jest src/__tests__/kkti-en.test.ts
  */
-import { isEn, isKo } from '@/lib/i18n';
+import { LANG, isEn, isKo } from '@/lib/i18n';
 import {
   KKTI_AXES,
   KKTI_CODES,
@@ -12,6 +12,7 @@ import {
   KKTI_MATCH_TIERS,
   KKTI_QUESTIONS,
   KKTI_TYPES,
+  cardUrl,
   chatShareText,
   computeKkti,
   kktiMatch,
@@ -19,6 +20,7 @@ import {
   matchReason,
   matchShareText,
   shareText,
+  shareUrl,
   toSaved,
 } from '@/lib/kkti';
 import {
@@ -225,6 +227,16 @@ describe(`kktiCopy — 지금 언어(${isKo ? '한국어' : '영어'})`, () => {
       const saved = toSaved(me, 1);
       expect(kktiCopy.saved(saved)).toEqual({ code: saved.code, name: saved.name, colorName: saved.colorName });
     });
+
+    it('한국어판 공유 링크·카드 주소는 지금까지와 같다 (l= 없음)', () => {
+      expect(kktiCopy.link(me.encoded)).toBe(shareUrl(me.encoded));
+      expect(kktiCopy.link(me.encoded, friend.encoded)).toBe(shareUrl(me.encoded, friend.encoded));
+      expect(kktiCopy.link(me.encoded, null)).toBe(shareUrl(me.encoded));
+      expect(kktiCopy.card(me.encoded, friend.encoded, 'story', 'https://x.example')).toBe(cardUrl(me.encoded, friend.encoded, 'story', 'https://x.example'));
+      expect(kktiCopy.card(me.encoded)).toBe(cardUrl(me.encoded));
+      expect(kktiCopy.share(me)).toBe(shareText(me, shareUrl(me.encoded)));
+      expect(kktiCopy.share(me)).not.toContain('l=');
+    });
   }
 
   if (isEn) {
@@ -254,6 +266,18 @@ describe(`kktiCopy — 지금 언어(${isKo ? '한국어' : '영어'})`, () => {
       expect(kktiCopy.share(me, link)).toContain(link);
       expect(kktiCopy.matchChat(me, friend, link)).toContain(link);
       expect(kktiCopy.share(me)).toContain(`/k/${me.encoded}`);
+    });
+
+    it('세계판 공유 링크에는 언어(l=)가 붙고, 카드 그림은 영어(l=en)', () => {
+      const lang = encodeURIComponent(LANG);
+      expect(kktiCopy.link(me.encoded)).toBe(`${shareUrl(me.encoded)}?l=${lang}`);
+      expect(kktiCopy.link(me.encoded, friend.encoded)).toBe(`${shareUrl(me.encoded, friend.encoded)}?l=${lang}`);
+      expect(kktiCopy.card(me.encoded, friend.encoded, 'story', 'https://x.example')).toBe(`${cardUrl(me.encoded, friend.encoded, 'story', 'https://x.example')}&l=en`);
+      expect(kktiCopy.card(me.encoded)).toBe(`${cardUrl(me.encoded)}&l=en`);
+      // 기본 공유 문구도 언어가 붙은 링크를 싣는다
+      expect(kktiCopy.share(me)).toContain(`/k/${me.encoded}?l=${lang}`);
+      expect(kktiCopy.matchShare(me, friend)).toContain(`/k/${me.encoded}-${friend.encoded}?l=${lang}`);
+      expect(kktiCopy.matchChat(me, friend)).toContain(`?l=${lang}`);
     });
 
     it('영어 공유 문구도 X(280자)에 들어간다', () => {

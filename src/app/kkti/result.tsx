@@ -24,7 +24,6 @@ import { countKkti } from '@/lib/kkti-stat';
 import {
   KKTI_SITE,
   KKTI_TYPES,
-  cardUrl,
   codeLetters,
   josa,
   kktiFromCode,
@@ -34,7 +33,6 @@ import {
   mixHex,
   readableTextOn,
   retakeFriend,
-  shareUrl,
   toSaved,
   type KktiAxisResult,
   type KktiMatch,
@@ -149,7 +147,8 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
   // 내 결과가 앞에 오게 해서, 링크를 받은 사람이 테스트를 끝내면 나와의 궁합이 나온다
   const myResult = mine ? result : role === 'partner' ? partner : null;
   const theirResult = mine ? partner : role === 'partner' ? result : null;
-  const link = shareUrl((myResult ?? result).encoded, theirResult?.encoded);
+  // 한국어판은 지금까지와 같은 주소, 그 밖의 언어는 ?l=언어 (받는 사람의 미리보기·카드·결과 화면이 그 언어로)
+  const link = kktiCopy.link((myResult ?? result).encoded, theirResult?.encoded);
   const sharingMatch = Boolean(myResult && theirResult);
 
   const { type, color, mbti, enneagram } = result;
@@ -231,10 +230,10 @@ function ResultView({ result, partner }: { result: KktiResult; partner: KktiResu
     if (mine && saved && !saved.a) useAppStore.getState().setKkti({ ...saved, a: result.encoded });
   }, [mine, saved, result.encoded]);
 
-  // 결과 카드 그림 주소. 웹은 지금 보고 있는 주소에서 받는다 (KKTI 전용 주소로 들어왔어도 같은 사이트)
+  // 결과 카드 그림 주소. 웹은 지금 보고 있는 주소에서 받는다 (KKTI 전용 주소로 들어왔어도 같은 사이트). 한국어가 아니면 영어 카드
   const cardSite = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin : KKTI_SITE;
-  const storyUrl = cardUrl((myResult ?? result).encoded, theirResult?.encoded, 'story', cardSite);
-  const previewUrl = cardUrl((myResult ?? result).encoded, theirResult?.encoded, 'og', cardSite);
+  const storyUrl = kktiCopy.card((myResult ?? result).encoded, theirResult?.encoded, 'story', cardSite);
+  const previewUrl = kktiCopy.card((myResult ?? result).encoded, theirResult?.encoded, 'og', cardSite);
   // 미리 받아 둔 스토리 카드 — 누르는 순간 바로 공유 시트를 띄우려면 그림이 이미 있어야 한다 (사파리는 기다린 뒤의 공유를 막는다)
   const storyBlob = useRef<Blob | null>(null);
   useEffect(() => {
